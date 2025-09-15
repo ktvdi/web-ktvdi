@@ -62,6 +62,7 @@ def login():
             error = "Nama pengguna atau kata sandi salah."
             return render_template('index.html', error=error)
             
+    # Pastikan pernyataan 'return' di sini memiliki indentasi yang benar.
     return render_template('index.html')
 
 # Route untuk halaman dashboard (hanya bisa diakses setelah login)
