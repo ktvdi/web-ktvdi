@@ -1,3 +1,4 @@
+
 import os
 import firebase_admin
 from firebase_admin import credentials, db
@@ -6,6 +7,8 @@ from flask import Flask, jsonify, request, render_template, redirect, url_for, s
 # Muat variabel lingkungan dari file .env
 from dotenv import load_dotenv
 load_dotenv()
+
+from flask import Flask, render_template
 
 app = Flask(__name__)
 # Tambahkan secret key untuk sesi, sangat penting untuk keamanan
@@ -76,3 +79,10 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+    return render_template('index.html')
+
+@app.route("/about")
+def about():
+    return "Ini adalah halaman about."
+
