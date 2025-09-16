@@ -32,8 +32,10 @@ try:
     })
 
     ref = db.reference('/')
+    print("✅ Firebase berhasil terhubung!")
+
 except Exception as e:
-    print(f"Error initializing Firebase: {e}")
+    print("❌ Error initializing Firebase:", str(e))
     ref = None
 
 
