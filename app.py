@@ -1,14 +1,11 @@
-
 import os
 import firebase_admin
 from firebase_admin import credentials, db
-from flask import Flask, jsonify, request, render_template, redirect, url_for, session
+from flask import Flask, request, render_template, redirect, url_for, session
 
 # Muat variabel lingkungan dari file .env
 from dotenv import load_dotenv
 load_dotenv()
-
-from flask import Flask, render_template
 
 app = Flask(__name__)
 # Tambahkan secret key untuk sesi, sangat penting untuk keamanan
@@ -55,13 +52,14 @@ def login():
         users_ref = ref.child('users')
         user_data = users_ref.get()
 
-        if user_data and username in user_data and user_data[username]['password'] == password:
+        if user_data and username in user_data and user_data.get(username, {}).get('password') == password:
             session['username'] = username
             return redirect(url_for('dashboard'))
         else:
             error = "Nama pengguna atau kata sandi salah."
             return render_template('index.html', error=error)
             
+    # Baris ini dieksekusi saat metode permintaan adalah GET
     return render_template('index.html')
 
 # Route untuk halaman dashboard (hanya bisa diakses setelah login)
@@ -79,10 +77,3 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-    return render_template('index.html')
-
-@app.route("/about")
-def about():
-    return "Ini adalah halaman about."
-
