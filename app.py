@@ -50,7 +50,7 @@ def home():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")  # key di Firebase, contoh: "4dzana"
+        username = request.form.get("username")  # key di Firebase
         password = request.form.get("password")
 
         if ref is None:
@@ -66,7 +66,9 @@ def login():
         # Hash input password sebelum dibandingkan
         input_hash = hashlib.sha256(password.encode()).hexdigest()
         if user_data.get("password") == input_hash:
+            # simpan username & nama lengkap ke session
             session['username'] = username
+            session['nama'] = user_data.get("nama", "Pengguna")
             return redirect(url_for('dashboard'))
         else:
             error = "Password salah."
@@ -77,7 +79,7 @@ def login():
 @app.route("/dashboard")
 def dashboard():
     if 'username' in session:
-        return render_template("dashboard.html", username=session['username'])
+        return render_template("dashboard.html", nama=session['nama'])
     return redirect(url_for('login'))
 
 @app.route("/logout")
