@@ -1,17 +1,17 @@
 import os
+import hashlib
 import firebase_admin
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session
-
-# Muat variabel lingkungan dari file .env
 from dotenv import load_dotenv
+
+# Muat variabel lingkungan
 load_dotenv()
 
 app = Flask(__name__)
-# Tambahkan secret key untuk sesi, sangat penting untuk keamanan
 app.secret_key = os.environ.get('SECRET_KEY')
 
-# Inisialisasi Firebase Admin SDK
+# Inisialisasi Firebase
 try:
     cred = credentials.Certificate({
         "type": "service_account",
@@ -26,70 +26,62 @@ try:
         "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
         "universe_domain": "googleapis.com"
     })
-    
+
     firebase_admin.initialize_app(cred, {
         'databaseURL': os.environ.get('DATABASE_URL')
     })
-    
-    ref = db.reference('/')
 
+    ref = db.reference('/')
 except Exception as e:
     print(f"Error initializing Firebase: {e}")
     ref = None
 
-# Route utama, akan mengalihkan ke halaman login
+
 @app.route("/")
 def home():
     return redirect(url_for('login'))
 
-# Route untuk halaman login (GET dan POST)
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
+        username = request.form.get("username")  # key di Firebase, contoh: "4dzana"
         password = request.form.get("password")
-        
-        users_ref = ref.child('users')
-        user_data = users_ref.get()
 
-        if user_data and username in user_data and user_data.get(username, {}).get('password') == password:
+        if ref is None:
+            return "Firebase tidak terhubung", 500
+
+        users_ref = ref.child('users')
+        user_data = users_ref.child(username).get()
+
+        if not user_data:
+            error = "Username tidak ditemukan."
+            return render_template('index.html', error=error)
+
+        # Hash input password sebelum dibandingkan
+        input_hash = hashlib.sha256(password.encode()).hexdigest()
+        if user_data.get("password") == input_hash:
             session['username'] = username
             return redirect(url_for('dashboard'))
         else:
-            error = "Nama pengguna atau kata sandi salah."
+            error = "Password salah."
             return render_template('index.html', error=error)
-            
-    # Baris ini dieksekusi saat metode permintaan adalah GET
+
     return render_template('index.html')
 
-# Route untuk halaman dashboard (hanya bisa diakses setelah login)
+
 @app.route("/dashboard")
 def dashboard():
     if 'username' in session:
         return f"Selamat datang, {session['username']}! Ini adalah halaman dashboard Anda."
     return redirect(url_for('login'))
 
-# Route untuk logout
+
 @app.route("/logout")
 def logout():
     session.pop('username', None)
     return redirect(url_for('login'))
 
+
 if __name__ == "__main__":
     app.run(debug=True)
-
-@app.route("/test-db")
-def test_db():
-    try:
-        if ref is None:
-            return "Firebase tidak terinisialisasi", 500
-
-        # Baca data root
-        data = ref.get()
-
-        if data:
-            return f"Berhasil terhubung ke Firebase. Data: {data}"
-        else:
-            return "Berhasil terhubung, tapi data kosong."
-    except Exception as e:
-        return f"Gagal terhubung: {e}", 500
