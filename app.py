@@ -43,11 +43,9 @@ except Exception as e:
     print("❌ Error initializing Firebase:", str(e))
     ref = None
 
-
 @app.route("/")
 def home():
     return redirect(url_for('login'))
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -76,13 +74,11 @@ def login():
 
     return render_template('index.html')
 
-
 @app.route("/dashboard")
 def dashboard():
     if 'username' in session:
-        return f"Selamat datang, {session['username']}! Ini adalah halaman dashboard Anda."
+        return render_template("dashboard.html", username=session['username'])
     return redirect(url_for('login'))
-
 
 @app.route("/logout")
 def logout():
