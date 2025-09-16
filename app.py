@@ -8,6 +8,11 @@ from dotenv import load_dotenv
 # Muat variabel lingkungan
 load_dotenv()
 
+print("FIREBASE_PROJECT_ID:", os.environ.get("FIREBASE_PROJECT_ID"))
+print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
+print("FIREBASE_CLIENT_EMAIL:", os.environ.get("FIREBASE_CLIENT_EMAIL"))
+print("PRIVATE_KEY length:", len(os.environ.get("FIREBASE_PRIVATE_KEY", "")))
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY')
 
