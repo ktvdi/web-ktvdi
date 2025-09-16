@@ -45,7 +45,7 @@ except Exception as e:
 
 @app.route("/")
 def home():
-    return redirect(url_for('login'))
+    return render_template("index.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -61,7 +61,7 @@ def login():
 
         if not user_data:
             error = "Username tidak ditemukan."
-            return render_template('index.html', error=error)
+            return render_template('login.html', error=error)
 
         # Hash input password sebelum dibandingkan
         input_hash = hashlib.sha256(password.encode()).hexdigest()
@@ -72,9 +72,9 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             error = "Password salah."
-            return render_template('index.html', error=error)
+            return render_template('login.html', error=error)
 
-    return render_template('index.html')
+    return render_template('login.html')
 
 @app.route("/dashboard")
 def dashboard():
