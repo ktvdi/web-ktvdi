@@ -89,6 +89,22 @@ def logout():
     session.pop('username', None)
     return redirect(url_for('login'))
 
+@app.route("/test-firebase")
+def test_firebase():
+    try:
+        if ref is None:
+            return "❌ Firebase belum terhubung"
+
+        # Ambil semua data root
+        data = ref.get()
+
+        if not data:
+            return "✅ Firebase terhubung, tapi data kosong."
+        return f"✅ Firebase terhubung! Data root:<br><pre>{data}</pre>"
+    except Exception as e:
+        return f"❌ Error akses Firebase: {e}"
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
