@@ -59,7 +59,6 @@ def login():
             error = "Nama pengguna atau kata sandi salah."
             return render_template('index.html', error=error)
             
-    # Baris ini dieksekusi saat metode permintaan adalah GET
     return render_template('index.html')
 
 # Route untuk halaman dashboard (hanya bisa diakses setelah login)
