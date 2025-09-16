@@ -77,3 +77,19 @@ def logout():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+@app.route("/test-db")
+def test_db():
+    try:
+        if ref is None:
+            return "Firebase tidak terinisialisasi", 500
+
+        # Baca data root
+        data = ref.get()
+
+        if data:
+            return f"Berhasil terhubung ke Firebase. Data: {data}"
+        else:
+            return "Berhasil terhubung, tapi data kosong."
+    except Exception as e:
+        return f"Gagal terhubung: {e}", 500
