@@ -166,6 +166,10 @@ def reset_password():
     if request.method == "POST":
         new_password = request.form.get("password")
 
+        if len(new_password) < 8:
+            flash("Password harus minimal 8 karakter.", "error")
+            return render_template("reset-password.html")
+
         # hash password (pakai sha256 agar sama kayak login-mu sebelumnya)
         hashed_pw = hashlib.sha256(new_password.encode()).hexdigest()
 
