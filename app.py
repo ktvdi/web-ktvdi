@@ -2,9 +2,9 @@ import os
 import hashlib
 import firebase_admin
 from firebase_admin import credentials, db
-from flask import Flask, request, render_template, redirect, url_for, session
+from flask import Flask, request, render_template, redirect, url_for, session, flash
 from dotenv import load_dotenv
-from flask_mail import Mail
+from flask_mail import Mail, Message
 
 # Muat variabel lingkungan
 load_dotenv()
