@@ -10,11 +10,6 @@ from flask_mail import Mail, Message
 # Muat variabel lingkungan
 load_dotenv()
 
-print("FIREBASE_PROJECT_ID:", os.environ.get("FIREBASE_PROJECT_ID"))
-print("DATABASE_URL:", os.environ.get("DATABASE_URL"))
-print("FIREBASE_CLIENT_EMAIL:", os.environ.get("FIREBASE_CLIENT_EMAIL"))
-print("PRIVATE_KEY length:", len(os.environ.get("FIREBASE_PRIVATE_KEY", "")))
-
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
@@ -45,6 +40,7 @@ except Exception as e:
     print("❌ Error initializing Firebase:", str(e))
     ref = None
 
+# Inisialisasi Email
 app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
 app.config['MAIL_PORT'] = int(os.environ.get("MAIL_PORT", 587))
 app.config['MAIL_USE_TLS'] = True
@@ -184,7 +180,6 @@ def reset_password():
         return redirect(url_for("login"))
 
     return render_template("reset-password.html")
-
 
 @app.route("/dashboard")
 def dashboard():
