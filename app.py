@@ -164,15 +164,19 @@ def verify_otp():
 def reset_password():
     uid = session.get("reset_uid")
     if not uid:
+        flash("Sesi reset password tidak ditemukan!", "error")
         return redirect(url_for("forgot_password"))
 
     if request.method == "POST":
         new_password = request.form.get("password")
 
-        # update password di Firebase
-        db.reference(f"users/{uid}/password").set(new_password)
+        # hash password (pakai sha256 agar sama kayak login-mu sebelumnya)
+        hashed_pw = hashlib.sha256(new_password.encode()).hexdigest()
 
-        # hapus OTP
+        user_ref = db.reference(f"users/{uid}")
+        user_ref.update({"password": hashed_pw})
+
+        # hapus OTP setelah reset
         db.reference(f"otp/{uid}").delete()
         session.pop("reset_uid", None)
 
@@ -180,6 +184,7 @@ def reset_password():
         return redirect(url_for("login"))
 
     return render_template("reset-password.html")
+
 
 @app.route("/dashboard")
 def dashboard():
