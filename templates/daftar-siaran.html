@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beranda Organisasi</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header"></div>
+
+  <div class="container">
+    <h1>📺 Daftar Siaran TV Digital</h1>
+  
+    <form method="POST">
+      <!-- Filter Provinsi -->
+      <label for="provinsi">Pilih Provinsi:</label>
+      <select name="provinsi" id="provinsi" onchange="this.form.submit()">
+        <option value="">-- Pilih Provinsi --</option>
+        {% for kode, nama in provinsi_list.items() %}
+          <option value="{{ nama }}" {% if nama == selected_provinsi %}selected{% endif %}>{{ nama }}</option>
+        {% endfor %}
+      </select>
+  
+      <!-- Jika provinsi dipilih -->
+      {% if selected_provinsi %}
+        {% if selected_provinsi not in siaran_data %}
+          <p class="info">Data siaran belum ada. Silahkan <a href="/login">login</a> untuk menambahkan data siaran.</p>
+        {% else %}
+          <!-- Filter Wilayah -->
+          <label for="wilayah">Pilih Wilayah Layanan:</label>
+          <select name="wilayah" id="wilayah" onchange="this.form.submit()">
+            <option value="">-- Pilih Wilayah --</option>
+            {% for wilayah in siaran_data[selected_provinsi].keys() %}
+              <option value="{{ wilayah }}" {% if wilayah == selected_wilayah %}selected{% endif %}>{{ wilayah }}</option>
+            {% endfor %}
+          </select>
+        {% endif %}
+      {% endif %}
+  
+      <!-- Filter MUX -->
+      {% if selected_wilayah %}
+        <label for="mux">Pilih Penyelenggara MUX:</label>
+        <select name="mux" id="mux" onchange="this.form.submit()">
+          <option value="">-- Pilih MUX --</option>
+          {% for mux in siaran_data[selected_provinsi][selected_wilayah].keys() %}
+            <option value="{{ mux }}" {% if mux == selected_mux %}selected{% endif %}>{{ mux }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+    </form>
+  
+    <!-- Tampilkan hasil -->
+    {% if mux_data %}
+      <div class="card">
+        <h3>{{ selected_mux }}</h3>
+        <p><strong>Update Terakhir:</strong> {{ mux_data.last_updated_date }} {{ mux_data.last_updated_time }}</p>
+        <p><strong>Oleh:</strong> {{ mux_data.last_updated_by_name }} ({{ mux_data.last_updated_by_username }})</p>
+        <h4>Daftar Siaran:</h4>
+        <ul>
+          {% for idx, channel in mux_data.siaran.items() %}
+            <li>{{ channel }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+  
+
+  <!-- Footer -->
+  <div id="footer"></div>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
