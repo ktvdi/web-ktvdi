@@ -2,6 +2,7 @@ import os
 import hashlib
 import firebase_admin
 import random
+import re
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash
 from dotenv import load_dotenv
@@ -184,6 +185,111 @@ def reset_password():
         return redirect(url_for("login"))
 
     return render_template("reset-password.html")
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        nama = request.form.get("nama")
+        email = request.form.get("email")
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        # --- Validasi ---
+        if len(password) < 8:
+            flash("Password harus minimal 8 karakter.", "error")
+            return render_template("register.html")
+
+        if not re.match(r"^[a-z0-9]+$", username):
+            flash("Username hanya boleh huruf kecil dan angka.", "error")
+            return render_template("register.html")
+
+        users_ref = db.reference("users")
+        users = users_ref.get() or {}
+
+        # cek email sudah terdaftar
+        for uid, user in users.items():
+            if user.get("email", "").lower() == email.lower():
+                flash("Email sudah terdaftar!", "error")
+                return render_template("register.html")
+
+        # cek username sudah dipakai
+        if username in users:
+            flash("Username sudah dipakai!", "error")
+            return render_template("register.html")
+
+        # hash password
+        hashed_pw = hashlib.sha256(password.encode()).hexdigest()
+
+        # generate OTP
+        otp = str(random.randint(100000, 999999))
+
+        # simpan ke pending_users di Firebase
+        db.reference(f"pending_users/{username}").set({
+            "nama": nama,
+            "email": email,
+            "password": hashed_pw,
+            "otp": otp
+        })
+
+        # kirim OTP ke email
+        try:
+            msg = Message("Kode OTP Verifikasi Akun", recipients=[email])
+            msg.body = f"""
+Halo {nama},
+
+Terima kasih sudah mendaftar.
+Kode OTP Anda: {otp}
+
+Gunakan kode ini untuk mengaktifkan akun Anda.
+"""
+            mail.send(msg)
+
+            session["pending_username"] = username
+            flash("Kode OTP telah dikirim ke email Anda. Silakan verifikasi.", "success")
+            return redirect(url_for("verify_register"))
+
+        except Exception as e:
+            flash(f"Gagal mengirim email OTP: {str(e)}", "error")
+
+    return render_template("register.html")
+
+@app.route("/verify-register", methods=["GET", "POST"])
+def verify_register():
+    username = session.get("pending_username")
+    if not username:
+        flash("Sesi pendaftaran tidak ditemukan.", "error")
+        return redirect(url_for("register"))
+
+    pending_ref = db.reference(f"pending_users/{username}")
+    pending_data = pending_ref.get()
+
+    if not pending_data:
+        flash("Data pendaftaran tidak ditemukan.", "error")
+        return redirect(url_for("register"))
+
+    if request.method == "POST":
+        otp_input = request.form.get("otp")
+
+        if pending_data.get("otp") == otp_input:
+            # pindahkan ke users
+            db.reference(f"users/{username}").set({
+                "nama": pending_data["nama"],
+                "email": pending_data["email"],
+                "password": pending_data["password"],
+                "points": 0
+            })
+
+            # hapus dari pending
+            pending_ref.delete()
+            session.pop("pending_username", None)
+
+            flash("Akun berhasil diverifikasi! Silakan login.", "success")
+            return redirect(url_for("login"))
+        else:
+            flash("Kode OTP salah!", "error")
+
+    return render_template("verify-register.html", username=username)
+
 
 @app.route("/dashboard")
 def dashboard():
