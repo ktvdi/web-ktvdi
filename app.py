@@ -289,6 +289,33 @@ def verify_register():
 
     return render_template("verify-register.html", username=username)
 
+@app.route("/daftar-siaran", methods=["GET", "POST"])
+def daftar_siaran():
+    # Ambil daftar provinsi
+    provinsi_ref = db.reference("provinsi")
+    provinsi_list = provinsi_ref.get() or {}
+
+    # Ambil data siaran
+    siaran_ref = db.reference("siaran")
+    siaran_data = siaran_ref.get() or {}
+
+    selected_provinsi = request.form.get("provinsi")
+    selected_wilayah = request.form.get("wilayah")
+    selected_mux = request.form.get("mux")
+
+    provinsi_data = siaran_data.get(selected_provinsi, {}) if selected_provinsi else {}
+    wilayah_data = provinsi_data.get(selected_wilayah, {}) if selected_wilayah else {}
+    mux_data = wilayah_data.get(selected_mux, {}) if selected_mux else {}
+
+    return render_template(
+        "daftar-siaran.html",
+        provinsi_list=provinsi_list,
+        siaran_data=siaran_data,
+        selected_provinsi=selected_provinsi,
+        selected_wilayah=selected_wilayah,
+        selected_mux=selected_mux,
+        mux_data=mux_data
+    )
 
 @app.route("/dashboard")
 def dashboard():
