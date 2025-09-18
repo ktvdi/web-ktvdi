@@ -291,36 +291,43 @@ def verify_register():
 
 @app.route("/daftar-siaran", methods=["GET", "POST"])
 def daftar_siaran():
-    try:
-        # Ambil daftar provinsi dari Firebase
-        provinsi_ref = db.reference("provinsi")
-        provinsi_list = provinsi_ref.get() or {}
+    # Ambil daftar provinsi
+    provinsi_ref = db.reference("provinsi")
+    provinsi_list = provinsi_ref.get() or {}
 
-        # Ambil data siaran dari Firebase
-        siaran_ref = db.reference("siaran")
-        siaran_data = siaran_ref.get() or {}
+    # Ambil data siaran
+    siaran_ref = db.reference("siaran")
+    siaran_data = siaran_ref.get() or {}
 
-        # Ambil pilihan user dari form
-        selected_provinsi = request.form.get("provinsi")
-        selected_wilayah = request.form.get("wilayah")
-        selected_mux = request.form.get("mux")
+    # Ambil filter pilihan user
+    selected_provinsi = request.form.get("provinsi")
+    selected_wilayah = request.form.get("wilayah")
+    selected_mux = request.form.get("mux")
 
-        # Pastikan akses data aman
-        provinsi_data = siaran_data.get(selected_provinsi, {}) if selected_provinsi else {}
-        wilayah_data = provinsi_data.get(selected_wilayah, {}) if selected_wilayah else {}
-        mux_data = wilayah_data.get(selected_mux, {}) if selected_mux else {}
+    # Siapkan data
+    provinsi_data = siaran_data.get(selected_provinsi, {}) if selected_provinsi else {}
+    wilayah_data = provinsi_data.get(selected_wilayah, {}) if selected_wilayah else {}
+    mux_data = wilayah_data.get(selected_mux, {}) if selected_mux else {}
 
-        return render_template(
-            "daftar-siaran.html",
-            provinsi_list=provinsi_list,
-            siaran_data=siaran_data,
-            selected_provinsi=selected_provinsi,
-            selected_wilayah=selected_wilayah,
-            selected_mux=selected_mux,
-            mux_data=mux_data
-        )
-    except Exception as e:
-        return f"❌ Gagal memuat halaman: {str(e)}", 500
+    # Normalisasi daftar siaran → selalu jadi list
+    siaran_list = []
+    if mux_data:
+        raw_siaran = mux_data.get("siaran", {})
+        if isinstance(raw_siaran, dict):
+            siaran_list = list(raw_siaran.values())
+        elif isinstance(raw_siaran, list):
+            siaran_list = raw_siaran
+
+    return render_template(
+        "daftar-siaran.html",
+        provinsi_list=provinsi_list,
+        siaran_data=siaran_data,
+        selected_provinsi=selected_provinsi,
+        selected_wilayah=selected_wilayah,
+        selected_mux=selected_mux,
+        mux_data=mux_data,
+        siaran_list=siaran_list
+    )
 
 @app.route("/dashboard")
 def dashboard():
