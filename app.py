@@ -95,18 +95,18 @@ def forgot_password():
         users_ref = db.reference("users")  # asumsinya data user ada di node "users"
         users = users_ref.get()
 
-        found = None
+        found_uid, found_user = None, None
         for uid, user in users.items():
             if "email" in user and user["email"] == email:
-                found = uid
+                found_uid, found_user = uid, user
                 break
 
-        if found:
+        if found_uid:
             # generate OTP 6 digit
             otp = str(random.randint(100000, 999999))
 
             # simpan OTP ke Firebase
-            db.reference(f"otp/{found}").set({
+            db.reference(f"otp/{found_uid}").set({
                 "email": email,
                 "otp": otp
             })
@@ -114,11 +114,19 @@ def forgot_password():
             # kirim OTP via email
             try:
                 msg = Message("Kode OTP Reset Password", recipients=[email])
-                msg.body = f"Kode OTP Anda adalah: {otp}. Gunakan kode ini untuk reset password."
+                msg.body = f"""
+Halo {found_user.get('username', '')},
+
+Anda meminta reset password.
+Kode OTP Anda adalah: {otp}
+
+Jika Anda tidak meminta reset, abaikan email ini.
+"""
                 mail.send(msg)
 
-                flash("Kode OTP telah dikirim ke email Anda", "success")
-                session["reset_uid"] = found  # simpan user id ke session
+                # tampilkan pesan + username sebagai pengingat
+                flash(f"Kode OTP telah dikirim ke email Anda. Username terdaftar: {found_user.get('username','')}", "success")
+                session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
 
             except Exception as e:
@@ -128,6 +136,7 @@ def forgot_password():
             flash("Email tidak ditemukan di database!", "error")
 
     return render_template("forgot-password.html")
+
 
 # --- Halaman verifikasi OTP ---
 @app.route("/verify-otp", methods=["GET", "POST"])
