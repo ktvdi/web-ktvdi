@@ -86,6 +86,91 @@ def login():
 
     return render_template('login.html')
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("identifier")
+
+        # cek email di Firebase
+        users_ref = db.reference("users")  # asumsinya data user ada di node "users"
+        users = users_ref.get()
+
+        found = None
+        for uid, user in users.items():
+            if "email" in user and user["email"] == email:
+                found = uid
+                break
+
+        if found:
+            # generate OTP 6 digit
+            otp = str(random.randint(100000, 999999))
+
+            # simpan OTP ke Firebase
+            db.reference(f"otp/{found}").set({
+                "email": email,
+                "otp": otp
+            })
+
+            # kirim OTP via email
+            try:
+                msg = Message("Kode OTP Reset Password", recipients=[email])
+                msg.body = f"Kode OTP Anda adalah: {otp}. Gunakan kode ini untuk reset password."
+                mail.send(msg)
+
+                flash("Kode OTP telah dikirim ke email Anda", "success")
+                session["reset_uid"] = found  # simpan user id ke session
+                return redirect(url_for("verify_otp"))
+
+            except Exception as e:
+                flash(f"Gagal mengirim email: {str(e)}", "error")
+
+        else:
+            flash("Email tidak ditemukan di database!", "error")
+
+    return render_template("forgot-password.html")
+
+# --- Halaman verifikasi OTP ---
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    uid = session.get("reset_uid")
+    if not uid:
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        otp_input = request.form.get("otp")
+
+        # ambil OTP dari Firebase
+        otp_data = db.reference(f"otp/{uid}").get()
+        if otp_data and otp_data["otp"] == otp_input:
+            flash("OTP benar, silakan ganti password Anda.", "success")
+            return redirect(url_for("reset_password"))
+        else:
+            flash("OTP salah atau kadaluarsa.", "error")
+
+    return render_template("verify-otp.html")
+
+# --- Halaman reset password ---
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    uid = session.get("reset_uid")
+    if not uid:
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        new_password = request.form.get("password")
+
+        # update password di Firebase
+        db.reference(f"users/{uid}/password").set(new_password)
+
+        # hapus OTP
+        db.reference(f"otp/{uid}").delete()
+        session.pop("reset_uid", None)
+
+        flash("Password berhasil direset, silakan login kembali.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset-password.html")
+
 @app.route("/dashboard")
 def dashboard():
     if 'username' in session:
