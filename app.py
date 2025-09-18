@@ -284,7 +284,6 @@ def verify_register():
             session.pop("pending_username", None)
 
             flash("Akun berhasil diverifikasi! Silakan login.", "success")
-            return redirect(url_for("login"))
         else:
             flash("Kode OTP salah!", "error")
 
