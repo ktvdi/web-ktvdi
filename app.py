@@ -291,30 +291,33 @@ def verify_register():
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
-    # Ambil semua provinsi untuk dropdown awal
-    provinsi_list = {p: p for p in siaran_data.keys()}
+    ref = db.reference("siaran_data")
+    siaran_data = ref.get() or {}
+    provinsi_list = list(siaran_data.keys())
     return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
 
-# API untuk AJAX
 @app.route("/get_wilayah")
 def get_wilayah():
     provinsi = request.args.get("provinsi")
-    wilayah_list = list(siaran_data.get(provinsi, {}).keys())
-    return jsonify({"wilayah": wilayah_list})
+    ref = db.reference(f"siaran_data/{provinsi}")
+    wilayah_data = ref.get() or {}
+    return jsonify({"wilayah": list(wilayah_data.keys())})
 
 @app.route("/get_mux")
 def get_mux():
     provinsi = request.args.get("provinsi")
     wilayah = request.args.get("wilayah")
-    mux_list = list(siaran_data.get(provinsi, {}).get(wilayah, {}).keys())
-    return jsonify({"mux": mux_list})
+    ref = db.reference(f"siaran_data/{provinsi}/{wilayah}")
+    mux_data = ref.get() or {}
+    return jsonify({"mux": list(mux_data.keys())})
 
 @app.route("/get_siaran")
 def get_siaran():
     provinsi = request.args.get("provinsi")
     wilayah = request.args.get("wilayah")
     mux = request.args.get("mux")
-    mux_data = siaran_data.get(provinsi, {}).get(wilayah, {}).get(mux, {})
+    ref = db.reference(f"siaran_data/{provinsi}/{wilayah}/{mux}")
+    mux_data = ref.get() or {}
     return jsonify({
         "last_updated_date": mux_data.get("last_updated_date"),
         "last_updated_time": mux_data.get("last_updated_time"),
