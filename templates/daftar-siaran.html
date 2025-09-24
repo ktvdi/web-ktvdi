@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <title>📺 Daftar Siaran TV Digital</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #0077cc; }
+        select { margin: 10px 0; padding: 5px; }
+        .card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            background: #f9f9f9;
+        }
+        ul { margin: 0; padding-left: 20px; }
+    </style>
 </head>
 <body>
     <h1>📺 Daftar Siaran TV Digital</h1>
@@ -29,7 +42,6 @@
         <option value="">-- Pilih MUX --</option>
     </select>
 
-    <hr>
     <div id="detail"></div>
 
     <script>
@@ -71,14 +83,15 @@
                 var mux = $(this).val();
                 if (mux) {
                     $.getJSON("/get_siaran", { provinsi: provinsi, wilayah: wilayah, mux: mux }, function(data) {
-                        var html = "<h3>📡 Detail " + mux + "</h3>";
-                        html += "<p>📅 Update: " + data.last_updated_date + " " + data.last_updated_time + "</p>";
-                        html += "<p>👤 Oleh: " + data.last_updated_by_name + " (" + data.last_updated_by_username + ")</p>";
-                        html += "<h4>📺 Siaran:</h4><ul>";
+                        var html = '<div class="card">';
+                        html += "<h3>📡 " + mux + "</h3>";
+                        html += "<p><strong>Update:</strong> " + (data.last_updated_date || "-") + " " + (data.last_updated_time || "") + "</p>";
+                        html += "<p><strong>Oleh:</strong> " + (data.last_updated_by_name || "-") + " (" + (data.last_updated_by_username || "-") + ")</p>";
+                        html += "<h4>📺 Daftar Siaran:</h4><ul>";
                         $.each(data.siaran, function(i, s) {
                             html += "<li>" + s + "</li>";
                         });
-                        html += "</ul>";
+                        html += "</ul></div>";
                         $("#detail").html(html);
                     });
                 }
