@@ -3,81 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Beranda Organisasi</title>
+  <title>Daftar Siaran TV Digital</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
   <!-- Header -->
   <div id="header"></div>
-  
+
   <div class="container">
     <h1>📺 Daftar Siaran TV Digital</h1>
-  
-    <form method="POST">
-      <!-- Filter Provinsi -->
-      <label for="provinsi">Pilih Provinsi:</label>
-      <select name="provinsi" id="provinsi" onchange="this.form.submit()">
-        <option value="">-- Pilih Provinsi --</option>
-        {% for kode, nama in provinsi_list.items() %}
-          <option value="{{ nama }}" {% if nama == selected_provinsi %}selected{% endif %}>{{ nama }}</option>
-        {% endfor %}
-      </select>
-  
-      <!-- Jika provinsi dipilih -->
-      {% if selected_provinsi %}
-        {% if selected_provinsi not in siaran_data %}
-          <p class="info">Data siaran belum ada. Silahkan <a href="/login">login</a> untuk menambahkan data siaran.</p>
-        {% else %}
-          <!-- Filter Wilayah -->
-          <label for="wilayah">Pilih Wilayah Layanan:</label>
-          <select name="wilayah" id="wilayah" onchange="this.form.submit()">
-            <option value="">-- Pilih Wilayah --</option>
-            {% for wilayah in siaran_data[selected_provinsi].keys() %}
-              <option value="{{ wilayah }}" {% if wilayah == selected_wilayah %}selected{% endif %}>{{ wilayah }}</option>
-            {% endfor %}
-          </select>
-        {% endif %}
-      {% endif %}
-  
-      <!-- Filter MUX -->
-      {% if selected_wilayah %}
-        <label for="mux">Pilih Penyelenggara MUX:</label>
-        <select name="mux" id="mux" onchange="this.form.submit()">
-          <option value="">-- Pilih MUX --</option>
-          {% for mux in siaran_data[selected_provinsi][selected_wilayah].keys() %}
-            <option value="{{ mux }}" {% if mux == selected_mux %}selected{% endif %}>{{ mux }}</option>
-          {% endfor %}
-        </select>
-      {% endif %}
-    </form>
-  
-    <!-- Tampilkan hasil -->
-    {% if mux_data %}
-      <div class="card">
-        <h3>{{ selected_mux }}</h3>
-        <p>
-          <strong>Update Terakhir:</strong>
-          {{ mux_data.get("last_updated_date", "-") }}
-          {{ mux_data.get("last_updated_time", "") }}
-        </p>
-        <p>
-          <strong>Oleh:</strong>
-          {{ mux_data.get("last_updated_by_name", "-") }}
-          ({{ mux_data.get("last_updated_by_username", "-") }})
-        </p>
-  
-        <h4>Daftar Siaran:</h4>
-        <ul>
-          {% for channel in siaran_list %}
-            <li>{{ channel }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
+
+    <!-- Filter Dropdown -->
+    <label for="provinsi">Pilih Provinsi:</label>
+    <select id="provinsi">
+      <option value="">-- Pilih Provinsi --</option>
+      {% for kode, nama in provinsi_list.items() %}
+        <option value="{{ nama }}">{{ nama }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="wilayah">Pilih Wilayah Layanan:</label>
+    <select id="wilayah" disabled>
+      <option value="">-- Pilih Wilayah --</option>
+    </select>
+
+    <label for="mux">Pilih Penyelenggara MUX:</label>
+    <select id="mux" disabled>
+      <option value="">-- Pilih MUX --</option>
+    </select>
+
+    <!-- Hasil tampil di sini -->
+    <div class="card" id="result"></div>
   </div>
-  
+
   <!-- Footer -->
   <div id="footer"></div>
-  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const provinsiSelect = document.getElementById("provinsi");
+      const wilayahSelect = document.getElementById("wilayah");
+      const muxSelect = document.getElementById("mux");
+      const resultContainer = document.getElementById("result");
+
+      // Fungsi reset dropdown
+      function resetSelect(select, placeholder) {
+        select.innerHTML = `<option value="">-- ${placeholder} --</option>`;
+        select.disabled = true;
+      }
+
+      // Saat pilih provinsi
+      provinsiSelect.addEventListener("change", async () => {
+        const provinsi = provinsiSelect.value;
+        resetSelect(wilayahSelect, "Pilih Wilayah");
+        resetSelect(muxSelect, "Pilih MUX");
+        resultContainer.innerHTML = "";
+
+        if (!provinsi) return;
+
+        const res = await fetch(`/get_wilayah?provinsi=${provinsi}`);
+        const data = await res.json();
+
+        if (data.wilayah.length > 0) {
+          wilayahSelect.disabled = false;
+          data.wilayah.forEach(w => {
+            wilayahSelect.innerHTML += `<option value="${w}">${w}</option>`;
+          });
+        }
+      });
+
+      // Saat pilih wilayah
+      wilayahSelect.addEventListener("change", async () => {
+        const provinsi = provinsiSelect.value;
+        const wilayah = wilayahSelect.value;
+        resetSelect(muxSelect, "Pilih MUX");
+        resultContainer.innerHTML = "";
+
+        if (!wilayah) return;
+
+        const res = await fetch(`/get_mux?provinsi=${provinsi}&wilayah=${wilayah}`);
+        const data = await res.json();
+
+        if (data.mux.length > 0) {
+          muxSelect.disabled = false;
+          data.mux.forEach(m => {
+            muxSelect.innerHTML += `<option value="${m}">${m}</option>`;
+          });
+        }
+      });
+
+      // Saat pilih mux
+      muxSelect.addEventListener("change", async () => {
+        const provinsi = provinsiSelect.value;
+        const wilayah = wilayahSelect.value;
+        const mux = muxSelect.value;
+        resultContainer.innerHTML = "";
+
+        if (!mux) return;
+
+        const res = await fetch(`/get_siaran?provinsi=${provinsi}&wilayah=${wilayah}&mux=${mux}`);
+        const data = await res.json();
+
+        resultContainer.innerHTML = `
+          <h3>${mux}</h3>
+          <p><strong>Update Terakhir:</strong> ${data.last_updated_date || "-"} ${data.last_updated_time || ""}</p>
+          <p><strong>Oleh:</strong> ${data.last_updated_by_name || "-"} (${data.last_updated_by_username || "-"})</p>
+          <h4>Daftar Siaran:</h4>
+          <ul>${data.siaran.map(ch => `<li>${ch}</li>`).join("")}</ul>
+        `;
+      });
+    });
+  </script>
 </body>
 </html>
