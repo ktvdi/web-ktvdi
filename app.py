@@ -289,6 +289,13 @@ def verify_register():
 
     return render_template("verify-register.html", username=username)
 
+@app.route("/daftar-siaran")
+def daftar_siaran():
+    # Ambil semua provinsi untuk dropdown awal
+    provinsi_list = {p: p for p in siaran_data.keys()}
+    return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
+
+# API untuk AJAX
 @app.route("/get_wilayah")
 def get_wilayah():
     provinsi = request.args.get("provinsi")
