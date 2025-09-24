@@ -291,7 +291,7 @@ def verify_register():
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
-    ref = db.reference("siaran_data")
+    ref = db.reference("siaran")
     siaran_data = ref.get() or {}
     provinsi_list = list(siaran_data.keys())
     return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
@@ -299,7 +299,7 @@ def daftar_siaran():
 @app.route("/get_wilayah")
 def get_wilayah():
     provinsi = request.args.get("provinsi")
-    ref = db.reference(f"siaran_data/{provinsi}")
+    ref = db.reference(f"siaran/{provinsi}")
     wilayah_data = ref.get() or {}
     return jsonify({"wilayah": list(wilayah_data.keys())})
 
@@ -307,7 +307,7 @@ def get_wilayah():
 def get_mux():
     provinsi = request.args.get("provinsi")
     wilayah = request.args.get("wilayah")
-    ref = db.reference(f"siaran_data/{provinsi}/{wilayah}")
+    ref = db.reference(f"siaran/{provinsi}/{wilayah}")
     mux_data = ref.get() or {}
     return jsonify({"mux": list(mux_data.keys())})
 
@@ -316,14 +316,14 @@ def get_siaran():
     provinsi = request.args.get("provinsi")
     wilayah = request.args.get("wilayah")
     mux = request.args.get("mux")
-    ref = db.reference(f"siaran_data/{provinsi}/{wilayah}/{mux}")
+    ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}")
     mux_data = ref.get() or {}
     return jsonify({
         "last_updated_date": mux_data.get("last_updated_date"),
         "last_updated_time": mux_data.get("last_updated_time"),
         "last_updated_by_name": mux_data.get("last_updated_by_name"),
         "last_updated_by_username": mux_data.get("last_updated_by_username"),
-        "siaran": mux_data.get("siaran", [])
+        "siaran": list(mux_data.get("siaran", {}).values())
     })
 
 @app.route("/dashboard")
