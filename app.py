@@ -291,39 +291,46 @@ def verify_register():
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
+    # Ambil daftar provinsi dari Firebase
     ref = db.reference("siaran")
-    siaran_data = ref.get() or {}
-    provinsi_list = list(siaran_data.keys())
+    data = ref.get() or {}
+    provinsi_list = list(data.keys())
     return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
 
+# 🔹 API ambil daftar wilayah
 @app.route("/get_wilayah")
 def get_wilayah():
     provinsi = request.args.get("provinsi")
     ref = db.reference(f"siaran/{provinsi}")
-    wilayah_data = ref.get() or {}
-    return jsonify({"wilayah": list(wilayah_data.keys())})
+    data = ref.get() or {}
+    wilayah_list = list(data.keys())
+    return jsonify({"wilayah": wilayah_list})
 
+# 🔹 API ambil daftar MUX
 @app.route("/get_mux")
 def get_mux():
     provinsi = request.args.get("provinsi")
     wilayah = request.args.get("wilayah")
     ref = db.reference(f"siaran/{provinsi}/{wilayah}")
-    mux_data = ref.get() or {}
-    return jsonify({"mux": list(mux_data.keys())})
+    data = ref.get() or {}
+    mux_list = list(data.keys())
+    return jsonify({"mux": mux_list})
 
+# 🔹 API ambil detail siaran
 @app.route("/get_siaran")
 def get_siaran():
     provinsi = request.args.get("provinsi")
     wilayah = request.args.get("wilayah")
     mux = request.args.get("mux")
     ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}")
-    mux_data = ref.get() or {}
+    data = ref.get() or {}
+
     return jsonify({
-        "last_updated_date": mux_data.get("last_updated_date"),
-        "last_updated_time": mux_data.get("last_updated_time"),
-        "last_updated_by_name": mux_data.get("last_updated_by_name"),
-        "last_updated_by_username": mux_data.get("last_updated_by_username"),
-        "siaran": list(mux_data.get("siaran", {}).values())
+        "last_updated_by_name": data.get("last_updated_by_name", "-"),
+        "last_updated_by_username": data.get("last_updated_by_username", "-"),
+        "last_updated_date": data.get("last_updated_date", "-"),
+        "last_updated_time": data.get("last_updated_time", "-"),
+        "siaran": data.get("siaran", [])
     })
 
 @app.route("/dashboard")
