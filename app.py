@@ -292,9 +292,9 @@ def verify_register():
 @app.route("/daftar-siaran")
 def daftar_siaran():
     # Ambil daftar provinsi dari Firebase
-    ref = db.reference("siaran")
+    ref = db.reference("provinsi")
     data = ref.get() or {}
-    provinsi_list = list(data.keys())
+    provinsi_list = list(data.values())  # misalnya: {"bengkulu": "Bengkulu"} → ambil value
     return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
 
 # 🔹 API ambil daftar wilayah
