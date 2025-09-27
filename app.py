@@ -358,7 +358,7 @@ def tambah_siaran():
 
     # update last_updated
     ref.parent.update({
-        "last_updated_by_name": session['user'],
+        "last_updated_by_name": session['nama'],
         "last_updated_by_username": session['username'],
         "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
         "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
@@ -375,6 +375,7 @@ def hapus_siaran(provinsi, wilayah, mux, index):
 @app.route("/logout")
 def logout():
     session.pop('username', None)
+    session.pop('nama', None)
     return redirect(url_for('login'))
 
 @app.route("/test-firebase")
