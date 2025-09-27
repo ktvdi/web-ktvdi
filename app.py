@@ -307,7 +307,7 @@ def get_siaran():
 
 # Function to hash the password using SHA-256
 def hash_password(password):
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    return hashlib.sha256(password.encode()).hexdigest()
 
 # Route for login page
 @app.route('/login', methods=['GET', 'POST'])
