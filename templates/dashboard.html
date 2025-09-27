@@ -2,132 +2,183 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kelola Data Siaran</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Manajemen Siaran</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7faff;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+
+    header, footer {
+      text-align: center;
+      background: #1e90ff;
+      color: white;
+      padding: 10px 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    h1, h2, h3, h4 {
+      color: #1e90ff;
+    }
+
+    .card {
+      background: #f9f9f9;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 15px;
+    }
+
+    form label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    form input, form select, form button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    form button {
+      background: #1e90ff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    form button:hover {
+      background: #0d6efd;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 15px;
+    }
+
+    li {
+      padding: 4px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hapus-btn {
+      color: red;
+      text-decoration: none;
+      margin-left: 10px;
+      font-size: 14px;
+    }
+
+    .hapus-btn:hover {
+      text-decoration: underline;
+    }
+
+    .logout-btn {
+      display: inline-block;
+      padding: 6px 14px;
+      background: red;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      float: right;
+    }
+  </style>
 </head>
 <body>
-  <div class="dashboard-container">
-    <!-- Header -->
-    <header>
-      <h1>Halo, {{ nama }} 👋</h1>
-      <p>Username Anda: <strong>{{ username }}</strong></p>
-      <p>Kelola data siaran di database</p>
-    </header>
 
-    <!-- Main Content -->
-    <main>
-      <!-- Form tambah siaran -->
-      <div class="card">
-        <h2>➕ Tambah Siaran</h2>
-        <form method="POST" action="{{ url_for('tambah_siaran') }}">
-          <label for="provinsi">Provinsi:</label>
-          <select id="provinsi" name="provinsi" required>
-            {% if data_siaran %}
-              {% for provinsi in data_siaran.keys() %}
-                <option value="{{ provinsi }}">{{ provinsi }}</option>
-              {% endfor %}
-            {% else %}
-              <option value="" disabled selected>Tidak ada provinsi (data kosong)</option>
-            {% endif %}
-          </select>
+  <header>
+    <h1>Halo, {{ nama }} 👋</h1>
+    <a href="{{ url_for('logout') }}" class="logout-btn">Keluar</a>
+    <div style="clear:both;"></div>
+  </header>
 
-          <label for="wilayah_num">Nomor Wilayah:</label>
-          <input type="number" id="wilayah_num" name="wilayah_num" placeholder="Contoh: 1" required>
+  <div class="container">
+    <div class="card">
+      <h2>📺 Daftar Siaran TV Digital</h2>
 
-          <label for="wilayah">Wilayah Layanan:</label>
-          <input type="text" id="wilayah" name="wilayah" readonly required>
+      {% if data_siaran %}
+        {% for provinsi, wilayah_data in (data_siaran or {}).items() %}
+          <h3>🏙️ {{ provinsi }}</h3>
 
-          <label for="uhf">Nomor UHF:</label>
-          <input type="number" id="uhf" name="uhf" placeholder="Contoh: 30" required>
-
-          <label for="nama_mux">Nama MUX:</label>
-          <input type="text" id="nama_mux" name="nama_mux" placeholder="Contoh: Indosiar" required>
-
-          <label for="mux">MUX:</label>
-          <input type="text" id="mux" name="mux" readonly required>
-
-          <label for="nama_siaran">Nama Siaran:</label>
-          <input type="text" id="nama_siaran" name="nama_siaran" required>
-
-          <button type="submit">Tambah</button>
-        </form>
-      </div>
-
-      <!-- Daftar siaran -->
-      <div class="card">
-        <h2>📺 Daftar Siaran</h2>
-        {% if data_siaran %}
-          {% for provinsi, wilayah_data in (data_siaran or {}).items() %}
-            <h3>{{ provinsi }}</h3>
+          {% if wilayah_data %}
             {% for wilayah, mux_data in (wilayah_data or {}).items() %}
-              <h4>{{ wilayah }}</h4>
-              {% for mux, isi in (mux_data or {}).items() %}
-                <div class="mux-box">
-                  <strong>{{ mux }}</strong>
-                  <ul>
-                    {# Jika isi dict dan punya key 'siaran' (format baru) #}
-                    {% if isi is mapping and 'siaran' in isi %}
-                      {% for i, ch in isi['siaran'].items() %}
-                        <li>
-                          {{ ch }}
-                          <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}" onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
-                        </li>
-                      {% endfor %}
+              <h4>🌍 {{ wilayah }}</h4>
 
-                    {# Jika isi langsung berupa list (format lama) #}
-                    {% elif isi is iterable and isi is not string %}
-                      {% for i in range(isi|length) %}
-                        <li>
-                          {{ isi[i] }}
-                          <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}" onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
-                        </li>
-                      {% endfor %}
-
-                    {% else %}
-                      <li><em>Tidak ada siaran</em></li>
-                    {% endif %}
-                  </ul>
-                </div>
-              {% endfor %}
+              {% if mux_data %}
+                {% for mux, isi in (mux_data or {}).items() %}
+                  <div class="mux-box">
+                    <strong>{{ mux }}</strong>
+                    <ul>
+                      {% if isi is mapping and 'siaran' in isi %}
+                        {% for i, ch in (isi['siaran'] or {}).items() %}
+                          <li>
+                            {{ ch }}
+                            <a class="hapus-btn"
+                               href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}"
+                               onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
+                          </li>
+                        {% endfor %}
+                      {% else %}
+                        <li><em>Belum ada daftar siaran.</em></li>
+                      {% endif %}
+                    </ul>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p><em>Belum ada MUX terdaftar.</em></p>
+              {% endif %}
             {% endfor %}
-          {% endfor %}
-        {% else %}
-          <p>Belum ada data siaran.</p>
-        {% endif %}
-      </div>
-    </main>
+          {% else %}
+            <p><em>Belum ada wilayah di provinsi ini.</em></p>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <p>Belum ada data siaran.</p>
+      {% endif %}
+    </div>
 
-    <!-- Footer -->
-    <footer>
-      <a href="{{ url_for('logout') }}" class="logout-btn">Keluar</a>
-    </footer>
+    <!-- Form Tambah Siaran -->
+    <div class="card">
+      <h2>➕ Tambah Siaran Baru</h2>
+      <form method="POST" action="{{ url_for('tambah_siaran') }}">
+        <label for="provinsi">Provinsi:</label>
+        <input type="text" name="provinsi" id="provinsi" required placeholder="Contoh: Bengkulu">
+
+        <label for="wilayah">Wilayah Layanan:</label>
+        <input type="text" name="wilayah" id="wilayah" required placeholder="Contoh: Bengkulu-1">
+
+        <label for="mux">Penyelenggara MUX:</label>
+        <input type="text" name="mux" id="mux" required placeholder="Contoh: UHF 30 - Indosiar">
+
+        <label for="nama_siaran">Nama Siaran:</label>
+        <input type="text" name="nama_siaran" id="nama_siaran" required placeholder="Contoh: INDOSIAR">
+
+        <button type="submit">Simpan Siaran</button>
+      </form>
+    </div>
   </div>
 
-  <script>
-    // Auto-generate Wilayah
-    const provEl = document.getElementById('provinsi');
-    const wilayahNumEl = document.getElementById('wilayah_num');
-    function updateWilayah() {
-      const prov = provEl ? provEl.value : '';
-      const num = wilayahNumEl ? wilayahNumEl.value : '';
-      const out = document.getElementById('wilayah');
-      if (out) out.value = (prov && num) ? (prov + '-' + num) : '';
-    }
-    if (provEl) provEl.addEventListener('change', updateWilayah);
-    if (wilayahNumEl) wilayahNumEl.addEventListener('input', updateWilayah);
+  <footer>
+    <p>&copy; 2025 Karang Taruna TV Digital Indonesia</p>
+  </footer>
 
-    // Auto-generate MUX
-    const uhfEl = document.getElementById('uhf');
-    const namaMuxEl = document.getElementById('nama_mux');
-    function updateMux() {
-      const uhf = uhfEl ? uhfEl.value : '';
-      const nama = namaMuxEl ? namaMuxEl.value : '';
-      const out = document.getElementById('mux');
-      if (out) out.value = (uhf && nama) ? ("UHF " + uhf + " - " + nama) : '';
-    }
-    if (uhfEl) uhfEl.addEventListener('input', updateMux);
-    if (namaMuxEl) namaMuxEl.addEventListener('input', updateMux);
-  </script>
 </body>
 </html>
