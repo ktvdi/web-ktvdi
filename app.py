@@ -310,7 +310,7 @@ def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 # Route for login page
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/', methods=['GET', 'POST'])
 def login():
     error_message = None
 
@@ -321,12 +321,11 @@ def login():
         # Hash the entered password
         hashed_password = hash_password(password)
 
-        # Fetch user data from Firebase
+        # Fetch user data from Firebase Realtime Database
         ref = db.reference('users')
         users = ref.get()
 
-        for user in users.each():
-            user_data = user.val()
+        for user_key, user_data in users.items():
             # Compare hashed password with the stored hashed password
             if user_data['email'] == username and user_data['password'] == hashed_password:
                 session['user'] = username
