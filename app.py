@@ -305,7 +305,7 @@ def get_siaran():
         "siaran": data.get("siaran", [])
     })
 
-# Function to hash the password using SHA-256
+# Function to hash the password (without using UTF-8 encoding)
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -320,12 +320,14 @@ def login():
 
         # Hash the entered password
         hashed_password = hash_password(password)
+        print(f"Hashed entered password: {hashed_password}")  # Debugging the hash
 
         # Fetch user data from Firebase Realtime Database
         ref = db.reference('users')
         users = ref.get()
 
         for user_key, user_data in users.items():
+            print(f"Checking user: {user_data['email']} with stored hash: {user_data['password']}")  # Debugging the user data
             # Compare hashed password with the stored hashed password
             if user_data['email'] == username and user_data['password'] == hashed_password:
                 session['user'] = username
