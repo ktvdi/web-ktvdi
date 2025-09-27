@@ -336,13 +336,21 @@ def get_siaran():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'nama' not in session:   # cek yang benar
+    # Cek apakah user sudah login
+    if 'nama' not in session or 'username' not in session:
         return redirect(url_for('login'))
 
+    # Ambil data siaran dari Firebase
     ref = db.reference('siaran')
     data_siaran = ref.get() or {}
-    return render_template("dashboard.html", nama=session['nama'], data_siaran=data_siaran)
 
+    # Render halaman dashboard
+    return render_template(
+        "dashboard.html",
+        nama=session['nama'],          # untuk sapaan
+        username=session['username'],  # jika ingin ditampilkan/di-log
+        data_siaran=data_siaran
+    )
 
 @app.route('/tambah_siaran', methods=['POST'])
 def tambah_siaran():
