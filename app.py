@@ -331,17 +331,21 @@ def login():
             # Compare hashed password with the stored hashed password
             if user_data['email'] == username and user_data['password'] == hashed_password:
                 session['user'] = username
+                print(f"Login successful. Session user: {session['user']}")  # Debugging session
                 return redirect(url_for('dashboard', name=user_data['nama']))
 
         # If we get here, it means login failed
         error_message = "Username atau password salah"
+        print("Login failed")  # Debugging the failure
 
     return render_template('login.html', error=error_message)
 
 # Route for the dashboard
 @app.route('/dashboard/<name>', methods=['GET'])
 def dashboard(name):
+    # Check if user is logged in
     if 'user' not in session:
+        print("User not logged in. Redirecting to login.")  # Debugging session check
         return redirect(url_for('login'))
 
     return render_template('dashboard.html', name=name)
