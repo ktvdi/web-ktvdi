@@ -333,11 +333,42 @@ def get_siaran():
         "siaran": data.get("siaran", [])
     })
 
-@app.route("/dashboard")
+@app.route('/dashboard')
 def dashboard():
-    if 'username' in session:
-        return render_template("dashboard.html", nama=session['nama'])
-    return redirect(url_for('login'))
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    ref = db.reference('siaran')
+    data_siaran = ref.get() or {}
+    return render_template("dashboard.html", nama=session['user'], data_siaran=data_siaran)
+
+@app.route('/tambah_siaran', methods=['POST'])
+def tambah_siaran():
+    provinsi = request.form['provinsi']
+    wilayah = request.form['wilayah']   # sudah otomatis "Provinsi-1"
+    mux = request.form['mux']           # sudah otomatis "UHF xx - Nama MUX"
+    nama_siaran = request.form['nama_siaran']
+
+    ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}/siaran")
+    data = ref.get() or {}
+    next_index = str(len(data))
+    ref.child(next_index).set(nama_siaran)
+
+    # update last_updated
+    ref.parent.update({
+        "last_updated_by_name": session['user'],
+        "last_updated_by_username": session['username'],
+        "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+        "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
+    })
+
+    return redirect(url_for('dashboard'))
+
+@app.route('/hapus_siaran/<provinsi>/<wilayah>/<mux>/<index>')
+def hapus_siaran(provinsi, wilayah, mux, index):
+    ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}/siaran/{index}")
+    ref.delete()
+    return redirect(url_for('dashboard'))
 
 @app.route("/logout")
 def logout():
