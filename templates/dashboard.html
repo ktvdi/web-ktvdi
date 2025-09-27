@@ -3,34 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>Kelola Data Siaran</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="dashboard-container">
         <header>
             <h1>Halo, {{ nama }} 👋</h1>
-            <p>Selamat datang di dashboard Anda</p>
+            <p>Kelola data siaran di database</p>
         </header>
 
         <main>
+            <!-- Form tambah siaran -->
             <div class="card">
-                <h2>📊 Statistik</h2>
-                <p>Contoh konten dashboard di sini.</p>
+                <h2>➕ Tambah Siaran</h2>
+                <form method="POST" action="{{ url_for('tambah_siaran') }}">
+                    <!-- Dropdown Provinsi -->
+                    <label for="provinsi">Provinsi:</label>
+                    <select id="provinsi" name="provinsi" required>
+                        {% for provinsi in data_siaran.keys() %}
+                            <option value="{{ provinsi }}">{{ provinsi }}</option>
+                        {% endfor %}
+                    </select>
+            
+                    <!-- Input nomor wilayah -->
+                    <label for="wilayah_num">Nomor Wilayah:</label>
+                    <input type="number" id="wilayah_num" name="wilayah_num" placeholder="Contoh: 1" required>
+            
+                    <!-- Hasil otomatis wilayah -->
+                    <label for="wilayah">Wilayah Layanan:</label>
+                    <input type="text" id="wilayah" name="wilayah" readonly required>
+            
+                    <!-- Input channel MUX -->
+                    <label for="uhf">Nomor UHF:</label>
+                    <input type="number" id="uhf" name="uhf" placeholder="Contoh: 30" required>
+            
+                    <label for="nama_mux">Nama MUX:</label>
+                    <input type="text" id="nama_mux" name="nama_mux" placeholder="Contoh: Indosiar" required>
+            
+                    <!-- Hasil otomatis MUX -->
+                    <label for="mux">MUX:</label>
+                    <input type="text" id="mux" name="mux" readonly required>
+            
+                    <!-- Nama Siaran -->
+                    <label for="nama_siaran">Nama Siaran:</label>
+                    <input type="text" id="nama_siaran" name="nama_siaran" required>
+            
+                    <button type="submit">Tambah</button>
+                </form>
             </div>
 
+            <!-- Daftar siaran -->
             <div class="card">
-                <h2>🔔 Notifikasi</h2>
-                <ul>
-                    <li>Event</li>
-                    <li>Anda punya 10 poin tersisa</li>
-                </ul>
+                <h2>📺 Daftar Siaran</h2>
+                {% for provinsi, wilayah_data in data_siaran.items() %}
+                    <h3>{{ provinsi }}</h3>
+                    {% for wilayah, mux_data in wilayah_data.items() %}
+                        <h4>{{ wilayah }}</h4>
+                        {% for mux, isi in mux_data.items() %}
+                            <div class="mux-box">
+                                <strong>{{ mux }}</strong>
+                                <ul>
+                                    {% for i, ch in isi['siaran'].items() %}
+                                        <li>
+                                            {{ ch }}
+                                            <a href="{{ url_for('edit_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}">✏️ Edit</a>
+                                            <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}">🗑️ Hapus</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                {% endfor %}
             </div>
         </main>
 
         <footer>
             <a href="{{ url_for('logout') }}" class="logout-btn">Keluar</a>
         </footer>
+        <script>
+            // Auto-generate Wilayah
+            document.getElementById('provinsi').addEventListener('change', updateWilayah);
+            document.getElementById('wilayah_num').addEventListener('input', updateWilayah);
+        
+            function updateWilayah() {
+                const prov = document.getElementById('provinsi').value;
+                const num = document.getElementById('wilayah_num').value;
+                if (prov && num) {
+                    document.getElementById('wilayah').value = prov + '-' + num;
+                }
+            }
+        
+            // Auto-generate MUX
+            document.getElementById('uhf').addEventListener('input', updateMux);
+            document.getElementById('nama_mux').addEventListener('input', updateMux);
+        
+            function updateMux() {
+                const uhf = document.getElementById('uhf').value;
+                const nama = document.getElementById('nama_mux').value;
+                if (uhf && nama) {
+                    document.getElementById('mux').value = "UHF " + uhf + " - " + nama;
+                }
+            }
+        </script>
     </div>
 </body>
 </html>
