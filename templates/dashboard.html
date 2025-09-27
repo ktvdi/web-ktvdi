@@ -8,12 +8,14 @@
 </head>
 <body>
   <div class="dashboard-container">
+    <!-- Header -->
     <header>
       <h1>Halo, {{ nama }} 👋</h1>
       <p>Username Anda: <strong>{{ username }}</strong></p>
       <p>Kelola data siaran di database</p>
     </header>
 
+    <!-- Main Content -->
     <main>
       <!-- Form tambah siaran -->
       <div class="card">
@@ -64,26 +66,24 @@
                 <div class="mux-box">
                   <strong>{{ mux }}</strong>
                   <ul>
-                    {% set siaran_list = isi.get('siaran', {}) %}
-                    
-                    {# Jika dict (format baru) #}
-                    {% if siaran_list is mapping %}
-                      {% for i, ch in siaran_list.items() %}
+                    {# Jika isi dict dan punya key 'siaran' (format baru) #}
+                    {% if isi is mapping and 'siaran' in isi %}
+                      {% for i, ch in isi['siaran'].items() %}
                         <li>
                           {{ ch }}
                           <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}" onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
                         </li>
                       {% endfor %}
-                    
-                    {# Jika list (format lama) #}
-                    {% elif siaran_list is iterable %}
-                      {% for i in range(siaran_list|length) %}
+
+                    {# Jika isi langsung berupa list (format lama) #}
+                    {% elif isi is iterable and isi is not string %}
+                      {% for i in range(isi|length) %}
                         <li>
-                          {{ siaran_list[i] }}
+                          {{ isi[i] }}
                           <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}" onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
                         </li>
                       {% endfor %}
-                    
+
                     {% else %}
                       <li><em>Tidak ada siaran</em></li>
                     {% endif %}
@@ -98,6 +98,7 @@
       </div>
     </main>
 
+    <!-- Footer -->
     <footer>
       <a href="{{ url_for('logout') }}" class="logout-btn">Keluar</a>
     </footer>
