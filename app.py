@@ -335,12 +335,13 @@ def get_siaran():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user' not in session:
+    if 'nama' not in session:   # cek yang benar
         return redirect(url_for('login'))
 
     ref = db.reference('siaran')
     data_siaran = ref.get() or {}
-    return render_template("dashboard.html", nama=session['user'], data_siaran=data_siaran)
+    return render_template("dashboard.html", nama=session['nama'], data_siaran=data_siaran)
+
 
 @app.route('/tambah_siaran', methods=['POST'])
 def tambah_siaran():
