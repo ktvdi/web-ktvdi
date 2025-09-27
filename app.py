@@ -344,21 +344,24 @@ def login():
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
         password = request.form.get("password") or ""
+        
         if not username or not password:
             flash("Isi username dan password.")
-            return render_template("dashboard.html", view="login")
-
+            return render_template("login.html", error="Username atau password tidak boleh kosong.")
+        
         # Ambil data user di node users/{username}
         user_node = db.child("users").child(username).get().val()
+        
         if not user_node:
             flash("Username tidak ditemukan.")
-            return render_template("dashboard.html", view="login")
-
+            return render_template("login.html", error="Username tidak ditemukan.")
+        
         stored_pwd = user_node.get("password", "")
+        
         if not check_password(password, stored_pwd):
             flash("Password salah.")
-            return render_template("dashboard.html", view="login")
-
+            return render_template("login.html", error="Password salah.")
+        
         # Sukses login -> simpan ke session
         session["user"] = {
             "username": username,
@@ -367,7 +370,7 @@ def login():
         }
         return redirect(url_for("dashboard"))
 
-    return render_template("dashboard.html", view="login")
+    return render_template("login.html")
 
 @app.route("/logout")
 def logout():
@@ -377,11 +380,6 @@ def logout():
 # =========================
 # 4) DASHBOARD
 # =========================
-@app.route("/")
-@require_login
-def root():
-    return redirect(url_for("dashboard"))
-
 @app.route("/dashboard", methods=["GET"])
 @require_login
 def dashboard():
