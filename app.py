@@ -312,6 +312,8 @@ def hash_password(password):
 # Route for login page
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    error_message = None
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -329,9 +331,10 @@ def login():
                 session['user'] = username
                 return redirect(url_for('dashboard', name=user_data['nama']))
 
-        return "Invalid username or password", 401
-    
-    return render_template('login.html')
+        # If we get here, it means login failed
+        error_message = "Username atau password salah"
+
+    return render_template('login.html', error=error_message)
 
 # Route for the dashboard
 @app.route('/dashboard/<name>', methods=['GET'])
