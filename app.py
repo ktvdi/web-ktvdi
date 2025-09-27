@@ -334,52 +334,97 @@ def get_siaran():
         "siaran": data.get("siaran", [])
     })
 
+from datetime import datetime
+# ... (import lain tetap)
+
+# ---------------- DASHBOARD ----------------
 @app.route('/dashboard')
 def dashboard():
-    # Cek apakah user sudah login
-    if 'nama' not in session or 'username' not in session:
-        return redirect(url_for('login'))
+    try:
+        # Pastikan sudah login
+        if 'nama' not in session or 'username' not in session:
+            return redirect(url_for('login'))
 
-    # Ambil data siaran dari Firebase
-    ref = db.reference('siaran')
-    data_siaran = ref.get() or {}
+        # Ambil data siaran
+        ref = db.reference('siaran')
+        data_siaran = ref.get() or {}
 
-    # Render halaman dashboard
-    return render_template(
-        "dashboard.html",
-        nama=session['nama'],          # untuk sapaan
-        username=session['username'],  # jika ingin ditampilkan/di-log
-        data_siaran=data_siaran
-    )
+        # debug log (akan tampil di terminal)
+        app.logger.debug("DATA_SIARAN: %r", data_siaran)
 
+        return render_template(
+            "dashboard.html",
+            nama=session['nama'],
+            username=session['username'],
+            data_siaran=data_siaran
+        )
+    except Exception as e:
+        app.logger.exception("Error ketika membuka /dashboard")
+        # Tampilkan pesan error singkat agar tidak jadi 500 kosong — sementara (hapus di prod)
+        return f"Error load dashboard: {e}", 500
+
+
+# ---------------- TAMBAH SIARAN ----------------
 @app.route('/tambah_siaran', methods=['POST'])
 def tambah_siaran():
-    provinsi = request.form['provinsi']
-    wilayah = request.form['wilayah']   # sudah otomatis "Provinsi-1"
-    mux = request.form['mux']           # sudah otomatis "UHF xx - Nama MUX"
-    nama_siaran = request.form['nama_siaran']
+    # proteksi: harus login
+    if 'nama' not in session or 'username' not in session:
+        flash("Silakan login terlebih dahulu.", "error")
+        return redirect(url_for('login'))
 
-    ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}/siaran")
-    data = ref.get() or {}
-    next_index = str(len(data))
-    ref.child(next_index).set(nama_siaran)
+    try:
+        provinsi = request.form.get('provinsi')
+        wilayah = request.form.get('wilayah')
+        mux = request.form.get('mux')
+        nama_siaran = request.form.get('nama_siaran')
 
-    # update last_updated
-    ref.parent.update({
-        "last_updated_by_name": session['nama'],
-        "last_updated_by_username": session['username'],
-        "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
-        "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
-    })
+        if not all([provinsi, wilayah, mux, nama_siaran]):
+            flash("Form tidak lengkap.", "error")
+            return redirect(url_for('dashboard'))
+
+        node_ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}/siaran")
+        data = node_ref.get() or {}
+        next_index = str(len(data))
+        node_ref.child(next_index).set(nama_siaran)
+
+        # update metadata di node MUX (parent)
+        parent_ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}")
+        parent_ref.update({
+            "last_updated_by_name": session['nama'],
+            "last_updated_by_username": session['username'],
+            "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+            "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
+        })
+
+        flash("Siaran berhasil ditambahkan.", "success")
+
+    except Exception as e:
+        app.logger.exception("Gagal tambah siaran")
+        flash(f"Gagal menambah siaran: {e}", "error")
 
     return redirect(url_for('dashboard'))
 
-@app.route('/hapus_siaran/<provinsi>/<wilayah>/<mux>/<index>')
+
+# ---------------- HAPUS SIARAN ----------------
+# gunakan path converter untuk mux supaya jika ada karakter khusus (mis. spasi atau slash) tidak memecah route
+@app.route('/hapus_siaran/<provinsi>/<wilayah>/<path:mux>/<index>')
 def hapus_siaran(provinsi, wilayah, mux, index):
-    ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}/siaran/{index}")
-    ref.delete()
+    if 'nama' not in session or 'username' not in session:
+        flash("Silakan login terlebih dahulu.", "error")
+        return redirect(url_for('login'))
+
+    try:
+        # index bisa string, langsung hapus
+        db.reference(f"siaran/{provinsi}/{wilayah}/{mux}/siaran/{index}").delete()
+        flash("Siaran dihapus.", "success")
+    except Exception as e:
+        app.logger.exception("Gagal hapus siaran")
+        flash(f"Gagal menghapus siaran: {e}", "error")
+
     return redirect(url_for('dashboard'))
 
+
+# ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
     session.pop('username', None)
