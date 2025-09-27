@@ -322,7 +322,8 @@ def login():
         hashed_password = hash_password(password)
 
         # Fetch user data from Firebase
-        users = db.child('users').get()
+        ref = db.reference('users')
+        users = ref.get()
 
         for user in users.each():
             user_data = user.val()
