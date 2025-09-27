@@ -305,77 +305,47 @@ def get_siaran():
         "siaran": data.get("siaran", [])
     })
 
-# =========================
-# 2) UTIL
-# =========================
-MUX_REGEX = re.compile(r"^UHF\s\d{2}\s-\s.+$")
+# Function to hash the password using SHA-256
+def hash_password(password):
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
-def sha256_hex(s: str) -> str:
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
-
-def check_password(input_password: str, stored_value: str) -> bool:
-    """
-    Prioritas: bandingkan SHA-256 hex. Jika tidak cocok, coba bandingkan plain text
-    (untuk berjaga-jaga bila DB menyimpan password apa adanya).
-    """
-    if not isinstance(stored_value, str):
-        return False
-    return sha256_hex(input_password) == stored_value or input_password == stored_value
-
-def wib_now():
-    tz = pytz.timezone("Asia/Jakarta")
-    now = datetime.now(tz)
-    return now.strftime("%d-%m-%Y"), now.strftime("%H:%M:%S WIB")
-
-def require_login(fn):
-    from functools import wraps
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if "user" not in session:
-            return redirect(url_for("login"))
-        return fn(*args, **kwargs)
-    return wrapper
-
-# =========================
-# 3) AUTH (USERNAME/PASSWORD)
-# =========================
-@app.route("/login", methods=["GET", "POST"])
+# Route for login page
+@app.route('/', methods=['GET', 'POST'])
 def login():
-    if request.method == "POST":
-        username = (request.form.get("username") or "").strip()
-        password = request.form.get("password") or ""
-        
-        if not username or not password:
-            flash("Isi username dan password.")
-            return render_template("login.html", error="Username atau password tidak boleh kosong.")
-        
-        # Ambil data user di node users/{username}
-        user_node = db.child("users").child(username).get().val()
-        
-        if not user_node:
-            flash("Username tidak ditemukan.")
-            return render_template("login.html", error="Username tidak ditemukan.")
-        
-        stored_pwd = user_node.get("password", "")
-        
-        if not check_password(password, stored_pwd):
-            flash("Password salah.")
-            return render_template("login.html", error="Password salah.")
-        
-        # Sukses login -> simpan ke session
-        session["user"] = {
-            "username": username,
-            "name": user_node.get("nama") or username,
-            "email": user_node.get("email") or "",
-        }
-        return redirect(url_for("dashboard"))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
 
-    return render_template("login.html")
+        # Hash the entered password
+        hashed_password = hash_password(password)
 
-@app.route("/logout")
+        # Fetch user data from Firebase
+        users = db.child('users').get()
+
+        for user in users.each():
+            user_data = user.val()
+            # Compare hashed password with the stored hashed password
+            if user_data['email'] == username and user_data['password'] == hashed_password:
+                session['user'] = username
+                return redirect(url_for('dashboard', name=user_data['nama']))
+
+        return "Invalid username or password", 401
+    
+    return render_template('login.html')
+
+# Route for the dashboard
+@app.route('/dashboard/<name>', methods=['GET'])
+def dashboard(name):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    return render_template('dashboard.html', name=name)
+
+# Logout route
+@app.route('/logout')
 def logout():
-    session.pop("user", None)
-    return redirect(url_for("login"))
+    session.pop('user', None)
+    return redirect(url_for('login'))
 
 @app.route("/test-firebase")
 def test_firebase():
