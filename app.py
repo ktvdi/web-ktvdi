@@ -56,10 +56,11 @@ mail = Mail(app)
 def home():
     return render_template("index.html")
 
+# ---------------- LOGIN ----------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")  # key di Firebase
+        username = request.form.get("username")
         password = request.form.get("password")
 
         if ref is None:
@@ -72,12 +73,12 @@ def login():
             error = "Username tidak ditemukan."
             return render_template('login.html', error=error)
 
-        # Hash input password sebelum dibandingkan
+        # Hash input password
         input_hash = hashlib.sha256(password.encode()).hexdigest()
         if user_data.get("password") == input_hash:
-            # simpan username & nama lengkap ke session
+            # simpan ke session
             session['username'] = username
-            session['nama'] = user_data.get("nama", "Pengguna")
+            session['user'] = user_data.get("nama", "Pengguna")
             return redirect(url_for('dashboard'))
         else:
             error = "Password salah."
@@ -85,6 +86,7 @@ def login():
 
     return render_template('login.html')
 
+# ---------------- FORGOT PASSWORD ----------------
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -107,7 +109,6 @@ def forgot_password():
             })
 
             try:
-                # username = uid, nama = field di dalam
                 username = found_uid
                 nama = found_user.get("nama", "")
 
@@ -137,7 +138,7 @@ Jika Anda tidak meminta reset, abaikan email ini.
 
     return render_template("forgot-password.html")
 
-# --- Halaman verifikasi OTP ---
+# ---------------- VERIFY OTP ----------------
 @app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():
     uid = session.get("reset_uid")
@@ -146,8 +147,6 @@ def verify_otp():
 
     if request.method == "POST":
         otp_input = request.form.get("otp")
-
-        # ambil OTP dari Firebase
         otp_data = db.reference(f"otp/{uid}").get()
         if otp_data and otp_data["otp"] == otp_input:
             flash("OTP benar, silakan ganti password Anda.", "success")
@@ -157,7 +156,7 @@ def verify_otp():
 
     return render_template("verify-otp.html")
 
-# --- Halaman reset password ---
+# ---------------- RESET PASSWORD ----------------
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     uid = session.get("reset_uid")
@@ -172,13 +171,10 @@ def reset_password():
             flash("Password harus minimal 8 karakter.", "error")
             return render_template("reset-password.html")
 
-        # hash password (pakai sha256 agar sama kayak login-mu sebelumnya)
         hashed_pw = hashlib.sha256(new_password.encode()).hexdigest()
-
         user_ref = db.reference(f"users/{uid}")
         user_ref.update({"password": hashed_pw})
 
-        # hapus OTP setelah reset
         db.reference(f"otp/{uid}").delete()
         session.pop("reset_uid", None)
 
@@ -187,6 +183,7 @@ def reset_password():
 
     return render_template("reset-password.html")
 
+# ---------------- REGISTER ----------------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -195,7 +192,6 @@ def register():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        # --- Validasi ---
         if len(password) < 8:
             flash("Password harus minimal 8 karakter.", "error")
             return render_template("register.html")
@@ -207,24 +203,18 @@ def register():
         users_ref = db.reference("users")
         users = users_ref.get() or {}
 
-        # cek email sudah terdaftar
         for uid, user in users.items():
             if user.get("email", "").lower() == email.lower():
                 flash("Email sudah terdaftar!", "error")
                 return render_template("register.html")
 
-        # cek username sudah dipakai
         if username in users:
             flash("Username sudah dipakai!", "error")
             return render_template("register.html")
 
-        # hash password
         hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-
-        # generate OTP
         otp = str(random.randint(100000, 999999))
 
-        # simpan ke pending_users di Firebase
         db.reference(f"pending_users/{username}").set({
             "nama": nama,
             "email": email,
@@ -232,7 +222,6 @@ def register():
             "otp": otp
         })
 
-        # kirim OTP ke email
         try:
             msg = Message("Kode OTP Verifikasi Akun", recipients=[email])
             msg.body = f"""
@@ -272,7 +261,6 @@ def verify_register():
         otp_input = request.form.get("otp")
 
         if pending_data.get("otp") == otp_input:
-            # pindahkan ke users
             db.reference(f"users/{username}").set({
                 "nama": pending_data["nama"],
                 "email": pending_data["email"],
@@ -280,7 +268,6 @@ def verify_register():
                 "points": 0
             })
 
-            # hapus dari pending
             pending_ref.delete()
             session.pop("pending_username", None)
 
@@ -290,65 +277,22 @@ def verify_register():
 
     return render_template("verify-register.html", username=username)
 
-@app.route("/daftar-siaran")
-def daftar_siaran():
-    # Ambil daftar provinsi dari Firebase
-    ref = db.reference("provinsi")
-    data = ref.get() or {}
-    provinsi_list = list(data.values())  # misalnya: {"bengkulu": "Bengkulu"} → ambil value
-    return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
-
-# 🔹 API ambil daftar wilayah
-@app.route("/get_wilayah")
-def get_wilayah():
-    provinsi = request.args.get("provinsi")
-    ref = db.reference(f"siaran/{provinsi}")
-    data = ref.get() or {}
-    wilayah_list = list(data.keys())
-    return jsonify({"wilayah": wilayah_list})
-
-# 🔹 API ambil daftar MUX
-@app.route("/get_mux")
-def get_mux():
-    provinsi = request.args.get("provinsi")
-    wilayah = request.args.get("wilayah")
-    ref = db.reference(f"siaran/{provinsi}/{wilayah}")
-    data = ref.get() or {}
-    mux_list = list(data.keys())
-    return jsonify({"mux": mux_list})
-
-# 🔹 API ambil detail siaran
-@app.route("/get_siaran")
-def get_siaran():
-    provinsi = request.args.get("provinsi")
-    wilayah = request.args.get("wilayah")
-    mux = request.args.get("mux")
-    ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}")
-    data = ref.get() or {}
-
-    return jsonify({
-        "last_updated_by_name": data.get("last_updated_by_name", "-"),
-        "last_updated_by_username": data.get("last_updated_by_username", "-"),
-        "last_updated_date": data.get("last_updated_date", "-"),
-        "last_updated_time": data.get("last_updated_time", "-"),
-        "siaran": data.get("siaran", [])
-    })
-
+# ---------------- DASHBOARD ----------------
 @app.route('/dashboard')
 def dashboard():
-    if 'nama' not in session:   # cek yang benar
+    if 'user' not in session:
         return redirect(url_for('login'))
 
     ref = db.reference('siaran')
     data_siaran = ref.get() or {}
-    return render_template("dashboard.html", nama=session['nama'], data_siaran=data_siaran)
+    return render_template("dashboard.html", nama=session['user'], data_siaran=data_siaran)
 
-
+# ---------------- CRUD SIARAN ----------------
 @app.route('/tambah_siaran', methods=['POST'])
 def tambah_siaran():
     provinsi = request.form['provinsi']
-    wilayah = request.form['wilayah']   # sudah otomatis "Provinsi-1"
-    mux = request.form['mux']           # sudah otomatis "UHF xx - Nama MUX"
+    wilayah = request.form['wilayah']
+    mux = request.form['mux']
     nama_siaran = request.form['nama_siaran']
 
     ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}/siaran")
@@ -356,7 +300,6 @@ def tambah_siaran():
     next_index = str(len(data))
     ref.child(next_index).set(nama_siaran)
 
-    # update last_updated
     ref.parent.update({
         "last_updated_by_name": session['user'],
         "last_updated_by_username": session['username'],
@@ -372,20 +315,21 @@ def hapus_siaran(provinsi, wilayah, mux, index):
     ref.delete()
     return redirect(url_for('dashboard'))
 
+# ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
     session.pop('username', None)
+    session.pop('user', None)
     return redirect(url_for('login'))
 
+# ---------------- TEST FIREBASE ----------------
 @app.route("/test-firebase")
 def test_firebase():
     try:
         if ref is None:
             return "❌ Firebase belum terhubung"
 
-        # Ambil semua data root
         data = ref.get()
-
         if not data:
             return "✅ Firebase terhubung, tapi data kosong."
         return f"✅ Firebase terhubung! Data root:<br><pre>{data}</pre>"
