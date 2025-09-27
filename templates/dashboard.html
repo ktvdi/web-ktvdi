@@ -1,119 +1,132 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kelola Data Siaran</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kelola Data Siaran</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Header -->
-        <header>
-            <h1>Halo, {{ nama }} 👋</h1>
-            <p>Username Anda: <strong>{{ username }}</strong></p>
-            <p>Kelola data siaran di database</p>
-        </header>
+  <div class="dashboard-container">
+    <header>
+      <h1>Halo, {{ nama }} 👋</h1>
+      <p>Username Anda: <strong>{{ username }}</strong></p>
+      <p>Kelola data siaran di database</p>
+    </header>
 
-        <!-- Main Content -->
-        <main>
-            <!-- Form tambah siaran -->
-            <div class="card">
-                <h2>➕ Tambah Siaran</h2>
-                <form method="POST" action="{{ url_for('tambah_siaran') }}">
-                    <!-- Dropdown Provinsi -->
-                    <label for="provinsi">Provinsi:</label>
-                    <select id="provinsi" name="provinsi" required>
-                        {% for provinsi in data_siaran.keys() %}
-                            <option value="{{ provinsi }}">{{ provinsi }}</option>
-                        {% endfor %}
-                    </select>
-            
-                    <!-- Input nomor wilayah -->
-                    <label for="wilayah_num">Nomor Wilayah:</label>
-                    <input type="number" id="wilayah_num" name="wilayah_num" placeholder="Contoh: 1" required>
-            
-                    <!-- Hasil otomatis wilayah -->
-                    <label for="wilayah">Wilayah Layanan:</label>
-                    <input type="text" id="wilayah" name="wilayah" readonly required>
-            
-                    <!-- Input channel MUX -->
-                    <label for="uhf">Nomor UHF:</label>
-                    <input type="number" id="uhf" name="uhf" placeholder="Contoh: 30" required>
-            
-                    <label for="nama_mux">Nama MUX:</label>
-                    <input type="text" id="nama_mux" name="nama_mux" placeholder="Contoh: Indosiar" required>
-            
-                    <!-- Hasil otomatis MUX -->
-                    <label for="mux">MUX:</label>
-                    <input type="text" id="mux" name="mux" readonly required>
-            
-                    <!-- Nama Siaran -->
-                    <label for="nama_siaran">Nama Siaran:</label>
-                    <input type="text" id="nama_siaran" name="nama_siaran" required>
-            
-                    <button type="submit">Tambah</button>
-                </form>
-            </div>
+    <main>
+      <!-- Form tambah siaran -->
+      <div class="card">
+        <h2>➕ Tambah Siaran</h2>
+        <form method="POST" action="{{ url_for('tambah_siaran') }}">
+          <label for="provinsi">Provinsi:</label>
+          <select id="provinsi" name="provinsi" required>
+            {% if data_siaran %}
+              {% for provinsi in data_siaran.keys() %}
+                <option value="{{ provinsi }}">{{ provinsi }}</option>
+              {% endfor %}
+            {% else %}
+              <option value="" disabled selected>Tidak ada provinsi (data kosong)</option>
+            {% endif %}
+          </select>
 
-            <!-- Daftar siaran -->
-            <div class="card">
-                <h2>📺 Daftar Siaran</h2>
-                {% for provinsi, wilayah_data in (data_siaran or {}).items() %}
-                    <h3>{{ provinsi }}</h3>
-                    {% for wilayah, mux_data in (wilayah_data or {}).items() %}
-                        <h4>{{ wilayah }}</h4>
-                        {% for mux, isi in (mux_data or {}).items() %}
-                            <div class="mux-box">
-                                <strong>{{ mux }}</strong>
-                                <ul>
-                                    {% for i, ch in (isi.get('siaran', {}) or {}).items() %}
-                                        <li>
-                                            {{ ch }}
-                                            <!-- Tombol hapus -->
-                                            <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}" onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        {% endfor %}
-                    {% endfor %}
-                {% else %}
-                    <p>Belum ada data siaran.</p>
-                {% endfor %}
-            </div>
-        </main>
+          <label for="wilayah_num">Nomor Wilayah:</label>
+          <input type="number" id="wilayah_num" name="wilayah_num" placeholder="Contoh: 1" required>
 
-        <!-- Footer -->
-        <footer>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Keluar</a>
-        </footer>
-    </div>
+          <label for="wilayah">Wilayah Layanan:</label>
+          <input type="text" id="wilayah" name="wilayah" readonly required>
 
-    <script>
-        // Auto-generate Wilayah
-        document.getElementById('provinsi').addEventListener('change', updateWilayah);
-        document.getElementById('wilayah_num').addEventListener('input', updateWilayah);
-    
-        function updateWilayah() {
-            const prov = document.getElementById('provinsi').value;
-            const num = document.getElementById('wilayah_num').value;
-            if (prov && num) {
-                document.getElementById('wilayah').value = prov + '-' + num;
-            }
-        }
-    
-        // Auto-generate MUX
-        document.getElementById('uhf').addEventListener('input', updateMux);
-        document.getElementById('nama_mux').addEventListener('input', updateMux);
-    
-        function updateMux() {
-            const uhf = document.getElementById('uhf').value;
-            const nama = document.getElementById('nama_mux').value;
-            if (uhf && nama) {
-                document.getElementById('mux').value = "UHF " + uhf + " - " + nama;
-            }
-        }
-    </script>
+          <label for="uhf">Nomor UHF:</label>
+          <input type="number" id="uhf" name="uhf" placeholder="Contoh: 30" required>
+
+          <label for="nama_mux">Nama MUX:</label>
+          <input type="text" id="nama_mux" name="nama_mux" placeholder="Contoh: Indosiar" required>
+
+          <label for="mux">MUX:</label>
+          <input type="text" id="mux" name="mux" readonly required>
+
+          <label for="nama_siaran">Nama Siaran:</label>
+          <input type="text" id="nama_siaran" name="nama_siaran" required>
+
+          <button type="submit">Tambah</button>
+        </form>
+      </div>
+
+      <!-- Daftar siaran -->
+      <div class="card">
+        <h2>📺 Daftar Siaran</h2>
+        {% if data_siaran %}
+          {% for provinsi, wilayah_data in (data_siaran or {}).items() %}
+            <h3>{{ provinsi }}</h3>
+            {% for wilayah, mux_data in (wilayah_data or {}).items() %}
+              <h4>{{ wilayah }}</h4>
+              {% for mux, isi in (mux_data or {}).items() %}
+                <div class="mux-box">
+                  <strong>{{ mux }}</strong>
+                  <ul>
+                    {% set siaran_list = isi.get('siaran', {}) %}
+                    
+                    {# Jika dict (format baru) #}
+                    {% if siaran_list is mapping %}
+                      {% for i, ch in siaran_list.items() %}
+                        <li>
+                          {{ ch }}
+                          <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}" onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
+                        </li>
+                      {% endfor %}
+                    
+                    {# Jika list (format lama) #}
+                    {% elif siaran_list is iterable %}
+                      {% for i in range(siaran_list|length) %}
+                        <li>
+                          {{ siaran_list[i] }}
+                          <a href="{{ url_for('hapus_siaran', provinsi=provinsi, wilayah=wilayah, mux=mux, index=i) }}" onclick="return confirm('Yakin ingin menghapus siaran ini?')">🗑️ Hapus</a>
+                        </li>
+                      {% endfor %}
+                    
+                    {% else %}
+                      <li><em>Tidak ada siaran</em></li>
+                    {% endif %}
+                  </ul>
+                </div>
+              {% endfor %}
+            {% endfor %}
+          {% endfor %}
+        {% else %}
+          <p>Belum ada data siaran.</p>
+        {% endif %}
+      </div>
+    </main>
+
+    <footer>
+      <a href="{{ url_for('logout') }}" class="logout-btn">Keluar</a>
+    </footer>
+  </div>
+
+  <script>
+    // Auto-generate Wilayah
+    const provEl = document.getElementById('provinsi');
+    const wilayahNumEl = document.getElementById('wilayah_num');
+    function updateWilayah() {
+      const prov = provEl ? provEl.value : '';
+      const num = wilayahNumEl ? wilayahNumEl.value : '';
+      const out = document.getElementById('wilayah');
+      if (out) out.value = (prov && num) ? (prov + '-' + num) : '';
+    }
+    if (provEl) provEl.addEventListener('change', updateWilayah);
+    if (wilayahNumEl) wilayahNumEl.addEventListener('input', updateWilayah);
+
+    // Auto-generate MUX
+    const uhfEl = document.getElementById('uhf');
+    const namaMuxEl = document.getElementById('nama_mux');
+    function updateMux() {
+      const uhf = uhfEl ? uhfEl.value : '';
+      const nama = namaMuxEl ? namaMuxEl.value : '';
+      const out = document.getElementById('mux');
+      if (out) out.value = (uhf && nama) ? ("UHF " + uhf + " - " + nama) : '';
+    }
+    if (uhfEl) uhfEl.addEventListener('input', updateMux);
+    if (namaMuxEl) namaMuxEl.addEventListener('input', updateMux);
+  </script>
 </body>
 </html>
