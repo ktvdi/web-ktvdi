@@ -1,1 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Siaran</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header">
+    <h2>Selamat datang, {{ user.name }} ({{ user.username }})</h2>
+    <a href="{{ url_for('logout') }}">Logout</a>
+  </div>
+
+  <div class="container">
+    <h1>Data Siaran</h1>
+    <hr>
+
+    <!-- Pilih Provinsi -->
+    <form method="get" action="{{ url_for('dashboard') }}">
+      <label>Pilih Provinsi</label><br>
+      <select name="provinsi" id="provinsi_select" onchange="this.form.submit()" required>
+        {% for p in provinsi_list %}
+          <option value="{{ p }}" {% if p == selected_prov %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <hr>
+
+    <!-- Form Tambah / Edit -->
+    <h3>{% if edit_mode %}Edit{% else %}Tambah{% endif %} Data Siaran</h3>
+    <form method="post" action="{{ url_for('save') }}">
+      <label>Provinsi</label><br>
+      <input type="text" name="provinsi" id="provinsi_field" value="{{ edit_data.provinsi if edit_mode else selected_prov }}" readonly><br><br>
+
+      <label>Wilayah Layanan</label><br>
+      <input type="text" name="wilayah" id="wilayah_field" value="{{ edit_data.wilayah if edit_mode else (selected_prov ~ '-1') }}" readonly><br><br>
+
+      <label>Penyelenggara MUX</label><br>
+      <input type="text" name="mux" id="mux_field" placeholder="UHF 35 - Indosiar" value="{{ edit_data.mux if edit_mode else '' }}" required><br>
+      <small>Format: <code>UHF XX - Nama MUX</code></small><br><br>
+
+      <label>Daftar Siaran (urut, pisahkan dengan koma)</label><br>
+      <textarea name="daftar" id="daftar_field" rows="3" placeholder="SCTV, RCTI, TVRI" required>{{ edit_data.daftar if edit_mode else '' }}</textarea><br><br>
+
+      <button type="submit">{% if edit_mode %}Simpan Perubahan{% else %}Simpan{% endif %}</button>
+      {% if edit_mode %}
+        <a href="{{ url_for('dashboard', provinsi=selected_prov) }}">Batal</a>
+      {% endif %}
+    </form>
+
+    <hr>
+
+    <!-- Tabel Data Siaran untuk Provinsi terpilih -->
+    <h3>Data Siaran: {{ selected_prov }}</h3>
+
+    {% if not siaran_prov %}
+      <p>Belum ada data.</p>
+    {% else %}
+      {% for wilayah, muxes in siaran_prov.items() %}
+        <h4>{{ wilayah }}</h4>
+        <table border="1" cellpadding="6" cellspacing="0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Penyelenggara MUX</th>
+              <th>Last Updated</th>
+              <th>Siaran</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set idx = 1 %}
+            {% for mux_name, detail in muxes.items() %}
+              <tr>
+                <td>{{ idx }}</td>
+                <td>{{ mux_name }}</td>
+                <td>
+                  {{ detail.last_updated_by_name }} ({{ detail.last_updated_by_username }})<br>
+                  {{ detail.last_updated_date }} {{ detail.last_updated_time }}
+                </td>
+                <td>
+                  {% if detail.siaran %}
+                    {% for k in detail.siaran|dictsort(attribute='0', case_sensitive=False) %}
+                      {% set no = k[0] %}
+                      {% set ch = k[1] %}
+                      {{ no }}. {{ ch }}<br>
+                    {% endfor %}
+                  {% endif %}
+                </td>
+                <td>
+                  <a href="{{ url_for('edit', provinsi=selected_prov, wilayah=wilayah, mux=mux_name) }}">Edit</a>
+                  <form method="post" action="{{ url_for('delete') }}" style="display:inline" onsubmit="return confirm('Hapus data ini?')">
+                    <input type="hidden" name="provinsi" value="{{ selected_prov }}">
+                    <input type="hidden" name="wilayah" value="{{ wilayah }}">
+                    <input type="hidden" name="mux" value="{{ mux_name }}">
+                    <button type="submit">Hapus</button>
+                  </form>
+                </td>
+              </tr>
+              {% set idx = idx + 1 %}
+            {% endfor %}
+          </tbody>
+        </table>
+        <br>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <script>
+    function validateForm() {
+      var prov = document.getElementById('provinsi_field').value.trim();
+      var wilayah = document.getElementById('wilayah_field').value.trim();
+      var mux = document.getElementById('mux_field').value.trim();
+      var daftar = document.getElementById('daftar_field').value.trim();
+
+      if (wilayah !== (prov + "-1")) {
+        alert("Wilayah Layanan harus '" + prov + "-1'.");
+        return false;
+      }
+      var muxRe = /^UHF\s\d{2}\s-\s.+$/;
+      if (!muxRe.test(mux)) {
+        alert("Format MUX harus 'UHF XX - Nama MUX'.");
+        return false;
+      }
+      if (!daftar) {
+        alert("Daftar siaran tidak boleh kosong.");
+        return false;
+      }
+      return true;
+    }
+  </script>
+
+  <footer>
+    <p>&copy; 2025 Organisasi Siaran. All Rights Reserved.</p>
+  </footer>
+</body>
+</html>
 
