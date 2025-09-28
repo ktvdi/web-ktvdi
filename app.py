@@ -353,18 +353,24 @@ def login():
 
     return render_template('login.html', error=error_message)
 
-@app.route('/dashboard', methods=['GET'])
+@app.route("/dashboard")
 def dashboard():
+    # Check if the user is logged in
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    # Mengambil nama lengkap dari session
+    # Ambil nama lengkap dari session
     nama_lengkap = session.get('nama', 'Pengguna')
 
     # Mengganti '%20' dengan spasi jika ada dalam nama lengkap
     nama_lengkap = nama_lengkap.replace('%20', ' ')
 
-    return render_template('dashboard.html', name=nama_lengkap)
+    # Ambil daftar provinsi dari Firebase
+    ref = db.reference("provinsi")
+    data = ref.get() or {}
+    provinsi_list = list(data.values())
+
+    return render_template("dashboard.html", name=nama_lengkap, provinsi_list=provinsi_list)
 
 @app.route('/add_data', methods=['GET', 'POST'])
 def add_data():
