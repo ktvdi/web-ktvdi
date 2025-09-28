@@ -352,16 +352,18 @@ def login():
 
     return render_template('login.html', error=error_message)
 
-# Route untuk halaman dashboard
-@app.route('/dashboard/<name>', methods=['GET'])
-def dashboard(name):
+@app.route('/dashboard', methods=['GET'])
+def dashboard():
     if 'user' not in session:
         return redirect(url_for('login'))
-    
-    # Mengganti '%20' dengan spasi
-    name = name.replace('%20', ' ')
 
-    return render_template('dashboard.html', name=name)
+    # Mengambil nama lengkap dari session
+    nama_lengkap = session.get('nama', 'Pengguna')
+
+    # Mengganti '%20' dengan spasi jika ada dalam nama lengkap
+    nama_lengkap = nama_lengkap.replace('%20', ' ')
+
+    return render_template('dashboard.html', name=nama_lengkap)
 
 # Route untuk logout
 @app.route('/logout')
