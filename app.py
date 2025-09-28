@@ -305,44 +305,67 @@ def get_siaran():
         "siaran": data.get("siaran", [])
     })
 
-@app.route("/login", methods=["GET", "POST"])
+# Fungsi untuk melakukan hashing password
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# Route untuk halaman login
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == "POST":
-        username = request.form.get("username")  # key di Firebase
-        password = request.form.get("password")
+    error_message = None
 
-        if ref is None:
-            return "Firebase tidak terhubung", 500
+    if request.method == 'POST':
+        username = request.form['username'].strip()  # Hapus spasi di awal/akhir
+        password = request.form['password'].strip()  # Hapus spasi di awal/akhir
 
-        users_ref = ref.child('users')
-        user_data = users_ref.child(username).get()
+        # Hash password yang dimasukkan oleh pengguna
+        hashed_password = hash_password(password)
+        print(f"Hashed entered password: {hashed_password}")  # Debugging hash
 
-        if not user_data:
-            error = "Username tidak ditemukan."
-            return render_template('login.html', error=error)
+        # Mengambil referensi ke data pengguna di Firebase
+        ref = db.reference('users')
 
-        # Hash input password sebelum dibandingkan
-        input_hash = hashlib.sha256(password.encode()).hexdigest()
-        if user_data.get("password") == input_hash:
-            # simpan username & nama lengkap ke session
-            session['username'] = username
-            session['nama'] = user_data.get("nama", "Pengguna")
-            return redirect(url_for('dashboard'))
-        else:
-            error = "Password salah."
-            return render_template('login.html', error=error)
+        try:
+            # Ambil data pengguna berdasarkan username
+            user_data = ref.child(username).get()
+            print(f"User data fetched: {user_data}")  # Debugging data pengguna
 
-    return render_template('login.html')
+            if not user_data:
+                error_message = "Username tidak ditemukan."
+                return render_template('login.html', error=error_message)
 
-@app.route("/dashboard")
-def dashboard():
-    if 'username' in session:
-        return render_template("dashboard.html", nama=session['nama'])
-    return redirect(url_for('login'))
+            # Bandingkan password yang di-hash dengan password yang ada di database
+            if user_data.get('password') == hashed_password:
+                # Simpan informasi pengguna di session
+                session['user'] = username
+                session['nama'] = user_data.get("nama", "Pengguna")
+                print(f"Login successful. Session user: {session['user']}")  # Debugging session
+                return redirect(url_for('dashboard', name=user_data['nama']))
 
-@app.route("/logout")
+            # Jika password tidak cocok
+            error_message = "Password salah."
+            print("Password mismatch")  # Debugging password mismatch
+
+        except Exception as e:
+            error_message = f"Error fetching data from Firebase: {str(e)}"
+            print(f"Error: {str(e)}")
+
+    return render_template('login.html', error=error_message)
+
+# Route untuk halaman dashboard
+@app.route('/dashboard/<name>', methods=['GET'])
+def dashboard(name):
+    if 'user' not in session:
+        print("User not logged in. Redirecting to login.")  # Debugging session check
+        return redirect(url_for('login'))
+
+    return render_template('dashboard.html', name=name)
+
+# Route untuk logout
+@app.route('/logout')
 def logout():
-    session.pop('username', None)
+    session.pop('user', None)
+    print("User logged out.")  # Debugging logout
     return redirect(url_for('login'))
 
 @app.route("/test-firebase")
