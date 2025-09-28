@@ -372,173 +372,138 @@ def dashboard():
 
     return render_template("dashboard.html", name=nama_lengkap, provinsi_list=provinsi_list)
 
-@app.route('/add_data', methods=['GET', 'POST'])
+# 🔹 Route untuk menambahkan data siaran
+@app.route("/add_data", methods=["GET", "POST"])
 def add_data():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    # Fetch provinsi data from Firebase
-    provinsi_data = db.reference("provinsi").get()
-    if not provinsi_data:
-        return "Data provinsi belum tersedia."
-
-    provinsi_list = sorted(provinsi_data.values())
-
     if request.method == 'POST':
-        provinsi = request.form.get("provinsi")
-        wilayah = request.form.get("wilayah")
-        mux = request.form.get("mux")
-        siaran_input = request.form.get("siaran")
-
-        # Clean inputs and validate
+        provinsi = request.form['provinsi']
+        wilayah = request.form['wilayah']
+        mux = request.form['mux']
+        siaran_input = request.form['siaran']
+        
+        siaran_list = [s.strip() for s in siaran_input.split(',') if s.strip()]
         wilayah_clean = re.sub(r'\s*-\s*', '-', wilayah.strip())
         mux_clean = mux.strip()
-        siaran_list = [s.strip() for s in siaran_input.split(",") if s.strip()]
 
-        # Validate the inputs
+        # Validations
         is_valid = True
-        wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
-        if not re.fullmatch(wilayah_pattern, wilayah_clean):
+        if not all([provinsi, wilayah_clean, mux_clean, siaran_list]):
             is_valid = False
-            error_message = "Format Wilayah Layanan tidak valid."
-
-        mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
-        if not re.fullmatch(mux_pattern, mux_clean, re.IGNORECASE):
-            is_valid = False
-            error_message = "Format Penyelenggara MUX tidak valid."
-
-        if not siaran_list:
-            is_valid = False
-            error_message = "Daftar Siaran tidak boleh kosong."
+            error_message = "Harap isi semua kolom."
+        else:
+            # Validate format for wilayah
+            wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
+            if not re.fullmatch(wilayah_pattern, wilayah_clean):
+                is_valid = False
+                error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
+            
+            # Validate mux format
+            mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
+            if not re.fullmatch(mux_pattern, mux_clean):
+                is_valid = False
+                error_message = "Format **Penyelenggara MUX** tidak valid. Harap gunakan format 'UHF XX - Nama MUX'."
 
         if is_valid:
             try:
-                # Retrieve the current user data from session
-                updater_username = session.get('username')
-                users_ref = db.reference(f"users/{updater_username}")
-                updater_data = users_ref.get()
-                updater_name = updater_data.get("nama", updater_username)
-
+                # Save data to Firebase
                 now_wib = datetime.now()
                 updated_date = now_wib.strftime("%d-%m-%Y")
                 updated_time = now_wib.strftime("%H:%M:%S WIB")
-
-                # Prepare data to save to Firebase
+                
                 data_to_save = {
                     "siaran": sorted(siaran_list),
-                    "last_updated_by_username": updater_username,
-                    "last_updated_by_name": updater_name,
+                    "last_updated_by_username": session.get('user'),
+                    "last_updated_by_name": session.get('nama', 'Pengguna'),
                     "last_updated_date": updated_date,
                     "last_updated_time": updated_time
                 }
 
                 db.reference(f"siaran/{provinsi}/{wilayah_clean}/{mux_clean}").set(data_to_save)
-
-                # Update user points
-                current_points = updater_data.get("points", 0)
-                users_ref.update({"points": current_points + 10})
-
-                # Update metadata in Firebase
-                db.reference("app_metadata/last_leaderboard_update_timestamp").set(now_wib.strftime("%Y-%m-%d %H:%M:%S"))
-
                 return redirect(url_for('dashboard'))
-
             except Exception as e:
                 return f"Gagal menyimpan data: {e}"
-        else:
-            return error_message
 
-    return render_template('add_data_form.html', provinsi_list=provinsi_list)
+        return render_template('dashboard.html', error_message=error_message)
 
+    # Display form to add data
+    return render_template('add_data_form.html')
 
-@app.route('/edit_data/<provinsi>/<wilayah>/<mux>', methods=['GET', 'POST'])
-def edit_data(provinsi, wilayah, mux):
+# 🔹 Route untuk mengedit data siaran
+@app.route("/edit_data", methods=["GET", "POST"])
+def edit_data():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    # Fetch the data to edit
-    data_ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}")
-    data_to_edit = data_ref.get()
-
-    if not data_to_edit:
-        return "Data tidak ditemukan."
-
     if request.method == 'POST':
-        new_wilayah = request.form.get("wilayah")
-        new_mux = request.form.get("mux")
-        new_siaran_input = request.form.get("siaran")
+        provinsi = request.form['provinsi']
+        wilayah = request.form['wilayah']
+        mux = request.form['mux']
+        siaran_input = request.form['siaran']
+        
+        siaran_list = [s.strip() for s in siaran_input.split(',') if s.strip()]
+        wilayah_clean = re.sub(r'\s*-\s*', '-', wilayah.strip())
+        mux_clean = mux.strip()
 
-        # Clean inputs and validate
-        new_wilayah_clean = re.sub(r'\s*-\s*', '-', new_wilayah.strip())
-        new_mux_clean = new_mux.strip()
-        new_siaran_list = [s.strip() for s in new_siaran_input.split(",") if s.strip()]
-
-        # Validate the inputs
+        # Validations
         is_valid = True
-        wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
-        if not re.fullmatch(wilayah_pattern, new_wilayah_clean):
+        if not all([provinsi, wilayah_clean, mux_clean, siaran_list]):
             is_valid = False
-            error_message = "Format Wilayah Layanan tidak valid."
-
-        mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
-        if not re.fullmatch(mux_pattern, new_mux_clean, re.IGNORECASE):
-            is_valid = False
-            error_message = "Format Penyelenggara MUX tidak valid."
-
-        if not new_siaran_list:
-            is_valid = False
-            error_message = "Daftar Siaran tidak boleh kosong."
+            error_message = "Harap isi semua kolom."
+        else:
+            # Validate format for wilayah
+            wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
+            if not re.fullmatch(wilayah_pattern, wilayah_clean):
+                is_valid = False
+                error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
+            
+            # Validate mux format
+            mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
+            if not re.fullmatch(mux_pattern, mux_clean):
+                is_valid = False
+                error_message = "Format **Penyelenggara MUX** tidak valid. Harap gunakan format 'UHF XX - Nama MUX'."
 
         if is_valid:
             try:
-                # Update user data
-                updater_username = session.get('username')
-                users_ref = db.reference(f"users/{updater_username}")
-                updater_data = users_ref.get()
-                updater_name = updater_data.get("nama", updater_username)
-
+                # Update data to Firebase
                 now_wib = datetime.now()
                 updated_date = now_wib.strftime("%d-%m-%Y")
                 updated_time = now_wib.strftime("%H:%M:%S WIB")
-
+                
                 data_to_update = {
-                    "siaran": sorted(new_siaran_list),
-                    "last_updated_by_username": updater_username,
-                    "last_updated_by_name": updater_name,
+                    "siaran": sorted(siaran_list),
+                    "last_updated_by_username": session.get('user'),
+                    "last_updated_by_name": session.get('nama', 'Pengguna'),
                     "last_updated_date": updated_date,
                     "last_updated_time": updated_time
                 }
 
-                # Delete old data if necessary and update
-                db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
-                db.reference(f"siaran/{provinsi}/{new_wilayah_clean}/{new_mux_clean}").set(data_to_update)
-
-                # Update user points
-                current_points = updater_data.get("points", 0)
-                users_ref.update({"points": current_points + 5})
-
-                # Update metadata in Firebase
-                db.reference("app_metadata/last_leaderboard_update_timestamp").set(now_wib.strftime("%Y-%m-%d %H:%M:%S"))
-
+                db.reference(f"siaran/{provinsi}/{wilayah_clean}/{mux_clean}").update(data_to_update)
                 return redirect(url_for('dashboard'))
 
             except Exception as e:
                 return f"Gagal memperbarui data: {e}"
-        else:
-            return error_message
 
-    return render_template('edit_data_form.html', data_to_edit=data_to_edit)
+        return render_template('edit_data_form.html', error_message=error_message)
 
+    # Display form to edit data
+    return render_template('edit_data_form.html')
 
-@app.route('/delete_data/<provinsi>/<wilayah>/<mux>', methods=['POST'])
-def delete_data(provinsi, wilayah, mux):
+# 🔹 Route untuk menghapus data siaran
+@app.route("/delete_data", methods=["POST"])
+def delete_data():
     if 'user' not in session:
         return redirect(url_for('login'))
+
+    provinsi = request.form['provinsi']
+    wilayah = request.form['wilayah']
+    mux = request.form['mux']
 
     try:
         db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
         return redirect(url_for('dashboard'))
-
     except Exception as e:
         return f"Gagal menghapus data: {e}"
 
