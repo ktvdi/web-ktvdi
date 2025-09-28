@@ -315,8 +315,8 @@ def login():
     error_message = None
 
     if request.method == 'POST':
-        username = request.form['username'].strip()  # Remove leading/trailing whitespaces
-        password = request.form['password'].strip()  # Remove leading/trailing whitespaces
+        username = request.form("username") # Remove leading/trailing whitespaces
+        password = request.form("password")  # Remove leading/trailing whitespaces
 
         # Hash the entered password
         hashed_password = hash_password(password)
