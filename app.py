@@ -356,8 +356,10 @@ def login():
 @app.route('/dashboard/<name>', methods=['GET'])
 def dashboard(name):
     if 'user' not in session:
-        print("User not logged in. Redirecting to login.")  # Debugging session check
         return redirect(url_for('login'))
+    
+    # Mengganti '%20' dengan spasi
+    name = name.replace('%20', ' ')
 
     return render_template('dashboard.html', name=name)
 
