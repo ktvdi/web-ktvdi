@@ -1,155 +1,168 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📺 Daftar Siaran TV Digital</title>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
-  <!-- Header -->
-  <div id="header"></div>
+    <!-- Header -->
+    <div id="header"></div>
 
-  <div class="container">
-    <h1>📺 Daftar Siaran TV Digital</h1>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <!-- User Greeting and Info -->
+                <h1 class="text-center mt-5">Selamat Datang, {{ name }}!</h1>
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h4>Dashboard Pengguna</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Anda berhasil login. Berikut adalah informasi akun Anda:</p>
+                        <ul>
+                            <li><strong>Username:</strong> {{ name }}</li>
+                            <li><strong>Nama Lengkap:</strong> {{ name }}</li>
+                        </ul>
+                        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+                    </div>
+                </div>
 
-    {% if session.get('user') %}
-      <!-- User is logged in, show additional options -->
-      <div class="mt-4">
-        <a href="{{ url_for('add_data') }}" class="btn btn-success">Tambah Data Siaran</a>
-        <a href="{{ url_for('edit_data') }}" class="btn btn-warning">Edit Data Siaran</a>
-        <a href="{{ url_for('delete_data') }}" class="btn btn-danger">Hapus Data Siaran</a>
-      </div>
-    {% endif %}
+                <!-- Daftar Siaran TV Digital -->
+                <h1 class="mt-4">📺 Daftar Siaran TV Digital</h1>
 
-    <!-- Filter Provinsi -->
-    <label for="provinsi">Pilih Provinsi:</label>
-    <select id="provinsi">
-      <option value="">-- Pilih Provinsi --</option>
-      {% for p in provinsi_list %}
-        <option value="{{ p }}">{{ p }}</option>
-      {% endfor %}
-    </select>
+                <!-- Filter Provinsi -->
+                <label for="provinsi">Pilih Provinsi:</label>
+                <select id="provinsi" class="form-control">
+                    <option value="">-- Pilih Provinsi --</option>
+                    {% for p in provinsi_list %}
+                        <option value="{{ p }}">{{ p }}</option>
+                    {% endfor %}
+                </select>
 
-    <!-- Filter Wilayah -->
-    <label for="wilayah">Pilih Wilayah:</label>
-    <select id="wilayah">
-      <option value="">-- Pilih Wilayah --</option>
-    </select>
+                <!-- Filter Wilayah -->
+                <label for="wilayah" class="mt-3">Pilih Wilayah:</label>
+                <select id="wilayah" class="form-control">
+                    <option value="">-- Pilih Wilayah --</option>
+                </select>
 
-    <!-- Filter MUX -->
-    <label for="mux">Pilih MUX:</label>
-    <select id="mux">
-      <option value="">-- Pilih MUX --</option>
-    </select>
+                <!-- Filter MUX -->
+                <label for="mux" class="mt-3">Pilih MUX:</label>
+                <select id="mux" class="form-control">
+                    <option value="">-- Pilih MUX --</option>
+                </select>
 
-    <!-- Detail Siaran -->
-    <div id="detail"></div>
-  </div>
+                <!-- Detail Siaran -->
+                <div id="detail" class="mt-4"></div>
+            </div>
+        </div>
+    </div>
 
-  <!-- Script -->
-  <script>
-    $(document).ready(function () {
-      // Saat pilih provinsi
-      $("#provinsi").change(function () {
-        var provinsi = $(this).val();
+    <!-- Script -->
+    <script>
+        $(document).ready(function () {
+            // Saat pilih provinsi
+            $("#provinsi").change(function () {
+                var provinsi = $(this).val();
 
-        if (provinsi) {
-          $.getJSON("/get_wilayah", { provinsi: provinsi }, function (data) {
-            if (!data.wilayah || data.wilayah.length === 0) {
-              $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $("#detail").html(
-                '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
-              );
-            } else {
-              $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
-              $.each(data.wilayah, function (i, w) {
-                $("#wilayah").append('<option value="' + w + '">' + w + "</option>");
-              });
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $("#detail").html("");
-            }
-          });
-        } else {
-          $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
-          $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-          $("#detail").html("");
-        }
-      });
+                if (provinsi) {
+                    $.getJSON("/get_wilayah", { provinsi: provinsi }, function (data) {
+                        if (!data.wilayah || data.wilayah.length === 0) {
+                            $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
+                            $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                            $("#detail").html(
+                                '<div class="alert alert-warning">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
+                            );
+                        } else {
+                            $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
+                            $.each(data.wilayah, function (i, w) {
+                                $("#wilayah").append('<option value="' + w + '">' + w + "</option>");
+                            });
+                            $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                            $("#detail").html("");
+                        }
+                    });
+                } else {
+                    $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
+                    $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                    $("#detail").html("");
+                }
+            });
 
-      // Saat pilih wilayah
-      $("#wilayah").change(function () {
-        var provinsi = $("#provinsi").val();
-        var wilayah = $(this).val();
+            // Saat pilih wilayah
+            $("#wilayah").change(function () {
+                var provinsi = $("#provinsi").val();
+                var wilayah = $(this).val();
 
-        if (wilayah) {
-          $.getJSON("/get_mux", { provinsi: provinsi, wilayah: wilayah }, function (data) {
-            if (!data.mux || data.mux.length === 0) {
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $("#detail").html(
-                '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
-              );
-            } else {
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $.each(data.mux, function (i, m) {
-                $("#mux").append('<option value="' + m + '">' + m + "</option>");
-              });
-              $("#detail").html("");
-            }
-          });
-        }
-      });
+                if (wilayah) {
+                    $.getJSON("/get_mux", { provinsi: provinsi, wilayah: wilayah }, function (data) {
+                        if (!data.mux || data.mux.length === 0) {
+                            $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                            $("#detail").html(
+                                '<div class="alert alert-warning">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
+                            );
+                        } else {
+                            $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                            $.each(data.mux, function (i, m) {
+                                $("#mux").append('<option value="' + m + '">' + m + "</option>");
+                            });
+                            $("#detail").html("");
+                        }
+                    });
+                }
+            });
 
-      // Saat pilih mux
-      $("#mux").change(function () {
-        var provinsi = $("#provinsi").val();
-        var wilayah = $("#wilayah").val();
-        var mux = $(this).val();
+            // Saat pilih mux
+            $("#mux").change(function () {
+                var provinsi = $("#provinsi").val();
+                var wilayah = $("#wilayah").val();
+                var mux = $(this).val();
 
-        if (mux) {
-          $.getJSON(
-            "/get_siaran",
-            { provinsi: provinsi, wilayah: wilayah, mux: mux },
-            function (data) {
-              if (!data.siaran || data.siaran.length === 0) {
-                $("#detail").html(
-                  '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
-                );
-              } else {
-                var html = '<div class="card">';
-                html += "<h3>📡 " + mux + "</h3>";
-                html +=
-                  "<p><strong>Update:</strong> " +
-                  (data.last_updated_date || "-") +
-                  " " +
-                  (data.last_updated_time || "") +
-                  "</p>";
-                html +=
-                  "<p><strong>Oleh:</strong> " +
-                  (data.last_updated_by_name || "-") +
-                  " (" +
-                  (data.last_updated_by_username || "-") +
-                  ")</p>";
-                html += "<h4>📺 Daftar Siaran:</h4><ul>";
+                if (mux) {
+                    $.getJSON(
+                        "/get_siaran",
+                        { provinsi: provinsi, wilayah: wilayah, mux: mux },
+                        function (data) {
+                            if (!data.siaran || data.siaran.length === 0) {
+                                $("#detail").html(
+                                    '<div class="alert alert-warning">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
+                                );
+                            } else {
+                                var html = '<div class="card">';
+                                html += "<h3>📡 " + mux + "</h3>";
+                                html +=
+                                    "<p><strong>Update:</strong> " +
+                                    (data.last_updated_date || "-") +
+                                    " " +
+                                    (data.last_updated_time || "") +
+                                    "</p>";
+                                html +=
+                                    "<p><strong>Oleh:</strong> " +
+                                    (data.last_updated_by_name || "-") +
+                                    " (" +
+                                    (data.last_updated_by_username || "-") +
+                                    ")</p>";
+                                html += "<h4>📺 Daftar Siaran:</h4><ul>";
 
-                $.each(data.siaran, function (i, s) {
-                  html += "<li>" + s + "</li>";
-                });
+                                $.each(data.siaran, function (i, s) {
+                                    html += "<li>" + s + "</li>";
+                                });
 
-                html += "</ul></div>";
-                $("#detail").html(html);
-              }
-            }
-          );
-        }
-      });
-    });
-  </script>
+                                html += "</ul></div>";
+                                $("#detail").html(html);
+                            }
+                        }
+                    );
+                }
+            });
+        });
+    </script>
 
-  <!-- Footer -->
-  <div id="footer"></div>
-  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <!-- Footer -->
+    <div id="footer"></div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
