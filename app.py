@@ -407,7 +407,7 @@ def add_data():
                 is_valid = False
                 error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
 
-             # Validasi kecocokan provinsi
+            # Validasi kecocokan provinsi
             wilayah_parts = wilayah_clean.split('-')
             if len(wilayah_parts) > 1:
                 provinsi_from_wilayah = '-'.join(wilayah_parts[:-1]).strip()
@@ -478,6 +478,17 @@ def edit_data(provinsi, wilayah, mux):
             if not re.fullmatch(wilayah_pattern, wilayah_clean):
                 is_valid = False
                 error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
+
+            # Validasi kecocokan provinsi
+            wilayah_parts = wilayah_clean.split('-')
+            if len(wilayah_parts) > 1:
+                provinsi_from_wilayah = '-'.join(wilayah_parts[:-1]).strip()
+                if provinsi_from_wilayah.lower() != provinsi.lower():
+                    is_valid = False
+                    error_message = f"Nama provinsi '{provinsi_from_wilayah}' dalam **Wilayah Layanan** tidak cocok dengan **Provinsi** yang dipilih ('{provinsi}')."
+            else:
+                is_valid = False
+                error_message = "Format **Wilayah Layanan** tidak lengkap (tidak ada tanda hubung dan angka)."
             
             # Validate mux format
             mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
