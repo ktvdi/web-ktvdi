@@ -456,6 +456,7 @@ def edit_data(provinsi, wilayah, mux):
         return redirect(url_for('login'))
 
     # Replace %20 with space for better display in form
+    provinsi = provinsi.replace('%20',' ')
     wilayah = wilayah.replace('%20', ' ')  # Mengganti '%20' dengan spasi
     mux = mux.replace('%20', ' ')  # Mengganti '%20' dengan spasi
 
@@ -509,7 +510,6 @@ def edit_data(provinsi, wilayah, mux):
 
     # Display form to edit data
     return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
-
 
 # 🔹 Route untuk menghapus data siaran
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
