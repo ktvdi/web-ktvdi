@@ -426,21 +426,18 @@ def add_data():
             except Exception as e:
                 return f"Gagal menyimpan data: {e}"
 
-        return render_template('dashboard.html', error_message=error_message)
+        return render_template('add_data_form.html', error_message=error_message)
 
     # Display form to add data
     return render_template('add_data_form.html')
 
 # 🔹 Route untuk mengedit data siaran
-@app.route("/edit_data", methods=["GET", "POST"])
-def edit_data():
+@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
+def edit_data(provinsi, wilayah, mux):
     if 'user' not in session:
         return redirect(url_for('login'))
 
     if request.method == 'POST':
-        provinsi = request.form['provinsi']
-        wilayah = request.form['wilayah']
-        mux = request.form['mux']
         siaran_input = request.form['siaran']
         
         siaran_list = [s.strip() for s in siaran_input.split(',') if s.strip()]
@@ -489,17 +486,13 @@ def edit_data():
         return render_template('edit_data_form.html', error_message=error_message)
 
     # Display form to edit data
-    return render_template('edit_data_form.html')
+    return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
 
 # 🔹 Route untuk menghapus data siaran
-@app.route("/delete_data", methods=["POST"])
-def delete_data():
+@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
+def delete_data(provinsi, wilayah, mux):
     if 'user' not in session:
         return redirect(url_for('login'))
-
-    provinsi = request.form['provinsi']
-    wilayah = request.form['wilayah']
-    mux = request.form['mux']
 
     try:
         db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
