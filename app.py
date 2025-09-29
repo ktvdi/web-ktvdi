@@ -382,8 +382,8 @@ def add_data():
     ref = db.reference("provinsi")
     provinsi_data = ref.get() or {}
 
-    # Menyimpan provinsi sebagai list of tuples (key, value)
-    provinsi_list = [(key, value) for key, value in provinsi_data.items()]
+    # Pastikan data provinsi tersedia
+    provinsi_list = list(provinsi_data.values())
 
     if request.method == 'POST':
         provinsi = request.form['provinsi']
@@ -406,7 +406,7 @@ def add_data():
             if not re.fullmatch(wilayah_pattern, wilayah_clean):
                 is_valid = False
                 error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
-
+            
             # Validate mux format
             mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
             if not re.fullmatch(mux_pattern, mux_clean):
@@ -433,10 +433,10 @@ def add_data():
             except Exception as e:
                 return f"Gagal menyimpan data: {e}"
 
-        return render_template('add_data_form.html', error_message=error_message)
+        return render_template('add_data_form.html', error_message=error_message, provinsi_list=provinsi_list)
 
     # Display form to add data
-    return render_template('add_data_form.html')
+    return render_template('add_data_form.html', provinsi_list=provinsi_list)
 
 # 🔹 Route untuk mengedit data siaran
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
