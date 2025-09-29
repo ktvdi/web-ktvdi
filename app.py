@@ -378,9 +378,12 @@ def add_data():
     if 'user' not in session:
         return redirect(url_for('login'))
 
+    # Ambil data provinsi dari Firebase
     ref = db.reference("provinsi")
-    data = ref.get() or {}
-    provinsi_list = list(data.values())
+    provinsi_data = ref.get() or {}
+
+    # Pastikan data provinsi tersedia
+    provinsi_list = list(provinsi_data.values())
 
     if request.method == 'POST':
         provinsi = request.form['provinsi']
