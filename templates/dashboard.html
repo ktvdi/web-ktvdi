@@ -56,6 +56,15 @@
 
                 <!-- Detail Siaran -->
                 <div id="detail" class="mt-4"></div>
+
+                <!-- Manage Data Buttons -->
+                {% if session.get('user') %}
+                    <div class="mt-4">
+                        <button id="addDataBtn" class="btn btn-success">Tambah Data Siaran</button>
+                        <button id="editDataBtn" class="btn btn-warning mt-2">Edit Data Siaran</button>
+                        <button id="deleteDataBtn" class="btn btn-danger mt-2">Hapus Data Siaran</button>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -155,6 +164,42 @@
                             }
                         }
                     );
+                }
+            });
+
+            // Handle Add Data Button
+            $("#addDataBtn").click(function() {
+                window.location.href = "{{ url_for('add_data') }}";
+            });
+
+            // Handle Edit Data Button
+            $("#editDataBtn").click(function() {
+                var provinsi = $("#provinsi").val();
+                var wilayah = $("#wilayah").val();
+                var mux = $("#mux").val();
+
+                if (provinsi && wilayah && mux) {
+                    window.location.href = "/edit_data/" + provinsi + "/" + wilayah + "/" + mux;
+                } else {
+                    alert("Harap pilih Provinsi, Wilayah, dan MUX terlebih dahulu.");
+                }
+            });
+
+            // Handle Delete Data Button
+            $("#deleteDataBtn").click(function() {
+                var provinsi = $("#provinsi").val();
+                var wilayah = $("#wilayah").val();
+                var mux = $("#mux").val();
+
+                if (provinsi && wilayah && mux) {
+                    if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+                        $.post("/delete_data/" + provinsi + "/" + wilayah + "/" + mux, function(data) {
+                            alert("Data berhasil dihapus.");
+                            location.reload();
+                        });
+                    }
+                } else {
+                    alert("Harap pilih Provinsi, Wilayah, dan MUX terlebih dahulu.");
                 }
             });
         });
