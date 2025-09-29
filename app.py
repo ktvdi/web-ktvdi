@@ -378,6 +378,10 @@ def add_data():
     if 'user' not in session:
         return redirect(url_for('login'))
 
+    ref = db.reference("provinsi")
+    data = ref.get() or {}
+    provinsi_list = list(data.values())
+
     if request.method == 'POST':
         provinsi = request.form['provinsi']
         wilayah = request.form['wilayah']
