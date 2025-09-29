@@ -378,21 +378,16 @@ def add_data():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    # Ambil data provinsi dari Firebase
     ref = db.reference("provinsi")
-    provinsi_data = ref.get() or {}
-
-    # Pastikan data provinsi tersedia
-    provinsi_list = list(provinsi_data.values())
-
-    error_message = None
+    data = ref.get() or {}
+    provinsi_list = list(data.values())
 
     if request.method == 'POST':
         provinsi = request.form['provinsi']
         wilayah = request.form['wilayah']
         mux = request.form['mux']
         siaran_input = request.form['siaran']
-        
+
         siaran_list = [s.strip() for s in siaran_input.split(',') if s.strip()]
         wilayah_clean = re.sub(r'\s*-\s*', '-', wilayah.strip())
         mux_clean = mux.strip()
@@ -408,7 +403,7 @@ def add_data():
             if not re.fullmatch(wilayah_pattern, wilayah_clean):
                 is_valid = False
                 error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
-            
+
             # Validate mux format
             mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
             if not re.fullmatch(mux_pattern, mux_clean):
@@ -421,7 +416,7 @@ def add_data():
                 now_wib = datetime.now()
                 updated_date = now_wib.strftime("%d-%m-%Y")
                 updated_time = now_wib.strftime("%H:%M:%S WIB")
-                
+
                 data_to_save = {
                     "siaran": sorted(siaran_list),
                     "last_updated_by_username": session.get('user'),
@@ -433,9 +428,12 @@ def add_data():
                 db.reference(f"siaran/{provinsi}/{wilayah_clean}/{mux_clean}").set(data_to_save)
                 return redirect(url_for('dashboard'))
             except Exception as e:
-                error_message = f"Gagal menyimpan data: {e}"
+                return f"Gagal menyimpan data: {e}"
 
-        return render_template('add_data_form.html', error_message=error_message, provinsi_list=provinsi_list)
+        return render_template('add_data_form.html', error_message=error_message)
+
+    # Display form to add data
+    return render_template('add_data_form.html')
 
 # 🔹 Route untuk mengedit data siaran
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
