@@ -385,6 +385,8 @@ def add_data():
     # Pastikan data provinsi tersedia
     provinsi_list = list(provinsi_data.values())
 
+    error_message = None
+
     if request.method == 'POST':
         provinsi = request.form['provinsi']
         wilayah = request.form['wilayah']
@@ -431,12 +433,9 @@ def add_data():
                 db.reference(f"siaran/{provinsi}/{wilayah_clean}/{mux_clean}").set(data_to_save)
                 return redirect(url_for('dashboard'))
             except Exception as e:
-                return f"Gagal menyimpan data: {e}"
+                error_message = f"Gagal menyimpan data: {e}"
 
-        return render_template('add_data_form.html', error_message=error_message)
-
-    # Display form to add data
-    return render_template('add_data_form.html')
+        return render_template('add_data_form.html', error_message=error_message, provinsi_list=provinsi_list)
 
 # 🔹 Route untuk mengedit data siaran
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
