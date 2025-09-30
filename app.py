@@ -427,7 +427,8 @@ def add_data():
         if is_valid:
             try:
                 # Save data to Firebase
-                now_wib = datetime.now()
+                tz = pytz.timezone('Asia/Jakarta')
+                now_wib = datetime.now(tz)
                 updated_date = now_wib.strftime("%d-%m-%Y")
                 updated_time = now_wib.strftime("%H:%M:%S WIB")
 
@@ -499,7 +500,8 @@ def edit_data(provinsi, wilayah, mux):
         if is_valid:
             try:
                 # Update data to Firebase
-                now_wib = datetime.now()
+                tz = pytz.timezone('Asia/Jakarta')
+                now_wib = datetime.now(tz)
                 updated_date = now_wib.strftime("%d-%m-%Y")
                 updated_time = now_wib.strftime("%H:%M:%S WIB")
                 
