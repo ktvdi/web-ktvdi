@@ -1,10 +1,12 @@
 async function loadComponent(id, file) {
-  const res = await fetch(file);
-  const html = await res.text();
-  document.getElementById(id).innerHTML = html;
+  try {
+    const res = await fetch(file);
+    if (!res.ok) {
+      throw new Error(`Failed to load ${file}: ${res.status}`);
+    }
+    const html = await res.text();
+    document.getElementById(id).innerHTML = html;
+  } catch (error) {
+    console.error("Error loading component:", error);
+  }
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadComponent("header", "/static/partials/header.html"); 
-  loadComponent("footer", "/static/partials/footer.html");
-});
