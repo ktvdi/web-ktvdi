@@ -33,99 +33,104 @@
 
   <!-- Script -->
   <script>
-    $(document).ready(function () {
+    document.addEventListener("DOMContentLoaded", function () {
       // Saat pilih provinsi
-      $("#provinsi").change(function () {
-        var provinsi = $(this).val();
-
+      document.getElementById("provinsi").addEventListener("change", function () {
+        var provinsi = this.value;
+    
         if (provinsi) {
-          $.getJSON("/get_wilayah", { provinsi: provinsi }, function (data) {
-            if (!data.wilayah || data.wilayah.length === 0) {
-              $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $("#detail").html(
-                '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
-              );
-            } else {
-              $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
-              $.each(data.wilayah, function (i, w) {
-                $("#wilayah").append('<option value="' + w + '">' + w + "</option>");
-              });
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $("#detail").html("");
-            }
-          });
+          fetch("/get_wilayah?provinsi=" + provinsi)
+            .then((response) => response.json())
+            .then((data) => {
+              var wilayahSelect = document.getElementById("wilayah");
+              var muxSelect = document.getElementById("mux");
+              var detailDiv = document.getElementById("detail");
+    
+              if (!data.wilayah || data.wilayah.length === 0) {
+                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                detailDiv.innerHTML =
+                  '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
+              } else {
+                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
+                data.wilayah.forEach(function (w) {
+                  var option = document.createElement("option");
+                  option.value = w;
+                  option.textContent = w;
+                  wilayahSelect.appendChild(option);
+                });
+    
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                detailDiv.innerHTML = "";
+              }
+            });
         } else {
-          $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
-          $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-          $("#detail").html("");
+          document.getElementById("wilayah").innerHTML = '<option value="">-- Pilih Wilayah --</option>';
+          document.getElementById("mux").innerHTML = '<option value="">-- Pilih MUX --</option>';
+          document.getElementById("detail").innerHTML = "";
         }
       });
-
+    
       // Saat pilih wilayah
-      $("#wilayah").change(function () {
-        var provinsi = $("#provinsi").val();
-        var wilayah = $(this).val();
-
+      document.getElementById("wilayah").addEventListener("change", function () {
+        var provinsi = document.getElementById("provinsi").value;
+        var wilayah = this.value;
+    
         if (wilayah) {
-          $.getJSON("/get_mux", { provinsi: provinsi, wilayah: wilayah }, function (data) {
-            if (!data.mux || data.mux.length === 0) {
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $("#detail").html(
-                '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
-              );
-            } else {
-              $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-              $.each(data.mux, function (i, m) {
-                $("#mux").append('<option value="' + m + '">' + m + "</option>");
-              });
-              $("#detail").html("");
-            }
-          });
+          fetch("/get_mux?provinsi=" + provinsi + "&wilayah=" + wilayah)
+            .then((response) => response.json())
+            .then((data) => {
+              var muxSelect = document.getElementById("mux");
+              var detailDiv = document.getElementById("detail");
+    
+              if (!data.mux || data.mux.length === 0) {
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                detailDiv.innerHTML =
+                  '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
+              } else {
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                data.mux.forEach(function (m) {
+                  var option = document.createElement("option");
+                  option.value = m;
+                  option.textContent = m;
+                  muxSelect.appendChild(option);
+                });
+                detailDiv.innerHTML = "";
+              }
+            });
         }
       });
-
+    
       // Saat pilih mux
-      $("#mux").change(function () {
-        var provinsi = $("#provinsi").val();
-        var wilayah = $("#wilayah").val();
-        var mux = $(this).val();
-
+      document.getElementById("mux").addEventListener("change", function () {
+        var provinsi = document.getElementById("provinsi").value;
+        var wilayah = document.getElementById("wilayah").value;
+        var mux = this.value;
+    
         if (mux) {
-          $.getJSON(
-            "/get_siaran",
-            { provinsi: provinsi, wilayah: wilayah, mux: mux },
-            function (data) {
+          fetch("/get_siaran?provinsi=" + provinsi + "&wilayah=" + wilayah + "&mux=" + mux)
+            .then((response) => response.json())
+            .then((data) => {
+              var detailDiv = document.getElementById("detail");
+    
               if (!data.siaran || data.siaran.length === 0) {
-                $("#detail").html(
-                  '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
-                );
+                detailDiv.innerHTML =
+                  '<div class="alert">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
               } else {
                 var html = '<div class="card">';
                 html += "<h3>📡 " + mux + "</h3>";
-                html +=
-                  "<p><strong>Update:</strong> " +
-                  (data.last_updated_date || "-") +
-                  " " +
-                  (data.last_updated_time || "") +
-                  "</p>";
-                html +=
-                  "<p><strong>Oleh:</strong> " +
-                  (data.last_updated_by_name || "-") +
-                  " (" +
-                  (data.last_updated_by_username || "-") +
-                  ")</p>";
+                html += "<p><strong>Update:</strong> " + (data.last_updated_date || "-") + " " + (data.last_updated_time || "") + "</p>";
+                html += "<p><strong>Oleh:</strong> " + (data.last_updated_by_name || "-") + " (" + (data.last_updated_by_username || "-") + ")</p>";
                 html += "<h4>📺 Daftar Siaran:</h4><ul>";
-
-                $.each(data.siaran, function (i, s) {
+    
+                data.siaran.forEach(function (s) {
                   html += "<li>" + s + "</li>";
                 });
-
+    
                 html += "</ul></div>";
-                $("#detail").html(html);
+                detailDiv.innerHTML = html;
               }
-            }
-          );
+            });
         }
       });
     });
