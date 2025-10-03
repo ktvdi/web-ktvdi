@@ -14,7 +14,7 @@ from datetime import datetime
 # Muat variabel lingkungan
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 # Inisialisasi Firebase
