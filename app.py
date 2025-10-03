@@ -58,7 +58,7 @@ mail = Mail(app)
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("index.html", nama='Dunia')
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
