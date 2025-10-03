@@ -15,7 +15,7 @@ from datetime import datetime
 # Muat variabel lingkungan
 load_dotenv()
 
-app = Flask(__name__, template_folder='path/to/templates')
+app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
