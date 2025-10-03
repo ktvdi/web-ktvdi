@@ -7,6 +7,7 @@ import pytz
 import time
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify
+from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime
@@ -14,7 +15,8 @@ from datetime import datetime
 # Muat variabel lingkungan
 load_dotenv()
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__)
+CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 # Inisialisasi Firebase
