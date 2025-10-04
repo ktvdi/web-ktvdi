@@ -158,7 +158,6 @@ def reset_password():
         session.pop("reset_uid", None)
 
         flash("Password berhasil direset, silakan login kembali.", "success")
-        return redirect(url_for("login"))
 
     return render_template("reset-password.html")
 
