@@ -6,7 +6,7 @@ import re
 import pytz
 import time
 from firebase_admin import credentials, db
-from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify
+from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
@@ -59,6 +59,10 @@ mail = Mail(app)
 @app.route("/")
 def home():
     return render_template("index.html")
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
