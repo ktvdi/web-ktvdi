@@ -5,6 +5,7 @@ import random
 import re
 import pytz
 import time
+import requests
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -55,6 +56,10 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 
 mail = Mail(app)
+
+# Mengambil API key dari environment variable
+NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
+NEWS_API_URL = 'https://newsapi.org/v2/everything'
 
 @app.route("/")
 def home():
@@ -311,6 +316,34 @@ def get_siaran():
         "last_updated_time": data.get("last_updated_time", "-"),
         "siaran": data.get("siaran", [])
     })
+
+# Fungsi untuk mendapatkan berita berdasarkan kata kunci dengan paginasi
+def get_news(query="teknologi", page=1):  # Tambahkan parameter page
+    params = {
+        'apiKey': NEWS_API_KEY,
+        'q': query,  # Kata kunci pencarian (misalnya "teknologi")
+        'pageSize': 5,  # Jumlah berita per halaman
+        'page': page,  # Halaman yang akan diambil
+        'language': 'id'
+    }
+    
+    # Mengirim permintaan ke News API
+    response = requests.get(NEWS_API_URL, params=params)
+    
+    if response.status_code == 200:
+        return response.json()['articles'], response.json()['totalResults']
+    else:
+        return [], 0
+
+@app.route('/berita')
+def berita():
+    query = "teknologi"  # Kata kunci yang digunakan untuk pencarian berita
+    page = int(request.args.get('page', 1))  # Ambil parameter page dari URL (default ke halaman 1)
+    
+    articles, total_results = get_news(query, page)  # Mendapatkan berita berdasarkan kata kunci dan halaman
+    total_pages = (total_results // 5) + (1 if total_results % 5 > 0 else 0)  # Hitung jumlah halaman total
+    
+    return render_template('berita.html', articles=articles, query=query, page=page, total_pages=total_pages)
 
 # Fungsi untuk melakukan hashing password
 def hash_password(password):
