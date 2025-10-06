@@ -318,6 +318,32 @@ def get_siaran():
         "siaran": data.get("siaran", [])
     })
 
+def time_since_published(published_time):
+    # Menghitung waktu sekarang
+    now = datetime.now()
+    
+    # Mengonversi waktu penerbitan ke datetime
+    publish_time = datetime(*published_time[:6])
+    
+    # Menghitung selisih waktu
+    delta = now - publish_time
+    
+    # Menyusun hasil dalam format yang lebih ramah pengguna
+    if delta.days >= 1:
+        if delta.days == 1:
+            return "1 hari yang lalu"
+        return f"{delta.days} hari yang lalu"
+    
+    if delta.seconds >= 3600:
+        hours = delta.seconds // 3600
+        return f"{hours} jam yang lalu"
+    
+    if delta.seconds >= 60:
+        minutes = delta.seconds // 60
+        return f"{minutes} menit yang lalu"
+    
+    return "Beberapa detik yang lalu"
+
 @app.route('/berita')
 def berita():
     # URL RSS Feed Google News (misalnya kategori teknologi)
@@ -347,6 +373,12 @@ def berita():
     
     # Menghitung jumlah halaman yang ada
     total_pages = (total_articles + articles_per_page - 1) // articles_per_page
+
+    # Menambahkan waktu yang telah berlalu sejak diterbitkan ke setiap artikel
+    for article in articles_on_page:
+        if 'published_parsed' in article:
+            # Menghitung waktu yang telah berlalu sejak penerbitan
+            article.time_since_published = time_since_published(article.published_parsed)
     
     # Menampilkan halaman dengan artikel dan navigasi paginasi
     return render_template(
