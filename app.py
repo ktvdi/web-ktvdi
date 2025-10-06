@@ -6,6 +6,7 @@ import re
 import pytz
 import time
 import requests
+import feedparser
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -317,32 +318,43 @@ def get_siaran():
         "siaran": data.get("siaran", [])
     })
 
-# Fungsi untuk mendapatkan berita berdasarkan kata kunci dengan paginasi
-def get_news(query="teknologi", page=1):  # Tambahkan parameter page
-    params = {
-        'apiKey': NEWS_API_KEY,
-        'q': query,  # Kata kunci pencarian (misalnya "teknologi")
-        'pageSize': 5,  # Jumlah berita per halaman
-        'page': page  # Halaman yang akan diambil
-    }
-    
-    # Mengirim permintaan ke News API
-    response = requests.get(NEWS_API_URL, params=params)
-    
-    if response.status_code == 200:
-        return response.json()['articles'], response.json()['totalResults']
-    else:
-        return [], 0
-
 @app.route('/berita')
 def berita():
-    query = "teknologi"  # Kata kunci yang digunakan untuk pencarian berita
-    page = int(request.args.get('page', 1))  # Ambil parameter page dari URL (default ke halaman 1)
+    # URL RSS Feed Google News (misalnya kategori teknologi)
+    rss_url = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
     
-    articles, total_results = get_news(query, page)  # Mendapatkan berita berdasarkan kata kunci dan halaman
-    total_pages = (total_results // 5) + (1 if total_results % 5 > 0 else 0)  # Hitung jumlah halaman total
+    # Mengambil dan mem-parsing RSS Feed
+    feed = feedparser.parse(rss_url)
     
-    return render_template('berita.html', articles=articles, query=query, page=page, total_pages=total_pages)
+    # Mengambil artikel-artikel dari feed
+    articles = feed.entries
+    
+    # Menentukan jumlah artikel per halaman (misalnya 5 artikel per halaman)
+    articles_per_page = 5
+    
+    # Mendapatkan halaman yang diminta oleh pengguna (default halaman 1)
+    page = request.args.get('page', 1, type=int)
+    
+    # Menghitung total jumlah artikel
+    total_articles = len(articles)
+    
+    # Menentukan batas artikel yang akan ditampilkan di halaman saat ini
+    start = (page - 1) * articles_per_page
+    end = start + articles_per_page
+    
+    # Mengambil artikel yang akan ditampilkan di halaman saat ini
+    articles_on_page = articles[start:end]
+    
+    # Menghitung jumlah halaman yang ada
+    total_pages = (total_articles + articles_per_page - 1) // articles_per_page
+    
+    # Menampilkan halaman dengan artikel dan navigasi paginasi
+    return render_template(
+        'berita.html', 
+        articles=articles_on_page, 
+        page=page,
+        total_pages=total_pages
+    )
 
 # Fungsi untuk melakukan hashing password
 def hash_password(password):
