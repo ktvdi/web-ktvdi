@@ -323,8 +323,7 @@ def get_news(query="teknologi", page=1):  # Tambahkan parameter page
         'apiKey': NEWS_API_KEY,
         'q': query,  # Kata kunci pencarian (misalnya "teknologi")
         'pageSize': 5,  # Jumlah berita per halaman
-        'page': page,  # Halaman yang akan diambil
-        'language': 'id'
+        'page': page  # Halaman yang akan diambil
     }
     
     # Mengirim permintaan ke News API
