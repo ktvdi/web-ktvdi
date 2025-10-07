@@ -15,7 +15,7 @@
     <button id="chat-toggle"><i class="fa-solid fa-comments"></i></button>
 
     <!-- Chat Popup -->
-    <div class="chatbot" id="chatbot">
+    <div class="chatbot" id="chatbot" style="display: none;">
       <h1>ChatKTVDI</h1>
       <div class="chat-body" id="chat-body">
         <!-- Pesan muncul di sini -->
@@ -37,55 +37,82 @@
         chatbot.style.display = chatbot.style.display === "flex" ? "none" : "flex";
       });
 
-    // Fungsi kirim prompt ke server Flask
-    async function sendPrompt() {
-      const prompt = promptInput.value.trim();
-      if (!prompt) return;
+      // Fungsi kirim prompt ke server Flask
+      async function sendPrompt() {
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
 
-      // Tampilkan pesan user
-      appendMessage(prompt, "user");
-      promptInput.value = "";
+        // Tampilkan pesan user
+        appendMessage(prompt, "user");
+        promptInput.value = "";
 
-      // Tambahkan placeholder sementara
-      const thinkingMsg = appendMessage("⏳ Sedang memproses...", "bot");
+        // Tambahkan placeholder sementara
+        const thinkingMsg = appendMessage("⏳ Sedang memproses...", "bot");
 
-      try {
-        const res = await fetch("/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt })
+        try {
+          const res = await fetch("/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+          });
+
+          const data = await res.json();
+          chatBody.removeChild(thinkingMsg);
+
+          if (data.response) {
+            appendMessage(data.response, "bot");
+          } else {
+            appendMessage("❌ Terjadi kesalahan: " + data.error, "bot");
+          }
+        } catch (err) {
+          chatBody.removeChild(thinkingMsg);
+          appendMessage("⚠️ Gagal terhubung ke server.", "bot");
+        }
+      }
+
+      // Fungsi untuk mengupdate pesan bot secara animasi
+      function appendMessage(text, sender) {
+        const msg = document.createElement("div");
+        msg.classList.add("message", sender);
+        chatBody.appendChild(msg);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        // Replace newlines with <br> tags
+        const formattedText = text.replace(/\n/g, '<br>');
+
+        let i = 0;
+        msg.innerText = ""; // Mulai dengan teks kosong
+
+        // Fungsi untuk menambahkan karakter satu per satu
+        function typeWriter() {
+          if (i < text.length) {
+            msg.textContent += text.charAt(i);
+            i++;
+            chatBody.scrollTop = chatBody.scrollHeight;
+            setTimeout(typeWriter, 20); // Adjust kecepatan pengetikan di sini (50ms)
+          } else {
+            requestAnimationFrame(() => {
+              chatBody.scrollTop = chatBody.scrollHeight;
+            });
+          }  
+        }
+
+        // Mulai efek pengetikan
+        typeWriter();
+
+        requestAnimationFrame(() => {
+          chatBody.scrollTop = chatBody.scrollHeight;
         });
 
-        const data = await res.json();
-        chatBody.removeChild(thinkingMsg);
-
-        if (data.response) {
-          appendMessage(data.response, "bot");
-        } else {
-          appendMessage("❌ Terjadi kesalahan: " + data.error, "bot");
+        return msg;
+      }
+      
+      // Enter = kirim pesan
+      promptInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendPrompt();
         }
-      } catch (err) {
-        chatBody.removeChild(thinkingMsg);
-        appendMessage("⚠️ Gagal terhubung ke server.", "bot");
-      }
-    }
-
-    // Tambahkan pesan ke chat body
-    function appendMessage(text, sender) {
-      const msg = document.createElement("div");
-      msg.classList.add("message", sender);
-      msg.innerText = text;
-      chatBody.appendChild(msg);
-      chatBody.scrollTop = chatBody.scrollHeight;
-      return msg;
-    }
-
-    // Enter = kirim pesan
-    promptInput.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendPrompt();
-      }
-    });
+      });
     </script>
 {% endblock %}
