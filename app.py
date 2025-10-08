@@ -14,6 +14,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime
+from collections import Counter
 
 # Muat variabel lingkungan
 load_dotenv()
@@ -95,7 +96,51 @@ model = genai.GenerativeModel(
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    # Ambil data dari seluruh node "siaran" untuk semua provinsi
+    ref = db.reference('siaran')
+    siaran_data = ref.get()
+
+    # Variabel Statistik
+    jumlah_wilayah_layanan = 0
+    jumlah_siaran = 0
+    jumlah_penyelenggara_mux = 0  # Variabel untuk menghitung jumlah penyelenggara mux
+    siaran_counts = Counter()
+    last_updated_time = None  # Variabel untuk menyimpan waktu terakhir pembaruan
+    
+    # Iterasi melalui provinsi, wilayah layanan, dan penyelenggara mux
+    for provinsi, provinsi_data in siaran_data.items():  # Iterasi pada setiap provinsi
+        if isinstance(provinsi_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
+            jumlah_wilayah_layanan += len(provinsi_data)
+            for wilayah, wilayah_data in provinsi_data.items():  # Iterasi pada setiap wilayah
+                if isinstance(wilayah_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
+                    jumlah_penyelenggara_mux += len(wilayah_data)  # Menghitung jumlah penyelenggara mux
+                    
+                    # Menghitung jumlah siaran dari penyelenggara mux
+                    for penyelenggara, penyelenggara_details in wilayah_data.items():
+                        if 'siaran' in penyelenggara_details:
+                            jumlah_siaran += len(penyelenggara_details['siaran'])  # Menambahkan jumlah siaran dari penyelenggara mux
+                            for siaran in penyelenggara_details['siaran']:
+                                siaran_counts[siaran.lower()] += 1
+                # Mengambil waktu terakhir pembaruan jika ada
+                if 'last_updated_date' in penyelenggara_details:
+                    last_updated_time = penyelenggara_details['last_updated_date']
+
+    # Menentukan siaran TV terbanyak berdasarkan hitungan
+    if siaran_counts:
+        most_common_siaran = siaran_counts.most_common(1)[0]  # Ambil siaran dengan frekuensi tertinggi
+        most_common_siaran_name = most_common_siaran[0].upper()
+        most_common_siaran_count = most_common_siaran[1]
+    else:
+        most_common_siaran_name = None
+        most_common_siaran_count = 0
+    
+    # Kirim jumlah siaran, jumlah penyelenggara mux, dan waktu pembaruan ke template
+    return render_template('index.html', most_common_siaran_name=most_common_siaran_name,
+                                            most_common_siaran_count=most_common_siaran_count,
+                                            jumlah_wilayah_layanan=jumlah_wilayah_layanan,
+                                            jumlah_siaran=jumlah_siaran, 
+                                            jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
+                                            last_updated_time=last_updated_time)
 
 @app.route('/', methods=['POST'])
 def chatbot():
