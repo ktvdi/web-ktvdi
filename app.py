@@ -123,7 +123,13 @@ def home():
                                 siaran_counts[siaran.lower()] += 1
                 # Mengambil waktu terakhir pembaruan jika ada
                 if 'last_updated_date' in penyelenggara_details:
-                    last_updated_time = penyelenggara_details['last_updated_date']
+                    current_updated_time_str = penyelenggara_details['last_updated_date']
+                    try:
+                        current_updated_time = datetime.strptime(current_updated_time_str, '%d-%m-%Y')
+                    except ValueError:
+                        current_updated_time = None
+                    if current_updated_time and (last_updated_time is None or current_updated_time > last_updated_time):
+                        last_updated_time = current_updated_time
 
     # Menentukan siaran TV terbanyak berdasarkan hitungan
     if siaran_counts:
@@ -133,6 +139,9 @@ def home():
     else:
         most_common_siaran_name = None
         most_common_siaran_count = 0
+
+    if last_updated_time:
+        last_updated_time = last_updated_time.strftime('%d-%m-%Y')
     
     # Kirim jumlah siaran, jumlah penyelenggara mux, dan waktu pembaruan ke template
     return render_template('index.html', most_common_siaran_name=most_common_siaran_name,
