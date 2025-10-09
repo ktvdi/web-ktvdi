@@ -8,9 +8,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- Header -->
-    <div id="header"></div>
-
     <div class="container">
         <h1>Dashboard KTVDI</h1>
 
@@ -31,8 +28,8 @@
         <h2 class="mt-4">📺 Daftar Siaran TV Digital</h2>
 
         <!-- Filter Provinsi -->
-        <label for="provinsi">Pilih Provinsi:</label>
-        <select id="provinsi" class="form-control">
+        <label class="select-label" for="provinsi">Pilih Provinsi:</label>
+        <select id="provinsi">
             <option value="">-- Pilih Provinsi --</option>
             {% for p in provinsi_list %}
                 <option value="{{ p }}">{{ p }}</option>
@@ -40,26 +37,28 @@
         </select>
 
         <!-- Filter Wilayah -->
-        <label for="wilayah" class="mt-3">Pilih Wilayah:</label>
-        <select id="wilayah" class="form-control">
+        <label class="select-label" for="wilayah">Pilih Wilayah:</label>
+        <select id="wilayah">
             <option value="">-- Pilih Wilayah --</option>
         </select>
 
         <!-- Filter MUX -->
-        <label for="mux" class="mt-3">Pilih MUX:</label>
-        <select id="mux" class="form-control">
+        <label class="select-label" for="mux">Pilih MUX:</label>
+        <select id="mux">
             <option value="">-- Pilih MUX --</option>
         </select>
 
         <!-- Detail Siaran -->
-        <div id="detail" class="mt-4"></div>
+        <div id="detail"></div>
 
         <!-- Manage Data Buttons -->
         {% if session.get('user') %}
             <div class="mt-4">
-                <button id="addDataBtn" class="btn-primer">Tambah Data Siaran</button>
-                <button id="editDataBtn" class="btn-warning mt-2">Edit Data Siaran</button>
-                <button id="deleteDataBtn" class="btn-danger mt-2">Hapus Data Siaran</button>
+                <button id="addDataBtn" class="btn-primer">Tambah Data</button>
+                <div id="data-buttons" style="display: none;">
+                    <button id="editDataBtn" class="btn-warning">Edit Data</button>
+                    <button id="deleteDataBtn" class="btn-danger">Hapus Data</button>
+                </div>
             </div>
         {% endif %}
     </div>
@@ -77,7 +76,7 @@
                             $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
                             $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
                             $("#detail").html(
-                                '<div class="alert alert-warning">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan untuk menambahkan data siaran!</div>'
+                                '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan untuk menambahkan data siaran!</div>'
                             );
                         } else {
                             $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
@@ -198,6 +197,35 @@
                 }
             });
         });
+
+        $(document).ready(function() {
+        // Fungsi untuk memeriksa apakah ketiga pilihan telah dipilih
+        function checkSelections() {
+            var provinsi = $('#provinsi').val();
+            var wilayah = $('#wilayah').val();
+            var mux = $('#mux').val();
+
+            // Jika Provinsi, Wilayah, dan MUX telah dipilih, tampilkan tombol
+            if (provinsi && wilayah && mux) {
+                $('#addDataBtn').hide();
+
+                setTimeout(function() {
+                    $('#data-buttons').fadeIn(); // Tampilkan tombol Edit dan Hapus setelah jeda
+                }, 2000);
+            } else {
+                $('#addDataBtn').show();
+                $('#data-buttons').hide();
+            }
+        }
+
+        // Menjalankan fungsi setiap kali pilihan berubah
+        $('#provinsi, #wilayah, #mux').change(function() {
+            checkSelections();
+        });
+
+        // Memeriksa status saat halaman dimuat
+        checkSelections();
+    });
     </script>
 
     <!-- Footer -->
