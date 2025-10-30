@@ -721,8 +721,6 @@ def logout():
     print("User logged out.")  # Debugging logout
     return redirect(url_for('login'))
 
-@app.route("/cpanel")
-
 @app.route("/test-firebase")
 def test_firebase():
     try:
