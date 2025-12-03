@@ -1,44 +1,86 @@
 {% extends "base.html" %}
 
-{% block title %}Komunitas TV Digital Indonesia{% endblock %}
+{% block title %}Daftar Akun - KTVDI{% endblock %}
 
 {% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card fade-in-up">
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <i class="fas fa-user-plus" style="font-size: 3.5rem; color: var(--primary);"></i>
+        </div>
 
-  <div class="container">
-    <h1>Daftar Akun</h1>
-    <form method="POST">
-      <input type="text" name="nama" placeholder="Nama Lengkap" required>
-      <input type="email" name="email" placeholder="Email" required>
-      <input type="text" name="username" placeholder="Username (huruf kecil & angka)" pattern="[a-z0-9]+" required>
-      <div class="password-wrapper">
-        <input type="password" id="password" name="password" placeholder="Password" required>
-        <span class="toggle-password" onclick="togglePassword()">👁️</span>
-      </div>
-      <button type="submit">Daftar</button>
-    </form>
-    <a href="/login" class="forgot">← Sudah punya akun? Login</a>
-    <div class="flash-message-container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, msg in messages %}
-          <p class="{{ category }}">{{ msg }}</p>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        <h2>Buat Akun Baru</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 25px; font-size: 0.95rem;">
+            Bergabunglah dengan komunitas TV Digital Indonesia sekarang.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div style="margin-bottom: 20px;">
+                {% for category, msg in messages %}
+                  <div style="padding: 10px; border-radius: 8px; font-size: 0.9rem; text-align: center; 
+                              background: {% if category == 'error' %}#ffebee{% else %}#e8f5e9{% endif %}; 
+                              color: {% if category == 'error' %}#c62828{% else %}#2e7d32{% endif %}; 
+                              border: 1px solid {% if category == 'error' %}#ffcdd2{% else %}#c8e6c9{% endif %};">
+                      {{ msg }}
+                  </div>
+                {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="nama">Nama Lengkap</label>
+                <input type="text" id="nama" name="nama" placeholder="Contoh: Budi Santoso" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Alamat Email</label>
+                <input type="email" id="email" name="email" placeholder="nama@email.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="huruf kecil & angka (tanpa spasi)" pattern="[a-z0-9]+" title="Hanya huruf kecil dan angka yang diperbolehkan" required>
+            </div>
+
+            <div class="form-group" style="position: relative;">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Minimal 8 karakter" required style="padding-right: 40px;">
+                
+                <span onclick="togglePassword()" style="position: absolute; right: 15px; top: 42px; cursor: pointer; color: #999;">
+                    <i class="fas fa-eye" id="toggleIcon"></i>
+                </span>
+            </div>
+
+            <button type="submit" class="btn-full">Daftar Sekarang</button>
+        </form>
+
+        <div class="auth-footer" style="margin-top: 20px;">
+            Sudah punya akun? <a href="/login" style="font-weight: 600;">Login disini</a>
+        </div>
+
     </div>
-  </div>
-<script>
-  function togglePassword() {
-      const password = document.getElementById("password");
-      const toggle = document.querySelector(".toggle-password");
+</div>
 
-      if (password.type === "password") {
-        password.type = "text";
-        toggle.textContent = "🙈";
-      } else {
-        password.type = "password";
-        toggle.textContent = "👁️";
-      }
+<script>
+    function togglePassword() {
+        const passwordField = document.getElementById("password");
+        const toggleIcon = document.getElementById("toggleIcon");
+
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            toggleIcon.classList.remove("fa-eye");
+            toggleIcon.classList.add("fa-eye-slash");
+            toggleIcon.style.color = "var(--primary)";
+        } else {
+            passwordField.type = "password";
+            toggleIcon.classList.remove("fa-eye-slash");
+            toggleIcon.classList.add("fa-eye");
+            toggleIcon.style.color = "#999";
+        }
     }
 </script>
 {% endblock %}
