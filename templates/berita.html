@@ -6,16 +6,20 @@
 <div class="container fade-in-up" style="margin-top: 2rem; max-width: 1100px;">
 
     <div style="text-align: center; margin-bottom: 3rem;">
-        <h1 style="color: var(--primary); font-weight: 800; font-size: 2.2rem;">Berita TV Digital</h1>
-        <p class="text-muted">Update terbaru seputar penyiaran, frekuensi, dan teknologi digital.</p>
-        <div style="width: 60px; height: 4px; background: var(--primary); margin: 15px auto; border-radius: 2px;"></div>
+        <h1 style="color: var(--primary); font-weight: 800; font-size: 2.2rem; margin-bottom: 10px;">
+            <i class="fas fa-newspaper" style="color: var(--accent);"></i> Berita TV Digital
+        </h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
+            Update terbaru seputar penyiaran, frekuensi, dan teknologi digital di Indonesia.
+        </p>
+        <div style="width: 60px; height: 4px; background: var(--primary); margin: 20px auto; border-radius: 2px;"></div>
     </div>
 
     <div class="news-grid">
         {% for article in articles %}
-            <div class="news-card">
+            <article class="news-card">
                 <div class="news-img-placeholder">
-                    <i class="far fa-newspaper"></i>
+                    <i class="far fa-image"></i>
                 </div>
                 
                 <div class="news-content">
@@ -26,13 +30,19 @@
                     {% endif %}
 
                     <h3 class="news-title">
-                        <a href="{{ article.link }}" target="_blank">{{ article.title }}</a>
+                        <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">
+                            {{ article.title }}
+                        </a>
                     </h3>
 
-                    <a href="{{ article.link }}" class="btn-news" target="_blank">
-                        Baca Selengkapnya <i class="fas fa-external-link-alt" style="font-size: 0.8em;"></i>
+                    <a href="{{ article.link }}" class="btn-news" target="_blank" rel="noopener noreferrer">
+                        Baca Selengkapnya <i class="fas fa-arrow-right"></i>
                     </a>
                 </div>
+            </article>
+        {% else %}
+            <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: #f9f9f9; border-radius: 12px;">
+                <p style="color: #888;">Belum ada berita terbaru saat ini.</p>
             </div>
         {% endfor %}
     </div>
@@ -43,38 +53,44 @@
                 <i class="fas fa-chevron-left"></i> Sebelumnya
             </a>
         {% else %}
-            <span class="page-btn disabled"><i class="fas fa-chevron-left"></i> Sebelumnya</span>
+            <span class="page-btn disabled">
+                <i class="fas fa-chevron-left"></i> Sebelumnya
+            </span>
         {% endif %}
 
-        <span class="page-info">Halaman <strong>{{ page }}</strong> dari {{ total_pages }}</span>
+        <span class="page-info">
+            Halaman <strong>{{ page }}</strong> dari {{ total_pages }}
+        </span>
 
         {% if page < total_pages %}
             <a href="{{ url_for('berita', page=page+1) }}" class="page-btn next">
                 Berikutnya <i class="fas fa-chevron-right"></i>
             </a>
         {% else %}
-            <span class="page-btn disabled">Berikutnya <i class="fas fa-chevron-right"></i></span>
+            <span class="page-btn disabled">
+                Berikutnya <i class="fas fa-chevron-right"></i>
+            </span>
         {% endif %}
     </div>
 
 </div>
 
 <style>
-    /* Grid Layout */
+    /* Grid Layout Responsif */
     .news-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         gap: 30px;
-        margin-bottom: 40px;
+        margin-bottom: 50px;
     }
 
-    /* Kartu Berita */
+    /* Style Kartu Berita */
     .news-card {
         background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border: 1px solid #f0f0f0;
-        transition: transform 0.3s, box-shadow 0.3s;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -82,25 +98,25 @@
     }
 
     .news-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(30, 144, 255, 0.15);
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0, 123, 255, 0.15);
         border-color: var(--primary);
     }
 
-    /* Placeholder Gambar (Gradient) */
+    /* Placeholder Gambar dengan Gradient */
     .news-img-placeholder {
-        height: 160px;
-        background: linear-gradient(135deg, var(--primary), #4facfe);
+        height: 180px;
+        background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: rgba(255,255,255,0.3);
-        font-size: 4rem;
+        color: rgba(255,255,255,0.6);
+        font-size: 3.5rem;
     }
 
-    /* Konten Kartu */
+    /* Konten di dalam Kartu */
     .news-content {
-        padding: 20px;
+        padding: 25px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
@@ -108,68 +124,84 @@
 
     .news-meta {
         font-size: 0.8rem;
-        color: #888;
-        margin-bottom: 10px;
+        color: #999;
+        margin-bottom: 12px;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
     }
 
     .news-title {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         font-weight: 700;
         line-height: 1.5;
-        margin-bottom: 20px;
-        color: #333;
+        margin: 0 0 20px 0;
+        color: var(--text-main);
+        
+        /* Membatasi judul maksimal 3 baris */
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
     .news-title a {
         text-decoration: none;
         color: inherit;
-        transition: 0.3s;
+        transition: color 0.2s;
     }
 
     .news-title a:hover {
         color: var(--primary);
     }
 
+    /* Tombol Baca Selengkapnya */
     .btn-news {
-        margin-top: auto; /* Dorong tombol ke bawah */
+        margin-top: auto; /* Memaksa tombol ke bawah */
         color: var(--primary);
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.95rem;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 8px;
+        transition: gap 0.2s;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
     }
     
     .btn-news:hover {
-        text-decoration: underline;
+        gap: 12px; /* Efek panah bergerak */
+        text-decoration: none;
+        color: var(--primary-dark);
     }
 
-    /* Paginasi */
+    /* Paginasi Style */
     .pagination-wrapper {
         display: flex;
         justify-content: center;
         align-items: center;
         gap: 20px;
-        margin-top: 40px;
         margin-bottom: 60px;
+        flex-wrap: wrap;
     }
 
     .page-btn {
-        padding: 10px 20px;
+        padding: 12px 24px;
         border-radius: 50px;
         background: #fff;
-        border: 1px solid #ddd;
-        color: #555;
+        border: 1px solid #e0e0e0;
+        color: var(--text-main);
         text-decoration: none;
         font-weight: 600;
-        transition: 0.3s;
+        transition: all 0.3s ease;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
 
     .page-btn:not(.disabled):hover {
@@ -177,19 +209,41 @@
         color: #fff;
         border-color: var(--primary);
         transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(30,144,255,0.3);
+        box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
     }
 
     .page-btn.disabled {
-        background: #f5f5f5;
-        color: #aaa;
+        background: #f8f9fa;
+        color: #ccc;
         cursor: not-allowed;
         border-color: #eee;
+        box-shadow: none;
     }
 
     .page-info {
-        font-size: 0.95rem;
-        color: #666;
+        font-size: 1rem;
+        color: var(--text-muted);
+    }
+
+    /* Responsif untuk HP */
+    @media (max-width: 768px) {
+        .news-grid {
+            grid-template-columns: 1fr; /* 1 Kolom di HP */
+            gap: 20px;
+        }
+        
+        .news-img-placeholder {
+            height: 150px;
+        }
+
+        .pagination-wrapper {
+            gap: 10px;
+        }
+        
+        .page-btn {
+            padding: 10px 15px;
+            font-size: 0.9rem;
+        }
     }
 </style>
 {% endblock %}
