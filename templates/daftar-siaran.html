@@ -1,138 +1,59 @@
 {% extends "base.html" %}
 
-{% block title %}Daftar Siaran TV Digital Indonesia{% endblock %}
+{% block title %}Daftar Siaran Digital - KTVDI{% endblock %}
 
 {% block content %}
-  <div class="container">
-    <h1>Daftar Siaran TV Digital</h1>
+<div class="container fade-in-up" style="max-width: 800px; margin-top: 2rem;">
 
-    <!-- Filter Provinsi -->
-    <label for="provinsi">Pilih Provinsi:</label>
-    <select id="provinsi">
-      <option value="">-- Pilih Provinsi --</option>
-      {% for p in provinsi_list %}
-        <option value="{{ p }}">{{ p }}</option>
-      {% endfor %}
-    </select>
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--primary); font-weight: 700;">Daftar Siaran Digital</h1>
+        <p class="text-muted">Cari frekuensi dan daftar saluran TV di wilayah Anda.</p>
+    </div>
 
-    <!-- Filter Wilayah -->
-    <label for="wilayah">Pilih Wilayah:</label>
-    <select id="wilayah">
-      <option value="">-- Pilih Wilayah --</option>
-    </select>
+    <div class="auth-card" style="text-align: left; margin-bottom: 2rem;">
+        <div class="form-group">
+            <label for="provinsi"><i class="fas fa-map-marker-alt"></i> Pilih Provinsi</label>
+            <div style="position: relative;">
+                <select id="provinsi" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; appearance: none;">
+                    <option value="">-- Silakan Pilih --</option>
+                    {% for p in provinsi_list %}
+                        <option value="{{ p }}">{{ p }}</option>
+                    {% endfor %}
+                </select>
+                <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 15px; color: #999; pointer-events: none;"></i>
+            </div>
+        </div>
 
-    <!-- Filter MUX -->
-    <label for="mux">Pilih MUX:</label>
-    <select id="mux">
-      <option value="">-- Pilih MUX --</option>
-    </select>
+        <div class="form-group">
+            <label for="wilayah"><i class="fas fa-map"></i> Pilih Wilayah Layanan</label>
+            <div style="position: relative;">
+                <select id="wilayah" disabled style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #eee; appearance: none; cursor: not-allowed;">
+                    <option value="">-- Menunggu Provinsi --</option>
+                </select>
+                <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 15px; color: #999; pointer-events: none;"></i>
+            </div>
+        </div>
 
-    <!-- Detail Siaran -->
+        <div class="form-group">
+            <label for="mux"><i class="fas fa-broadcast-tower"></i> Pilih Penyelenggara MUX</label>
+            <div style="position: relative;">
+                <select id="mux" disabled style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #eee; appearance: none; cursor: not-allowed;">
+                    <option value="">-- Menunggu Wilayah --</option>
+                </select>
+                <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 15px; color: #999; pointer-events: none;"></i>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading" style="display: none; text-align: center; margin: 20px 0;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
+        <p style="color: #666; margin-top: 10px;">Sedang memuat data...</p>
+    </div>
+
     <div id="detail"></div>
-  </div>
 
-  <!-- Script -->
-  <script>
+</div>
+
+<script>
     document.addEventListener("DOMContentLoaded", function () {
-      // Saat pilih provinsi
-      document.getElementById("provinsi").addEventListener("change", function () {
-        var provinsi = this.value;
-    
-        if (provinsi) {
-          fetch("/get_wilayah?provinsi=" + provinsi)
-            .then((response) => response.json())
-            .then((data) => {
-              var wilayahSelect = document.getElementById("wilayah");
-              var muxSelect = document.getElementById("mux");
-              var detailDiv = document.getElementById("detail");
-    
-              if (!data.wilayah || data.wilayah.length === 0) {
-                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                detailDiv.innerHTML =
-                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
-              } else {
-                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-                data.wilayah.forEach(function (w) {
-                  var option = document.createElement("option");
-                  option.value = w;
-                  option.textContent = w;
-                  wilayahSelect.appendChild(option);
-                });
-    
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                detailDiv.innerHTML = "";
-              }
-            });
-        } else {
-          document.getElementById("wilayah").innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-          document.getElementById("mux").innerHTML = '<option value="">-- Pilih MUX --</option>';
-          document.getElementById("detail").innerHTML = "";
-        }
-      });
-    
-      // Saat pilih wilayah
-      document.getElementById("wilayah").addEventListener("change", function () {
-        var provinsi = document.getElementById("provinsi").value;
-        var wilayah = this.value;
-    
-        if (wilayah) {
-          fetch("/get_mux?provinsi=" + provinsi + "&wilayah=" + wilayah)
-            .then((response) => response.json())
-            .then((data) => {
-              var muxSelect = document.getElementById("mux");
-              var detailDiv = document.getElementById("detail");
-    
-              if (!data.mux || data.mux.length === 0) {
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                detailDiv.innerHTML =
-                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
-              } else {
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                data.mux.forEach(function (m) {
-                  var option = document.createElement("option");
-                  option.value = m;
-                  option.textContent = m;
-                  muxSelect.appendChild(option);
-                });
-                detailDiv.innerHTML = "";
-              }
-            });
-        }
-      });
-    
-      // Saat pilih mux
-      document.getElementById("mux").addEventListener("change", function () {
-        var provinsi = document.getElementById("provinsi").value;
-        var wilayah = document.getElementById("wilayah").value;
-        var mux = this.value;
-    
-        if (mux) {
-          fetch("/get_siaran?provinsi=" + provinsi + "&wilayah=" + wilayah + "&mux=" + mux)
-            .then((response) => response.json())
-            .then((data) => {
-              var detailDiv = document.getElementById("detail");
-    
-              if (!data.siaran || data.siaran.length === 0) {
-                detailDiv.innerHTML =
-                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
-              } else {
-                var html = '<div class="card">';
-                html += "<h3>📡 " + mux + "</h3>";
-                html += "<p><strong>Update:</strong> " + (data.last_updated_date || "-") + " " + (data.last_updated_time || "") + "</p>";
-                html += "<p><strong>Oleh:</strong> " + (data.last_updated_by_name || "-") + " (" + (data.last_updated_by_username || "-") + ")</p>";
-                html += "<h4>📺 Daftar Siaran:</h4><ul>";
-    
-                data.siaran.forEach(function (s) {
-                  html += "<li>" + s + "</li>";
-                });
-    
-                html += "</ul></div>";
-                detailDiv.innerHTML = html;
-              }
-            });
-        }
-      });
-    });
-  </script>
-{% endblock %}
+        const provinsiSelect = document.getElementById("provinsi");
