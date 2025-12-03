@@ -1,74 +1,209 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Komunitas TV Digital Indonesia. Cek jangkauan sinyal, daftar siaran, dan forum diskusi seputar TV Digital DVB-T2.">
+    
+    <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
 
-{% block title %}Beranda - Komunitas TV Digital Indonesia{% endblock %}
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
 
-{% block content %}
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
 
-<div class="hero">
-    <div class="container" style="padding-top: 2rem; padding-bottom: 2rem; text-align: center;">
-        <h1 style="color: var(--primary); font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem;">
-            Komunitas TV Digital Indonesia
-        </h1>
-        <p style="color: var(--text-muted); max-width: 700px; margin: 0 auto 30px; font-size: 1.1rem;">
-            KTVDI Menjadi Wadah Diskusi Bagi Semua Pemirsa Siaran Televisi Digital di Indonesia untuk Memperluas Wawasan Terkait Segala Hal Yang Berkaitan Dengan Siaran Televisi, Khususnya Televisi Digital Terestrial (DTT).
-        </p>
-        <a href="/daftar-siaran" class="btn-full" style="width: auto; padding: 12px 40px; border-radius: 50px; font-size: 1rem;">
-            <i class="fas fa-list"></i> Lihat Daftar Siaran
-        </a>
+<body>
+
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI">
+                <span>KTVDI</span>
+            </a>
+
+            <input type="checkbox" id="menu-toggle">
+            <label for="menu-toggle" class="menu-icon"><i class="fas fa-bars"></i></label>
+
+            <nav>
+                <ul>
+                    <li><a href="/" class="menu-link">Beranda</a></li>
+                    <li><a href="/daftar-siaran" class="menu-link">Daftar Siaran</a></li>
+                    <li><a href="/berita" class="menu-link">Berita</a></li>
+                    
+                    {% if session.get('user') %}
+                        <li><a href="/dashboard" class="nav-btn dashboard menu-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    {% else %}
+                        <li><a href="/login" class="nav-btn login menu-link">Masuk</a></li>
+                        <li><a href="/register" class="nav-btn register menu-link">Daftar</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="container" id="flash-wrapper" style="padding-bottom: 0;">
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}">
+                      <span>{{ message }}</span>
+                      <span class="close-alert" onclick="this.parentElement.style.display='none';">&times;</span>
+                  </div>
+                {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="social-icons">
+            <a href="https://www.instagram.com/" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/" target="_blank" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+            <a href="https://youtube.com/" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+            <a href="#" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+        </div>
+        <p>&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
+    </footer>
+
+    <button id="chat-toggle" title="Tanya AI"><i class="fas fa-comment-dots"></i></button>
+
+    <div class="chatbot-container" id="chatbot">
+        <div class="chat-header">
+            <span><i class="fas fa-robot"></i> Asisten KTVDI</span>
+            <span id="close-chat" style="cursor:pointer; font-size: 1.2rem;"><i class="fas fa-times"></i></span>
+        </div>
+        <div class="chat-body" id="chat-box">
+            <div class="message bot">
+                Halo! 👋 Saya AI Assistant KTVDI. <br>
+                Silakan tanya tentang jangkauan sinyal, daftar MUX, atau cara menggunakan website ini.
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="Ketik pertanyaan..." autocomplete="off">
+            <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+        </div>
     </div>
-</div>
 
-<div class="container fade-in-up" style="background: #f8faff; padding-top: 2rem; padding-bottom: 4rem;">
-    <div style="text-align: center; margin-bottom: 40px;">
-        <h2 style="color: var(--primary); font-weight: 700; font-size: 1.8rem;">Siaran Digital dalam Angka</h2>
-        <p style="color: #888; font-size: 0.9rem; margin-top: 5px;">
-            Update Terakhir: <strong>{{ last_updated_time }}</strong>
-        </p>
-    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. MENU MOBILE (Tutup otomatis saat diklik)
+            const menuToggle = document.getElementById('menu-toggle');
+            const menuLinks = document.querySelectorAll('.menu-link');
+            
+            if(menuToggle) {
+                menuLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        menuToggle.checked = false; 
+                    });
+                });
+            }
 
-    <div class="stats-grid">
-        
-        <div class="stat-card">
-            <div class="icon-box" style="background: #e3f2fd; color: #007bff;">
-                <i class="fas fa-map-marked-alt"></i>
-            </div>
-            <div class="stat-info">
-                <h3>{{ jumlah_wilayah_layanan }}</h3>
-                <p>Wilayah Layanan</p>
-            </div>
-        </div>
+            // 2. AUTO HIDE NOTIFIKASI (4 Detik)
+            const flashWrapper = document.getElementById('flash-wrapper');
+            if (flashWrapper) {
+                setTimeout(() => {
+                    flashWrapper.style.transition = "opacity 0.5s ease";
+                    flashWrapper.style.opacity = "0";
+                    setTimeout(() => flashWrapper.remove(), 500);
+                }, 4000);
+            }
 
-        <div class="stat-card">
-            <div class="icon-box" style="background: #e8f5e9; color: #2e7d32;">
-                <i class="fas fa-broadcast-tower"></i>
-            </div>
-            <div class="stat-info">
-                <h3>{{ jumlah_penyelenggara_mux }}</h3>
-                <p>Layanan MUX</p>
-            </div>
-        </div>
+            // 3. LOGIKA CHATBOT
+            const toggleBtn = document.getElementById("chat-toggle");
+            const closeBtn = document.getElementById("close-chat");
+            const chatbot = document.getElementById("chatbot");
+            const chatBody = document.getElementById("chat-box");
+            const promptInput = document.getElementById("user-input");
+            const sendBtn = document.getElementById("send-btn");
 
-        <div class="stat-card">
-            <div class="icon-box" style="background: #fff3e0; color: #f57c00;">
-                <i class="fas fa-tv"></i>
-            </div>
-            <div class="stat-info">
-                <h3>{{ jumlah_siaran }}</h3>
-                <p>Saluran TV Digital</p>
-            </div>
-        </div>
+            // Toggle Buka/Tutup
+            function toggleChat() {
+                const currentStyle = window.getComputedStyle(chatbot).display;
+                const isHidden = currentStyle === "none";
 
-        <div class="stat-card">
-            <div class="icon-box" style="background: #ffebee; color: #c62828;">
-                <i class="fas fa-globe-asia"></i>
-            </div>
-            <div class="stat-info">
-                <h3 style="font-size: 1.2rem;">{{ most_common_siaran_name }}</h3>
-                <p>Jangkauan Terluas <br><span style="font-size: 0.8rem">({{ most_common_siaran_count }} MUX)</span></p>
-            </div>
-        </div>
+                if (isHidden) {
+                    chatbot.style.display = "flex";
+                    toggleBtn.style.display = "none";
+                    if(promptInput) promptInput.focus();
+                } else {
+                    chatbot.style.display = "none";
+                    toggleBtn.style.display = "flex";
+                }
+            }
 
-    </div>
-</div>
+            if(toggleBtn) toggleBtn.addEventListener("click", toggleChat);
+            if(closeBtn) closeBtn.addEventListener("click", toggleChat);
 
-{% endblock %}
+            // Tambah Pesan ke Layar
+            function appendMessage(text, sender) {
+                const msg = document.createElement("div");
+                msg.classList.add("message", sender);
+                if (sender === 'bot') msg.innerHTML = text;
+                else msg.textContent = text;
+                chatBody.appendChild(msg);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // Format Jawaban AI (Bold & List)
+            function formatResponse(text) {
+                let formatted = text.replace(/\n/g, "<br>");
+                formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                formatted = formatted.replace(/<br>\* (.*?)(?=<br>|$)/g, '<br>• $1');
+                return formatted;
+            }
+
+            // Kirim Pesan
+            async function sendPrompt() {
+                const prompt = promptInput.value.trim();
+                if (!prompt) return;
+
+                appendMessage(prompt, "user");
+                promptInput.value = "";
+
+                // Loading...
+                const loadingMsg = document.createElement("div");
+                loadingMsg.classList.add("message", "bot");
+                loadingMsg.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <em>Mengetik...</em>';
+                chatBody.appendChild(loadingMsg);
+                chatBody.scrollTop = chatBody.scrollHeight;
+
+                try {
+                    const res = await fetch("/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ prompt })
+                    });
+
+                    const data = await res.json();
+                    chatBody.removeChild(loadingMsg);
+
+                    if (data.response) {
+                        const cleanText = formatResponse(data.response);
+                        appendMessage(cleanText, "bot");
+                    } else {
+                        appendMessage("Maaf, terjadi kesalahan.", "bot");
+                    }
+                } catch (err) {
+                    if(loadingMsg.parentNode) chatBody.removeChild(loadingMsg);
+                    appendMessage("⚠️ Gagal terhubung ke server.", "bot");
+                }
+            }
+
+            if(sendBtn) sendBtn.addEventListener("click", sendPrompt);
+            if(promptInput) {
+                promptInput.addEventListener("keypress", (e) => {
+                    if (e.key === "Enter") sendPrompt();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
