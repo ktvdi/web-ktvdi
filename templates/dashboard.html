@@ -3,23 +3,112 @@
 {% block title %}Dashboard - Komunitas TV Digital Indonesia{% endblock %}
 
 {% block content %}
-<div class="container fade-in-up" style="max-width: 900px; margin-top: 2rem;">
+<style>
+    /* --- CSS Khusus Dashboard (Responsive) --- */
+    .dashboard-container {
+        max-width: 900px;
+        margin-top: 2rem;
+    }
+
+    /* Header: Logout tombol pindah ke bawah di HP */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    /* Kartu Profil */
+    .profile-card {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap; /* Agar aman di layar sangat kecil */
+    }
+
+    .profile-icon {
+        background: #e6f2ff;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0; /* Mencegah ikon mengecil/gepeng */
+    }
+
+    /* Form & Select */
+    .step-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #444;
+    }
+
+    .custom-select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        background-color: #fff;
+        font-size: 1rem; /* Font enak dibaca di HP */
+    }
+
+    /* Grup Tombol Edit/Hapus */
+    .action-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    /* List Saluran TV */
+    .channel-list {
+        padding-left: 20px;
+        columns: 2; /* Default Desktop: 2 Kolom */
+    }
+
+    /* --- RESPONSIVE (Layar HP < 768px) --- */
+    @media (max-width: 768px) {
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .btn-logout {
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .action-group {
+            flex-direction: column; /* Tombol Edit & Hapus jadi atas-bawah */
+        }
+
+        .channel-list {
+            columns: 1 !important; /* Di HP jadi 1 kolom agar terbaca */
+        }
+    }
+</style>
+
+<div class="container fade-in-up dashboard-container">
     
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 15px;">
-        <h1 style="color: var(--primary); margin: 0;">Dashboard Pengguna</h1>
-        <a href="/logout" class="btn-full" style="width: auto; background: #e74c3c; padding: 8px 20px; font-size: 0.9rem;">
+    <div class="dashboard-header">
+        <h1 style="color: var(--primary); margin: 0; font-size: 1.8rem;">Dashboard Pengguna</h1>
+        <a href="/logout" class="btn-full btn-logout" style="width: auto; background: #e74c3c; padding: 10px 25px; font-size: 0.95rem; text-decoration: none; border-radius: 6px; color: white;">
             <i class="fas fa-sign-out-alt"></i> Logout
         </a>
     </div>
 
     <div class="auth-card" style="margin-bottom: 2rem; text-align: left; border-left: 5px solid var(--primary);">
-        <div style="display: flex; align-items: center; gap: 20px;">
-            <div style="background: #e6f2ff; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <div class="profile-card">
+            <div class="profile-icon">
                 <i class="fas fa-user" style="font-size: 1.8rem; color: var(--primary);"></i>
             </div>
             <div>
                 <h3 style="margin: 0; color: #333;">Selamat Datang, {{ name }}!</h3>
-                <p style="margin: 0; color: #666; font-size: 0.95rem;">Terima kasih telah berkontribusi di komunitas.</p>
+                <p style="margin: 5px 0 0; color: #666; font-size: 0.95rem;">Terima kasih telah berkontribusi di komunitas.</p>
             </div>
         </div>
     </div>
@@ -30,8 +119,8 @@
         </h3>
 
         <div class="form-group">
-            <label for="provinsi"><strong>1. Pilih Provinsi</strong></label>
-            <select id="provinsi" class="form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+            <label for="provinsi" class="step-label">1. Pilih Provinsi</label>
+            <select id="provinsi" class="custom-select">
                 <option value="">-- Silakan Pilih --</option>
                 {% for p in provinsi_list %}
                     <option value="{{ p }}">{{ p }}</option>
@@ -40,29 +129,29 @@
         </div>
 
         <div class="form-group">
-            <label for="wilayah"><strong>2. Pilih Wilayah Layanan</strong></label>
-            <select id="wilayah" class="form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" disabled>
+            <label for="wilayah" class="step-label">2. Pilih Wilayah Layanan</label>
+            <select id="wilayah" class="custom-select" disabled>
                 <option value="">-- Menunggu Provinsi --</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label for="mux"><strong>3. Pilih Penyelenggara MUX</strong></label>
-            <select id="mux" class="form-control" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" disabled>
+            <label for="mux" class="step-label">3. Pilih Penyelenggara MUX</label>
+            <select id="mux" class="custom-select" disabled>
                 <option value="">-- Menunggu Wilayah --</option>
             </select>
         </div>
 
         <div id="action-buttons" style="margin-top: 25px; display: none;">
-            <button id="addDataBtn" class="btn-full" style="background: var(--primary); display: none;">
+            <button id="addDataBtn" class="btn-full" style="background: var(--primary); display: none; width: 100%; padding: 12px; font-size: 1rem; border: none; border-radius: 8px; color: white; cursor: pointer;">
                 <i class="fas fa-plus-circle"></i> Tambah Data Baru
             </button>
 
-            <div id="editDeleteGroup" style="display: flex; gap: 10px; display: none;">
-                <button id="editDataBtn" class="btn-full" style="background: #f39c12; flex: 1;">
+            <div id="editDeleteGroup" class="action-group" style="display: none;">
+                <button id="editDataBtn" style="background: #f39c12; flex: 1; padding: 12px; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1rem;">
                     <i class="fas fa-edit"></i> Edit Data
                 </button>
-                <button id="deleteDataBtn" class="btn-full" style="background: #e74c3c; flex: 1;">
+                <button id="deleteDataBtn" style="background: #e74c3c; flex: 1; padding: 12px; border: none; border-radius: 8px; color: white; cursor: pointer; font-size: 1rem;">
                     <i class="fas fa-trash"></i> Hapus
                 </button>
             </div>
@@ -77,17 +166,17 @@
 <script>
     $(document).ready(function () {
         
-        // Reset Dropdown Helper
+        // Helper: Reset Dropdown
         function resetDropdown(selector, defaultText) {
             $(selector).empty().append('<option value="">' + defaultText + '</option>').prop('disabled', true);
         }
 
-        // Toggle Tombol Aksi
+        // Helper: Atur Tombol
         function updateButtons(isDataExist) {
-            $("#action-buttons").show();
+            $("#action-buttons").slideDown(); // Efek animasi halus
             if (isDataExist) {
                 $("#addDataBtn").hide();
-                $("#editDeleteGroup").css("display", "flex");
+                $("#editDeleteGroup").css("display", "flex"); // Pakai flex agar responsive class bekerja
             } else {
                 $("#addDataBtn").show();
                 $("#editDeleteGroup").hide();
@@ -112,9 +201,8 @@
                         $("#wilayah").prop('disabled', false);
                     } else {
                         resetDropdown("#wilayah", "-- Tidak ada data --");
-                        // Tampilkan tombol tambah karena data kosong
                         updateButtons(false);
-                        $("#detail").html('<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:8px; border:1px solid #ffeeba;">⚠️ Belum ada data wilayah di provinsi ini. Silakan tambah baru.</div>');
+                        $("#detail").html('<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:8px; border:1px solid #ffeeba;">⚠️ Belum ada data wilayah. Silakan tambah baru.</div>');
                     }
                 });
             } else {
@@ -141,7 +229,7 @@
                     } else {
                         resetDropdown("#mux", "-- Tidak ada data --");
                         updateButtons(false);
-                        $("#detail").html('<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:8px; border:1px solid #ffeeba;">⚠️ Belum ada data MUX di wilayah ini.</div>');
+                        $("#detail").html('<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:8px; border:1px solid #ffeeba;">⚠️ Belum ada data MUX. Silakan tambah.</div>');
                     }
                 });
             } else {
@@ -156,25 +244,25 @@
             var mux = $(this).val();
 
             if (mux) {
-                $("#detail").html('<p style="text-align:center; color:#666;">⏳ Memuat data...</p>');
+                $("#detail").html('<p style="text-align:center; color:#666; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</p>');
                 
                 $.getJSON("/get_siaran", { provinsi: provinsi, wilayah: wilayah, mux: mux }, function (data) {
                     if (data.siaran && data.siaran.length > 0) {
                         var html = `
                             <div class="auth-card fade-in-up" style="text-align:left; border-top: 5px solid var(--primary);">
-                                <h2 style="color:var(--primary); margin-top:0;">📡 ${mux}</h2>
-                                <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">
+                                <h2 style="color:var(--primary); margin-top:0; font-size:1.5rem;">📡 ${mux}</h2>
+                                <p style="font-size:0.9rem; color:#666; margin-bottom:15px; line-height: 1.6;">
                                     <i class="fas fa-clock"></i> Update: ${data.last_updated_date || "-"} ${data.last_updated_time || ""} <br>
                                     <i class="fas fa-user"></i> Oleh: <strong>${data.last_updated_by_name || "-"}</strong>
                                 </p>
-                                <h4 style="border-bottom:1px solid #eee; padding-bottom:5px;">Daftar Saluran:</h4>
-                                <ul style="padding-left:20px; columns: 2;">
-                                    ${data.siaran.map(s => `<li>${s}</li>`).join('')}
+                                <h4 style="border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom: 10px;">Daftar Saluran:</h4>
+                                <ul class="channel-list">
+                                    ${data.siaran.map(s => `<li style="margin-bottom:5px;">${s}</li>`).join('')}
                                 </ul>
                             </div>
                         `;
                         $("#detail").html(html);
-                        updateButtons(true); // Ada data -> Tampilkan Edit/Hapus
+                        updateButtons(true);
                     } else {
                         $("#detail").html('<div style="background:#e8f5e9; color:#2e7d32; padding:15px; border-radius:8px;">Data kosong atau belum lengkap.</div>');
                         updateButtons(false);
