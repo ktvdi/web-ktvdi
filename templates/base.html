@@ -13,6 +13,81 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        /* Tambahan CSS inline untuk memastikan responsivitas dasar jika style.css gagal dimuat */
+        body { font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; color: #333; }
+        
+        /* Navbar Responsif */
+        header { background: #007bff; padding: 15px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header-container { width: 90%; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 10px; color: white; text-decoration: none; font-weight: 700; font-size: 1.2rem; }
+        .logo img { height: 40px; width: auto; }
+        
+        nav ul { list-style: none; display: flex; gap: 20px; align-items: center; margin: 0; padding: 0; }
+        nav a { text-decoration: none; color: rgba(255,255,255,0.9); font-weight: 500; transition: 0.3s; }
+        nav a:hover { color: white; }
+        
+        /* Mobile Menu */
+        #menu-toggle { display: none; }
+        .menu-icon { display: none; font-size: 1.5rem; color: white; cursor: pointer; }
+        
+        @media (max-width: 768px) {
+            .menu-icon { display: block; }
+            nav ul { 
+                display: none; 
+                flex-direction: column; 
+                position: absolute; 
+                top: 100%; 
+                left: 0; 
+                width: 100%; 
+                background: white; 
+                padding: 20px; 
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+                gap: 15px; 
+            }
+            nav a { color: #333; display: block; padding: 10px; text-align: center; }
+            nav a:hover { background-color: #f0f0f0; color: #007bff; border-radius: 5px; }
+            #menu-toggle:checked ~ nav ul { display: flex; }
+            
+            /* Tombol Navigasi di Mobile */
+            .nav-btn { width: 100%; margin-top: 5px; }
+            .nav-btn.login { border: 1px solid #007bff; color: #007bff; }
+            .nav-btn.register { background: #007bff; color: white; }
+        }
+
+        /* Tombol Navigasi Desktop */
+        .nav-btn { padding: 8px 20px; border-radius: 50px; font-weight: 600; font-size: 0.9rem; text-align: center; }
+        .nav-btn.login { background: white; color: #007bff; }
+        .nav-btn.register { border: 1px solid rgba(255,255,255,0.5); color: white; }
+        .nav-btn.register:hover { background: rgba(255,255,255,0.1); }
+        .nav-btn.dashboard { background: #ff9f43; color: white; }
+
+        /* Flash Messages */
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; background: white; border-left: 5px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .alert-success { border-color: #28a745; background-color: #d4edda; color: #155724; }
+        .alert-error { border-color: #dc3545; background-color: #f8d7da; color: #721c24; }
+        .close-alert { cursor: pointer; font-weight: bold; }
+
+        /* Chatbot */
+        #chat-toggle { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background: #007bff; color: white; border: none; border-radius: 50%; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; transition: transform 0.3s; display: flex; align-items: center; justify-content: center; }
+        #chat-toggle:hover { transform: scale(1.1); }
+        
+        .chatbot-container { display: none; position: fixed; bottom: 90px; right: 20px; width: 350px; height: 500px; background: white; border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); flex-direction: column; z-index: 1000; overflow: hidden; border: 1px solid #eee; }
+        .chat-header { background: #007bff; padding: 15px; color: white; display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+        .chat-body { flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 10px; }
+        .chat-input-area { padding: 10px; background: white; border-top: 1px solid #eee; display: flex; gap: 10px; }
+        #user-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        #send-btn { width: 40px; height: 40px; background: #007bff; color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .message { padding: 10px 15px; border-radius: 15px; max-width: 80%; font-size: 0.9rem; line-height: 1.4; }
+        .message.bot { background: white; border: 1px solid #eee; color: #333; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .message.user { background: #007bff; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        @media (max-width: 480px) {
+            .chatbot-container { width: 90%; right: 5%; bottom: 80px; height: 60vh; }
+        }
+    </style>
 </head>
 
 <body>
@@ -47,7 +122,7 @@
     <main>
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="container" id="flash-wrapper" style="padding-bottom: 0;">
+            <div class="container" id="flash-wrapper" style="padding-bottom: 0; width: 90%; max-width: 1200px; margin: 20px auto;">
                 {% for category, message in messages %}
                   <div class="alert alert-{{ category }}">
                       <span>{{ message }}</span>
@@ -62,14 +137,16 @@
     </main>
 
     <footer>
-        <div class="social-icons">
-            <a href="https://www.instagram.com/" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-            <a href="https://www.facebook.com/" target="_blank" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
-            <a href="https://youtube.com/" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-            <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-            <a href="#" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+        <div class="social-icons" style="text-align: center; padding: 20px 0; background: #f8f9fa; border-top: 1px solid #eee; margin-top: 40px;">
+            <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 10px;">
+                <a href="https://www.instagram.com/" target="_blank" aria-label="Instagram" style="color: #555; font-size: 1.2rem;"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.facebook.com/" target="_blank" aria-label="Facebook" style="color: #555; font-size: 1.2rem;"><i class="fab fa-facebook"></i></a>
+                <a href="https://youtube.com/" target="_blank" aria-label="YouTube" style="color: #555; font-size: 1.2rem;"><i class="fab fa-youtube"></i></a>
+                <a href="#" aria-label="WhatsApp" style="color: #555; font-size: 1.2rem;"><i class="fab fa-whatsapp"></i></a>
+                <a href="#" aria-label="Telegram" style="color: #555; font-size: 1.2rem;"><i class="fab fa-telegram-plane"></i></a>
+            </div>
+            <p style="margin: 0; color: #777; font-size: 0.9rem;">&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
         </div>
-        <p>&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
     </footer>
 
     <button id="chat-toggle" title="Tanya AI"><i class="fas fa-comment-dots"></i></button>
