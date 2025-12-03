@@ -4,30 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="aFor1zxHtm-oPfHoTIdxvVFAIapnM6_MeblwG_M4W2o">
+
     <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
-    <link rel="icon" href="{{ url_for('static', filename='images/ktvdi.png') }}" type="image/x-icon" />
+
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png" />
+
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Manifest (PWA) -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-<!-- IOS support -->
+
+    <!-- iOS Support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0d6efd">
+
+    <!-- Register Service Worker -->
     <script>
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/static/service-worker.js")
+        navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}")
           .then(() => console.log("Service Worker Registered"))
-          .catch(err => console.log("SW Failed:", err));
+          .catch(err => console.error("SW Error:", err));
       }
     </script>
-    <meta name="theme-color" content="#0d6efd">
 </head>
+
 <body class="{% block body_class %}default-page{% endblock %}">
+
+    <!-- HEADER -->
     <header>
         <input type="checkbox" id="menu-toggle">
         <label for="menu-toggle" class="menu-icon">&#9776;</label>
 
         <div class="logo">
-          <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI">
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI">
         </div>
+
         <nav>
             <ul>
                 <li><a href="/">Beranda</a></li>
@@ -40,76 +57,68 @@
         </nav>
     </header>
 
+    <!-- MAIN CONTENT -->
     <main>
-    {% block content %}
-        <!-- Content from child templates will go here -->
-    {% endblock %}
+        {% block content %}{% endblock %}
     </main>
-    
-    <footer id="footers" style="display: none;">
+
+    <!-- FOOTER -->
+    <footer id="footers" style="display:none;">
         <div class="social-icons">
-          <a href="https://www.instagram.com/ktvdi.id?igsh=YWNteGY0Yms0NGNp" class="social-icon instagram"><i class="fab fa-instagram"></i></a>
-          <a href="https://www.facebook.com/share/g/18CKU4FayC/?mibextid=A7sQZp" class="social-icon facebook"><i class="fab fa-facebook"></i></a>
-          <a href="https://youtube.com/@ktvdi_id?si=NU-Ig6WQORKGvt_E" class="social-icon youtube"><i class="fab fa-youtube"></i></a>
-          <a href="https://chat.whatsapp.com/DwqpvihDPRrKFX44bPVDPb" class="social-icon whatsapp"><i class="fab fa-whatsapp"></i></a>
-          <a href="https://t.me/SiaranDigitalIndonesia" class="social-icon telegram"><i class="fab fa-telegram-plane"></i></a>
+            <a href="https://www.instagram.com/ktvdi.id?igsh=YWNteGY0Yms0NGNp" class="social-icon instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/share/g/18CKU4FayC/?mibextid=A7sQZp" class="social-icon facebook"><i class="fab fa-facebook"></i></a>
+            <a href="https://youtube.com/@ktvdi_id?si=NU-Ig6WQORKGvt_E" class="social-icon youtube"><i class="fab fa-youtube"></i></a>
+            <a href="https://chat.whatsapp.com/DwqpvihDPRrKFX44bPVDPb" class="social-icon whatsapp"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://t.me/SiaranDigitalIndonesia" class="social-icon telegram"><i class="fab fa-telegram-plane"></i></a>
         </div>
         <p>&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
     </footer>
-    <script>
-        // animasi
-        document.addEventListener('DOMContentLoaded', () => {
-          const headline = document.getElementById('headline');
-          const paragraph = document.getElementById('paragraph');
-          const readMoreButton = document.getElementById('read-more');
-          const statistictv = document.getElementById('statistic-tv');
-          const footerss = document.getElementById('footers');
-          const toggleBot = document.getElementById('chat-toggle');
-    
-          // Fungsi typewriter effect
-          function typeWriter(element, text, i = 0, callback) {
-            if (i < text.length) {
-              element.innerHTML = text.substring(0, i + 1);
-              setTimeout(() => typeWriter(element, text, i + 1, callback), 90);
-            } else if (callback) {
-              callback();
-            }
-          }
-    
-          // Menggunakan URL untuk memeriksa apakah ini halaman utama
-          const isHomePage = window.location.pathname === '/';  // Memeriksa apakah URL adalah halaman utama
-    
-          if (footerss) {
-            if (isHomePage) {
-              // Animasi typewriter untuk headline jika halaman utama
-              typeWriter(headline, headline.textContent, 0, () => {
-                paragraph.style.display = 'block';
-                paragraph.classList.add('fade-in-up');
-    
-                readMoreButton.style.display = 'block';
-                readMoreButton.classList.add('fade-in-up');
-    
-                statistictv.style.display = 'grid';
-                statistictv.classList.add('fade-in-up');
 
-                toggleBot.style.display = 'flex';
-                toggleBot.classList.add('fade-in-up');
-    
-                // Menampilkan footer setelah animasi selesai
-                footerss.style.display = 'block';
-                footerss.classList.add('fade-in-up');
-              });
-            } else {
-              // Di halaman lain, footer langsung tampil
-              footerss.style.display = 'block';
+    <!-- ANIMASI -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const headline = document.getElementById('headline');
+            const paragraph = document.getElementById('paragraph');
+            const readMoreButton = document.getElementById('read-more');
+            const statistictv = document.getElementById('statistic-tv');
+            const footerss = document.getElementById('footers');
+            const toggleBot = document.getElementById('chat-toggle');
+
+            function typeWriter(element, text, i = 0, callback) {
+                if (i < text.length) {
+                    element.innerHTML = text.substring(0, i + 1);
+                    setTimeout(() => typeWriter(element, text, i + 1, callback), 90);
+                } else if (callback) {
+                    callback();
+                }
             }
-          }
+
+            const isHomePage = window.location.pathname === '/';
+
+            if (footerss) {
+                if (isHomePage) {
+                    typeWriter(headline, headline.textContent, 0, () => {
+                        paragraph.style.display = 'block';
+                        paragraph.classList.add('fade-in-up');
+
+                        readMoreButton.style.display = 'block';
+                        readMoreButton.classList.add('fade-in-up');
+
+                        statistictv.style.display = 'grid';
+                        statistictv.classList.add('fade-in-up');
+
+                        toggleBot.style.display = 'flex';
+                        toggleBot.classList.add('fade-in-up');
+
+                        footerss.style.display = 'block';
+                        footerss.classList.add('fade-in-up');
+                    });
+                } else {
+                    footerss.style.display = 'block';
+                }
+            }
         });
     </script>
+
 </body>
 </html>
-
-
-
-
-
