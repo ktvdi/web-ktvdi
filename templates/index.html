@@ -1,173 +1,228 @@
 {% extends "base.html" %}
 
-{% block title %}Komunitas TV Digital Indonesia{% endblock %}
-
-{% block body_class %}home-page{% endblock %}
+{% block title %}Beranda - Komunitas TV Digital Indonesia{% endblock %}
 
 {% block content %}
-    <section class="hero">
-        <h1 id="headline">Selamat Datang di Website Komunitas TV Digital Indonesia</h1>
-        <p id="paragraph" style="display: none;">
-          KTVDI menjadi wadah diskusi bagi semua pemirsa siaran televisi digital di Indonesia untuk memperluas wawasan terkait segala hal yang berkaitan dengan siaran televisi, khususnya Televisi Digital Terestrial (DTT).
-        </p>
-        <a href="#statistic-tv" id="read-more" style="display:none;">Selengkapnya</a>
-    </section>
+
+<section class="hero">
+    <h1><span id="typewriter"></span><span class="cursor">|</span></h1>
     
-    <div class="statistik" id="statistic-tv" style="display:none;">
-      <h1 class="statistik-title">Siaran Digital dalam Angka</h1>
+    <p class="fade-in">
+        KTVDI menjadi wadah diskusi bagi semua pemirsa siaran televisi digital di Indonesia 
+        untuk memperluas wawasan terkait segala hal yang berkaitan dengan siaran televisi, 
+        khususnya Televisi Digital Terestrial (DTT).
+    </p>
 
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_wilayah_layanan }}</h2>
-          <p>Wilayah Layanan</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah Wilayah Layanan yang tersedia di seluruh Indonesia berjumlah {{ jumlah_wilayah_layanan }} Wilayah Layanan.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_penyelenggara_mux }}</h2>
-          <p>Layanan MUX</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah Layanan MUX yang beroperasi di seluruh Indonesia berjumlah {{ jumlah_penyelenggara_mux }} layanan MUX.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_siaran }}</h2>
-          <p>Siaran TV Digital</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah siaran TV Digital yang beroperasi di seluruh Indonesia berjumlah {{ jumlah_siaran }} siaran.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ most_common_siaran_name }}</h2>
-          <p>Siaran TV Digital Terluas</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini {{ most_common_siaran_name }} merupakan saluran TV Digital dengan jangkauan terluas di Indonesia, yang tersedia di {{ most_common_siaran_count }} layanan MUX.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
+    <a href="/daftar-siaran" id="read-more" class="fade-in">Cek Siaran Sekarang</a>
+</section>
+
+<div class="container">
+
+    <div class="dashboard-shortcuts fade-in">
+        <a href="/daftar-siaran" class="shortcut-card">
+            <div class="shortcut-info">
+                <h3>Daftar Saluran</h3>
+                <p>Cek frekuensi MUX & Channel</p>
+            </div>
+            <i class="fas fa-broadcast-tower shortcut-icon"></i>
+            <i class="fas fa-arrow-right arrow-bg"></i>
+        </a>
+
+        <a href="/berita" class="shortcut-card card-green">
+            <div class="shortcut-info">
+                <h3>Berita Terkini</h3>
+                <p>Update Kominfo & TV</p>
+            </div>
+            <i class="fas fa-newspaper shortcut-icon"></i>
+            <i class="fas fa-arrow-right arrow-bg"></i>
+        </a>
+
+        <a href="{% if session.get('user') %}/dashboard{% else %}/login{% endif %}" class="shortcut-card card-orange">
+            <div class="shortcut-info">
+                <h3>{% if session.get('user') %}Dashboard Saya{% else %}Gabung Komunitas{% endif %}</h3>
+                <p>{% if session.get('user') %}Kelola kontribusi Anda{% else %}Kontribusi data & diskusi{% endif %}</p>
+            </div>
+            <i class="fas fa-users shortcut-icon"></i>
+            <i class="fas fa-arrow-right arrow-bg"></i>
+        </a>
     </div>
 
-    <!-- Tombol Toggle -->
-    <button id="chat-toggle" style="display: none;"><i class="fa-solid fa-comments"></i></button>
+    <div class="statistik fade-in" id="statistic-tv" style="margin-bottom: 3rem;">
+        <h1 class="statistik-title" style="text-align: center; color: var(--primary); margin-bottom: 2rem;">Siaran Digital dalam Angka</h1>
 
-    <!-- Chat Popup -->
-    <div class="chatbot" id="chatbot" style="display: none;">
-      <h1>ChatKTVDI</h1>
-      <div class="chat-body" id="chat-body">
-        <!-- Pesan muncul di sini -->
-      </div>
-      <div class="input-area">
-        <textarea id="prompt" placeholder="Tulis pertanyaan..."></textarea>
-        <button class="send-btn" onclick="sendPrompt()"><i class="fa-solid fa-paper-plane"></i></button>
-      </div>
+        <div class="card-statistik">
+            <div class="card-header-statistik">
+                <h2>{{ jumlah_wilayah_layanan }}</h2>
+                <p>Wilayah Layanan</p>
+            </div>
+            <div class="card-body-statistik">
+                <p>Total Wilayah Layanan tersedia di seluruh Indonesia.</p>
+            </div>
+            <div class="card-footer-statistik">
+                <p><i class="fas fa-sync-alt"></i> Update: {{ last_updated_time }}</p>
+            </div>
+        </div>
+
+        <div class="card-statistik">
+            <div class="card-header-statistik">
+                <h2>{{ jumlah_penyelenggara_mux }}</h2>
+                <p>Layanan MUX</p>
+            </div>
+            <div class="card-body-statistik">
+                <p>Total Layanan MUX yang beroperasi saat ini.</p>
+            </div>
+            <div class="card-footer-statistik">
+                <p><i class="fas fa-sync-alt"></i> Update: {{ last_updated_time }}</p>
+            </div>
+        </div>
+
+        <div class="card-statistik">
+            <div class="card-header-statistik">
+                <h2>{{ jumlah_siaran }}</h2>
+                <p>Siaran TV Digital</p>
+            </div>
+            <div class="card-body-statistik">
+                <p>Total Siaran TV Digital yang mengudara.</p>
+            </div>
+            <div class="card-footer-statistik">
+                <p><i class="fas fa-sync-alt"></i> Update: {{ last_updated_time }}</p>
+            </div>
+        </div>
+
+        <div class="card-statistik">
+            <div class="card-header-statistik">
+                <h2>{{ most_common_siaran_name }}</h2>
+                <p>Jangkauan Terluas</p>
+            </div>
+            <div class="card-body-statistik">
+                <p>Saluran dengan jangkauan terluas ({{ most_common_siaran_count }} MUX).</p>
+            </div>
+            <div class="card-footer-statistik">
+                <p><i class="fas fa-sync-alt"></i> Update: {{ last_updated_time }}</p>
+            </div>
+        </div>
     </div>
 
-    <script>
-      // Toggle Chat Widget
-      const toggleBtn = document.getElementById("chat-toggle");
-      const chatbot = document.getElementById("chatbot");
-      const chatBody = document.getElementById("chat-body");
-      const promptInput = document.getElementById("prompt");
+</div>
 
-      toggleBtn.addEventListener("click", () => {
-        chatbot.style.display = chatbot.style.display === "flex" ? "none" : "flex";
-      });
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- 1. ANIMASI TYPEWRITER ---
+        const text = "Selamat Datang di Website Komunitas TV Digital Indonesia";
+        const element = document.getElementById('typewriter');
+        let index = 0;
 
-      // Fungsi kirim prompt ke server Flask
-      async function sendPrompt() {
-        const prompt = promptInput.value.trim();
-        if (!prompt) return;
-
-        // Tampilkan pesan user
-        appendMessage(prompt, "user");
-        promptInput.value = "";
-
-        // Tambahkan placeholder sementara
-        const thinkingMsg = appendMessage("⏳ Sedang memproses...", "bot");
-
-        try {
-          const res = await fetch("/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt })
-          });
-
-          const data = await res.json();
-          chatBody.removeChild(thinkingMsg);
-
-          if (data.response) {
-            appendMessage(data.response, "bot");
-          } else {
-            appendMessage("❌ Terjadi kesalahan: " + data.error, "bot");
-          }
-        } catch (err) {
-          chatBody.removeChild(thinkingMsg);
-          appendMessage("⚠️ Gagal terhubung ke server.", "bot");
+        function type() {
+            if (index < text.length) {
+                element.textContent += text.charAt(index);
+                index++;
+                setTimeout(type, 40); // Kecepatan ketik
+            } else {
+                // Hapus kursor setelah selesai (opsional)
+                document.querySelector('.cursor').style.display = 'none';
+            }
         }
-      }
+        type();
 
-      // Fungsi untuk mengupdate pesan bot secara animasi
-      function appendMessage(text, sender) {
-        const msg = document.createElement("div");
-        msg.classList.add("message", sender);
-        chatBody.appendChild(msg);
-        chatBody.scrollTop = chatBody.scrollHeight;
-
-        // Replace newlines with <br> tags
-        const formattedText = text.replace(/\n/g, '<br>');
-
-        let i = 0;
-        msg.innerText = ""; // Mulai dengan teks kosong
-
-        // Fungsi untuk menambahkan karakter satu per satu
-        function typeWriter() {
-          if (i < text.length) {
-            msg.textContent += text.charAt(i);
-            i++;
-            chatBody.scrollTop = chatBody.scrollHeight;
-            setTimeout(typeWriter, 20); // Adjust kecepatan pengetikan di sini (50ms)
-          } else {
-            requestAnimationFrame(() => {
-              chatBody.scrollTop = chatBody.scrollHeight;
-            });
-          }  
-        }
-
-        // Mulai efek pengetikan
-        typeWriter();
-
-        requestAnimationFrame(() => {
-          chatBody.scrollTop = chatBody.scrollHeight;
+        // --- 2. FADE IN ANIMATION ---
+        const faders = document.querySelectorAll('.fade-in');
+        faders.forEach((el, i) => {
+            el.style.opacity = 0;
+            el.style.transform = "translateY(20px)";
+            el.style.transition = `opacity 0.6s ease ${i * 0.2}s, transform 0.6s ease ${i * 0.2}s`;
+            
+            // Trigger animasi setelah sedikit delay
+            setTimeout(() => {
+                el.style.opacity = 1;
+                el.style.transform = "translateY(0)";
+            }, 500);
         });
 
-        return msg;
-      }
-      
-      // Enter = kirim pesan
-      promptInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendPrompt();
+        // --- 3. LOGIKA CHATBOT ---
+        const toggleBtn = document.getElementById("chat-toggle");
+        const closeBtn = document.getElementById("close-chat");
+        const chatbot = document.getElementById("chatbot");
+        const chatBody = document.getElementById("chat-body");
+        const promptInput = document.getElementById("user-input");
+        const sendBtn = document.getElementById("send-btn");
+
+        // Toggle Buka/Tutup
+        function toggleChat() {
+            const isHidden = chatbot.style.display === "none" || chatbot.style.display === "";
+            chatbot.style.display = isHidden ? "flex" : "none";
+            toggleBtn.style.display = isHidden ? "none" : "flex"; // Sembunyikan tombol toggle saat chat terbuka
+            if(isHidden) promptInput.focus();
         }
-      });
-    </script>
+
+        // Event Listener Tombol
+        if(toggleBtn) toggleBtn.addEventListener("click", toggleChat);
+        if(closeBtn) closeBtn.addEventListener("click", toggleChat);
+
+        // Fungsi Tambah Pesan ke Layar
+        function appendMessage(text, sender) {
+            const msg = document.createElement("div");
+            msg.classList.add("message", sender);
+            
+            // Jika bot, support HTML (untuk bold, list, dll)
+            if (sender === 'bot') {
+                msg.innerHTML = text; 
+            } else {
+                msg.textContent = text;
+            }
+            
+            chatBody.appendChild(msg);
+            chatBody.scrollTop = chatBody.scrollHeight;
+            return msg;
+        }
+
+        // Fungsi Kirim ke Python
+        async function sendPrompt() {
+            const prompt = promptInput.value.trim();
+            if (!prompt) return;
+
+            // 1. Tampilkan pesan user
+            appendMessage(prompt, "user");
+            promptInput.value = "";
+
+            // 2. Tampilkan Loading
+            const loadingMsg = appendMessage("⏳ Sedang mengetik...", "bot");
+
+            try {
+                // 3. Request ke Backend
+                const res = await fetch("/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt })
+                });
+
+                const data = await res.json();
+                
+                // 4. Hapus loading, tampilkan jawaban
+                chatBody.removeChild(loadingMsg);
+                
+                if (data.response) {
+                    // Gunakan marked.js jika ingin markdown, tapi untuk sekarang plain text/html basic cukup
+                    // Format newline jadi <br> agar rapi
+                    const formattedResponse = data.response.replace(/\n/g, "<br>");
+                    appendMessage(formattedResponse, "bot");
+                } else {
+                    appendMessage("Maaf, saya sedang mengalami gangguan.", "bot");
+                }
+            } catch (err) {
+                chatBody.removeChild(loadingMsg);
+                appendMessage("Gagal terhubung ke server.", "bot");
+                console.error(err);
+            }
+        }
+
+        // Event Listener Kirim
+        if(sendBtn) sendBtn.addEventListener("click", sendPrompt);
+        if(promptInput) {
+            promptInput.addEventListener("keypress", (e) => {
+                if (e.key === "Enter") sendPrompt();
+            });
+        }
+    });
+</script>
+
 {% endblock %}
