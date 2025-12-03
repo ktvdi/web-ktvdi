@@ -84,26 +84,26 @@ else:
     model = None
 
 # ==============================================================================
-# 2. HELPER FUNCTIONS (PENTING: Mencegah Error 500)
+# 2. HELPER FUNCTIONS (ANTI-ERROR 500)
 # ==============================================================================
 
 def safe_items(data):
     """
-    Fungsi ini mencegah error saat looping data dari Firebase.
-    Menangani jika data berupa Dictionary, List, atau None.
+    Fungsi KUNCI untuk mencegah Error 500.
+    Otomatis mendeteksi apakah data adalah Dictionary atau List.
     """
     if not data:
         return []
     if isinstance(data, dict):
         return data.items()
     if isinstance(data, list):
-        # Jika list, kita return index sebagai key, dan value sebagai value
-        # Filter item yang None (karena Firebase list bisa punya bolong)
-        return [(k, v) for k, v in enumerate(data) if v is not None]
+        # Jika data berupa list, kita gunakan index sebagai key
+        # Kita filter item yang None (karena Firebase list bisa punya bolong)
+        return [(str(k), v) for k, v in enumerate(data) if v is not None]
     return []
 
 def safe_values(data):
-    """Sama seperti di atas, tapi hanya mengambil values."""
+    """Mengambil values dengan aman dari List atau Dict."""
     if not data:
         return []
     if isinstance(data, dict):
@@ -132,7 +132,7 @@ def time_since_published(published_time):
 
 @app.route("/")
 def home():
-    # Inisialisasi variabel default agar tidak error jika DB kosong
+    # Inisialisasi variabel default agar tidak error jika DB kosong/koneksi putus
     jumlah_wilayah = 0
     jumlah_siaran = 0
     jumlah_mux = 0
@@ -149,13 +149,12 @@ def home():
                 siaran_counts = Counter()
                 last_updated_time = None
 
-                # Gunakan safe_items agar tidak crash jika data berupa List
+                # [FIX] Menggunakan safe_items, bukan .items()
                 for provinsi, prov_data in safe_items(siaran_data):
+                    
                     # Hitung Wilayah (Level 2)
-                    # Jika prov_data string/bukan dict/list, skip
                     if not isinstance(prov_data, (dict, list)): continue
                     
-                    # Hitung jumlah wilayah sebenarnya
                     wilayah_items = list(safe_items(prov_data))
                     jumlah_wilayah += len(wilayah_items)
 
@@ -195,8 +194,8 @@ def home():
                     last_update_str = last_updated_time.strftime('%d-%m-%Y')
 
         except Exception as e:
+            # Print error ke terminal server, tapi jangan crash halaman user
             print(f"Error reading Home Data: {e}") 
-            # Tidak return error, biarkan halaman load dengan data 0 (agar user tidak melihat error 500)
 
     return render_template('home.html', 
         most_common_siaran_name=top_siaran_name,
@@ -228,7 +227,7 @@ def daftar_siaran():
         try:
             ref = db.reference("provinsi")
             data = ref.get()
-            # Gunakan safe_values agar aman
+            # [FIX] Gunakan safe_values agar aman
             provinsi_list = safe_values(data)
             provinsi_list.sort()
         except: pass
@@ -306,17 +305,16 @@ def register():
         if not re.match(r"^[a-z0-9]+$", username):
             flash("Username harus huruf kecil & angka.", "error"); return render_template("register.html")
 
-        # Cek Database
+        # Cek Database (Aman)
         try:
-            users = db.reference("users").get() or {}
-            # Handle jika users berupa List (sangat jarang tapi mungkin)
-            if isinstance(users, list): 
-                # Convert list to dict logic for checking logic, or check manually
-                pass 
-            elif username in users:
+            users_ref = db.reference("users")
+            users = users_ref.get() or {}
+            
+            # Cek Username (Jika users adalah dict)
+            if isinstance(users, dict) and username in users:
                 flash("Username sudah dipakai.", "error"); return render_template("register.html")
             
-            # Cek Email Loop
+            # Cek Email Loop (Aman)
             for k, v in safe_items(users):
                 if isinstance(v, dict) and v.get('email') == email:
                     flash("Email sudah terdaftar.", "error"); return render_template("register.html")
@@ -532,7 +530,7 @@ def get_wilayah():
     try:
         p = request.args.get("provinsi")
         data = db.reference(f"siaran/{p}").get()
-        # Ambil keys, tapi handle jika data adalah List
+        # [FIX] Ambil keys dengan aman (meskipun data berupa List)
         keys = [k for k,v in safe_items(data)]
         return jsonify({"wilayah": keys})
     except: return jsonify({"wilayah": []})
@@ -543,6 +541,7 @@ def get_mux():
         p = request.args.get("provinsi")
         w = request.args.get("wilayah")
         data = db.reference(f"siaran/{p}/{w}").get()
+        # [FIX] Ambil keys dengan aman
         keys = [k for k,v in safe_items(data)]
         return jsonify({"mux": keys})
     except: return jsonify({"mux": []})
