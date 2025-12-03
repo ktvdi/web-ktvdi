@@ -1,33 +1,52 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Komunitas TV Digital Indonesia</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-  <!-- Header -->
-  <div id="header"></div>
+{% extends "base.html" %}
 
-  <div class="container">
-    <h1>Verifikasi Akun</h1>
-    
-    <form method="POST">
-      <input type="text" name="otp" placeholder="Masukkan kode OTP" required>
-      <button type="submit">Verifikasi</button>
-    </form>
-    <div class="flash-message-container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, msg in messages %}
-          <p class="{{ category }}">{{ msg }}</p>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+{% block title %}Verifikasi Akun - KTVDI{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card fade-in-up">
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <i class="fas fa-envelope-open-text" style="font-size: 3.5rem; color: var(--primary);"></i>
+        </div>
+
+        <h2>Verifikasi Email</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 25px; font-size: 0.95rem;">
+            Kami telah mengirimkan kode OTP ke email Anda (<strong>{{ username }}</strong>).<br>
+            Silakan masukkan kode tersebut di bawah ini.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div style="margin-bottom: 20px;">
+                {% for category, msg in messages %}
+                  <div style="padding: 10px; border-radius: 8px; font-size: 0.9rem; text-align: center; 
+                              background: {% if category == 'error' %}#ffebee{% else %}#e8f5e9{% endif %}; 
+                              color: {% if category == 'error' %}#c62828{% else %}#2e7d32{% endif %}; 
+                              border: 1px solid {% if category == 'error' %}#ffcdd2{% else %}#c8e6c9{% endif %};">
+                      {{ msg }}
+                  </div>
+                {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="otp" style="text-align: center; display: block;">Kode OTP (6 Digit)</label>
+                <input type="text" id="otp" name="otp" placeholder="______" required maxlength="6"
+                       style="text-align: center; letter-spacing: 10px; font-size: 1.5rem; font-weight: bold; padding: 10px;">
+            </div>
+
+            <button type="submit" class="btn-full">Verifikasi Akun</button>
+        </form>
+
+        <div class="auth-footer">
+            Salah email? <a href="/register">Daftar Ulang</a>
+            <br><br>
+            <a href="/login" style="font-size: 0.9rem; color: #999;">&larr; Kembali ke Login</a>
+        </div>
+
     </div>
-    <a href="/login" class="forgot">← Pergi ke Login</a>
-  </div>
-
-</body>
-</html>
+</div>
+{% endblock %}
