@@ -2,16 +2,83 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Komunitas TV Digital Indonesia. Cek jangkauan sinyal, daftar siaran, dan forum diskusi seputar TV Digital DVB-T2.">
+    
     <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
 
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        /* Perbaikan Scroll pada Mobile */
+        html, body { overflow-x: hidden; }
+
+        /* Flash Message Animation */
+        .flash-container {
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 600px; z-index: 9999;
+        }
+        .alert {
+            padding: 15px; border-radius: 8px; margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;
+        }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error, .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .close-alert { cursor: pointer; font-weight: bold; font-size: 1.2rem; }
+
+        /* Chatbot Styling Update */
+        #chat-toggle {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: #007bff; color: white; border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer;
+            z-index: 1000; font-size: 24px; transition: transform 0.3s;
+        }
+        #chat-toggle:hover { transform: scale(1.1); }
+
+        .chatbot-container {
+            display: none; position: fixed; bottom: 90px; right: 20px;
+            width: 350px; height: 500px; background: white;
+            border-radius: 12px; box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            flex-direction: column; z-index: 1000; overflow: hidden;
+            border: 1px solid #eee;
+        }
+        .chat-header {
+            background: #007bff; color: white; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center; font-weight: 600;
+        }
+        .chat-body {
+            flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9;
+            font-size: 0.9rem; line-height: 1.5;
+        }
+        .chat-input-area {
+            padding: 10px; background: white; border-top: 1px solid #eee;
+            display: flex; gap: 10px;
+        }
+        #user-input {
+            flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none;
+        }
+        #send-btn {
+            background: #007bff; color: white; border: none;
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+        }
+        
+        /* Pesan Chat */
+        .message { margin-bottom: 10px; max-width: 80%; padding: 10px 15px; border-radius: 15px; word-wrap: break-word; }
+        .message.user { background: #007bff; color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 2px; }
+        .message.bot { background: #e9ecef; color: #333; align-self: flex-start; margin-right: auto; border-bottom-left-radius: 2px; }
+
+        /* Responsif Mobile untuk Chatbot */
+        @media (max-width: 480px) {
+            .chatbot-container {
+                width: 90%; right: 5%; bottom: 80px; height: 60vh;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -28,15 +95,15 @@
 
             <nav>
                 <ul>
-                    <li><a href="/">Beranda</a></li>
-                    <li><a href="/daftar-siaran">Daftar Siaran</a></li>
-                    <li><a href="/berita">Berita</a></li>
+                    <li><a href="/" class="menu-link">Beranda</a></li>
+                    <li><a href="/daftar-siaran" class="menu-link">Daftar Siaran</a></li>
+                    <li><a href="/berita" class="menu-link">Berita</a></li>
                     
                     {% if session.get('user') %}
-                        <li><a href="/dashboard" class="nav-btn dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                        <li><a href="/dashboard" class="nav-btn dashboard menu-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
                     {% else %}
-                        <li><a href="/login" class="nav-btn login">Masuk</a></li>
-                        <li><a href="/register" class="nav-btn register">Daftar</a></li>
+                        <li><a href="/login" class="nav-btn login menu-link">Masuk</a></li>
+                        <li><a href="/register" class="nav-btn register menu-link">Daftar</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -46,10 +113,10 @@
     <main>
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="container flash-container fade-in-up">
+            <div class="container flash-container fade-in-up" id="flash-wrapper">
                 {% for category, message in messages %}
                   <div class="alert alert-{{ category }}">
-                      {{ message }}
+                      <span>{{ message }}</span>
                       <span class="close-alert" onclick="this.parentElement.style.display='none';">&times;</span>
                   </div>
                 {% endfor %}
@@ -62,46 +129,72 @@
 
     <footer>
         <div class="social-icons">
-            <a href="https://www.instagram.com/ktvdi.id" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-            <a href="https://www.facebook.com" target="_blank" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
-            <a href="https://youtube.com" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
-            <a href="https://wa.me/62812345678" target="_blank" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-            <a href="https://t.me/SiaranDigitalIndonesia" target="_blank" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
+            <a href="https://www.instagram.com/" target="_blank" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/" target="_blank" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+            <a href="https://youtube.com/" target="_blank" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+            <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+            <a href="#" aria-label="Telegram"><i class="fab fa-telegram-plane"></i></a>
         </div>
         <p>&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
     </footer>
 
-    <button id="chat-toggle" title="Chat dengan AI"><i class="fas fa-comment-dots"></i></button>
+    <button id="chat-toggle" title="Tanya AI KTVDI"><i class="fas fa-comment-dots"></i></button>
 
-    <div class="chatbot-container" id="chatbot">
+    <div class="chatbot-container fade-in-up" id="chatbot">
         <div class="chat-header">
             <span><i class="fas fa-robot"></i> Asisten KTVDI</span>
             <span id="close-chat" style="cursor:pointer;"><i class="fas fa-times"></i></span>
         </div>
         <div class="chat-body" id="chat-box">
             <div class="message bot">
-                Halo! Saya AI Assistant KTVDI. Ada yang bisa dibantu mengenai TV Digital?
+                Halo! 👋 Saya AI Assistant KTVDI. <br>Tanyakan saya tentang:
+                <ul style="margin: 5px 0 0 15px; padding: 0;">
+                    <li>Cara cari sinyal</li>
+                    <li>Daftar MUX</li>
+                    <li>Cara login/daftar</li>
+                </ul>
             </div>
         </div>
         <div class="chat-input-area">
-            <input type="text" id="user-input" placeholder="Tulis pertanyaan...">
+            <input type="text" id="user-input" placeholder="Ketik pertanyaan..." autocomplete="off">
             <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- LOGIKA CHATBOT ---
+            
+            // --- 1. UI: Mobile Menu Auto-Close ---
+            // Agar saat menu diklik di HP, navigasi menutup sendiri
+            const menuToggle = document.getElementById('menu-toggle');
+            const menuLinks = document.querySelectorAll('.menu-link');
+            
+            menuLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (menuToggle) menuToggle.checked = false;
+                });
+            });
+
+            // --- 2. UI: Auto Hide Flash Messages ---
+            const flashWrapper = document.getElementById('flash-wrapper');
+            if (flashWrapper) {
+                setTimeout(() => {
+                    flashWrapper.style.transition = "opacity 0.5s ease";
+                    flashWrapper.style.opacity = "0";
+                    setTimeout(() => flashWrapper.remove(), 500);
+                }, 4000); // Hilang setelah 4 detik
+            }
+
+            // --- 3. LOGIKA CHATBOT CERDAS ---
             const toggleBtn = document.getElementById("chat-toggle");
             const closeBtn = document.getElementById("close-chat");
             const chatbot = document.getElementById("chatbot");
-            const chatBody = document.getElementById("chat-box"); // FIX ID
+            const chatBody = document.getElementById("chat-box");
             const promptInput = document.getElementById("user-input");
             const sendBtn = document.getElementById("send-btn");
 
-            // Toggle Buka/Tutup
             function toggleChat() {
-                const isHidden = chatbot.style.display === "none" || chatbot.style.display === "";
+                const isHidden = getComputedStyle(chatbot).display === "none";
                 chatbot.style.display = isHidden ? "flex" : "none";
                 toggleBtn.style.display = isHidden ? "none" : "flex"; 
                 if(isHidden) promptInput.focus();
@@ -110,62 +203,8 @@
             if(toggleBtn) toggleBtn.addEventListener("click", toggleChat);
             if(closeBtn) closeBtn.addEventListener("click", toggleChat);
 
-            // Fungsi Tambah Pesan
             function appendMessage(text, sender) {
                 const msg = document.createElement("div");
                 msg.classList.add("message", sender);
-                if (sender === 'bot') msg.innerHTML = text; // Support HTML response
-                else msg.textContent = text;
-                
-                chatBody.appendChild(msg);
-                chatBody.scrollTop = chatBody.scrollHeight;
-                return msg;
-            }
-
-            // Fungsi Kirim ke Python (Route: /)
-            async function sendPrompt() {
-                const prompt = promptInput.value.trim();
-                if (!prompt) return;
-
-                appendMessage(prompt, "user");
-                promptInput.value = "";
-
-                // Loading indicator
-                const loadingMsg = appendMessage('<i class="fas fa-circle-notch fa-spin"></i> Mengetik...', "bot");
-
-                try {
-                    const res = await fetch("/", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ prompt })
-                    });
-
-                    const data = await res.json();
-                    chatBody.removeChild(loadingMsg); // Hapus loading
-
-                    if (data.response) {
-                        // Format newline jadi <br> agar rapi
-                        const formatted = data.response.replace(/\n/g, "<br>");
-                        // Ubah **teks** jadi <b>teks</b> (Bold Markdown sederhana)
-                        const bolded = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-                        appendMessage(bolded, "bot");
-                    } else {
-                        appendMessage("Maaf, terjadi kesalahan pada server.", "bot");
-                    }
-                } catch (err) {
-                    chatBody.removeChild(loadingMsg);
-                    appendMessage("⚠️ Gagal terhubung. Cek koneksi internet.", "bot");
-                    console.error(err);
-                }
-            }
-
-            if(sendBtn) sendBtn.addEventListener("click", sendPrompt);
-            if(promptInput) {
-                promptInput.addEventListener("keypress", (e) => {
-                    if (e.key === "Enter") sendPrompt();
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+                // Jika BOT, kita render HTML. Jika USER, text biasa (keamanan)
+                if (sender === 'bot') msg
