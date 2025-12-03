@@ -3,92 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Komunitas TV Digital Indonesia - Jadwal, Berita, dan Informasi Siaran TV Digital.">
-    
     <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#1e90ff">
 </head>
-
 <body>
 
     <header>
-        <div class="navbar-container">
-            <div class="logo">
-                <a href="/">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo">
-                    <span>KTVDI</span>
-                </a>
-            </div>
+        <a href="/" class="logo">
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI">
+        </a>
 
-            <input type="checkbox" id="menu-checkbox">
-            <label for="menu-checkbox" class="menu-toggle">
-                <i class="fas fa-bars"></i>
-            </label>
+        <input type="checkbox" id="menu-toggle">
+        <label for="menu-toggle" class="menu-icon"><i class="fas fa-bars"></i></label>
 
-            <ul class="nav-links">
+        <nav>
+            <ul>
                 <li><a href="/">Beranda</a></li>
-                <li><a href="/daftar-siaran">Jadwal Siaran</a></li>
+                <li><a href="/daftar-siaran">Daftar Siaran</a></li>
                 <li><a href="/berita">Berita</a></li>
                 <li><a href="/tentang">Tentang</a></li>
-                <li><a href="/login" class="btn-nav btn-login">Login</a></li>
-                <li><a href="/register" class="btn-nav btn-register">Daftar</a></li>
+                
+                <li><a href="/login" class="nav-btn login">Login</a></li>
+                <li><a href="/register" class="nav-btn register">Daftar</a></li>
             </ul>
-        </div>
+        </nav>
     </header>
+
     <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="container flash-message-container" style="margin-bottom: 20px;">
+                {% for category, message in messages %}
+                  <p class="{{ category }}">{{ message }}</p>
+                {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
         {% block content %}{% endblock %}
     </main>
+
     <footer>
         <div class="social-icons">
             <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" class="social-icon"><i class="fab fa-facebook"></i></a>
             <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
-            <a href="#" class="social-icon"><i class="fab fa-whatsapp"></i></a>
         </div>
-        <p>&copy; 2025 Komunitas TV Digital Indonesia. <br>Membangun Masa Depan Penyiaran Digital.</p>
+        <p>&copy; 2025 Komunitas TV Digital Indonesia.</p>
     </footer>
-    <script>
-        // Service Worker untuk PWA
-        if ("serviceWorker" in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register("{{ url_for('static', filename='service-worker.js') }}");
-            });
-        }
 
-        // Script Animasi Typewriter (Aman, hanya jalan jika elemen ada)
-        document.addEventListener('DOMContentLoaded', () => {
-            const headline = document.getElementById('headline');
-            const paragraph = document.getElementById('paragraph');
-            
-            if (headline) { // Cek apakah ada headline di halaman ini
-                const text = headline.innerText;
-                headline.innerText = '';
-                
-                let i = 0;
-                function typeWriter() {
-                    if (i < text.length) {
-                        headline.innerHTML += text.charAt(i);
-                        i++;
-                        setTimeout(typeWriter, 50);
-                    } else {
-                        // Munculkan paragraf setelah ketikan selesai
-                        if(paragraph) {
-                            paragraph.style.opacity = '1'; 
-                            paragraph.classList.add('fade-in-up');
-                        }
-                    }
-                }
-                typeWriter();
-            }
-        });
-    </script>
+    <button id="chat-toggle"><i class="fas fa-comment"></i></button>
+
 </body>
 </html>
