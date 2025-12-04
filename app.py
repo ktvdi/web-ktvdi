@@ -484,6 +484,10 @@ def berita():
         total_pages=total_pages
     )
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 # Fungsi untuk melakukan hashing password
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
