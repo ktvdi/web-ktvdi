@@ -99,8 +99,7 @@
 
         /* POPUP BELASUNGKAWA CSS */
         .condolence-overlay {
-            display: none; /* Default hidden */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); z-index: 9999;
             justify-content: center; align-items: center;
             opacity: 0; animation: fadeIn 0.6s forwards;
@@ -113,8 +112,7 @@
             text-align: center; position: relative;
         }
         .condolence-header {
-            background: #2d3436; /* Warna gelap simbol duka */
-            color: white; padding: 20px;
+            background: #2d3436; color: white; padding: 20px;
         }
         .condolence-body { padding: 30px 20px; }
         .condolence-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; color: #2d3436; }
@@ -222,6 +220,8 @@
         </div>
     </div>
 
+    <audio id="popup-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
     <div id="fixed-clock" class="fixed-clock">Loading...</div>
 
     <button id="chat-toggle" title="Tanya AI"><i class="fas fa-comment-dots"></i></button>
@@ -244,27 +244,38 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. LOGIC POPUP BELASUNGKAWA
-            // Cek apakah popup sudah pernah ditutup di sesi ini
+            // 1. LOGIC POPUP & AUDIO
             if (!sessionStorage.getItem('condolenceShown')) {
                 setTimeout(() => {
                     const popup = document.getElementById('condolence-popup');
-                    if(popup) popup.style.display = 'flex';
-                }, 1500); // Delay 1.5 detik agar website loading dulu
+                    const sound = document.getElementById('popup-sound');
+                    
+                    if(popup) {
+                        popup.style.display = 'flex';
+                        
+                        // Coba Putar Suara
+                        if(sound) {
+                            sound.volume = 0.5; // Volume 50%
+                            // Browser modern memblokir autoplay jika user belum interaksi
+                            // Kita pakai 'catch' agar tidak error jika diblokir
+                            sound.play().catch(function(error) {
+                                console.log("Autoplay Audio diblokir browser (Wajar). Audio akan main saat user klik.");
+                            });
+                        }
+                    }
+                }, 1500); // Muncul setelah 1.5 detik
             }
 
-            // Fungsi Global untuk menutup popup
             window.closePopup = function() {
                 const popup = document.getElementById('condolence-popup');
                 if(popup) {
                     popup.style.opacity = '0';
                     setTimeout(() => { popup.style.display = 'none'; }, 500);
-                    // Simpan status di session storage (agar tidak muncul lagi saat refresh)
                     sessionStorage.setItem('condolenceShown', 'true');
                 }
             };
 
-            // 2. JAM WIB REAL-TIME
+            // 2. JAM WIB
             function updateClock() {
                 const now = new Date();
                 const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
@@ -275,7 +286,7 @@
             setInterval(updateClock, 1000); 
             updateClock(); 
 
-            // 3. Mobile Menu Logic
+            // 3. Mobile Menu
             const menuToggle = document.getElementById('menu-toggle');
             const menuLinks = document.querySelectorAll('.menu-link');
             if(menuToggle) {
