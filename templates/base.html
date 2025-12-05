@@ -5,9 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Komunitas TV Digital Indonesia. Cek jangkauan sinyal, daftar siaran, dan forum diskusi seputar TV Digital DVB-T2.">
     
+    <meta name="theme-color" content="#0062cc">
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="application-name" content="KTVDI">
+
     <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
 
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -245,9 +254,21 @@
     </div>
 
     <script>
+        // PWA SERVICE WORKER REGISTRATION
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
+                .then(registration => {
+                    console.log('SW registered: ', registration);
+                }).catch(registrationError => {
+                    console.log('SW registration failed: ', registrationError);
+                });
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             
-            // --- 1. LOGIC POPUP & SOUND (Sangat Penting) ---
+            // --- 1. LOGIC POPUP & SOUND ---
             if (!sessionStorage.getItem('condolenceShown')) {
                 setTimeout(() => {
                     const popup = document.getElementById('condolence-popup');
@@ -255,30 +276,20 @@
                     
                     if(popup) {
                         popup.style.display = 'flex';
-                        
-                        // LOGIKA PAKSA BUNYI (Autoplay Handling)
                         if(sound) {
                             sound.volume = 0.8; 
-                            
-                            // Usaha 1: Putar langsung
                             var promise = sound.play();
-                            
                             if (promise !== undefined) {
                                 promise.catch(error => {
-                                    // Gagal? Biasanya karena browser blokir.
-                                    console.log("Autoplay diblokir, menunggu klik pertama user.");
-                                    
-                                    // Usaha 2: Putar saat user klik DIMANA SAJA di layar
                                     document.addEventListener('click', function playOnInteraction() {
                                         sound.play();
-                                        // Hapus listener setelah bunyi sekali agar tidak berisik
                                         document.removeEventListener('click', playOnInteraction);
                                     }, { once: true });
                                 });
                             }
                         }
                     }
-                }, 1000); // 1 Detik
+                }, 1000); 
             }
 
             window.closePopup = function() {
