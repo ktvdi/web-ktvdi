@@ -220,7 +220,9 @@
         </div>
     </div>
 
-    <audio id="popup-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="popup-sound" preload="auto">
+        <source src="data:audio/mp3;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAG1xUAA5CAAODh8OFQ81EwNHgsJ/2PA8+FxBgY8DqaasqA+Bm4CjgLgDvfSEp85/ue81DzgK35cnjSzgeZ19d856t94KDuoyyPk9p58/8kyz78+vn6f5X54Ifq95//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAG1xUAA5CAAODh8OFQ81EwNHgsJ/2PA8+FxBgY8DqaasqA+Bm4CjgLgDvfSEp85/ue81DzgK35cnjSzgeZ19d856t94KDuoyyPk9p58/8kyz78+vn6f5X54Ifq95" type="audio/mp3">
+    </audio>
 
     <div id="fixed-clock" class="fixed-clock">Loading...</div>
 
@@ -244,7 +246,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. LOGIC POPUP & AUDIO
+            
+            // --- 1. LOGIC POPUP & SOUND (Sangat Penting) ---
             if (!sessionStorage.getItem('condolenceShown')) {
                 setTimeout(() => {
                     const popup = document.getElementById('condolence-popup');
@@ -253,17 +256,29 @@
                     if(popup) {
                         popup.style.display = 'flex';
                         
-                        // Coba Putar Suara
+                        // LOGIKA PAKSA BUNYI (Autoplay Handling)
                         if(sound) {
-                            sound.volume = 0.5; // Volume 50%
-                            // Browser modern memblokir autoplay jika user belum interaksi
-                            // Kita pakai 'catch' agar tidak error jika diblokir
-                            sound.play().catch(function(error) {
-                                console.log("Autoplay Audio diblokir browser (Wajar). Audio akan main saat user klik.");
-                            });
+                            sound.volume = 0.8; 
+                            
+                            // Usaha 1: Putar langsung
+                            var promise = sound.play();
+                            
+                            if (promise !== undefined) {
+                                promise.catch(error => {
+                                    // Gagal? Biasanya karena browser blokir.
+                                    console.log("Autoplay diblokir, menunggu klik pertama user.");
+                                    
+                                    // Usaha 2: Putar saat user klik DIMANA SAJA di layar
+                                    document.addEventListener('click', function playOnInteraction() {
+                                        sound.play();
+                                        // Hapus listener setelah bunyi sekali agar tidak berisik
+                                        document.removeEventListener('click', playOnInteraction);
+                                    }, { once: true });
+                                });
+                            }
                         }
                     }
-                }, 1500); // Muncul setelah 1.5 detik
+                }, 1000); // 1 Detik
             }
 
             window.closePopup = function() {
@@ -275,7 +290,7 @@
                 }
             };
 
-            // 2. JAM WIB
+            // --- 2. JAM WIB ---
             function updateClock() {
                 const now = new Date();
                 const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
@@ -286,7 +301,7 @@
             setInterval(updateClock, 1000); 
             updateClock(); 
 
-            // 3. Mobile Menu
+            // --- 3. MENU MOBILE ---
             const menuToggle = document.getElementById('menu-toggle');
             const menuLinks = document.querySelectorAll('.menu-link');
             if(menuToggle) {
@@ -295,7 +310,7 @@
                 });
             }
 
-            // 4. Auto Hide Alert
+            // --- 4. FLASH MESSAGE ---
             const flashWrapper = document.getElementById('flash-wrapper');
             if (flashWrapper) {
                 setTimeout(() => {
@@ -305,7 +320,7 @@
                 }, 4000);
             }
 
-            // 5. Chatbot Logic
+            // --- 5. CHATBOT ---
             const toggleBtn = document.getElementById("chat-toggle");
             const closeBtn = document.getElementById("close-chat");
             const chatbot = document.getElementById("chatbot");
