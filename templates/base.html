@@ -3,538 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Komunitas TV Digital Indonesia. Cek jangkauan sinyal, daftar siaran, dan forum diskusi seputar TV Digital DVB-T2.">
-    
+    <meta name="description" content="Komunitas TV Digital Indonesia.">
     <meta name="theme-color" content="#0062cc">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="application-name" content="KTVDI">
-
-    <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
-
-    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/png">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
+    <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
+    
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <style>
-        /* --- BASE STYLES --- */
-        body { font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background-color: #f8f9fc; color: #2d3436; display: flex; flex-direction: column; min-height: 100vh; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f8f9fc; color: #2d3436; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
         
-        /* --- HEADER & NAV --- */
-        header { 
-            background: linear-gradient(90deg, #0062cc 0%, #007bff 100%); 
-            padding: 12px 0; position: sticky; top: 0; z-index: 1000; 
-            box-shadow: 0 4px 20px rgba(0,123,255,0.15); 
-        }
-        .header-container { width: 92%; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; position: relative; }
+        /* Header */
+        header { background: linear-gradient(90deg, #0062cc 0%, #007bff 100%); padding: 12px 0; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 20px rgba(0,123,255,0.15); }
+        .header-container { width: 92%; max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { color: white; font-weight: 800; font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .logo img { height: 35px; }
         
-        .logo { display: flex; align-items: center; gap: 10px; color: white; text-decoration: none; font-weight: 700; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .logo img { height: 42px; width: auto; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); }
+        nav ul { list-style: none; display: flex; gap: 20px; margin: 0; padding: 0; }
+        nav a { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 500; font-size: 0.9rem; }
         
-        nav ul { list-style: none; display: flex; gap: 20px; align-items: center; margin: 0; padding: 0; }
-        nav a { text-decoration: none; color: rgba(255,255,255,0.9); font-weight: 500; font-size: 0.95rem; transition: 0.3s; position: relative; }
-        nav a:hover { color: white; }
-        nav a::after { content: ''; position: absolute; width: 0; height: 2px; bottom: -4px; left: 0; background-color: #ffda79; transition: width 0.3s; }
-        nav a:hover::after { width: 100%; }
-        
-        /* Mobile Menu */
+        /* Menu Mobile */
         #menu-toggle { display: none; }
-        .menu-icon { display: none; font-size: 1.4rem; color: white; cursor: pointer; transition: transform 0.2s; }
-        .menu-icon:active { transform: scale(0.9); }
+        .menu-icon { display: none; color: white; font-size: 1.4rem; cursor: pointer; }
         
         @media (max-width: 768px) {
-            .header-container { justify-content: center; }
-            .menu-icon { display: block; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
-            nav ul { 
-                display: none; flex-direction: column; position: absolute; top: 100%; left: 0; 
-                width: 100%; background: white; padding: 25px; 
-                box-shadow: 0 15px 40px rgba(0,0,0,0.1); 
-                gap: 15px; box-sizing: border-box; z-index: 999; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;
-            }
-            nav a { color: #333; display: block; padding: 12px; text-align: center; font-weight: 600; }
-            nav a:hover { background-color: #f1f8ff; color: #007bff; border-radius: 8px; }
-            nav a::after { display: none; }
+            .menu-icon { display: block; }
+            nav ul { display: none; flex-direction: column; position: absolute; top: 100%; left: 0; width: 100%; background: white; padding: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+            nav a { color: #333; display: block; padding: 10px; }
             #menu-toggle:checked ~ nav ul { display: flex; }
-            .nav-btn { width: 100%; margin-top: 8px; }
         }
 
-        .nav-btn { padding: 8px 24px; border-radius: 50px; font-weight: 600; font-size: 0.9rem; text-align: center; transition: all 0.3s ease; }
-        .nav-btn.login { background: white; color: #0062cc; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .nav-btn.login:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
-        .nav-btn.register { border: 1px solid rgba(255,255,255,0.4); color: white; }
-        .nav-btn.register:hover { background: rgba(255,255,255,0.1); }
-        .nav-btn.dashboard { background: #ff9f43; color: white; box-shadow: 0 4px 10px rgba(255, 159, 67, 0.4); }
-
-        main { flex: 1; }
-
-        /* --- WIDGET INFO (Cuaca, Jalan, Longsor) --- */
-        .info-container {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-            gap: 15px; width: 92%; max-width: 1200px; margin: 25px auto 10px auto;
-        }
-        .info-card {
-            background: white; padding: 15px 20px; border-radius: 15px;
-            display: flex; align-items: center; gap: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            transition: transform 0.3s; text-decoration: none; color: #333;
-            border: 1px solid #f0f0f0;
-        }
-        .info-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        /* Widget Info */
+        .info-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; width: 92%; max-width: 1200px; margin: 20px auto; }
+        .info-card { background: white; padding: 15px; border-radius: 12px; display: flex; align-items: center; gap: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); text-decoration: none; color: #333; transition: transform 0.2s; border: 1px solid #f0f0f0; }
+        .info-card:hover { transform: translateY(-3px); }
         
-        .card-icon {
-            width: 50px; height: 50px; border-radius: 12px; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; color: white;
-        }
+        .card-icon { width: 45px; height: 45px; border-radius: 10px; display: flex; justify-content: center; align-items: center; color: white; font-size: 1.4rem; flex-shrink: 0; }
         .weather .card-icon { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
         .road .card-icon { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
         .landslide .card-icon { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+        
+        .card-text h5 { margin: 0; font-size: 0.85rem; color: #666; }
+        .card-text h3 { margin: 2px 0; font-size: 1.4rem; font-weight: 800; }
+        .card-text p { margin: 0; font-size: 0.8rem; color: #888; }
+        
+        main { flex: 1; }
+        
+        /* Footer */
+        footer { background: #1a1a2e; color: #ecf0f1; padding: 40px 0 20px; margin-top: 40px; }
+        .footer-container { width: 90%; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; }
+        .footer-col h3 { color: white; margin-bottom: 15px; }
+        .footer-links a { color: #bdc3c7; text-decoration: none; display: block; margin-bottom: 8px; }
+        .social-icons a { margin-right: 10px; color: white; font-size: 1.2rem; }
+        .copyright { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #7f8c8d; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
 
-        .card-text h5 { margin: 0; font-size: 0.95rem; font-weight: 700; color: #555; }
-        .card-text h3 { margin: 2px 0; font-size: 1.6rem; font-weight: 800; color: #333; }
-        .card-text p { margin: 0; font-size: 0.85rem; color: #777; }
-        .card-text small { font-size: 0.75rem; color: #999; }
-        .arrow { margin-left: auto; color: #ccc; }
-
-        /* --- FOOTER MODERN (Dark Theme) --- */
-        footer {
-            background-color: #1a1a2e;
-            color: #ecf0f1;
-            padding-top: 60px;
-            margin-top: 60px;
-        }
-        .footer-container {
-            width: 90%; max-width: 1200px; margin: 0 auto;
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 40px; padding-bottom: 50px;
-        }
-        @media (max-width: 768px) { .footer-container { text-align: center; } }
-
-        .footer-col h3 { color: #fff; font-size: 1.6rem; margin-bottom: 20px; font-weight: 800; }
-        .footer-col h4 { color: #007bff; font-size: 1.1rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-        .footer-col p { line-height: 1.6; color: #bdc3c7; font-size: 0.9rem; }
-
-        .footer-links { list-style: none; padding: 0; margin: 0; }
-        .footer-links li { margin-bottom: 12px; }
-        .footer-links a { color: #bdc3c7; text-decoration: none; transition: 0.3s; display: inline-block; }
-        .footer-links a:hover { color: #007bff; transform: translateX(5px); }
-
-        .social-icons { display: flex; gap: 12px; margin-top: 20px; }
-        @media (max-width: 768px) { .social-icons { justify-content: center; } }
-
-        .social-icons a { width: 40px; height: 40px; background: rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; border-radius: 50%; font-size: 1.1rem; color: white; transition: all 0.3s; text-decoration: none; }
-        .social-icons a:hover { transform: translateY(-3px); }
-        .social-icons a.wa:hover { background: #25D366; }
-        .social-icons a.fb:hover { background: #1877F2; }
-        .social-icons a.yt:hover { background: #FF0000; }
-        .social-icons a.tg:hover { background: #0088cc; }
-        .social-icons a.ig:hover { background: #E1306C; }
-
-        .copyright-area { background-color: #11111f; padding: 20px 0; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); }
-        .copyright-text { color: #7f8c8d; font-size: 0.85rem; margin: 0; }
-
-        /* --- POPUP GEMPA STYLE --- */
-        .gempa-overlay {
-            position: fixed; bottom: 20px; left: 20px; z-index: 9999;
-            display: none; animation: slideInLeft 0.5s ease-out;
-        }
-        .gempa-box {
-            background: white; width: 320px; border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden;
-            font-family: 'Poppins', sans-serif; border: 1px solid #eee;
-        }
-        .gempa-header {
-            background: #d63031; color: white; padding: 12px 15px;
-            font-weight: 600; display: flex; justify-content: space-between; align-items: center;
-        }
-        .close-gempa-btn { cursor: pointer; font-size: 1.2rem; }
-        .gempa-body { padding: 15px; }
-        .gempa-icon-area { text-align: center; margin-bottom: 15px; color: #d63031; }
-        .gempa-main-icon { font-size: 3rem; animation: shake 2s infinite; }
-        .gempa-magnitude { font-size: 2rem; font-weight: 800; margin-top: 5px; color: #2d3436; }
-        .gempa-details p { margin: 5px 0; font-size: 0.9rem; color: #555; }
-        .gempa-potensi { 
-            margin-top: 10px !important; font-weight: bold; color: #0984e3; 
-            background: #e1f5fe; padding: 5px; border-radius: 5px; 
-            text-align: center; font-size: 0.8rem !important;
-        }
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
-        }
-        @keyframes slideInLeft { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @media (max-width: 480px) {
-            .gempa-overlay { left: 50%; transform: translateX(-50%); bottom: 90px; width: 92%; }
-            .gempa-box { width: 100%; }
-        }
-
-        /* --- POPUP BELASUNGKAWA STYLE --- */
-        .condolence-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); z-index: 9999;
-            justify-content: center; align-items: center;
-            opacity: 0; animation: fadeIn 0.6s forwards; backdrop-filter: blur(3px);
-        }
-        .condolence-box {
-            background: white; width: 85%; max-width: 480px;
-            border-radius: 16px; overflow: hidden;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-            text-align: center; position: relative; color: #333;
-        }
-        .condolence-header { background: #2d3436; color: white; padding: 20px; }
-        .condolence-body { padding: 30px 20px; }
-        .condolence-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; }
-        .close-popup-btn {
-            background: #2d3436; color: white; border: none; padding: 10px 25px;
-            border-radius: 50px; cursor: pointer; font-weight: 600; transition: 0.3s;
-        }
-        .close-popup-btn:hover { background: #444; }
-        @keyframes fadeIn { to { opacity: 1; } }
-
-        /* --- UTILS --- */
-        .fixed-clock {
-            position: fixed; bottom: 5px; right: 15px; font-size: 0.7rem; color: #888; font-weight: 500;
-            background: rgba(255, 255, 255, 0.9); padding: 2px 8px; border-radius: 10px;
-            z-index: 2000; pointer-events: none; font-family: monospace; letter-spacing: 0.5px;
-            box-shadow: 0 0 10px rgba(255,255,255,1);
-        }
-
-        #chat-toggle { position: fixed; bottom: 35px; right: 20px; width: 55px; height: 55px; background: linear-gradient(135deg, #0062cc, #007bff); color: white; border: none; border-radius: 50%; font-size: 22px; cursor: pointer; box-shadow: 0 8px 25px rgba(0,98,204,0.4); z-index: 1000; transition: transform 0.3s; display: flex; align-items: center; justify-content: center; }
-        #chat-toggle:hover { transform: scale(1.1) rotate(10deg); }
-        .chatbot-container { display: none; position: fixed; bottom: 100px; right: 20px; width: 340px; height: 480px; background: white; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15); flex-direction: column; z-index: 1000; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
-        .chat-header { background: linear-gradient(90deg, #0062cc, #007bff); padding: 18px; color: white; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 1rem; }
-        .chat-body { flex: 1; padding: 15px; overflow-y: auto; background: #f8f9fc; display: flex; flex-direction: column; gap: 12px; }
-        .chat-input-area { padding: 15px; background: white; border-top: 1px solid #f1f1f1; display: flex; gap: 10px; }
-        #user-input { flex: 1; padding: 12px 15px; border: 1px solid #e1e1e1; border-radius: 25px; outline: none; font-family: inherit; font-size: 0.9rem; transition: border 0.3s; }
-        #user-input:focus { border-color: #007bff; }
-        #send-btn { width: 42px; height: 42px; background: #007bff; color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.3s; }
-        #send-btn:hover { background: #0056b3; }
-        .message { padding: 12px 18px; border-radius: 18px; max-width: 80%; font-size: 0.9rem; line-height: 1.5; position: relative; }
-        .message.bot { background: white; color: #444; align-self: flex-start; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .message.user { background: #007bff; color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 10px rgba(0,123,255,0.2); }
-        @media (max-width: 480px) { .chatbot-container { width: 90%; right: 5%; bottom: 95px; height: 60vh; } }
+        /* Popup Styles */
+        .popup-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; animation: fadeIn 0.5s; backdrop-filter: blur(2px); }
+        .popup-box { background: white; width: 90%; max-width: 400px; border-radius: 15px; overflow: hidden; position: relative; }
+        .popup-header { padding: 15px; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .popup-body { padding: 20px; }
+        
+        /* Gempa specific */
+        .gempa-overlay { display: none; position: fixed; bottom: 20px; left: 20px; z-index: 9998; animation: slideUp 0.5s; }
+        .gempa-box { background: white; width: 300px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 1px solid #eee; overflow: hidden; }
+        .gempa-header { background: #d63031; color: white; padding: 10px 15px; font-weight: 600; display: flex; justify-content: space-between; }
+        .gempa-icon-area { text-align: center; padding: 10px; color: #d63031; font-size: 2.5rem; }
+        
+        @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+        @keyframes slideUp { from {transform:translateY(100%)} to {transform:translateY(0)} }
     </style>
 </head>
-
 <body>
 
-    <header>
-        <div class="header-container">
-            <input type="checkbox" id="menu-toggle">
-            
-            <a href="/" class="logo">
-                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI">
-                <span style="display: none; md-display: block;">KTVDI</span>
-            </a>
-
-            <label for="menu-toggle" class="menu-icon"><i class="fas fa-bars"></i></label>
-
-            <nav>
-                <ul>
-                    <li><a href="/" class="menu-link">Beranda</a></li>
-                    <li><a href="/daftar-siaran" class="menu-link">Daftar Siaran</a></li>
-                    <li><a href="/berita" class="menu-link">Berita</a></li>
-                    <li><a href="/faq" class="menu-link">FAQ</a></li>
-                    <li><a href="/about" class="menu-link">Tentang Kami</a></li>
-                    {% if session.get('user') %}
-                        <li><a href="/dashboard" class="nav-btn dashboard menu-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
-                    {% else %}
-                        <li><a href="/login" class="nav-btn login menu-link">Masuk</a></li>
-                        <li><a href="/register" class="nav-btn register menu-link">Daftar</a></li>
-                    {% endif %}
-                </ul>
-            </nav>
-        </div>
-    </header>
-
-    {% if cuaca_data %}
-    <div class="info-container">
-        
-        <div class="info-card weather">
-            <div class="card-icon"><i class="fas fa-cloud-sun"></i></div>
-            <div class="card-text">
-                <h5>Cuaca Semarang</h5>
-                <h3>{{ cuaca_data.t }}°C</h3>
-                <p>{{ cuaca_data.weather_desc }}</p>
-                <small><i class="fas fa-wind"></i> {{ cuaca_data.ws }} km/jam</small>
-            </div>
-        </div>
-
-        <a href="https://binamarga.pu.go.id/contents/cctv_tol" target="_blank" class="info-card road">
-            <div class="card-icon"><i class="fas fa-road"></i></div>
-            <div class="card-text">
-                <h5>Pantau Jalan Tol</h5>
-                <p>Cek CCTV Realtime</p>
-                <small>Bina Marga PUPR</small>
-            </div>
-            <div class="arrow"><i class="fas fa-chevron-right"></i></div>
-        </a>
-
-        <a href="https://magma.esdm.go.id/v1/gerakan-tanah/kejadian" target="_blank" class="info-card landslide">
-            <div class="card-icon"><i class="fas fa-mountain"></i></div>
-            <div class="card-text">
-                <h5>Info Longsor</h5>
-                <p>Peta Rawan Bencana</p>
-                <small>MAGMA Indonesia</small>
-            </div>
-            <div class="arrow"><i class="fas fa-chevron-right"></i></div>
-        </a>
-
+<header>
+    <div class="header-container">
+        <input type="checkbox" id="menu-toggle">
+        <a href="/" class="logo"><img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI"> KTVDI</a>
+        <label for="menu-toggle" class="menu-icon"><i class="fas fa-bars"></i></label>
+        <nav>
+            <ul>
+                <li><a href="/">Beranda</a></li>
+                <li><a href="/daftar-siaran">Daftar Siaran</a></li>
+                <li><a href="/berita">Berita</a></li>
+                <li><a href="/faq">FAQ</a></li>
+                <li><a href="/about">Tentang</a></li>
+                {% if session.get('user') %}
+                    <li><a href="/dashboard">Dashboard</a></li>
+                {% else %}
+                    <li><a href="/login">Masuk</a></li>
+                {% endif %}
+            </ul>
+        </nav>
     </div>
-    {% endif %}
+</header>
 
-    <main>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div style="width: 90%; max-width: 1200px; margin: 20px auto;" id="flash-wrapper">
-                {% for category, message in messages %}
-                  <div class="alert alert-{{ category }}" style="padding: 15px; border-radius: 10px; background: white; border-left: 5px solid #007bff; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                      <span style="color: #444; font-weight: 500;">{{ message }}</span>
-                      <span onclick="this.parentElement.style.display='none';" style="cursor:pointer; font-size: 1.2rem; color: #999;">&times;</span>
-                  </div>
-                {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer>
-        <div class="footer-container">
-            <div class="footer-col">
-                <h3>KTVDI</h3>
-                <p>Wadah independen pemersatu ekosistem penyiaran digital Indonesia. Kami menyediakan informasi akurat seputar DVB-T2, MUX, dan regulasi penyiaran.</p>
-            </div>
-            <div class="footer-col">
-                <h4>Menu Pintas</h4>
-                <ul class="footer-links">
-                    <li><a href="/daftar-siaran">Cek Area Layanan</a></li>
-                    <li><a href="/berita">Berita Terbaru</a></li>
-                    <li><a href="/faq">Pusat Bantuan (FAQ)</a></li>
-                    <li><a href="/about">Profil Komunitas</a></li>
-                    <li><a href="/login">Login Anggota</a></li>
-                </ul>
-            </div>
-            <div class="footer-col">
-                <h4>Ikuti Update & Diskusi</h4>
-                <p>Dapatkan informasi langsung dari pakar dan regulator melalui kanal resmi kami:</p>
-                <div class="social-icons">
-                    <a href="https://chat.whatsapp.com/DwqpvihDPRrKFX44bPVDPb" target="_blank" class="wa" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-                    <a href="https://t.me/SiaranDigitalIndonesia" target="_blank" class="tg" title="Telegram"><i class="fab fa-telegram-plane"></i></a>
-                    <a href="https://www.facebook.com/groups/357305085288304/?ref=share&mibextid=NSMWBT" target="_blank" class="fb" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="https://www.instagram.com/ktvdi.id?igsh=MTJqeWI1MzBrem5iag==" target="_blank" class="ig" title="Instagram"><i class="fab fa-instagram"></i></a>
-                    <a href="https://youtube.com/@KomunitasTVDIndonesia" target="_blank" class="yt" title="YouTube"><i class="fab fa-youtube"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="copyright-area">
-            <p class="copyright-text">&copy; 2025 Komunitas TV Digital Indonesia. Ikut Memajukan Digitalisasi Penyiaran Nasional. All Rights Reserved.</p>
-        </div>
-    </footer>
-
-    <div id="condolence-popup" class="condolence-overlay">
-        <div class="condolence-box">
-            <div class="condolence-header"><i class="fas fa-praying-hands" style="font-size: 2.5rem;"></i></div>
-            <div class="condolence-body">
-                <h3 class="condolence-title">KTVDI Berduka Cita</h3>
-                <p class="condolence-text">Keluarga Besar Komunitas TV Digital Indonesia (KTVDI) turut berduka cita sedalam-dalamnya atas musibah <b>Banjir Bandang</b> yang melanda saudara-saudara kita di <b>Sumatera</b>.<br><br>Semoga para korban diberikan kekuatan, ketabahan, dan perlindungan. Doa kami menyertai Anda. 🤲</p>
-                <button onclick="closePopup()" class="close-popup-btn">Tutup</button>
-            </div>
+{% if cuaca_data %}
+<div class="info-container">
+    <div class="info-card weather" id="weather-card">
+        <div class="card-icon"><i class="fas fa-cloud-sun"></i></div>
+        <div class="card-text">
+            <h5 id="weather-loc"><i class="fas fa-map-marker-alt"></i> {{ cuaca_data.lokasi }}</h5>
+            <h3 id="weather-temp">{{ cuaca_data.t }}°C</h3>
+            <p id="weather-desc">{{ cuaca_data.desc }}</p>
+            <small id="weather-wind" style="display:block; margin-top:3px; font-size:0.7rem; color:#007bff; cursor:pointer;" onclick="getLocation()">
+                <i class="fas fa-location-arrow"></i> Update Lokasi Saya
+            </small>
         </div>
     </div>
 
-    {% if gempa_data %}
-    <div id="gempa-popup" class="gempa-overlay">
-        <div class="gempa-box">
-            <div class="gempa-header">
-                <span><i class="fas fa-rss"></i> Gempa Terkini (BMKG)</span>
-                <span onclick="closeGempa()" class="close-gempa-btn">&times;</span>
-            </div>
-            <div class="gempa-body">
-                <div class="gempa-icon-area">
-                    <i class="fas fa-house-crack gempa-main-icon"></i>
-                    <div class="gempa-magnitude">{{ gempa_data.Magnitude }} <span style="font-size:1rem;">SR</span></div>
-                </div>
-                <div class="gempa-details">
-                    <p><strong><i class="far fa-clock"></i> Waktu:</strong> {{ gempa_data.Jam }}, {{ gempa_data.Tanggal }}</p>
-                    <p><strong><i class="fas fa-map-marker-alt"></i> Lokasi:</strong> {{ gempa_data.Wilayah }}</p>
-                    <p><strong><i class="fas fa-ruler-vertical"></i> Kedalaman:</strong> {{ gempa_data.Kedalaman }}</p>
-                    <p class="gempa-potensi">{{ gempa_data.Potensi }}</p>
-                </div>
+    <a href="https://binamarga.pu.go.id/contents/cctv_tol" target="_blank" class="info-card road">
+        <div class="card-icon"><i class="fas fa-road"></i></div>
+        <div class="card-text"><h5>CCTV Tol</h5><p>Pantau Macet</p></div>
+        <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+    </a>
+
+    <a href="https://magma.esdm.go.id" target="_blank" class="info-card landslide">
+        <div class="card-icon"><i class="fas fa-mountain"></i></div>
+        <div class="card-text"><h5>Bencana</h5><p>Info Longsor</p></div>
+        <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+    </a>
+</div>
+{% endif %}
+
+<main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div style="width: 92%; max-width: 1200px; margin: 20px auto;">
+            {% for category, message in messages %}
+              <div class="alert" style="padding:10px; background:#fff; border-left:4px solid #007bff; margin-bottom:10px;">{{ message }}</div>
+            {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    <div class="footer-container">
+        <div class="footer-col">
+            <h3>KTVDI</h3>
+            <p>Wadah informasi siaran digital Indonesia.</p>
+        </div>
+        <div class="footer-col">
+            <ul class="footer-links">
+                <li><a href="/daftar-siaran">Cek Sinyal</a></li>
+                <li><a href="/berita">Berita</a></li>
+                <li><a href="/faq">Bantuan</a></li>
+            </ul>
+        </div>
+        <div class="footer-col">
+            <div class="social-icons">
+                <a href="#"><i class="fab fa-whatsapp"></i></a>
+                <a href="#"><i class="fab fa-telegram"></i></a>
+                <a href="#"><i class="fab fa-youtube"></i></a>
             </div>
         </div>
     </div>
-    {% endif %}
+    <div class="copyright">&copy; 2026 KTVDI. All Rights Reserved.</div>
+</footer>
 
-    <audio id="popup-sound" preload="auto">
-        <source src="data:audio/mp3;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAG1xUAA5CAAODh8OFQ81EwNHgsJ/2PA8+FxBgY8DqaasqA+Bm4CjgLgDvfSEp85/ue81DzgK35cnjSzgeZ19d856t94KDuoyyPk9p58/8kyz78+vn6f5X54Ifq95//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAG1xUAA5CAAODh8OFQ81EwNHgsJ/2PA8+FxBgY8DqaasqA+Bm4CjgLgDvfSEp85/ue81DzgK35cnjSzgeZ19d856t94KDuoyyPk9p58/8kyz78+vn6f5X54Ifq95" type="audio/mp3">
-    </audio>
-
-    <div id="fixed-clock" class="fixed-clock">Loading...</div>
-    <button id="chat-toggle" title="Tanya AI"><i class="fas fa-comment-dots"></i></button>
-
-    <div class="chatbot-container" id="chatbot">
-        <div class="chat-header"><span><i class="fas fa-robot"></i> Asisten Pintar KTVDI</span><span id="close-chat" style="cursor:pointer; font-size: 1.2rem;"><i class="fas fa-times"></i></span></div>
-        <div class="chat-body" id="chat-box"><div class="message bot">Halo Sobat Digital! 👋 <br> Ada yang bisa saya bantu cek hari ini?</div></div>
-        <div class="chat-input-area"><input type="text" id="user-input" placeholder="Tanya sesuatu..." autocomplete="off"><button id="send-btn"><i class="fas fa-paper-plane"></i></button></div>
+{% if gempa_data %}
+<div id="gempa-popup" class="gempa-overlay">
+    <div class="gempa-box">
+        <div class="gempa-header">
+            <span><i class="fas fa-rss"></i> Gempa Terkini</span>
+            <span onclick="document.getElementById('gempa-popup').style.display='none'" style="cursor:pointer">&times;</span>
+        </div>
+        <div class="gempa-body">
+            <div class="gempa-icon-area"><i class="fas fa-house-crack gempa-main-icon"></i></div>
+            <div style="text-align:center;">
+                <h2 style="margin:0; color:#2d3436;">{{ gempa_data.Magnitude }} SR</h2>
+                <p style="font-size:0.85rem; margin:5px 0;">{{ gempa_data.Wilayah }}</p>
+                <span style="background:#e1f5fe; color:#0984e3; padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">{{ gempa_data.Potensi }}</span>
+            </div>
+        </div>
     </div>
+</div>
+{% endif %}
 
-    <script>
-        // PWA REGISTRATION
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{{ url_for('static', filename='sw.js') }}")
-                .then(r => console.log('SW registered'))
-                .catch(e => console.log('SW failed', e));
-            });
+<script>
+    // Fungsi update lokasi via Browser
+    function getLocation() {
+        const locText = document.getElementById("weather-loc");
+        if (navigator.geolocation) {
+            locText.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Mencari...";
+            navigator.geolocation.getCurrentPosition(showPosition, showError);
+        } else {
+            alert("Geolocation tidak didukung browser ini.");
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // Logic Popup Belasungkawa & Sound
-            if (!sessionStorage.getItem('condolenceShown')) {
-                setTimeout(() => {
-                    const popup = document.getElementById('condolence-popup');
-                    const sound = document.getElementById('popup-sound');
-                    if(popup) {
-                        popup.style.display = 'flex';
-                        if(sound) {
-                            sound.volume = 0.8; 
-                            var p = sound.play();
-                            if (p !== undefined) {
-                                p.catch(() => {
-                                    document.addEventListener('click', function play() {
-                                        sound.play();
-                                        document.removeEventListener('click', play);
-                                    }, { once: true });
-                                });
-                            }
-                        }
-                    }
-                }, 1000); 
-            }
+    function showPosition(position) {
+        let lat = position.coords.latitude;
+        let lon = position.coords.longitude;
 
-            // Logic Popup Gempa
-            if (!sessionStorage.getItem('gempaClosed')) {
-                const gempaPopup = document.getElementById('gempa-popup');
-                if(gempaPopup) {
-                    setTimeout(() => {
-                        gempaPopup.style.display = 'block';
-                    }, 2500); 
-                }
-            }
-
-            window.closePopup = function() {
-                const popup = document.getElementById('condolence-popup');
-                if(popup) {
-                    popup.style.opacity = '0';
-                    setTimeout(() => { popup.style.display = 'none'; }, 500);
-                    sessionStorage.setItem('condolenceShown', 'true');
-                }
-            };
-
-            window.closeGempa = function() {
-                const popup = document.getElementById('gempa-popup');
-                if(popup) {
-                    popup.style.display = 'none';
-                    sessionStorage.setItem('gempaClosed', 'true');
-                }
-            };
-
-            // Clock
-            function updateClock() {
-                const now = new Date();
-                const options = { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-                const timeString = now.toLocaleTimeString('id-ID', options);
-                const clockDiv = document.getElementById('fixed-clock');
-                if(clockDiv) clockDiv.textContent = timeString + " WIB";
-            }
-            setInterval(updateClock, 1000); updateClock(); 
-
-            // Menu Mobile
-            const menuToggle = document.getElementById('menu-toggle');
-            const menuLinks = document.querySelectorAll('.menu-link');
-            if(menuToggle) {
-                menuLinks.forEach(link => {
-                    link.addEventListener('click', () => { menuToggle.checked = false; });
-                });
-            }
-
-            // Chatbot Logic
-            const toggleBtn = document.getElementById("chat-toggle");
-            const closeBtn = document.getElementById("close-chat");
-            const chatbot = document.getElementById("chatbot");
-            const chatBody = document.getElementById("chat-box");
-            const promptInput = document.getElementById("user-input");
-            const sendBtn = document.getElementById("send-btn");
-
-            function toggleChat() {
-                const isHidden = window.getComputedStyle(chatbot).display === "none";
-                if (isHidden) {
-                    chatbot.style.display = "flex";
-                    toggleBtn.style.display = "none";
-                    if(promptInput) promptInput.focus();
-                } else {
-                    chatbot.style.display = "none";
-                    toggleBtn.style.display = "flex";
-                }
-            }
-
-            if(toggleBtn) toggleBtn.addEventListener("click", toggleChat);
-            if(closeBtn) closeBtn.addEventListener("click", toggleChat);
-
-            function appendMessage(text, sender) {
-                const msg = document.createElement("div");
-                msg.classList.add("message", sender);
-                if (sender === 'bot') msg.innerHTML = text; else msg.textContent = text;
-                chatBody.appendChild(msg);
-                chatBody.scrollTop = chatBody.scrollHeight;
-            }
-
-            function formatResponse(text) {
-                let formatted = text.replace(/\n/g, "<br>");
-                formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-                return formatted;
-            }
-
-            async function sendPrompt() {
-                const prompt = promptInput.value.trim();
-                if (!prompt) return;
-                appendMessage(prompt, "user");
-                promptInput.value = "";
-                
-                const loadingMsg = document.createElement("div");
-                loadingMsg.classList.add("message", "bot");
-                loadingMsg.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> <em>Mengetik...</em>';
-                chatBody.appendChild(loadingMsg);
-                chatBody.scrollTop = chatBody.scrollHeight;
-
-                try {
-                    const res = await fetch("/", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ prompt })
-                    });
-                    const data = await res.json();
-                    chatBody.removeChild(loadingMsg);
-                    if (data.response) appendMessage(formatResponse(data.response), "bot");
-                    else appendMessage("Maaf, terjadi kesalahan.", "bot");
-                } catch (err) {
-                    if(loadingMsg.parentNode) chatBody.removeChild(loadingMsg);
-                    appendMessage("⚠️ Gagal terhubung ke server.", "bot");
-                }
-            }
-
-            if(sendBtn) sendBtn.addEventListener("click", sendPrompt);
-            if(promptInput) promptInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendPrompt(); });
+        // 1. Get City Name (Nominatim)
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+        .then(response => response.json())
+        .then(data => {
+            let city = data.address.city || data.address.town || data.address.village || "Lokasi Anda";
+            document.getElementById("weather-loc").innerHTML = `<i class="fas fa-map-marker-alt"></i> ${city}`;
         });
-    </script>
+
+        // 2. Get Weather (Open-Meteo)
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
+        .then(response => response.json())
+        .then(data => {
+            let temp = data.current_weather.temperature;
+            let wind = data.current_weather.windspeed;
+            document.getElementById("weather-temp").innerText = temp + "°C";
+            document.getElementById("weather-wind").innerHTML = `<i class="fas fa-wind"></i> ${wind} km/j (GPS)`;
+            // OpenMeteo uses codes, simple map:
+            let code = data.current_weather.weathercode;
+            let desc = "Cerah";
+            if(code > 3) desc = "Berawan";
+            if(code > 50) desc = "Hujan";
+            if(code > 90) desc = "Badai";
+            document.getElementById("weather-desc").innerText = desc;
+        });
+    }
+
+    function showError(error) {
+        alert("Gagal mengambil lokasi. Menggunakan default Semarang.");
+        document.getElementById("weather-loc").innerHTML = `<i class="fas fa-map-marker-alt"></i> Semarang (Default)`;
+    }
+
+    // Auto-show gempa popup delay
+    setTimeout(() => {
+        let box = document.getElementById('gempa-popup');
+        if(box) box.style.display = 'block';
+    }, 2000);
+</script>
+
 </body>
 </html>
