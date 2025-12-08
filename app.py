@@ -63,7 +63,7 @@ mail = Mail(app)
 # Konfigurasi Gemini API Key
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
 
-# Inisialisasi model Gemini (DENGAN INSTRUKSI LENGKAP)
+# Inisialisasi model Gemini (DENGAN INSTRUKSI LENGKAP DAN BATASAN)
 model = genai.GenerativeModel(
     "gemini-2.5-flash", 
     system_instruction=
@@ -138,12 +138,12 @@ def home():
     siaran_counts = Counter()
     last_updated_time = None
     
-    # List untuk pengecekan lokasi di Frontend
+    # List untuk pengecekan lokasi di Frontend (PENTING UNTUK FITUR BARU)
     provinsi_tersedia = []
 
     # Iterasi melalui provinsi, wilayah layanan, dan penyelenggara mux
     if siaran_data:
-        provinsi_tersedia = list(siaran_data.keys())
+        provinsi_tersedia = list(siaran_data.keys()) # Ambil list provinsi untuk dikirim ke HTML
         for provinsi, provinsi_data in siaran_data.items():
             if isinstance(provinsi_data, dict):
                 jumlah_wilayah_layanan += len(provinsi_data)
@@ -191,7 +191,7 @@ def home():
                            last_updated_time=last_updated_time,
                            gempa_data=gempa_data,
                            cuaca_data=cuaca_data,
-                           provinsi_tersedia=provinsi_tersedia)
+                           provinsi_tersedia=provinsi_tersedia) # PENTING: Variabel ini dipakai di JS
 
 # --- ROUTE TAMBAHAN ---
 @app.route('/faq')
