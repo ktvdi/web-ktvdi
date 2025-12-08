@@ -1,248 +1,205 @@
-{% extends "base.html" %}
-
-{% block title %}Beranda - KTVDI{% endblock %}
-
-{% block content %}
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
-<style>
-    /* HERO SECTION */
-    .hero-wrapper { padding: 50px 0; background: linear-gradient(180deg, #f8f9fc 0%, #eef2f7 100%); border-bottom: 1px solid #dce4ec; }
-    .hero-container { width: 92%; max-width: 1200px; margin: 0 auto; display: flex; align-items: flex-start; gap: 40px; flex-wrap: wrap; }
-    
-    .hero-text { flex: 1; min-width: 300px; margin-top: 10px; }
-    .hero-text h1 { font-size: 2.8rem; font-weight: 800; color: #1a1a2e; margin-bottom: 15px; line-height: 1.2; }
-    .hero-text h1 span { color: #007bff; }
-    .hero-text p { font-size: 1.05rem; color: #636e72; line-height: 1.6; margin-bottom: 25px; }
-    .hero-buttons { display: flex; gap: 15px; }
-    .btn-hero { padding: 12px 30px; border-radius: 50px; font-weight: 600; text-decoration: none; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-primary { background: #007bff; color: white; box-shadow: 0 5px 15px rgba(0,123,255,0.3); }
-    .btn-outline { border: 2px solid #2d3436; color: #2d3436; }
-
-    /* TV PLAYER */
-    .hero-image { flex: 1.3; min-width: 300px; max-width: 100%; position: relative; }
-    .tv-frame { width: 100%; border-radius: 15px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.25); border: 4px solid #222; background: black; position: relative; aspect-ratio: 16/9; }
-    video { width: 100%; height: 100%; object-fit: contain; }
-    .live-badge { position: absolute; top: 15px; left: 15px; background: #e74c3c; color: white; padding: 4px 10px; font-weight: 800; border-radius: 4px; font-size: 0.75rem; z-index: 10; animation: blink 1.5s infinite; pointer-events: none; }
-    @keyframes blink { 50% { opacity: 0.5; } }
-
-    /* CHANNEL LIST */
-    .channel-container { margin-top: 20px; overflow-x: auto; white-space: nowrap; padding-bottom: 10px; -webkit-overflow-scrolling: touch; }
-    .channel-btn { display: inline-flex; align-items: center; gap: 5px; background: white; border: 1px solid #ddd; padding: 8px 15px; margin-right: 8px; border-radius: 50px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: 0.2s; color: #555; }
-    .channel-btn:hover, .channel-btn.active { background: #007bff; color: white; border-color: #007bff; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,123,255,0.2); }
-
-    /* STATS */
-    .stats-section { padding: 40px 0; background: white; text-align: center; border-bottom: 1px solid #eee; }
-    .stats-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1000px; margin: 0 auto; }
-    .stat-card { background: white; padding: 20px; border-radius: 12px; width: 220px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; text-align: left; display: flex; align-items: center; gap: 15px; }
-    .stat-icon { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-    .icon-blue { background: #e3f2fd; color: #2196f3; } .icon-green { background: #e8f5e9; color: #4caf50; }
-    .icon-orange { background: #fff3e0; color: #ff9800; } .icon-red { background: #ffebee; color: #f44336; }
-
-    /* WIDGETS BAWAH */
-    .dynamic-widgets { max-width: 1000px; margin: 40px auto; width: 92%; }
-    
-    #readiness-area { display: none; background: #e8f5e9; padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 30px; border: 1px solid #c8e6c9; }
-    .gauge-wrapper { width: 180px; height: 90px; margin: 10px auto; position: relative; overflow: hidden; }
-    .gauge-arc { width: 180px; height: 180px; border-radius: 50%; background: conic-gradient(from 180deg, #ff5252 0deg 60deg, #ffca28 60deg 120deg, #66bb6a 120deg 180deg, transparent 180deg); position: absolute; top: 0; left: 0; mask: radial-gradient(transparent 55px, black 56px); -webkit-mask: radial-gradient(transparent 55px, black 56px); }
-    .gauge-needle { width: 4px; height: 80px; background: #333; position: absolute; bottom: 0; left: 50%; transform-origin: bottom center; transform: rotate(-90deg); transition: transform 1.5s ease-out; border-radius: 2px; }
-
-    .bottom-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-    .info-box { background: white; padding: 20px; border-radius: 15px; border: 1px solid #eee; display: flex; align-items: center; gap: 15px; text-decoration: none; color: #333; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
-    .info-box:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
-    .ib-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; flex-shrink: 0; }
-
-    @media (max-width: 768px) {
-        .hero-wrapper { padding: 30px 0; text-align: center; }
-        .hero-container { flex-direction: column-reverse; gap: 30px; }
-        .hero-buttons { justify-content: center; }
-        .channel-container { padding-left: 5px; } 
-    }
-</style>
-
-<div class="hero-wrapper">
-    <div class="hero-container">
-        
-        <div class="hero-text">
-            <div style="background:#e3f2fd; color:#007bff; display:inline-block; padding:5px 15px; border-radius:20px; font-size:0.85rem; font-weight:600; margin-bottom:15px;">#AyoNontonTVDigital</div>
-            <h1>Komunitas TV Digital <span>Indonesia</span></h1>
-            <p>KTVDI Menjadi Wadah Diskusi Bagi Semua Pemirsa Siaran Televisi Digital di Indonesia untuk Memperluas Wawasan Terkait Segala Hal Yang Berkaitan Dengan Siaran Televisi, Khususnya Televisi Digital Terestrial (DTT).</p>
-            <div class="hero-buttons">
-                <a href="/daftar-siaran" class="btn-hero btn-primary"><i class="fas fa-list"></i> Lihat Daftar Siaran</a>
-                <a href="/about" class="btn-hero btn-outline"><i class="fas fa-chart-pie"></i> Data Statistik</a>
-            </div>
-        </div>
-
-        <div class="hero-image">
-            <div class="tv-frame">
-                <div class="live-badge">LIVE</div>
-                <video id="videoPlayer" controls autoplay muted playsinline></video>
-            </div>
-            
-            <div class="channel-container">
-                <button class="channel-btn active" onclick="playChannel('nusantara')">Nusantara TV</button>
-                <button class="channel-btn" onclick="playChannel('garuda')">Garuda TV</button>
-                <button class="channel-btn" onclick="playChannel('matrix')">Matrix TV</button>
-                <button class="channel-btn" onclick="playChannel('rtv')">RTV HD</button>
-                <button class="channel-btn" onclick="playChannel('elshinta')">Elshinta TV</button>
-                <button class="channel-btn" onclick="playChannel('tvri')">TVRI Nasional</button>
-                <button class="channel-btn" onclick="playChannel('tvri_sport')">TVRI Sport</button>
-                <button class="channel-btn" onclick="playChannel('magna')">Magna Channel</button>
-                <button class="channel-btn" onclick="playChannel('bn')">BN Channel</button>
-                <button class="channel-btn" onclick="playChannel('batv')">BATV</button>
-                <button class="channel-btn" onclick="playChannel('inspira')">Inspira TV</button>
-            </div>
-            <p id="current-playing" style="text-align:center; font-size:0.85rem; color:#555; margin-top:10px; background:white; display:inline-block; padding:5px 15px; border-radius:20px; border:1px solid #eee;">Sedang memutar: <b>Nusantara TV</b></p>
-        </div>
-    </div>
-</div>
-
-<div class="stats-section">
-    <div style="margin-bottom:20px; font-weight:bold; color:#555;">Update Data: {{ last_updated_time }}</div>
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon icon-blue"><i class="fas fa-map-marked-alt"></i></div>
-            <div><h3 style="margin:0">{{ jumlah_wilayah_layanan }}</h3><small>Wilayah</small></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon icon-green"><i class="fas fa-broadcast-tower"></i></div>
-            <div><h3 style="margin:0">{{ jumlah_penyelenggara_mux }}</h3><small>MUX</small></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon icon-orange"><i class="fas fa-tv"></i></div>
-            <div><h3 style="margin:0">{{ jumlah_siaran }}</h3><small>Saluran</small></div>
-        </div>
-        {% if most_common_siaran_name %}
-        <div class="stat-card">
-            <div class="stat-icon icon-red"><i class="fas fa-globe-asia"></i></div>
-            <div><h3 style="margin:0; font-size:1.4rem;">{{ most_common_siaran_count }}x</h3><small>{{ most_common_siaran_name }}</small></div>
-        </div>
-        {% endif %}
-    </div>
-</div>
-
-<div class="dynamic-widgets">
-    <div id="coverage-result" style="text-align:center; padding:20px; background:#fff; border-radius:15px; box-shadow:0 5px 20px rgba(0,0,0,0.05); margin-bottom:20px; color:#555;">
-        <i class="fas fa-satellite-dish fa-spin"></i> Mendeteksi Lokasi Anda...
-    </div>
-
-    <div id="readiness-area">
-        <h3 style="color:#2e7d32; margin-top:0;"><i class="fas fa-check-circle"></i> Wilayah Anda Tercover!</h3>
-        <p>Lokasi: <b id="user-loc-text">Indonesia</b> sudah siap menerima siaran.</p>
-        <div class="gauge-wrapper"><div class="gauge-arc"></div><div class="gauge-needle" id="needle"></div></div>
-        <p style="font-weight:bold; color:#333;">Kualitas Sinyal: Sangat Baik</p>
-    </div>
-
-    <div class="bottom-info-grid">
-        <div class="info-box">
-            <div class="ib-icon" style="background:linear-gradient(135deg, #f6d365, #fda085);"><i class="fas fa-cloud-sun"></i></div>
-            <div>
-                <h5 id="w-loc" style="margin:0; font-size:0.85rem; color:#777;">Memuat...</h5>
-                <h3 id="w-temp" style="margin:0; font-size:1.5rem;">--°C</h3>
-                <small id="w-desc">Cuaca</small>
-            </div>
-        </div>
-        <a href="https://binamarga.pu.go.id/contents/cctv_tol" target="_blank" class="info-box">
-            <div class="ib-icon" style="background:linear-gradient(135deg, #84fab0, #8fd3f4);"><i class="fas fa-road"></i></div>
-            <div><h5 style="margin:0; font-size:0.9rem; font-weight:bold;">CCTV Tol</h5><small style="color:#777;">Pantau Macet</small></div>
-        </a>
-        <a href="https://magma.esdm.go.id" target="_blank" class="info-box">
-            <div class="ib-icon" style="background:linear-gradient(135deg, #a18cd1, #fbc2eb);"><i class="fas fa-mountain"></i></div>
-            <div><h5 style="margin:0; font-size:0.9rem; font-weight:bold;">Info Bencana</h5><small style="color:#777;">Peta Longsor</small></div>
-        </a>
-    </div>
-</div>
-
-<script>
-    // --- 1. M3U8 PLAYER CONFIG ---
-    const streams = {
-        'nusantara': { name: 'Nusantara TV', url: 'https://stream.nusantaratv.com/live/smil:nusantaratv.smil/playlist.m3u8' },
-        'garuda': { name: 'Garuda TV', url: 'https://edge.medcom.id/live-stream/garudatv/index.m3u8' },
-        'matrix': { name: 'Matrix TV', url: 'https://cdn.matrix.co.id/live/matrix.m3u8' },
-        'rtv': { name: 'RTV HD', url: 'https://str.rtv.co.id/live/rtv/index.m3u8' },
-        'elshinta': { name: 'Elshinta TV', url: 'https://live.elshinta.com/hls/elshintatv.m3u8' },
-        'tvri': { name: 'TVRI Nasional', url: 'https://live.tvri.co.id/live/nasional/index.m3u8' },
-        'tvri_sport': { name: 'TVRI Sport', url: 'https://live.tvri.co.id/live/sport/index.m3u8' },
-        'magna': { name: 'Magna Channel', url: 'https://edge.medcom.id/live-stream/magnachannel/index.m3u8' },
-        'bn': { name: 'BN Channel', url: 'https://edge.medcom.id/live-stream/bnchannel/index.m3u8' },
-        'batv': { name: 'BATV', url: 'https://live.batv.co.id/hls/batv.m3u8' },
-        'inspira': { name: 'Inspira TV', url: 'https://stream.inspira.tv/hls/inspira.m3u8' }
-    };
-
-    var video = document.getElementById('videoPlayer');
-    var hls = new Hls();
-
-    function playChannel(key) {
-        document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
-        if(event) event.target.classList.add('active');
-
-        var channel = streams[key] || streams['nusantara'];
-        document.getElementById('current-playing').innerHTML = "Sedang memutar: <b>" + channel.name + "</b>";
-
-        if (Hls.isSupported()) {
-            hls.loadSource(channel.url);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                video.play().catch(() => console.log("Autoplay blocked."));
-            });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = channel.url;
-            video.addEventListener('loadedmetadata', function() { video.play(); });
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sedang Pemeliharaan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-    }
-    document.addEventListener('DOMContentLoaded', () => { playChannel('nusantara'); });
 
-
-    // --- 2. GPS & CUACA ---
-    document.addEventListener("DOMContentLoaded", function() {
-        const dbProvinces = {{ provinsi_tersedia | tojson }};
-        const resBox = document.getElementById('coverage-result');
-        const readArea = document.getElementById('readiness-area');
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(pos => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-
-                // Nominatim
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-                .then(r => r.json()).then(d => {
-                    let city = d.address.city || d.address.town || d.address.county || "Lokasi Anda";
-                    let prov = (d.address.state || "").toLowerCase();
-                    
-                    document.getElementById('w-loc').innerText = city;
-                    document.getElementById('user-loc-text').innerText = city + ", " + d.address.state;
-
-                    // Coverage Check
-                    let isCovered = false;
-                    if(prov.includes('jawa') || prov.includes('jakarta') || prov.includes('banten') || prov.includes('bali') || prov.includes('sumatera') || dbProvinces.some(x=>prov.includes(x.toLowerCase()))) {
-                        isCovered = true;
-                    }
-
-                    resBox.style.display = 'none'; 
-                    if(isCovered) {
-                        readArea.style.display = 'block';
-                        setTimeout(() => { document.getElementById('needle').style.transform = "rotate(90deg)"; }, 500);
-                    } else {
-                        resBox.style.display = 'block';
-                        resBox.innerHTML = `<h3 style="color:#c0392b;">Belum Tercover Optimal</h3><p>Area <b>${city}</b> belum ada data lengkap.</p><a href="https://www.vidio.com/live" class="btn-hero btn-primary" style="background:#ce0000; margin-top:10px;">Nonton di Vidio</a>`;
-                    }
-                });
-
-                // Cuaca Open-Meteo
-                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
-                .then(r=>r.json()).then(d=>{
-                    document.getElementById('w-temp').innerText = Math.round(d.current_weather.temperature) + "°C";
-                    let c = d.current_weather.weathercode;
-                    let t = "Cerah";
-                    if(c>3) t="Berawan"; if(c>50) t="Hujan";
-                    document.getElementById('w-desc').innerText = t;
-                });
-
-            }, () => {
-                resBox.innerHTML = "Gagal mendeteksi lokasi. Pastikan GPS aktif.";
-            });
+        body {
+            background-color: #0f172a; /* Warna gelap enak buat mata ngantuk */
+            color: #f1f5f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
         }
-    });
-</script>
-{% endblock %}
+
+        /* Container konten di tengah */
+        .content {
+            position: relative;
+            z-index: 10; /* Supaya di atas canvas */
+            padding: 2rem;
+            background: rgba(15, 23, 42, 0.7); /* Transparan */
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: #38bdf8;
+        }
+
+        p.sub-text {
+            font-size: 1.2rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+
+        .highlight {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fbbf24; /* Kuning biar jelas */
+            display: block;
+            margin-top: 1rem;
+            border: 2px dashed #fbbf24;
+            padding: 1rem;
+            border-radius: 10px;
+        }
+
+        .countdown {
+            margin-top: 1.5rem;
+            font-size: 2rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+
+        /* Canvas untuk efek interaktif */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hint {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="content">
+        <h1>Website Sedang Istirahat 😴</h1>
+        <p class="sub-text">Adminnya lagi ngantuk berat, sistem sedang di-charge.</p>
+        
+        <div class="highlight">
+            KEMBALI AKTIF JAM 12.00 WIB
+        </div>
+
+        <div class="countdown" id="timer">Loading...</div>
+
+        <p class="hint">(Gerakkan mouse/jari di layar untuk mainan partikel sambil nunggu)</p>
+    </div>
+
+    <script>
+        // --- 1. LOGIKA COUNTDOWN ---
+        function updateTimer() {
+            const now = new Date();
+            // Cari jam 12.00 hari ini
+            let target = new Date();
+            target.setHours(12, 0, 0, 0);
+
+            // Jika sekarang sudah lewat jam 12 siang, set target ke jam 12 besok
+            if (now > target) {
+                target.setDate(target.getDate() + 1);
+            }
+
+            const diff = target - now;
+
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById("timer").innerHTML = 
+                `${hours.toString().padStart(2, '0')} : ${minutes.toString().padStart(2, '0')} : ${seconds.toString().padStart(2, '0')}`;
+        }
+
+        setInterval(updateTimer, 1000);
+        updateTimer(); // Jalankan langsung biar gak nunggu 1 detik
+
+        // --- 2. EFEK INTERAKTIF (PARTIKEL MENGIKUTI MOUSE) ---
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const mouse = { x: undefined, y: undefined };
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+            // Buat partikel setiap mouse bergerak
+            for(let i=0; i<3; i++) {
+                particles.push(new Particle());
+            }
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+            for(let i=0; i<3; i++) {
+                particles.push(new Particle());
+            }
+        });
+
+        class Particle {
+            constructor() {
+                this.x = mouse.x;
+                this.y = mouse.y;
+                this.size = Math.random() * 5 + 1;
+                this.speedX = Math.random() * 3 - 1.5;
+                this.speedY = Math.random() * 3 - 1.5;
+                // Warna acak biru/ungu biar keren
+                this.color = `hsl(${Math.random() * 60 + 180}, 100%, 50%)`; 
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.size > 0.2) this.size -= 0.1;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function animate() {
+            // Efek trailing (jejak)
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                
+                if (particles[i].size <= 0.3) {
+                    particles.splice(i, 1);
+                    i--;
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
