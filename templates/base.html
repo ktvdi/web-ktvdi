@@ -51,7 +51,6 @@
         @media (max-width: 768px) {
             .header-container { justify-content: center; }
             .menu-icon { display: block; position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
-            
             nav ul { 
                 display: none; flex-direction: column; position: absolute; top: 100%; left: 0; 
                 width: 100%; background: white; padding: 25px; 
@@ -74,24 +73,47 @@
 
         main { flex: 1; }
 
-        /* --- FOOTER MODERN --- */
+        /* --- WIDGET INFO (Cuaca, Jalan, Longsor) --- */
+        .info-container {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
+            gap: 15px; width: 92%; max-width: 1200px; margin: 25px auto 10px auto;
+        }
+        .info-card {
+            background: white; padding: 15px 20px; border-radius: 15px;
+            display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s; text-decoration: none; color: #333;
+            border: 1px solid #f0f0f0;
+        }
+        .info-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        .card-icon {
+            width: 50px; height: 50px; border-radius: 12px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: white;
+        }
+        .weather .card-icon { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); }
+        .road .card-icon { background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%); }
+        .landslide .card-icon { background: linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%); }
+
+        .card-text h5 { margin: 0; font-size: 0.95rem; font-weight: 700; color: #555; }
+        .card-text h3 { margin: 2px 0; font-size: 1.6rem; font-weight: 800; color: #333; }
+        .card-text p { margin: 0; font-size: 0.85rem; color: #777; }
+        .card-text small { font-size: 0.75rem; color: #999; }
+        .arrow { margin-left: auto; color: #ccc; }
+
+        /* --- FOOTER MODERN (Dark Theme) --- */
         footer {
             background-color: #1a1a2e;
             color: #ecf0f1;
             padding-top: 60px;
             margin-top: 60px;
         }
-
         .footer-container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 40px;
-            padding-bottom: 50px;
+            width: 90%; max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px; padding-bottom: 50px;
         }
-
         @media (max-width: 768px) { .footer-container { text-align: center; } }
 
         .footer-col h3 { color: #fff; font-size: 1.6rem; margin-bottom: 20px; font-weight: 800; }
@@ -144,7 +166,6 @@
         }
         @keyframes shake {
             0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
             50% { transform: translate(-1px, 2px) rotate(-1deg); }
             100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
@@ -233,6 +254,42 @@
         </div>
     </header>
 
+    {% if cuaca_data %}
+    <div class="info-container">
+        
+        <div class="info-card weather">
+            <div class="card-icon"><i class="fas fa-cloud-sun"></i></div>
+            <div class="card-text">
+                <h5>Cuaca Semarang</h5>
+                <h3>{{ cuaca_data.t }}°C</h3>
+                <p>{{ cuaca_data.weather_desc }}</p>
+                <small><i class="fas fa-wind"></i> {{ cuaca_data.ws }} km/jam</small>
+            </div>
+        </div>
+
+        <a href="https://binamarga.pu.go.id/contents/cctv_tol" target="_blank" class="info-card road">
+            <div class="card-icon"><i class="fas fa-road"></i></div>
+            <div class="card-text">
+                <h5>Pantau Jalan Tol</h5>
+                <p>Cek CCTV Realtime</p>
+                <small>Bina Marga PUPR</small>
+            </div>
+            <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+        </a>
+
+        <a href="https://magma.esdm.go.id/v1/gerakan-tanah/kejadian" target="_blank" class="info-card landslide">
+            <div class="card-icon"><i class="fas fa-mountain"></i></div>
+            <div class="card-text">
+                <h5>Info Longsor</h5>
+                <p>Peta Rawan Bencana</p>
+                <small>MAGMA Indonesia</small>
+            </div>
+            <div class="arrow"><i class="fas fa-chevron-right"></i></div>
+        </a>
+
+    </div>
+    {% endif %}
+
     <main>
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -279,7 +336,7 @@
             </div>
         </div>
         <div class="copyright-area">
-            <p class="copyright-text">&copy; 2026 Komunitas TV Digital Indonesia. Mengawal Migrasi Digital. All Rights Reserved.</p>
+            <p class="copyright-text">&copy; 2025 Komunitas TV Digital Indonesia. Ikut Memajukan Digitalisasi Penyiaran Nasional. All Rights Reserved.</p>
         </div>
     </footer>
 
@@ -312,7 +369,7 @@
                     <p><strong><i class="fas fa-ruler-vertical"></i> Kedalaman:</strong> {{ gempa_data.Kedalaman }}</p>
                     <p class="gempa-potensi">{{ gempa_data.Potensi }}</p>
                 </div>
-                </div>
+            </div>
         </div>
     </div>
     {% endif %}
@@ -370,7 +427,7 @@
                 if(gempaPopup) {
                     setTimeout(() => {
                         gempaPopup.style.display = 'block';
-                    }, 2500); // Muncul sedikit setelah popup duka
+                    }, 2500); 
                 }
             }
 
