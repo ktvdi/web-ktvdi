@@ -6,7 +6,7 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <style>
-    /* --- HERO SECTION (LAYOUT KIRI TEKS - KANAN TV) --- */
+    /* --- HERO SECTION (LAYOUT UTAMA) --- */
     .hero-wrapper {
         padding: 40px 0 60px;
         background: linear-gradient(180deg, #f8f9fc 0%, #eef2f7 100%);
@@ -16,7 +16,7 @@
     
     .hero-container {
         width: 92%; max-width: 1200px; margin: 0 auto;
-        display: flex; align-items: flex-start; gap: 40px; /* Align top agar rapi saat list channel banyak */
+        display: flex; align-items: flex-start; gap: 40px;
         flex-wrap: wrap; 
     }
 
@@ -31,21 +31,30 @@
     .btn-primary { background: #007bff; color: white; box-shadow: 0 5px 15px rgba(0,123,255,0.3); }
     .btn-outline { border: 2px solid #2d3436; color: #2d3436; }
     
-    /* KANAN: TV PLAYER */
-    .hero-image { flex: 1.3; min-width: 300px; position: relative; }
+    /* KANAN: TV PLAYER (PERBAIKAN RESPONSIVITAS) */
+    .hero-image { flex: 1.3; min-width: 300px; max-width: 100%; position: relative; }
+    
     .tv-frame {
-        width: 100%; border-radius: 15px; overflow: hidden;
+        width: 100%; 
+        border-radius: 15px; 
+        overflow: hidden;
         box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-        border: 4px solid #222; background: black;
-        position: relative; aspect-ratio: 16/9;
+        border: 4px solid #222; 
+        background: black;
+        position: relative; 
+        aspect-ratio: 16/9; /* Kunci agar rasio tetap 16:9 di semua layar */
     }
     
-    video { width: 100%; height: 100%; object-fit: contain; }
+    video { 
+        width: 100%; 
+        height: 100%; 
+        object-fit: contain; /* Agar video pas dalam frame, tidak zoom/crop */
+    }
     
     .live-badge {
-        position: absolute; top: 15px; left: 15px;
-        background: #e74c3c; color: white; padding: 4px 10px;
-        font-weight: 800; border-radius: 4px; font-size: 0.75rem;
+        position: absolute; top: 10px; left: 10px;
+        background: #e74c3c; color: white; padding: 4px 8px;
+        font-weight: 800; border-radius: 4px; font-size: 0.7rem;
         z-index: 10; animation: blink 1.5s infinite;
         pointer-events: none;
     }
@@ -60,14 +69,10 @@
         -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
     }
-    /* Scrollbar Styling */
-    .channel-container::-webkit-scrollbar { height: 6px; }
-    .channel-container::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-
     .channel-btn {
         display: inline-flex; align-items: center; gap: 5px;
         background: white; border: 1px solid #ddd; 
-        padding: 8px 18px; margin-right: 8px;
+        padding: 8px 15px; margin-right: 8px;
         border-radius: 50px; cursor: pointer; font-size: 0.85rem;
         font-weight: 600; transition: 0.2s; color: #555;
     }
@@ -109,10 +114,17 @@
     .info-box:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
     .ib-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; flex-shrink: 0; }
     
+    /* RESPONSIF HP LEBIH BAIK */
     @media (max-width: 768px) {
-        .hero-wrapper { padding: 30px 0; text-align: center; }
-        .hero-container { flex-direction: column-reverse; gap: 30px; }
+        .hero-wrapper { padding: 20px 0; }
+        .hero-container { flex-direction: column-reverse; gap: 20px; }
+        .hero-text { text-align: center; }
         .hero-buttons { justify-content: center; }
+        .hero-text h1 { font-size: 2rem; }
+        
+        /* Fix Player di HP agar tidak zoom */
+        .tv-frame { border-width: 2px; margin-bottom: 10px; }
+        .channel-container { padding-left: 5px; } /* Biar enak di-scroll */
     }
 </style>
 
@@ -122,11 +134,15 @@
         <div class="hero-text">
             <div style="background:#e3f2fd; color:#007bff; display:inline-block; padding:5px 15px; border-radius:20px; font-size:0.85rem; font-weight:600; margin-bottom:15px;">#AyoNontonTVDigital</div>
             <h1>Komunitas TV Digital <span>Indonesia</span></h1>
-            <p>Platform informasi terlengkap untuk pemirsa DVB-T2. Cek jangkauan sinyal, daftar MUX, dan nikmati siaran TV digital Indonesia secara streaming.</p>
+            <p>
+                KTVDI Menjadi Wadah Diskusi Bagi Semua Pemirsa Siaran Televisi Digital di Indonesia 
+                untuk Memperluas Wawasan Terkait Segala Hal Yang Berkaitan Dengan Siaran Televisi, 
+                Khususnya Televisi Digital Terestrial (DTT).
+            </p>
             
             <div class="hero-buttons">
-                <a href="/daftar-siaran" class="btn-hero btn-primary"><i class="fas fa-map-marked-alt"></i> Cek Jangkauan</a>
-                <a href="/about" class="btn-hero btn-outline"><i class="fas fa-users"></i> Gabung Grup</a>
+                <a href="/daftar-siaran" class="btn-hero btn-primary"><i class="fas fa-list"></i> Lihat Daftar Siaran</a>
+                <a href="/about" class="btn-hero btn-outline"><i class="fas fa-chart-pie"></i> Data Statistik</a>
             </div>
         </div>
 
@@ -154,24 +170,24 @@
 </div>
 
 <div class="stats-section">
-    <div style="margin-bottom:20px; font-weight:bold; color:#555;">Data Update: {{ last_updated_time }}</div>
+    <div style="margin-bottom:20px; font-weight:bold; color:#555;">Update Data: {{ last_updated_time }}</div>
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-icon icon-blue"><i class="fas fa-map-marked-alt"></i></div>
-            <div><h3 style="margin:0">{{ jumlah_wilayah_layanan }}</h3><small>Wilayah</small></div>
+            <div><h3 style="margin:0">{{ jumlah_wilayah_layanan }}</h3><small>Wilayah Layanan</small></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon icon-green"><i class="fas fa-broadcast-tower"></i></div>
-            <div><h3 style="margin:0">{{ jumlah_penyelenggara_mux }}</h3><small>MUX</small></div>
+            <div><h3 style="margin:0">{{ jumlah_penyelenggara_mux }}</h3><small>Layanan MUX</small></div>
         </div>
         <div class="stat-card">
             <div class="stat-icon icon-orange"><i class="fas fa-tv"></i></div>
-            <div><h3 style="margin:0">{{ jumlah_siaran }}</h3><small>Saluran</small></div>
+            <div><h3 style="margin:0">{{ jumlah_siaran }}</h3><small>Saluran TV Digital</small></div>
         </div>
         {% if most_common_siaran_name %}
         <div class="stat-card">
             <div class="stat-icon icon-red"><i class="fas fa-globe-asia"></i></div>
-            <div><h3 style="margin:0; font-size:1.4rem;">{{ most_common_siaran_count }}x</h3><small>{{ most_common_siaran_name }}</small></div>
+            <div><h3 style="margin:0; font-size:1.4rem;">{{ most_common_siaran_count }} MUX</h3><small>{{ most_common_siaran_name }} (Terluas)</small></div>
         </div>
         {% endif %}
     </div>
@@ -185,7 +201,7 @@
 
     <div id="readiness-area">
         <h3 style="color:#2e7d32; margin-top:0;"><i class="fas fa-check-circle"></i> Wilayah Anda Tercover!</h3>
-        <p>Lokasi: <b id="user-loc-text">Indonesia</b></p>
+        <p>Lokasi: <b id="user-loc-text">Indonesia</b> sudah siap menerima siaran TV Digital.</p>
         <div class="gauge-wrapper"><div class="gauge-arc"></div><div class="gauge-needle" id="needle"></div></div>
         <p style="font-weight:bold; color:#333;">Kualitas Sinyal: Sangat Baik</p>
     </div>
@@ -212,7 +228,6 @@
 
 <script>
     // --- 1. PLAYER LOGIC (HLS.JS) ---
-    // Link M3U8 Publik (Bisa diganti jika expired)
     const streams = {
         'nusantara': { name: 'Nusantara TV', url: 'https://stream.nusantaratv.com/live/smil:nusantaratv.smil/playlist.m3u8' },
         'garuda': { name: 'Garuda TV', url: 'https://edge.medcom.id/live-stream/garudatv/index.m3u8' },
@@ -229,7 +244,6 @@
     var hls = new Hls();
 
     function playChannel(key) {
-        // Update Button State
         document.querySelectorAll('.channel-btn').forEach(b => b.classList.remove('active'));
         if(event) event.target.closest('.channel-btn').classList.add('active');
 
