@@ -94,17 +94,33 @@ model = genai.GenerativeModel(
     "\n- **Apa yang harus saya lakukan jika siaran tidak muncul?** Pastikan TV/STB Anda mendukung DVB-T2, antena terpasang benar dan mengarah ke pemancar, serta lakukan scan ulang saluran."
 )
 
-# --- FUNGSI TAMBAHAN: BMKG ---
+# --- FUNGSI TAMBAHAN: BMKG (Gempa & Cuaca Semarang) ---
 def get_gempa_terkini():
     """Mengambil data gempa terkini dari API BMKG"""
     try:
-        url = "https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json"
+        url = "https://data.bmkg.go.id/DataMKG/TEWS/gempadirasakan.json"
         response = requests.get(url, timeout=3)
         if response.status_code == 200:
             data = response.json()
-            return data['Infogempa']['gempa']
+            # Ambil gempa pertama dari list
+            return data['Infogempa']['gempa'][0]
     except Exception as e:
         print(f"Gagal ambil data BMKG: {e}")
+        return None
+    return None
+
+def get_cuaca_semarang():
+    """Mengambil data prakiraan cuaca khusus Semarang"""
+    try:
+        # Kode Wilayah 33.74.13.1004 = Mugassari, Semarang Selatan (Area Simpang Lima/Pusat)
+        url = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=33.74.13.1004"
+        response = requests.get(url, timeout=3)
+        if response.status_code == 200:
+            data = response.json()
+            # Ambil data cuaca saat ini (indeks 0 dari array data per jam)
+            return data['data'][0]['cuaca'][0][0]
+    except Exception as e:
+        print(f"Gagal ambil cuaca Semarang: {e}")
         return None
     return None
 
@@ -158,8 +174,9 @@ def home():
     if last_updated_time:
         last_updated_time = last_updated_time.strftime('%d-%m-%Y')
     
-    # AMBIL DATA GEMPA (Penting untuk Popup)
+    # AMBIL DATA API (GEMPA & CUACA SEMARANG)
     gempa_data = get_gempa_terkini()
+    cuaca_data = get_cuaca_semarang()
 
     return render_template('index.html', 
                            most_common_siaran_name=most_common_siaran_name,
@@ -168,9 +185,10 @@ def home():
                            jumlah_siaran=jumlah_siaran, 
                            jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
                            last_updated_time=last_updated_time,
-                           gempa_data=gempa_data) # Dikirim ke template
+                           gempa_data=gempa_data,
+                           cuaca_data=cuaca_data) # Data cuaca dikirim ke template
 
-# --- ROUTE FAQ (Wajib ada biar gak 404) ---
+# --- ROUTE FAQ ---
 @app.route('/faq')
 def faq():
     return render_template('faq.html')
