@@ -94,34 +94,6 @@ model = genai.GenerativeModel(
     "\n- **Apa yang harus saya lakukan jika siaran tidak muncul?** Pastikan TV/STB Anda mendukung DVB-T2, antena terpasang benar dan mengarah ke pemancar, serta lakukan scan ulang saluran."
 )
 
-# === [FITUR TAMBAHAN: BMKG & CUACA] ===
-def get_gempa_terkini():
-    """Mengambil data gempa dirasakan dari API BMKG"""
-    try:
-        url = "https://data.bmkg.go.id/DataMKG/TEWS/gempadirasakan.json"
-        response = requests.get(url, timeout=3)
-        if response.status_code == 200:
-            data = response.json()
-            return data['Infogempa']['gempa'][0]
-    except Exception as e:
-        print(f"Gagal ambil data BMKG: {e}")
-        return None
-    return None
-
-def get_cuaca_semarang():
-    """Mengambil data prakiraan cuaca default (Semarang)"""
-    try:
-        url = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=33.74.13.1004"
-        response = requests.get(url, timeout=3)
-        if response.status_code == 200:
-            data = response.json()
-            return data['data'][0]['cuaca'][0][0]
-    except Exception as e:
-        print(f"Gagal ambil cuaca Semarang: {e}")
-        return None
-    return None
-# ========================================
-
 @app.route("/")
 def home():
     # Ambil data dari seluruh node "siaran" untuk semua provinsi
@@ -135,35 +107,29 @@ def home():
     siaran_counts = Counter()
     last_updated_time = None  # Variabel untuk menyimpan waktu terakhir pembaruan
     
-    # === [FITUR TAMBAHAN: List Provinsi untuk Frontend] ===
-    provinsi_tersedia = []
-    # ======================================================
-
     # Iterasi melalui provinsi, wilayah layanan, dan penyelenggara mux
-    if siaran_data:
-        provinsi_tersedia = list(siaran_data.keys()) # Ambil list provinsi
-        for provinsi, provinsi_data in siaran_data.items():  # Iterasi pada setiap provinsi
-            if isinstance(provinsi_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
-                jumlah_wilayah_layanan += len(provinsi_data)
-                for wilayah, wilayah_data in provinsi_data.items():  # Iterasi pada setiap wilayah
-                    if isinstance(wilayah_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
-                        jumlah_penyelenggara_mux += len(wilayah_data)  # Menghitung jumlah penyelenggara mux
-                        
-                        # Menghitung jumlah siaran dari penyelenggara mux
-                        for penyelenggara, penyelenggara_details in wilayah_data.items():
-                            if 'siaran' in penyelenggara_details:
-                                jumlah_siaran += len(penyelenggara_details['siaran'])  # Menambahkan jumlah siaran dari penyelenggara mux
-                                for siaran in penyelenggara_details['siaran']:
-                                    siaran_counts[siaran.lower()] += 1
-                            # Mengambil waktu terakhir pembaruan jika ada
-                            if 'last_updated_date' in penyelenggara_details:
-                                current_updated_time_str = penyelenggara_details['last_updated_date']
-                                try:
-                                    current_updated_time = datetime.strptime(current_updated_time_str, '%d-%m-%Y')
-                                except ValueError:
-                                    current_updated_time = None
-                                if current_updated_time and (last_updated_time is None or current_updated_time > last_updated_time):
-                                    last_updated_time = current_updated_time
+    for provinsi, provinsi_data in siaran_data.items():  # Iterasi pada setiap provinsi
+        if isinstance(provinsi_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
+            jumlah_wilayah_layanan += len(provinsi_data)
+            for wilayah, wilayah_data in provinsi_data.items():  # Iterasi pada setiap wilayah
+                if isinstance(wilayah_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
+                    jumlah_penyelenggara_mux += len(wilayah_data)  # Menghitung jumlah penyelenggara mux
+                    
+                    # Menghitung jumlah siaran dari penyelenggara mux
+                    for penyelenggara, penyelenggara_details in wilayah_data.items():
+                        if 'siaran' in penyelenggara_details:
+                            jumlah_siaran += len(penyelenggara_details['siaran'])  # Menambahkan jumlah siaran dari penyelenggara mux
+                            for siaran in penyelenggara_details['siaran']:
+                                siaran_counts[siaran.lower()] += 1
+                # Mengambil waktu terakhir pembaruan jika ada
+                if 'last_updated_date' in penyelenggara_details:
+                    current_updated_time_str = penyelenggara_details['last_updated_date']
+                    try:
+                        current_updated_time = datetime.strptime(current_updated_time_str, '%d-%m-%Y')
+                    except ValueError:
+                        current_updated_time = None
+                    if current_updated_time and (last_updated_time is None or current_updated_time > last_updated_time):
+                        last_updated_time = current_updated_time
 
     # Menentukan siaran TV terbanyak berdasarkan hitungan
     if siaran_counts:
@@ -177,22 +143,13 @@ def home():
     if last_updated_time:
         last_updated_time = last_updated_time.strftime('%d-%m-%Y')
     
-    # === [FITUR TAMBAHAN: Panggil Data API] ===
-    gempa_data = get_gempa_terkini()
-    cuaca_data = get_cuaca_semarang()
-    # ==========================================
-
     # Kirim jumlah siaran, jumlah penyelenggara mux, dan waktu pembaruan ke template
     return render_template('index.html', most_common_siaran_name=most_common_siaran_name,
-                                        most_common_siaran_count=most_common_siaran_count,
-                                        jumlah_wilayah_layanan=jumlah_wilayah_layanan,
-                                        jumlah_siaran=jumlah_siaran, 
-                                        jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
-                                        last_updated_time=last_updated_time,
-                                        # Variable Baru dikirim ke sini
-                                        gempa_data=gempa_data,
-                                        cuaca_data=cuaca_data,
-                                        provinsi_tersedia=provinsi_tersedia)
+                                            most_common_siaran_count=most_common_siaran_count,
+                                            jumlah_wilayah_layanan=jumlah_wilayah_layanan,
+                                            jumlah_siaran=jumlah_siaran, 
+                                            jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
+                                            last_updated_time=last_updated_time)
 
 @app.route('/', methods=['POST'])
 def chatbot():
@@ -208,12 +165,6 @@ def chatbot():
 @app.route('/sitemap.xml')
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
-
-# --- [TAMBAHAN: Route FAQ] ---
-@app.route('/faq')
-def faq():
-    return render_template('faq.html')
-# -----------------------------
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
