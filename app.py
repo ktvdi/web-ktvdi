@@ -25,6 +25,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-ktvdi")
 
 # --- 1. SETUP FIREBASE ---
 try:
+    # Pastikan environment variables sudah di-set di .env atau server
     cred = credentials.Certificate({
         "type": "service_account",
         "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -38,7 +39,11 @@ try:
         "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
         "universe_domain": "googleapis.com"
     })
-    firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
+    
+    # Cek apakah app sudah diinisialisasi untuk menghindari error double init
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
+    
     ref = db.reference('/')
     print("✅ Firebase Terhubung")
 except Exception as e:
@@ -58,7 +63,7 @@ mail = Mail(app)
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
 model = genai.GenerativeModel(
     "gemini-2.5-flash", 
-    system_instruction="Kamu adalah Asisten Pintar KTVDI (Komunitas TV Digital Indonesia). Jawablah pertanyaan seputar TV Digital, STB, Antena, dan fitur website dengan bahasa yang luwes, santai, dan membantu. Jangan kaku."
+    system_instruction="Anda adalah Chatbot AI KTVDI (Komunitas TV Digital Indonesia). Tugas Anda menjawab pertanyaan seputar TV Digital, STB, Antena, MUX, dan fitur website ini dengan bahasa yang santai, ramah, dan membantu. Jika ditanya soal cuaca atau gempa, arahkan user melihat widget di halaman beranda."
 )
 
 # --- FUNGSI BANTUAN (BMKG & UTILS) ---
@@ -69,13 +74,17 @@ def get_gempa_terkini():
         url = "https://data.bmkg.go.id/DataMKG/TEWS/gempadirasakan.json"
         r = requests.get(url, timeout=3)
         if r.status_code == 200:
+            # Ambil gempa pertama (terbaru)
             return r.json()['Infogempa']['gempa'][0]
-    except: return None
+    except Exception as e:
+        print(f"Error Gempa: {e}")
+        return None
+    return None
 
 def get_cuaca_default():
     """Data cuaca default (Semarang) untuk render awal sebelum GPS aktif"""
     try:
-        # API Open-Meteo untuk Semarang
+        # API Open-Meteo untuk Semarang (Lokasi Default)
         url = "https://api.open-meteo.com/v1/forecast?latitude=-6.99&longitude=110.42&current_weather=true"
         r = requests.get(url, timeout=3)
         if r.status_code == 200:
@@ -84,13 +93,18 @@ def get_cuaca_default():
             desc = "Cerah"
             if code > 3: desc = "Berawan"
             if code > 50: desc = "Hujan"
+            if code > 80: desc = "Hujan Lebat"
+            
             return {
                 't': round(d['temperature']),
                 'ws': d['windspeed'],
                 'weather_desc': desc,
                 'lokasi': 'Semarang (Default)'
             }
-    except: return None
+    except Exception as e:
+        print(f"Error Cuaca: {e}")
+        return None
+    return None
 
 def hash_pw(password):
     return hashlib.sha256(password.encode()).hexdigest()
@@ -98,6 +112,7 @@ def hash_pw(password):
 # --- ROUTE UTAMA (BERANDA) ---
 @app.route("/")
 def home():
+    # Ambil data siaran dari Firebase
     ref = db.reference('siaran')
     siaran_data = ref.get()
 
@@ -188,7 +203,14 @@ def berita():
     # Mengambil berita teknologi dari Google News RSS
     try:
         feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
-        return render_template('berita.html', articles=feed.entries[:5], page=1, total_pages=1)
+        # Pagination sederhana
+        page = request.args.get('page', 1, type=int)
+        per_page = 5
+        start = (page - 1) * per_page
+        end = start + per_page
+        total_pages = (len(feed.entries) + per_page - 1) // per_page
+        
+        return render_template('berita.html', articles=feed.entries[start:end], page=page, total_pages=total_pages)
     except:
         return render_template('berita.html', articles=[], page=1, total_pages=1)
 
@@ -292,8 +314,8 @@ def verify_otp():
     uid = session.get("reset_uid")
     if not uid: return redirect(url_for("forgot_password"))
     if request.method == "POST":
-        real_otp = db.reference(f"otp/{uid}/otp").get()
-        if real_otp == request.form.get("otp"):
+        real_otp_data = db.reference(f"otp/{uid}").get()
+        if real_otp_data and real_otp_data.get("otp") == request.form.get("otp"):
             return redirect(url_for("reset_password"))
     return render_template("verify-otp.html")
 
@@ -327,6 +349,7 @@ def add_data():
         db.reference(f"siaran/{prov}/{wil}/{mux}").set({
             "siaran": siaran,
             "last_updated_by": session.get('user'),
+            "last_updated_name": session.get('nama'),
             "last_updated_date": now.strftime("%d-%m-%Y"),
             "last_updated_time": now.strftime("%H:%M:%S WIB")
         })
@@ -338,8 +361,10 @@ def add_data():
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux):
     if 'user' not in session: return redirect(url_for('login'))
-    # Decode URL params
-    p, w, m = provinsi.replace('%20',' '), wilayah.replace('%20',' '), mux.replace('%20',' ')
+    # Decode URL params (hapus %20 jika ada)
+    p = provinsi.replace('%20',' ')
+    w = wilayah.replace('%20',' ')
+    m = mux.replace('%20',' ')
     
     if request.method == 'POST':
         siaran = sorted([s.strip() for s in request.form['siaran'].split(',')])
@@ -347,7 +372,9 @@ def edit_data(provinsi, wilayah, mux):
         db.reference(f"siaran/{p}/{w}/{m}").update({
             "siaran": siaran,
             "last_updated_by": session.get('user'),
-            "last_updated_date": now.strftime("%d-%m-%Y")
+            "last_updated_name": session.get('nama'),
+            "last_updated_date": now.strftime("%d-%m-%Y"),
+            "last_updated_time": now.strftime("%H:%M:%S WIB")
         })
         return redirect(url_for('dashboard'))
         
