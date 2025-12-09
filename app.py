@@ -16,14 +16,14 @@ from flask_mail import Mail, Message
 from datetime import datetime
 from collections import Counter
 
-# Muat variabel lingkungan
+# --- KONFIGURASI AWAL ---
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-ktvdi")
 
-# --- FIREBASE INIT ---
+# --- 1. SETUP FIREBASE ---
 try:
     cred = credentials.Certificate({
         "type": "service_account",
@@ -40,12 +40,12 @@ try:
     })
     firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
     ref = db.reference('/')
-    print("✅ Firebase Connected")
+    print("✅ Firebase Terhubung")
 except Exception as e:
     print(f"❌ Firebase Error: {e}")
     ref = None
 
-# --- EMAIL CONFIG ---
+# --- 2. SETUP EMAIL ---
 app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
 app.config['MAIL_PORT'] = int(os.environ.get("MAIL_PORT", 587))
 app.config['MAIL_USE_TLS'] = True
@@ -54,152 +54,335 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# --- GEMINI AI ---
+# --- 3. SETUP GEMINI AI ---
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash", system_instruction="Anda adalah Chatbot AI KTVDI. Jawab pertanyaan seputar TV Digital, STB, dan troubleshooting sinyal dengan ramah.")
+model = genai.GenerativeModel(
+    "gemini-2.5-flash", 
+    system_instruction="Kamu adalah Asisten Pintar KTVDI (Komunitas TV Digital Indonesia). Jawablah pertanyaan seputar TV Digital, STB, Antena, dan fitur website dengan bahasa yang luwes, santai, dan membantu. Jangan kaku."
+)
 
-# --- FUNGSI PENDUKUNG ---
+# --- FUNGSI BANTUAN (BMKG & UTILS) ---
 def get_gempa_terkini():
-    """Ambil Gempa Dirasakan dari BMKG"""
+    """Mengambil data gempa dirasakan dari BMKG"""
     try:
+        # Gunakan gempadirasakan.json agar gempa kecil yang terasa tetap muncul
         url = "https://data.bmkg.go.id/DataMKG/TEWS/gempadirasakan.json"
         r = requests.get(url, timeout=3)
         if r.status_code == 200:
             return r.json()['Infogempa']['gempa'][0]
     except: return None
 
-# --- ROUTE UTAMA ---
+def get_cuaca_default():
+    """Data cuaca default (Semarang) untuk render awal sebelum GPS aktif"""
+    try:
+        # API Open-Meteo untuk Semarang
+        url = "https://api.open-meteo.com/v1/forecast?latitude=-6.99&longitude=110.42&current_weather=true"
+        r = requests.get(url, timeout=3)
+        if r.status_code == 200:
+            d = r.json()['current_weather']
+            code = d['weathercode']
+            desc = "Cerah"
+            if code > 3: desc = "Berawan"
+            if code > 50: desc = "Hujan"
+            return {
+                't': round(d['temperature']),
+                'ws': d['windspeed'],
+                'weather_desc': desc,
+                'lokasi': 'Semarang (Default)'
+            }
+    except: return None
+
+def hash_pw(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# --- ROUTE UTAMA (BERANDA) ---
 @app.route("/")
 def home():
     ref = db.reference('siaran')
     siaran_data = ref.get()
 
-    # Default Stats
-    stats = {'wilayah': 0, 'siaran': 0, 'mux': 0, 'top_name': '-', 'top_count': 0}
-    last_update = datetime.now().strftime('%d-%m-%Y')
+    # Inisialisasi Variabel Statistik
+    stats = {
+        'wilayah': 0,
+        'siaran': 0,
+        'mux': 0,
+        'top_name': '-',
+        'top_count': 0,
+        'last_update': datetime.now().strftime('%d-%m-%Y')
+    }
     
-    provinsi_tersedia = []
+    provinsi_tersedia = [] # List ini PENTING untuk fitur "Cek Jangkauan" di JS
     siaran_counts = Counter()
+    last_updated_dt = None
 
     if siaran_data:
         provinsi_tersedia = list(siaran_data.keys())
-        for prov_val in siaran_data.values():
-            if isinstance(prov_val, dict):
-                stats['wilayah'] += len(prov_val)
-                for wil_val in prov_val.values():
-                    if isinstance(wil_val, dict):
-                        stats['mux'] += len(wil_val)
-                        for mux_val in wil_val.values():
-                            if 'siaran' in mux_val:
-                                stats['siaran'] += len(mux_val['siaran'])
-                                for s in mux_val['siaran']: siaran_counts[s.lower()] += 1
-                            if 'last_updated_date' in mux_val:
-                                last_update = mux_val['last_updated_date']
+        for provinsi, prov_data in siaran_data.items():
+            if isinstance(prov_data, dict):
+                stats['wilayah'] += len(prov_data)
+                for wilayah, wil_data in prov_data.items():
+                    if isinstance(wil_data, dict):
+                        stats['mux'] += len(wil_data)
+                        for mux, mux_data in wil_data.items():
+                            # Hitung Channel
+                            if 'siaran' in mux_data:
+                                stats['siaran'] += len(mux_data['siaran'])
+                                for s in mux_data['siaran']:
+                                    siaran_counts[s.lower()] += 1
+                            
+                            # Cek Tanggal Update Terakhir
+                            if 'last_updated_date' in mux_data:
+                                try:
+                                    curr_dt = datetime.strptime(mux_data['last_updated_date'], '%d-%m-%Y')
+                                    if last_updated_dt is None or curr_dt > last_updated_dt:
+                                        last_updated_dt = curr_dt
+                                except: pass
 
+    # Set Statistik Terbanyak & Tanggal
     if siaran_counts:
         top = siaran_counts.most_common(1)[0]
         stats['top_name'] = top[0].upper()
         stats['top_count'] = top[1]
+    
+    if last_updated_dt:
+        stats['last_update'] = last_updated_dt.strftime('%d-%m-%Y')
 
+    # Ambil Data API Eksternal
+    gempa_data = get_gempa_terkini()
+    cuaca_data = get_cuaca_default()
+
+    # Kirim SEMUA variable ini ke index.html
     return render_template('index.html', 
-                           stats=stats,
-                           last_update=last_update,
-                           gempa_data=get_gempa_terkini(),
+                           # Mapping variable lama agar kompatibel dengan template
+                           jumlah_wilayah_layanan=stats['wilayah'],
+                           jumlah_penyelenggara_mux=stats['mux'],
+                           jumlah_siaran=stats['siaran'],
+                           most_common_siaran_name=stats['top_name'],
+                           most_common_siaran_count=stats['top_count'],
+                           last_updated_time=stats['last_update'],
+                           # Variable baru
+                           gempa_data=gempa_data,
+                           cuaca_data=cuaca_data,
                            provinsi_tersedia=provinsi_tersedia)
 
 # --- CHATBOT API ---
 @app.route('/', methods=['POST'])
 def chatbot():
     data = request.get_json()
+    prompt = data.get("prompt")
     try:
-        response = model.generate_content(data.get("prompt"))
+        response = model.generate_content(prompt)
         return jsonify({"response": response.text})
-    except: return jsonify({"error": "AI Busy"})
+    except Exception as e:
+        return jsonify({"error": "Maaf, server AI sedang sibuk."})
 
-# --- STATIC PAGES ---
+# --- HALAMAN STATIS ---
 @app.route('/faq')
 def faq(): return render_template('faq.html')
+
 @app.route('/about')
 def about(): return render_template('about.html')
+
+@app.route('/berita')
+def berita():
+    # Mengambil berita teknologi dari Google News RSS
+    try:
+        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+        return render_template('berita.html', articles=feed.entries[:5], page=1, total_pages=1)
+    except:
+        return render_template('berita.html', articles=[], page=1, total_pages=1)
+
 @app.route('/sitemap.xml')
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
-# --- AUTH SYSTEM (Hash & Routes) ---
-def hash_pw(p): return hashlib.sha256(p.encode()).hexdigest()
-
+# --- OTENTIKASI (LOGIN/REGISTER) ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        u = request.form['username'].strip()
-        p = hash_pw(request.form['password'].strip())
-        udata = db.reference(f'users/{u}').get()
-        if udata and udata.get('password') == p:
-            session['user'] = u
-            session['nama'] = udata.get('nama')
+        username = request.form['username'].strip()
+        password = hash_pw(request.form['password'].strip())
+        
+        user_ref = db.reference(f'users/{username}')
+        user_data = user_ref.get()
+
+        if user_data and user_data.get('password') == password:
+            session['user'] = username
+            session['nama'] = user_data.get('nama', 'Pengguna')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Username/Password Salah")
+        
+        return render_template('login.html', error="Username atau Password Salah")
     return render_template('login.html')
 
 @app.route('/logout')
-def logout(): session.clear(); return redirect(url_for('login'))
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        u, e, p = request.form['username'], request.form['email'], request.form['password']
+        user = request.form['username']
+        email = request.form['email']
+        pw = hash_pw(request.form['password'])
         otp = str(random.randint(100000, 999999))
-        db.reference(f"pending_users/{u}").set({"nama": request.form['nama'], "email": e, "password": hash_pw(p), "otp": otp})
-        # Mock Email Send (In prod use mail.send)
-        session["pending_username"] = u
-        return redirect(url_for("verify_register"))
+        
+        # Cek user exist
+        if db.reference(f"users/{user}").get():
+            flash("Username sudah dipakai", "error")
+            return render_template("register.html")
+
+        db.reference(f"pending_users/{user}").set({
+            "nama": request.form['nama'], "email": email, "password": pw, "otp": otp
+        })
+        
+        try:
+            msg = Message("Kode OTP KTVDI", recipients=[email])
+            msg.body = f"Kode OTP Anda adalah: {otp}"
+            mail.send(msg)
+            session["pending_username"] = user
+            return redirect(url_for("verify_register"))
+        except:
+            flash("Gagal mengirim email", "error")
+            
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
-    u = session.get("pending_username")
+    user = session.get("pending_username")
+    if not user: return redirect(url_for("register"))
+    
     if request.method == "POST":
-        data = db.reference(f"pending_users/{u}").get()
+        data = db.reference(f"pending_users/{user}").get()
         if data and data.get("otp") == request.form['otp']:
-            db.reference(f"users/{u}").set({"nama": data["nama"], "email": data["email"], "password": data["password"], "points": 0})
-            db.reference(f"pending_users/{u}").delete()
+            db.reference(f"users/{user}").set({
+                "nama": data["nama"], "email": data["email"], 
+                "password": data["password"], "points": 0
+            })
+            db.reference(f"pending_users/{user}").delete()
+            session.pop("pending_username", None)
             return redirect(url_for("login"))
-    return render_template("verify-register.html", username=u)
+        else:
+            flash("OTP Salah", "error")
+    return render_template("verify-register.html", username=user)
 
-# --- DASHBOARD & CRUD ---
+# --- PASSWORD RESET ---
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("identifier")
+        users = db.reference("users").get() or {}
+        found_uid = next((uid for uid, u in users.items() if u.get("email") == email), None)
+        
+        if found_uid:
+            otp = str(random.randint(100000, 999999))
+            db.reference(f"otp/{found_uid}").set({"email": email, "otp": otp})
+            try:
+                msg = Message("Reset Password KTVDI", recipients=[email])
+                msg.body = f"OTP Reset: {otp}"
+                mail.send(msg)
+                session["reset_uid"] = found_uid
+                return redirect(url_for("verify_otp"))
+            except: flash("Gagal kirim email", "error")
+        else:
+            flash("Email tidak terdaftar", "error")
+    return render_template("forgot-password.html")
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    uid = session.get("reset_uid")
+    if not uid: return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        real_otp = db.reference(f"otp/{uid}/otp").get()
+        if real_otp == request.form.get("otp"):
+            return redirect(url_for("reset_password"))
+    return render_template("verify-otp.html")
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    uid = session.get("reset_uid")
+    if not uid: return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        new_pw = hash_pw(request.form.get("password"))
+        db.reference(f"users/{uid}").update({"password": new_pw})
+        db.reference(f"otp/{uid}").delete()
+        session.pop("reset_uid", None)
+        return redirect(url_for("login"))
+    return render_template("reset-password.html")
+
+# --- DASHBOARD & CRUD DATA ---
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
-    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list((db.reference("provinsi").get() or {}).values()))
+    prov_list = list((db.reference("provinsi").get() or {}).values())
+    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=prov_list)
 
-@app.route("/daftar-siaran")
-def daftar_siaran(): return render_template("daftar-siaran.html", provinsi_list=list((db.reference("provinsi").get() or {}).values()))
-
-# ... (Add/Edit/Delete/Get Routes sesuai kode sebelumnya) ...
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data():
     if 'user' not in session: return redirect(url_for('login'))
     if request.method == 'POST':
-        # Simpan logika
-        p, w, m, s = request.form['provinsi'], request.form['wilayah'], request.form['mux'], request.form['siaran']
+        prov, wil, mux = request.form['provinsi'], request.form['wilayah'], request.form['mux']
+        siaran = sorted([s.strip() for s in request.form['siaran'].split(',')])
+        
         now = datetime.now(pytz.timezone('Asia/Jakarta'))
-        db.reference(f"siaran/{p}/{w}/{m}").set({
-            "siaran": sorted([x.strip() for x in s.split(',')]),
+        db.reference(f"siaran/{prov}/{wil}/{mux}").set({
+            "siaran": siaran,
+            "last_updated_by": session.get('user'),
+            "last_updated_date": now.strftime("%d-%m-%Y"),
+            "last_updated_time": now.strftime("%H:%M:%S WIB")
+        })
+        return redirect(url_for('dashboard'))
+    
+    prov_list = list((db.reference("provinsi").get() or {}).values())
+    return render_template('add_data_form.html', provinsi_list=prov_list)
+
+@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
+def edit_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    # Decode URL params
+    p, w, m = provinsi.replace('%20',' '), wilayah.replace('%20',' '), mux.replace('%20',' ')
+    
+    if request.method == 'POST':
+        siaran = sorted([s.strip() for s in request.form['siaran'].split(',')])
+        now = datetime.now(pytz.timezone('Asia/Jakarta'))
+        db.reference(f"siaran/{p}/{w}/{m}").update({
+            "siaran": siaran,
+            "last_updated_by": session.get('user'),
             "last_updated_date": now.strftime("%d-%m-%Y")
         })
         return redirect(url_for('dashboard'))
-    return render_template('add_data_form.html', provinsi_list=list((db.reference("provinsi").get() or {}).values()))
+        
+    return render_template('edit_data_form.html', provinsi=p, wilayah=w, mux=m)
+
+@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
+def delete_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
+    return redirect(url_for('dashboard'))
+
+# --- API HELPERS (Untuk AJAX di Frontend) ---
+@app.route("/daftar-siaran")
+def daftar_siaran():
+    prov_list = list((db.reference("provinsi").get() or {}).values())
+    return render_template("daftar-siaran.html", provinsi_list=prov_list)
 
 @app.route("/get_wilayah")
-def get_wilayah(): return jsonify({"wilayah": list((db.reference(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
-@app.route("/get_mux")
-def get_mux(): return jsonify({"mux": list((db.reference(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}").get() or {}).keys())})
-@app.route("/get_siaran")
-def get_siaran(): return jsonify(db.reference(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
+def get_wilayah():
+    p = request.args.get('provinsi')
+    return jsonify({"wilayah": list((db.reference(f"siaran/{p}").get() or {}).keys())})
 
-@app.route('/berita')
-def berita():
-    feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id')
-    return render_template('berita.html', articles=feed.entries[:5], page=1, total_pages=1)
+@app.route("/get_mux")
+def get_mux():
+    p, w = request.args.get('provinsi'), request.args.get('wilayah')
+    return jsonify({"mux": list((db.reference(f"siaran/{p}/{w}").get() or {}).keys())})
+
+@app.route("/get_siaran")
+def get_siaran():
+    p, w, m = request.args.get('provinsi'), request.args.get('wilayah'), request.args.get('mux')
+    return jsonify(db.reference(f"siaran/{p}/{w}/{m}").get() or {})
+
+@app.route("/test-firebase")
+def test_firebase():
+    return "✅ Firebase OK" if ref else "❌ Error"
 
 if __name__ == "__main__":
     app.run(debug=True)
