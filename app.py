@@ -83,10 +83,18 @@ def time_since_published(published_time):
     if delta.seconds >= 3600: return f"{delta.seconds // 3600} jam lalu"
     return "Baru saja"
 
-# --- 6. ROUTE UTAMA ---
+# --- 6. ROUTE UTAMA (HOME) ---
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    # Chatbot Logic
+    # =================================================================
+    # 🔥 MODE MAINTENANCE AKTIF 🔥
+    # Hapus atau beri komentar (#) pada baris di bawah ini jika web sudah normal kembali.
+    return render_template('maintenance.html')
+    # =================================================================
+
+    # --- KODE ASLI (TIDAK AKAN JALAN SELAMA MAINTENANCE AKTIF DI ATAS) ---
+    
+    # 1. Logika Chatbot (POST)
     if request.method == 'POST':
         try:
             prompt = request.get_json().get("prompt")
@@ -94,7 +102,7 @@ def home():
             return jsonify({"response": reply})
         except: return jsonify({"error": "Error"}), 500
 
-    # Data Page Logic
+    # 2. Logika Dashboard Data (GET)
     try: siaran_data = db.reference('siaran').get() or {}
     except: siaran_data = {}
 
@@ -126,7 +134,7 @@ def home():
     last_update_str = stats['last_update'].strftime('%d-%m-%Y') if stats['last_update'] else "-"
     gempa = get_bmkg_gempa()
 
-    # RENDER KE INDEX.HTML (Yang akan meng-extend base.html)
+    # Render halaman normal
     return render_template('index.html', 
                            most_common_siaran_name=stats['top_channel'],
                            most_common_siaran_count=stats['top_count'],
@@ -137,6 +145,8 @@ def home():
                            gempa_data=gempa)
 
 # --- 7. ROUTE LAINNYA ---
+# (Tetap dibiarkan aktif agar Admin/Dev bisa mengecek halaman lain jika perlu)
+
 @app.route("/daftar-siaran")
 def daftar_siaran():
     try: data = db.reference("provinsi").get() or {}
@@ -175,13 +185,58 @@ def logout():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    # (Logika register sama seperti sebelumnya, disingkat agar muat)
     if request.method == "POST":
+        nama = request.form.get("nama")
+        email = request.form.get("email")
         user = request.form.get("username")
-        # ...simpan ke pending...
-        flash("Silakan cek email untuk OTP (Logika disingkat)", "info")
-        return redirect(url_for("login")) 
+        pw = request.form.get("password")
+        
+        if len(pw) < 8:
+            flash("Password minimal 8 karakter.", "error")
+            return render_template("register.html")
+            
+        hashed = hash_password(pw)
+        otp = str(random.randint(100000, 999999))
+        
+        db.reference(f"pending_users/{user}").set({
+            "nama": nama, "email": email, "password": hashed, "otp": otp
+        })
+        
+        try:
+            msg = Message("Kode OTP KTVDI", recipients=[email])
+            msg.body = f"Kode OTP Anda: {otp}"
+            mail.send(msg)
+            session["pending_username"] = user
+            return redirect(url_for("verify_register"))
+        except:
+            flash("Gagal kirim email OTP.", "error")
+            
     return render_template("register.html")
+
+@app.route("/verify-register", methods=["GET", "POST"])
+def verify_register():
+    user = session.get("pending_username")
+    if not user: return redirect(url_for("register"))
+    
+    if request.method == "POST":
+        otp = request.form.get("otp")
+        pending = db.reference(f"pending_users/{user}").get()
+        
+        if pending and pending.get('otp') == otp:
+            db.reference(f"users/{user}").set({
+                "nama": pending['nama'], "email": pending['email'], 
+                "password": pending['password'], "points": 0
+            })
+            db.reference(f"pending_users/{user}").delete()
+            session.pop("pending_username", None)
+            flash("Sukses! Silakan Login.", "success")
+            return redirect(url_for("login"))
+        else:
+            flash("Kode OTP Salah.", "error")
+            
+    return render_template("verify-register.html", username=user)
+
+# --- 8. DASHBOARD & CRUD DATA ---
 
 @app.route("/dashboard")
 def dashboard():
@@ -190,11 +245,102 @@ def dashboard():
     except: p_list = []
     return render_template("dashboard.html", name=session.get('nama'), provinsi_list=p_list)
 
-# (Tambahkan route add_data, edit_data, delete_data sesuai kode sebelumnya)
-# Route API get_wilayah dll juga tetap sama
+@app.route("/add_data", methods=["GET", "POST"])
+def add_data():
+    if 'user' not in session: return redirect(url_for('login'))
+    p_list = list(db.reference("provinsi").get().values())
+    
+    if request.method == 'POST':
+        prov = request.form['provinsi']
+        wil = request.form['wilayah'].strip()
+        mux = request.form['mux'].strip()
+        siaran = sorted([s.strip() for s in request.form['siaran'].split(',') if s.strip()])
+        
+        if not re.match(r"^[a-zA-Z\s]+-\d+$", wil):
+            return render_template('add_data_form.html', error_message="Format Wilayah Salah (Cth: Jabar-1)", provinsi_list=p_list)
+        
+        now = datetime.now(pytz.timezone('Asia/Jakarta'))
+        data = {
+            "siaran": siaran,
+            "last_updated_by_username": session['user'],
+            "last_updated_by_name": session['nama'],
+            "last_updated_date": now.strftime("%d-%m-%Y"),
+            "last_updated_time": now.strftime("%H:%M:%S WIB")
+        }
+        db.reference(f"siaran/{prov}/{wil}/{mux}").set(data)
+        return redirect(url_for('dashboard'))
+        
+    return render_template('add_data_form.html', provinsi_list=p_list)
+
+@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
+def edit_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    provinsi = provinsi.replace('%20',' ')
+    wilayah = wilayah.replace('%20', ' ')
+    mux = mux.replace('%20', ' ')
+
+    if request.method == 'POST':
+        siaran = sorted([s.strip() for s in request.form['siaran'].split(',') if s.strip()])
+        now = datetime.now(pytz.timezone('Asia/Jakarta'))
+        data = {
+            "siaran": siaran,
+            "last_updated_by_username": session['user'],
+            "last_updated_by_name": session['nama'],
+            "last_updated_date": now.strftime("%d-%m-%Y"),
+            "last_updated_time": now.strftime("%H:%M:%S WIB")
+        }
+        db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").update(data)
+        return redirect(url_for('dashboard'))
+        
+    return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
+
+@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
+def delete_data(provinsi, wilayah, mux):
+    if 'user' in session:
+        db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
+    return redirect(url_for('dashboard'))
+
+# --- 9. API AJAX (GET DATA) ---
+@app.route("/get_wilayah")
+def get_wilayah():
+    return jsonify({"wilayah": list((db.reference(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
+
+@app.route("/get_mux")
+def get_mux():
+    return jsonify({"mux": list((db.reference(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}").get() or {}).keys())})
+
+@app.route("/get_siaran")
+def get_siaran():
+    return jsonify(db.reference(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
+
+# --- 10. ERROR HANDLING ---
+@app.errorhandler(404)
+def not_found(e): return "<h1>404 - Halaman Tidak Ditemukan</h1>", 404
 
 @app.errorhandler(500)
-def server_error(e): return "<h1>500 - Server Error</h1><p>Cek Terminal & .env</p>", 500
+def server_error(e): return "<h1>500 - Server Bermasalah</h1><p>Cek file .env Anda.</p>", 500
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
+
+# Routes Auth Lupa Password & Verifikasi OTP (Disederhanakan untuk kelengkapan)
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        flash("Fitur sedang maintenance.", "info")
+        return redirect(url_for('login'))
+    return render_template("forgot-password.html")
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    # Logika verify OTP (Standar)
+    return render_template("verify-otp.html")
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    # Logika reset password (Standar)
+    return render_template("reset-password.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
