@@ -83,33 +83,41 @@ def time_since_published(published_time):
     if delta.seconds >= 3600: return f"{delta.seconds // 3600} jam lalu"
     return "Baru saja"
 
-# --- 6. ROUTE UTAMA (HOME) ---
+# --- 6. ROUTE KHUSUS API (Update Berita Live) ---
+@app.route('/api/news-live')
+def api_news_live():
+    """API untuk mengambil berita terbaru tanpa reload halaman"""
+    try:
+        rss_url = 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'
+        feed = feedparser.parse(rss_url)
+        news = [entry.title for entry in feed.entries[:15]] # Ambil 15 berita
+        return jsonify(news)
+    except:
+        return jsonify(["Situs sedang maintenance...", "Update sistem sedang berlangsung."])
+
+# --- 7. ROUTE UTAMA (HOME) ---
 @app.route("/", methods=['GET', 'POST'])
 def home():
     # =================================================================
-    # 🔥 MODE MAINTENANCE AKTIF (DENGAN BERITA GOOGLE NEWS) 🔥
+    # 🔥 MODE MAINTENANCE AKTIF 🔥
     # =================================================================
     
-    # 1. Ambil Berita Nasional Terkini (RSS Feed)
+    # 1. Ambil Data Awal untuk Render Pertama
     berita_nasional = []
     try:
-        # Link RSS Google News Topik Indonesia
         rss_url = 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'
         feed = feedparser.parse(rss_url)
-        
-        # Ambil 10 Judul Berita Teratas
         for entry in feed.entries[:10]:
             berita_nasional.append(entry.title)
-    except Exception as e:
-        print(f"Gagal ambil berita: {e}")
-        berita_nasional = ["Situs sedang dalam perbaikan.", "Update sistem sedang berlangsung.", "Mohon kembali lagi nanti."]
+    except:
+        berita_nasional = ["Situs sedang dalam perbaikan.", "Mohon kembali lagi nanti."]
 
     # 2. Tampilkan Halaman Maintenance
-    # Hapus baris 'return' di bawah ini jika ingin website kembali normal
+    # Hapus baris 'return' di bawah ini nanti jika ingin website kembali normal
     return render_template('maintenance.html', news_list=berita_nasional)
     
     # =================================================================
-    # KODE ASLI (NORMAL) - TIDAK AKAN JALAN SELAMA DIATAS ADA RETURN
+    # KODE ASLI (NORMAL) - TIDAK AKAN JALAN SELAMA RETURN DI ATAS AKTIF
     # =================================================================
     
     if request.method == 'POST':
@@ -159,7 +167,7 @@ def home():
                            last_updated_time=last_update_str,
                            gempa_data=gempa)
 
-# --- 7. ROUTE LAINNYA ---
+# --- 8. ROUTE LAINNYA ---
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
@@ -250,7 +258,7 @@ def verify_register():
             
     return render_template("verify-register.html", username=user)
 
-# --- 8. DASHBOARD & CRUD DATA ---
+# --- 9. DASHBOARD & CRUD DATA ---
 
 @app.route("/dashboard")
 def dashboard():
@@ -314,7 +322,7 @@ def delete_data(provinsi, wilayah, mux):
         db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
     return redirect(url_for('dashboard'))
 
-# --- 9. API AJAX (GET DATA) ---
+# --- 10. API AJAX (GET DATA) ---
 @app.route("/get_wilayah")
 def get_wilayah():
     return jsonify({"wilayah": list((db.reference(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
@@ -327,7 +335,7 @@ def get_mux():
 def get_siaran():
     return jsonify(db.reference(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- 10. ERROR HANDLING ---
+# --- 11. ERROR HANDLING ---
 @app.errorhandler(404)
 def not_found(e): return "<h1>404 - Halaman Tidak Ditemukan</h1>", 404
 
@@ -338,7 +346,6 @@ def server_error(e): return "<h1>500 - Server Bermasalah</h1><p>Cek file .env An
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
 
-# Routes Auth Lupa Password (Placeholder)
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
