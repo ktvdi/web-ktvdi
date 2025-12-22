@@ -1,124 +1,346 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}KTVDI{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+import os
+import hashlib
+import firebase_admin
+import random
+import re
+import pytz
+import requests
+import feedparser
+import google.generativeai as genai
+from firebase_admin import credentials, db
+from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
+from flask_cors import CORS
+from dotenv import load_dotenv
+from flask_mail import Mail, Message
+from datetime import datetime
+from collections import Counter
+
+# --- 1. KONFIGURASI SISTEM ---
+load_dotenv() 
+
+app = Flask(__name__)
+CORS(app)
+app.secret_key = os.environ.get("SECRET_KEY", "rahasia_donk")
+
+# --- 2. KONEKSI FIREBASE ---
+try:
+    if not firebase_admin._apps:
+        cred = credentials.Certificate({
+            "type": "service_account",
+            "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+            "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+            "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace('\\n', '\n'),
+            "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+            "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
+            "universe_domain": "googleapis.com"
+        })
+        firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
+    ref = db.reference('/')
+    print("✅ Firebase Terhubung!")
+except Exception as e:
+    print(f"⚠️ Peringatan Firebase: {e}")
+
+# --- 3. KONEKSI EMAIL ---
+app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+app.config['MAIL_PORT'] = int(os.environ.get("MAIL_PORT", 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME")
+app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
+mail = Mail(app)
+
+# --- 4. KONEKSI AI (GEMINI) ---
+if os.environ.get("GEMINI_APP_KEY"):
+    genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
+    model = genai.GenerativeModel("gemini-2.5-flash", system_instruction="Anda adalah Asisten KTVDI. Jawab singkat dan sopan.")
+else:
+    model = None
+
+# --- 5. FUNGSI BANTUAN ---
+def get_bmkg_gempa():
+    try:
+        url = "https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json"
+        resp = requests.get(url, timeout=3)
+        if resp.status_code == 200:
+            data = resp.json()['Infogempa']['gempa']
+            data['Tanggal'] = f"{data['Tanggal']}, {data['Jam']}"
+            return data
+    except: return None
+    return None
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def time_since_published(published_time):
+    now = datetime.now()
+    publish_time = datetime(*published_time[:6])
+    delta = now - publish_time
+    if delta.days >= 1: return f"{delta.days} hari lalu"
+    if delta.seconds >= 3600: return f"{delta.seconds // 3600} jam lalu"
+    return "Baru saja"
+
+# --- 6. ROUTE UTAMA (HOME) ---
+@app.route("/", methods=['GET', 'POST'])
+def home():
+    # =================================================================
+    # 🔥 MODE MAINTENANCE AKTIF 🔥
+    # Hapus atau beri komentar (#) pada baris di bawah ini jika web sudah normal kembali.
+    return render_template('maintenance.html')
+    # =================================================================
+
+    # --- KODE ASLI (TIDAK AKAN JALAN SELAMA MAINTENANCE AKTIF DI ATAS) ---
     
-    <style>
-        body { font-family: 'Poppins', sans-serif; background: #f8f9fc; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-        header { background: linear-gradient(90deg, #0062cc, #007bff); padding: 15px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
-        .container { width: 90%; max-width: 1200px; margin: 0 auto; }
-        .nav-flex { display: flex; justify-content: space-between; align-items: center; }
-        .logo { color: white; font-weight: 800; font-size: 1.5rem; text-decoration: none; display: flex; align-items: center; gap: 10px; }
-        nav ul { list-style: none; display: flex; gap: 20px; padding: 0; margin: 0; }
-        nav a { color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 600; }
-        main { flex: 1; padding: 20px 0; }
-        
-        /* Styles Chatbot & Popup */
-        #chatbot-toggle { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #007bff; color: white; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; z-index: 2000; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .chatbot-box { display: none; position: fixed; bottom: 100px; right: 30px; width: 320px; height: 450px; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 2000; flex-direction: column; overflow: hidden; }
-        .gempa-popup { display: none; position: fixed; bottom: 20px; left: 20px; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); z-index: 3000; width: 300px; border-left: 5px solid #d63031; animation: slideUp 0.5s; }
-        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
-        
-        /* Footer */
-        footer { background: #1a1a2e; color: white; padding: 40px 0; text-align: center; margin-top: auto; }
-    </style>
-</head>
-<body>
+    # 1. Logika Chatbot (POST)
+    if request.method == 'POST':
+        try:
+            prompt = request.get_json().get("prompt")
+            reply = model.generate_content(prompt).text if model else "AI belum aktif."
+            return jsonify({"response": reply})
+        except: return jsonify({"error": "Error"}), 500
 
-<header>
-    <div class="container nav-flex">
-        <a href="/" class="logo"><i class="fas fa-broadcast-tower"></i> KTVDI</a>
-        <nav>
-            <ul>
-                <li><a href="/">Beranda</a></li>
-                <li><a href="/daftar-siaran">Siaran</a></li>
-                <li><a href="/berita">Berita</a></li>
-                {% if session.get('user') %}
-                    <li><a href="/dashboard">Dashboard</a></li>
-                    <li><a href="/logout">Keluar</a></li>
-                {% else %}
-                    <li><a href="/login">Masuk</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-</header>
+    # 2. Logika Dashboard Data (GET)
+    try: siaran_data = db.reference('siaran').get() or {}
+    except: siaran_data = {}
 
-<main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for cat, msg in messages %}
-                <div style="padding:15px; background:white; border-left:5px solid #007bff; margin-bottom:20px;">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    stats = {'wilayah': 0, 'siaran': 0, 'mux': 0, 'last_update': None, 'top_channel': "-", 'top_count': 0}
+    counter = Counter()
+
+    if siaran_data:
+        for p_val in siaran_data.values():
+            if isinstance(p_val, dict):
+                stats['wilayah'] += len(p_val)
+                for w_val in p_val.values():
+                    if isinstance(w_val, dict):
+                        stats['mux'] += len(w_val)
+                        for m_val in w_val.values():
+                            if 'siaran' in m_val:
+                                stats['siaran'] += len(m_val['siaran'])
+                                for s in m_val['siaran']: counter[s.lower()] += 1
+                            if 'last_updated_date' in m_val:
+                                try:
+                                    d = datetime.strptime(m_val['last_updated_date'], '%d-%m-%Y')
+                                    if not stats['last_update'] or d > stats['last_update']: stats['last_update'] = d
+                                except: pass
+
+    if counter:
+        top = counter.most_common(1)[0]
+        stats['top_channel'] = top[0].upper()
+        stats['top_count'] = top[1]
     
-    {% block content %}{% endblock %}
-</main>
+    last_update_str = stats['last_update'].strftime('%d-%m-%Y') if stats['last_update'] else "-"
+    gempa = get_bmkg_gempa()
 
-<footer>
-    <div class="container">
-        <p>&copy; 2026 Komunitas TV Digital Indonesia</p>
-    </div>
-</footer>
+    # Render halaman normal
+    return render_template('index.html', 
+                           most_common_siaran_name=stats['top_channel'],
+                           most_common_siaran_count=stats['top_count'],
+                           jumlah_wilayah_layanan=stats['wilayah'],
+                           jumlah_siaran=stats['siaran'],
+                           jumlah_penyelenggara_mux=stats['mux'],
+                           last_updated_time=last_update_str,
+                           gempa_data=gempa)
 
-<button id="chatbot-toggle"><i class="fas fa-comment"></i></button>
-<div class="chatbot-box" id="chatbot">
-    <div style="background:#007bff; color:white; padding:15px; display:flex; justify-content:space-between;">
-        <span>Asisten AI</span> <span style="cursor:pointer" onclick="document.getElementById('chatbot').style.display='none'">&times;</span>
-    </div>
-    <div id="chat-msgs" style="flex:1; padding:10px; overflow-y:auto; background:#f4f4f4;"></div>
-    <div style="padding:10px; display:flex; border-top:1px solid #ddd;">
-        <input type="text" id="chat-input" placeholder="Tanya sesuatu..." style="flex:1; padding:8px; border:1px solid #ddd; border-radius:20px;">
-        <button onclick="sendChat()" style="background:#007bff; color:white; border:none; margin-left:5px; border-radius:50%; width:35px; height:35px;"><i class="fas fa-paper-plane"></i></button>
-    </div>
-</div>
+# --- 7. ROUTE LAINNYA ---
+# (Tetap dibiarkan aktif agar Admin/Dev bisa mengecek halaman lain jika perlu)
 
-{% if gempa_data %}
-<div id="gempa-box" class="gempa-popup">
-    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-        <strong style="color:#d63031;"><i class="fas fa-rss"></i> Gempa Terkini</strong>
-        <span style="cursor:pointer;" onclick="document.getElementById('gempa-box').style.display='none'">&times;</span>
-    </div>
-    <div style="display:flex; align-items:center; gap:10px;">
-        <h2 style="margin:0; color:#d63031;">{{ gempa_data.Magnitude }}</h2>
-        <div>
-            <p style="margin:0; font-size:0.85rem; font-weight:bold;">{{ gempa_data.Wilayah }}</p>
-            <small>{{ gempa_data.Tanggal }}</small>
-        </div>
-    </div>
-</div>
-{% endif %}
+@app.route("/daftar-siaran")
+def daftar_siaran():
+    try: data = db.reference("provinsi").get() or {}
+    except: data = {}
+    return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
 
-<script>
-    // Chatbot Script
-    document.getElementById('chatbot-toggle').onclick = () => document.getElementById('chatbot').style.display = 'flex';
-    async function sendChat() {
-        const inp = document.getElementById('chat-input');
-        const box = document.getElementById('chat-msgs');
-        if(!inp.value) return;
-        box.innerHTML += `<div style="text-align:right; margin:5px;"><b>Anda:</b> ${inp.value}</div>`;
-        const txt = inp.value; inp.value = '';
-        try {
-            const r = await fetch('/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:txt})});
-            const d = await r.json();
-            box.innerHTML += `<div style="text-align:left; margin:5px; background:white; padding:5px; border-radius:5px;">${d.response}</div>`;
-        } catch(e) { box.innerHTML += `<div style="color:red">Error server.</div>`; }
-        box.scrollTop = box.scrollHeight;
-    }
+@app.route('/berita')
+def berita():
+    try:
+        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+        articles = feed.entries[:5]
+        for a in articles:
+            if 'published_parsed' in a: a.time_since_published = time_since_published(a.published_parsed)
+        return render_template('berita.html', articles=articles, page=1, total_pages=1)
+    except: return render_template('berita.html', articles=[], page=1, total_pages=1)
 
-    // Gempa Script
-    window.onload = () => {
-        {% if gempa_data %}
-            setTimeout(() => document.getElementById('gempa-box').style.display = 'block', 2000);
-        {% endif %}
-    }
-</script>
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        user = request.form['username'].strip()
+        pw = hash_password(request.form['password'].strip())
+        try:
+            u_data = db.reference(f'users/{user}').get()
+            if u_data and u_data.get('password') == pw:
+                session['user'] = user
+                session['nama'] = u_data.get('nama')
+                return redirect(url_for('dashboard'))
+            return render_template('login.html', error="Login Gagal")
+        except: return render_template('login.html', error="Error DB")
+    return render_template('login.html')
 
-</body>
-</html>
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        nama = request.form.get("nama")
+        email = request.form.get("email")
+        user = request.form.get("username")
+        pw = request.form.get("password")
+        
+        if len(pw) < 8:
+            flash("Password minimal 8 karakter.", "error")
+            return render_template("register.html")
+            
+        hashed = hash_password(pw)
+        otp = str(random.randint(100000, 999999))
+        
+        db.reference(f"pending_users/{user}").set({
+            "nama": nama, "email": email, "password": hashed, "otp": otp
+        })
+        
+        try:
+            msg = Message("Kode OTP KTVDI", recipients=[email])
+            msg.body = f"Kode OTP Anda: {otp}"
+            mail.send(msg)
+            session["pending_username"] = user
+            return redirect(url_for("verify_register"))
+        except:
+            flash("Gagal kirim email OTP.", "error")
+            
+    return render_template("register.html")
+
+@app.route("/verify-register", methods=["GET", "POST"])
+def verify_register():
+    user = session.get("pending_username")
+    if not user: return redirect(url_for("register"))
+    
+    if request.method == "POST":
+        otp = request.form.get("otp")
+        pending = db.reference(f"pending_users/{user}").get()
+        
+        if pending and pending.get('otp') == otp:
+            db.reference(f"users/{user}").set({
+                "nama": pending['nama'], "email": pending['email'], 
+                "password": pending['password'], "points": 0
+            })
+            db.reference(f"pending_users/{user}").delete()
+            session.pop("pending_username", None)
+            flash("Sukses! Silakan Login.", "success")
+            return redirect(url_for("login"))
+        else:
+            flash("Kode OTP Salah.", "error")
+            
+    return render_template("verify-register.html", username=user)
+
+# --- 8. DASHBOARD & CRUD DATA ---
+
+@app.route("/dashboard")
+def dashboard():
+    if 'user' not in session: return redirect(url_for('login'))
+    try: p_list = list(db.reference("provinsi").get().values())
+    except: p_list = []
+    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=p_list)
+
+@app.route("/add_data", methods=["GET", "POST"])
+def add_data():
+    if 'user' not in session: return redirect(url_for('login'))
+    p_list = list(db.reference("provinsi").get().values())
+    
+    if request.method == 'POST':
+        prov = request.form['provinsi']
+        wil = request.form['wilayah'].strip()
+        mux = request.form['mux'].strip()
+        siaran = sorted([s.strip() for s in request.form['siaran'].split(',') if s.strip()])
+        
+        if not re.match(r"^[a-zA-Z\s]+-\d+$", wil):
+            return render_template('add_data_form.html', error_message="Format Wilayah Salah (Cth: Jabar-1)", provinsi_list=p_list)
+        
+        now = datetime.now(pytz.timezone('Asia/Jakarta'))
+        data = {
+            "siaran": siaran,
+            "last_updated_by_username": session['user'],
+            "last_updated_by_name": session['nama'],
+            "last_updated_date": now.strftime("%d-%m-%Y"),
+            "last_updated_time": now.strftime("%H:%M:%S WIB")
+        }
+        db.reference(f"siaran/{prov}/{wil}/{mux}").set(data)
+        return redirect(url_for('dashboard'))
+        
+    return render_template('add_data_form.html', provinsi_list=p_list)
+
+@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
+def edit_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    provinsi = provinsi.replace('%20',' ')
+    wilayah = wilayah.replace('%20', ' ')
+    mux = mux.replace('%20', ' ')
+
+    if request.method == 'POST':
+        siaran = sorted([s.strip() for s in request.form['siaran'].split(',') if s.strip()])
+        now = datetime.now(pytz.timezone('Asia/Jakarta'))
+        data = {
+            "siaran": siaran,
+            "last_updated_by_username": session['user'],
+            "last_updated_by_name": session['nama'],
+            "last_updated_date": now.strftime("%d-%m-%Y"),
+            "last_updated_time": now.strftime("%H:%M:%S WIB")
+        }
+        db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").update(data)
+        return redirect(url_for('dashboard'))
+        
+    return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
+
+@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
+def delete_data(provinsi, wilayah, mux):
+    if 'user' in session:
+        db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
+    return redirect(url_for('dashboard'))
+
+# --- 9. API AJAX (GET DATA) ---
+@app.route("/get_wilayah")
+def get_wilayah():
+    return jsonify({"wilayah": list((db.reference(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
+
+@app.route("/get_mux")
+def get_mux():
+    return jsonify({"mux": list((db.reference(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}").get() or {}).keys())})
+
+@app.route("/get_siaran")
+def get_siaran():
+    return jsonify(db.reference(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
+
+# --- 10. ERROR HANDLING ---
+@app.errorhandler(404)
+def not_found(e): return "<h1>404 - Halaman Tidak Ditemukan</h1>", 404
+
+@app.errorhandler(500)
+def server_error(e): return "<h1>500 - Server Bermasalah</h1><p>Cek file .env Anda.</p>", 500
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
+
+# Routes Auth Lupa Password & Verifikasi OTP (Disederhanakan untuk kelengkapan)
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        flash("Fitur sedang maintenance.", "info")
+        return redirect(url_for('login'))
+    return render_template("forgot-password.html")
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    # Logika verify OTP (Standar)
+    return render_template("verify-otp.html")
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    # Logika reset password (Standar)
+    return render_template("reset-password.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
