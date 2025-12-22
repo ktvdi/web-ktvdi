@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Situs Sedang Dalam Pemeliharaan - KTVDI</title>
+    <title>TEMPIIIKKK - KTVDI MAINTENANCE </title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -27,12 +27,12 @@
         .overlay-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7); /* Lebih gelap dikit biar teks NEXA jelas */
             z-index: 1;
         }
 
         .maintenance-card {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             width: 90%;
             max-width: 650px;
             border-radius: 20px;
@@ -41,7 +41,7 @@
             padding: 40px 30px;
             position: relative;
             z-index: 10;
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.4);
             animation: popIn 0.8s ease-out;
         }
@@ -55,20 +55,27 @@
         }
 
         h1 {
-            color: #0062cc;
+            color: #d63031; /* Warna Merah untuk Alert */
             font-weight: 800;
             font-size: 2rem;
             margin-bottom: 10px;
             text-transform: uppercase;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* PESAN MAINTENANCE NEXA */
+        .alert-box {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ffcdd2;
+            margin-bottom: 25px;
         }
 
         p.desc {
             color: #444;
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             line-height: 1.6;
-            margin-bottom: 25px;
-            font-weight: 500;
         }
 
         .clock-box {
@@ -86,25 +93,41 @@
             text-shadow: 0 0 10px #00d2d3;
         }
 
-        /* RUNNING TEXT STYLE */
+        /* --- WRAPPER RUNNING TEXT (ANIMASI BUKA TUTUP) --- */
+        .news-container {
+            overflow: hidden;
+            margin-bottom: 30px;
+            /* Transisi untuk efek buka tutup */
+            transition: all 0.8s ease-in-out;
+            max-height: 60px; /* Tinggi normal */
+            opacity: 1;
+            transform: scaleY(1);
+        }
+
+        /* Class ini ditambahkan JS saat update berita */
+        .news-container.closed {
+            max-height: 0;
+            opacity: 0;
+            transform: scaleY(0);
+            margin-bottom: 0;
+        }
+
         .news-wrapper {
             background: #2c3e50;
             border-left: 5px solid #e74c3c;
             color: white;
             padding: 12px 0;
             border-radius: 5px;
-            overflow: hidden;
             white-space: nowrap;
             position: relative;
-            margin-bottom: 30px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .marquee-content {
             display: inline-block;
             padding-left: 100%;
-            /* Kecepatan 80 detik */
-            animation: scroll-left 80s linear infinite; 
+            /* Animasi normal 60 detik */
+            animation: scroll-left 60s linear infinite; 
         }
         
         .marquee-content span {
@@ -155,7 +178,7 @@
             0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
-
+        
         @keyframes popIn {
             from { transform: scale(0.8); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
@@ -178,36 +201,44 @@
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI" class="logo-img">
         </div>
 
-        <h1>MAINTENANCE MODE</h1>
+        <h1>MAINTENANCE SERVER</h1>
         
-        <p class="desc">
-            Mohon maaf, Website KTVDI sedang dalam proses <b>pemeliharaan sistem & update server</b> selama seminggu ini.
-        </p>
+        <div class="alert-box">
+            <h3 style="margin:0; font-size:1.1rem; display:flex; justify-content:center; align-items:center; gap:8px;">
+                <i class="fas fa-exclamation-triangle"></i> GANGGUAN JARINGAN
+            </h3>
+            <p class="desc" style="margin-top:5px; font-size:0.95rem;">
+                Mohon maaf, saat ini sedang terjadi kendala teknis dari sisi <b>ISP NEXA</b>. <br>
+                Akses ke website KTVDI terganggu sementara waktu.
+            </p>
+        </div>
 
         <div class="clock-box" id="realtime-clock">Loading...</div>
 
-        <div class="news-wrapper">
-            <div class="marquee-content" id="marquee-text">
-                {% if news_list %}
-                    {% for berita in news_list %}
-                        <span><span class="news-badge">NASIONAL</span> {{ berita }}</span>
-                    {% endfor %}
-                {% else %}
-                    <span><span class="news-badge">INFO</span> Memuat berita...</span>
-                {% endif %}
+        <div class="news-container" id="news-container">
+            <div class="news-wrapper">
+                <div class="marquee-content" id="marquee-text">
+                    {% if news_list %}
+                        {% for berita in news_list %}
+                            <span><span class="news-badge">NASIONAL</span> {{ berita }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span><span class="news-badge">INFO</span> Mengambil data berita...</span>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
         <div class="contact-info">
-            <p>Kendala siaran digital? DM kami:</p>
+            <p>Info lebih lanjut via Instagram:</p>
             <a href="https://instagram.com/ktvdi.id" target="_blank" class="ig-link">
-                <i class="fab fa-instagram"></i> Follow @ktvdi.id
+                <i class="fab fa-instagram"></i> @ktvdi.id
             </a>
         </div>
     </div>
 
     <script>
-        // UPDATE JAM
+        // 1. UPDATE JAM
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('id-ID', {
@@ -219,30 +250,51 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // UPDATE BERITA OTOMATIS SAAT TEKS HABIS BERJALAN
-        const marquee = document.getElementById('marquee-text');
+        // 2. LOGIKA UPDATE BERITA + EFEK BUKA TUTUP
+        const marqueeInner = document.getElementById('marquee-text');
+        const container = document.getElementById('news-container');
 
-        marquee.addEventListener('animationiteration', async () => {
-            console.log("Mengambil update berita...");
-            try {
-                // Panggil API Python
-                const response = await fetch('/api/news-live');
-                const newsData = await response.json();
+        // Saat teks selesai satu putaran (animationiteration)
+        marqueeInner.addEventListener('animationiteration', async () => {
+            console.log("Putaran selesai, melakukan refresh...");
+            
+            // A. TUTUP CONTAINER (Efek Visual)
+            container.classList.add('closed');
 
-                let newHtml = '';
-                if (newsData.length > 0) {
-                    newsData.forEach(berita => {
-                        newHtml += `<span><span class="news-badge">UPDATE</span> ${berita}</span>`;
-                    });
-                } else {
-                    newHtml = `<span><span class="news-badge">INFO</span> Menunggu berita...</span>`;
+            // Tunggu efek tutup selesai (0.8 detik sesuai CSS transition)
+            setTimeout(async () => {
+                try {
+                    // B. AMBIL DATA BARU DARI SERVER
+                    // Tambahkan timestamp agar browser tidak pakai cache lama
+                    const response = await fetch('/api/news-live?t=' + new Date().getTime());
+                    const newsData = await response.json();
+
+                    // C. SUSUN HTML BARU
+                    let newHtml = '';
+                    if (newsData.length > 0) {
+                        newsData.forEach(berita => {
+                            newHtml += `<span><span class="news-badge">UPDATE</span> ${berita}</span>`;
+                        });
+                    } else {
+                        newHtml = `<span><span class="news-badge">INFO</span> Menunggu koneksi berita...</span>`;
+                    }
+                    
+                    // Ganti isi teks
+                    marqueeInner.innerHTML = newHtml;
+                    
+                    // Reset animasi CSS agar mulai dari awal lagi (sedikit trik)
+                    marqueeInner.style.animation = 'none';
+                    marqueeInner.offsetHeight; /* trigger reflow */
+                    marqueeInner.style.animation = 'scroll-left 60s linear infinite';
+
+                } catch (error) {
+                    console.error("Gagal update:", error);
                 }
-                
-                // Ganti konten
-                marquee.innerHTML = newHtml;
-            } catch (error) {
-                console.error("Gagal update berita:", error);
-            }
+
+                // D. BUKA KEMBALI CONTAINER
+                container.classList.remove('closed');
+
+            }, 800); // Waktu tunggu sama dengan durasi transition CSS (0.8s)
         });
     </script>
 
