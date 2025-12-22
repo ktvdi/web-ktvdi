@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Situs Sedang Dalam Pemeliharaan - KTVDI</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -14,7 +13,6 @@
         
         body {
             font-family: 'Poppins', sans-serif;
-            /* Background Image Custom */
             background: url('https://iili.io/f1LoZfS.md.png') no-repeat center center fixed;
             background-size: cover;
             height: 100vh;
@@ -26,11 +24,10 @@
             position: relative;
         }
 
-        /* Overlay Hitam Transparan (Agar teks terbaca jelas) */
         .overlay-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); /* Gelap 60% */
+            background: rgba(0, 0, 0, 0.6);
             z-index: 1;
         }
 
@@ -49,13 +46,12 @@
             animation: popIn 0.8s ease-out;
         }
 
-        /* Logo Beranimasi */
-        .logo-container { margin-bottom: 20px; }
         .logo-img {
             width: 110px;
             height: auto;
             animation: bounce 2s infinite;
             filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2));
+            margin-bottom: 20px;
         }
 
         h1 {
@@ -75,7 +71,6 @@
             font-weight: 500;
         }
 
-        /* Jam Digital */
         .clock-box {
             background: #2c3e50;
             color: #00d2d3;
@@ -91,7 +86,7 @@
             text-shadow: 0 0 10px #00d2d3;
         }
 
-        /* Running Text Wrapper */
+        /* RUNNING TEXT STYLE */
         .news-wrapper {
             background: #2c3e50;
             border-left: 5px solid #e74c3c;
@@ -105,11 +100,11 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
-        /* ANIMASI RUNNING TEXT (DIPERLAMBAT KE 80s) */
         .marquee-content {
             display: inline-block;
             padding-left: 100%;
-            animation: scroll-left 80s linear infinite; /* <-- KECEPATAN DI SINI */
+            /* Kecepatan 80 detik */
+            animation: scroll-left 80s linear infinite; 
         }
         
         .marquee-content span {
@@ -129,13 +124,13 @@
             font-weight: bold;
         }
 
-        /* Kontak IG */
         .contact-info {
             border-top: 1px solid #ccc;
             padding-top: 20px;
             font-size: 0.95rem;
             color: #333;
         }
+        
         .ig-link {
             color: white;
             text-decoration: none;
@@ -148,14 +143,9 @@
             border-radius: 50px;
             margin-top: 10px;
             transition: 0.3s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        .ig-link:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
-        }
+        .ig-link:hover { transform: scale(1.05); }
 
-        /* Keyframes Animasi */
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
@@ -171,14 +161,11 @@
             to { transform: scale(1); opacity: 1; }
         }
 
-        /* Responsive Mobile */
         @media (max-width: 480px) {
             .maintenance-card { padding: 25px 15px; width: 95%; }
             h1 { font-size: 1.5rem; }
             .logo-img { width: 90px; }
             .clock-box { font-size: 1.4rem; padding: 8px 20px; }
-            /* Di HP mungkin teks perlu sedikit lebih cepat agar tidak membosankan, 
-               tapi 80s sudah cukup aman */
         }
     </style>
 </head>
@@ -191,29 +178,28 @@
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI" class="logo-img">
         </div>
 
-        <h1> WEBSITE SEDANG DALAM PERBAIKAN :) </h1>
+        <h1>MAINTENANCE MODE</h1>
         
         <p class="desc">
             Mohon maaf, Website KTVDI sedang dalam proses <b>pemeliharaan sistem & update server</b> selama seminggu ini.
-            Kami sedang meningkatkan performa untuk pengalaman yang lebih baik.
         </p>
 
         <div class="clock-box" id="realtime-clock">Loading...</div>
 
         <div class="news-wrapper">
-            <div class="marquee-content">
+            <div class="marquee-content" id="marquee-text">
                 {% if news_list %}
                     {% for berita in news_list %}
                         <span><span class="news-badge">NASIONAL</span> {{ berita }}</span>
                     {% endfor %}
                 {% else %}
-                    <span><span class="news-badge">INFO</span> Situs sedang pemeliharaan... Mohon kembali lagi nanti.</span>
+                    <span><span class="news-badge">INFO</span> Memuat berita...</span>
                 {% endif %}
             </div>
         </div>
 
         <div class="contact-info">
-            <p>Ada kendala terkait siaran TV digital? Silakan DM kami:</p>
+            <p>Kendala siaran digital? DM kami:</p>
             <a href="https://instagram.com/ktvdi.id" target="_blank" class="ig-link">
                 <i class="fab fa-instagram"></i> Follow @ktvdi.id
             </a>
@@ -221,20 +207,43 @@
     </div>
 
     <script>
+        // UPDATE JAM
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('id-ID', {
                 timeZone: 'Asia/Jakarta',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
             });
             document.getElementById('realtime-clock').innerText = timeString + " WIB";
         }
-        
         setInterval(updateClock, 1000);
-        updateClock(); 
+        updateClock();
+
+        // UPDATE BERITA OTOMATIS SAAT TEKS HABIS BERJALAN
+        const marquee = document.getElementById('marquee-text');
+
+        marquee.addEventListener('animationiteration', async () => {
+            console.log("Mengambil update berita...");
+            try {
+                // Panggil API Python
+                const response = await fetch('/api/news-live');
+                const newsData = await response.json();
+
+                let newHtml = '';
+                if (newsData.length > 0) {
+                    newsData.forEach(berita => {
+                        newHtml += `<span><span class="news-badge">UPDATE</span> ${berita}</span>`;
+                    });
+                } else {
+                    newHtml = `<span><span class="news-badge">INFO</span> Menunggu berita...</span>`;
+                }
+                
+                // Ganti konten
+                marquee.innerHTML = newHtml;
+            } catch (error) {
+                console.error("Gagal update berita:", error);
+            }
+        });
     </script>
 
 </body>
