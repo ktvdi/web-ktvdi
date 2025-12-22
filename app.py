@@ -87,14 +87,31 @@ def time_since_published(published_time):
 @app.route("/", methods=['GET', 'POST'])
 def home():
     # =================================================================
-    # 🔥 MODE MAINTENANCE AKTIF 🔥
-    # Hapus atau beri komentar (#) pada baris di bawah ini jika web sudah normal kembali.
-    return render_template('maintenance.html')
+    # 🔥 MODE MAINTENANCE AKTIF (DENGAN BERITA GOOGLE NEWS) 🔥
     # =================================================================
-
-    # --- KODE ASLI (TIDAK AKAN JALAN SELAMA MAINTENANCE AKTIF DI ATAS) ---
     
-    # 1. Logika Chatbot (POST)
+    # 1. Ambil Berita Nasional Terkini (RSS Feed)
+    berita_nasional = []
+    try:
+        # Link RSS Google News Topik Indonesia
+        rss_url = 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'
+        feed = feedparser.parse(rss_url)
+        
+        # Ambil 10 Judul Berita Teratas
+        for entry in feed.entries[:10]:
+            berita_nasional.append(entry.title)
+    except Exception as e:
+        print(f"Gagal ambil berita: {e}")
+        berita_nasional = ["Situs sedang dalam perbaikan.", "Update sistem sedang berlangsung.", "Mohon kembali lagi nanti."]
+
+    # 2. Tampilkan Halaman Maintenance
+    # Hapus baris 'return' di bawah ini jika ingin website kembali normal
+    return render_template('maintenance.html', news_list=berita_nasional)
+    
+    # =================================================================
+    # KODE ASLI (NORMAL) - TIDAK AKAN JALAN SELAMA DIATAS ADA RETURN
+    # =================================================================
+    
     if request.method == 'POST':
         try:
             prompt = request.get_json().get("prompt")
@@ -102,7 +119,6 @@ def home():
             return jsonify({"response": reply})
         except: return jsonify({"error": "Error"}), 500
 
-    # 2. Logika Dashboard Data (GET)
     try: siaran_data = db.reference('siaran').get() or {}
     except: siaran_data = {}
 
@@ -134,7 +150,6 @@ def home():
     last_update_str = stats['last_update'].strftime('%d-%m-%Y') if stats['last_update'] else "-"
     gempa = get_bmkg_gempa()
 
-    # Render halaman normal
     return render_template('index.html', 
                            most_common_siaran_name=stats['top_channel'],
                            most_common_siaran_count=stats['top_count'],
@@ -145,7 +160,6 @@ def home():
                            gempa_data=gempa)
 
 # --- 7. ROUTE LAINNYA ---
-# (Tetap dibiarkan aktif agar Admin/Dev bisa mengecek halaman lain jika perlu)
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
@@ -324,7 +338,7 @@ def server_error(e): return "<h1>500 - Server Bermasalah</h1><p>Cek file .env An
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
 
-# Routes Auth Lupa Password & Verifikasi OTP (Disederhanakan untuk kelengkapan)
+# Routes Auth Lupa Password (Placeholder)
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -334,12 +348,10 @@ def forgot_password():
 
 @app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():
-    # Logika verify OTP (Standar)
     return render_template("verify-otp.html")
 
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
-    # Logika reset password (Standar)
     return render_template("reset-password.html")
 
 if __name__ == "__main__":
