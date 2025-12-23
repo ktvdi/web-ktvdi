@@ -3,6 +3,7 @@ import hashlib
 import firebase_admin
 import random
 import re
+import html  # Import baru untuk membersihkan &nbsp;
 import pytz
 import requests
 import feedparser
@@ -61,17 +62,30 @@ else:
     model = None
 
 # --- 5. FUNGSI BANTUAN ---
-def clean_html(raw_html):
-    """Membersihkan tag HTML dari deskripsi berita"""
+def process_news_content(raw_html):
+    """Membersihkan HTML, ambil 2 kalimat pertama, jadikan KAPITAL"""
+    # 1. Decode HTML entities (ubah &nbsp; jadi spasi, &quot; jadi ", dll)
+    text = html.unescape(raw_html)
+    
+    # 2. Hapus tag HTML
     cleanr = re.compile('<.*?>')
-    cleantext = re.sub(cleanr, '', raw_html)
-    return cleantext[:100] + "..." # Ambil 100 karakter pertama saja
+    text = re.sub(cleanr, '', text)
+    
+    # 3. Hapus spasi berlebih
+    text = ' '.join(text.split())
+    
+    # 4. Ambil 2 Kalimat Pertama
+    sentences = re.split(r'(?<=[.!?]) +', text)
+    short_desc = ' '.join(sentences[:2]) # Ambil 2 kalimat awal
+    
+    # 5. Kapital semua
+    return short_desc.upper()
 
 def get_news_data():
-    """Mengambil Berita (Nasional, Sport, Tekno, Daerah) + Snippet"""
+    """Mengambil Berita & Mengelompokkan"""
     news_items = []
     
-    # Daftar Sumber RSS (Google News Topics)
+    # Daftar Sumber
     sources = [
         {'cat': 'NASIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'TEKNOLOGI', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
@@ -82,18 +96,29 @@ def get_news_data():
     try:
         for source in sources:
             feed = feedparser.parse(source['url'])
-            # Ambil 3 berita per kategori agar variatif
+            # Ambil 3 berita per kategori
             for entry in feed.entries[:3]:
-                snippet = clean_html(entry.get('summary', '') or entry.get('description', ''))
+                # Ambil description/summary, bukan title
+                raw_content = entry.get('summary', '') or entry.get('description', '')
+                final_content = process_news_content(raw_content)
+                
+                # Jika content kosong (jarang terjadi), pakai title dikapitalisasi
+                if len(final_content) < 10:
+                    final_content = entry.title.upper()
+
                 news_items.append({
                     'category': source['cat'],
-                    'headline': entry.title,
-                    'snippet': snippet
+                    'content': final_content
                 })
-            
-        random.shuffle(news_items) # Acak urutan berita
-    except:
-        news_items = [{'category': 'SYSTEM', 'headline': 'Menunggu pembaruan data dari server...', 'snippet': 'Sedang menghubungkan...'}]
+        
+        # URUTKAN BERDASARKAN KATEGORI (GROUPING)
+        # Urutan: Nasional -> Daerah -> Olahraga -> Teknologi
+        priority = {'NASIONAL': 1, 'DAERAH': 2, 'OLAHRAGA': 3, 'TEKNOLOGI': 4}
+        news_items.sort(key=lambda x: priority.get(x['category'], 99))
+
+    except Exception as e:
+        print(f"Error RSS: {e}")
+        news_items = [{'category': 'SYSTEM', 'content': 'KONEKSI KE SERVER BERITA SEDANG DALAM PERBAIKAN. MOHON TUNGGU SEBENTAR.'}]
         
     return news_items
 
@@ -106,27 +131,19 @@ def api_news_live():
     data = get_news_data()
     return jsonify(data)
 
-# --- 7. ROUTE UTAMA (HOME - MODE MAINTENANCE) ---
+# --- 7. ROUTE UTAMA (HOME) ---
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    # =================================================================
     # 🔥 MODE MAINTENANCE AKTIF 🔥
-    # =================================================================
-    
     berita_awal = get_news_data()
     return render_template('maintenance.html', news_list=berita_awal)
     
-    # KODE ASLI DI BAWAH INI NON-AKTIF SEMENTARA
-    if request.method == 'POST':
-        pass
+    # (Kode lama diabaikan)
     return render_template('index.html')
 
 # --- 8. ROUTE LAINNYA ---
 @app.route("/daftar-siaran")
-def daftar_siaran():
-    try: data = db.reference("provinsi").get() or {}
-    except: data = {}
-    return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
+def daftar_siaran(): return render_template("daftar-siaran.html", provinsi_list=[])
 
 @app.route('/berita')
 def berita(): return render_template('berita.html', articles=[], page=1, total_pages=1)
