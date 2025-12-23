@@ -38,21 +38,25 @@ try:
 except Exception as e:
     print(f"Firebase Warn: {e}")
 
-# --- HELPER FORMAT WAKTU ---
+# --- HELPER FORMAT WAKTU (WIB) ---
 def format_pub_date(published_parsed):
-    if not published_parsed: return "BARU SAJA"
-    # Convert struct_time ke datetime
-    dt = datetime.fromtimestamp(time.mktime(published_parsed))
-    # Tambah 7 jam untuk WIB (karena server biasanya UTC) atau sesuaikan
-    # Disini kita asumsikan feed sudah ada timezonenya atau kita format simpel
-    return dt.strftime("%d %b, %H:%M WIB").upper()
+    if not published_parsed: return datetime.now().strftime("%d %b, %H:%M WIB").upper()
+    try:
+        # Feedparser mengembalikan waktu dalam UTC (struct_time)
+        # Kita konversi ke datetime object
+        dt_utc = datetime(*published_parsed[:6])
+        # Tambah 7 Jam untuk WIB
+        dt_wib = dt_utc + timedelta(hours=7)
+        return dt_wib.strftime("%d %b, %H:%M WIB").upper()
+    except:
+        return "BARU SAJA"
 
 # --- FUNGSI BERITA ---
 def get_news_data():
     news_items = []
-    seen_titles = set() # Cegah duplikasi judul persis
+    seen_titles = set() 
 
-    # 1. PESAN NATARU (URGENT)
+    # 1. PESAN NATARU (Prioritas Utama)
     nataru_msg = 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, UTAMAKAN KESELAMATAN. GUNAKAN SABUK PENGAMAN & HELM SNI.'
     news_items.append({
         'category': 'HIMBAUAN',
@@ -60,10 +64,11 @@ def get_news_data():
         'source': 'KORLANTAS POLRI',
         'date': datetime.now().strftime("%d %b, %H:%M WIB")
     })
+    seen_titles.add(nataru_msg)
 
     # 2. SUMBER RSS
     sources = [
-        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=info+tol+jasa+marga+macet&hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=tol+jasa+marga+macet+terkini&hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+indonesia&hl=id&gl=ID&ceid=ID:id'},
         {'cat': 'NASIONAL', 'src': 'ANTARA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'DAERAH', 'src': 'REGIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
@@ -77,36 +82,32 @@ def get_news_data():
             for entry in feed.entries:
                 if count >= 3: break 
                 
-                # 1. BERSIHKAN JUDUL (Hapus nama media di belakang)
-                # Contoh: "Macet di Tol Cikampek - Detikcom" -> "Macet di Tol Cikampek"
+                # Bersihkan Judul
                 raw_title = entry.title
                 clean_title = raw_title.split(' - ')[0].strip()
                 
-                # Cek Duplikasi
                 if clean_title in seen_titles: continue
                 
-                # 2. AMBIL SUMBER
+                # Sumber & Waktu
                 src_name = entry.source.title if 'source' in entry else source['src']
-                
-                # 3. AMBIL WAKTU
                 pub_date = format_pub_date(entry.published_parsed)
 
                 news_items.append({
                     'category': source['cat'],
-                    'headline': clean_title.upper(), # Judul Kapital Saja (Tanpa Isi)
+                    'headline': clean_title.upper(), 
                     'source': src_name.upper(),
-                    'date': pub_date
+                    'date': pub_date # Tanggal & Jam Spesifik
                 })
                 seen_titles.add(clean_title)
                 count += 1
         
-        # Urutan Prioritas
+        # Urutan: Himbauan -> Lalin -> Polri -> Nasional -> Daerah -> Tekno
         prio = {'HIMBAUAN':0, 'LALU LINTAS':1, 'KEPOLISIAN':2, 'NASIONAL':3, 'DAERAH':4, 'TEKNOLOGI':5}
         news_items.sort(key=lambda x: prio.get(x['category'], 99))
 
     except Exception as e:
         if not news_items:
-            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG OPTIMALISASI DATA...', 'source': 'ADMIN', 'date': 'NOW'})
+            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG OPTIMALISASI DATA...', 'source': 'ADMIN', 'date': 'SEKARANG'})
         
     return news_items
 
