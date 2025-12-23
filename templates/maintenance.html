@@ -2,39 +2,42 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TEMPIIIKKK - KTVDI MAINTENANCE </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TEMPIK - KTVDI</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* Reset CSS */
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.3s ease; }
         
         body {
             font-family: 'Poppins', sans-serif;
             background: url('https://iili.io/f1LoZfS.md.png') no-repeat center center fixed;
             background-size: cover;
-            height: 100vh;
+            /* Gunakan min-height agar bisa discroll jika HP pendek/landscape */
+            min-height: 100vh; 
+            width: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #333;
-            overflow: hidden;
             position: relative;
+            padding: 20px; /* Jarak aman dari pinggir layar */
         }
 
         .overlay-bg {
-            position: absolute;
+            position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); /* Lebih gelap dikit biar teks NEXA jelas */
+            background: rgba(0, 0, 0, 0.7);
             z-index: 1;
         }
 
         .maintenance-card {
             background: rgba(255, 255, 255, 0.95);
-            width: 90%;
-            max-width: 650px;
+            width: 100%;
+            max-width: 600px; /* Batas lebar di PC */
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
             text-align: center;
@@ -44,6 +47,7 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255,255,255,0.4);
             animation: popIn 0.8s ease-out;
+            margin: auto; /* Center vertical jika ada scroll */
         }
 
         .logo-img {
@@ -51,65 +55,73 @@
             height: auto;
             animation: bounce 2s infinite;
             filter: drop-shadow(0 5px 5px rgba(0,0,0,0.2));
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         h1 {
-            color: #d63031; /* Warna Merah untuk Alert */
+            color: #d63031;
             font-weight: 800;
             font-size: 2rem;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             text-transform: uppercase;
+            line-height: 1.2;
         }
 
-        /* PESAN MAINTENANCE NEXA */
+        /* --- ALERT BOX --- */
         .alert-box {
             background: #ffebee;
             color: #c62828;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 12px;
             border: 1px solid #ffcdd2;
             margin-bottom: 25px;
+        }
+        
+        .alert-title {
+            margin: 0;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
         }
 
         p.desc {
             color: #444;
-            font-size: 1.1rem;
-            line-height: 1.6;
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-top: 5px;
         }
 
+        /* --- CLOCK --- */
         .clock-box {
             background: #2c3e50;
             color: #00d2d3;
             display: inline-block;
-            padding: 10px 30px;
+            padding: 8px 25px;
             border-radius: 50px;
             font-size: 1.8rem;
             font-weight: bold;
             font-family: 'Courier New', monospace;
             box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             border: 2px solid #34495e;
             text-shadow: 0 0 10px #00d2d3;
+            letter-spacing: 2px;
         }
 
-        /* --- WRAPPER RUNNING TEXT (ANIMASI BUKA TUTUP) --- */
+        /* --- RUNNING TEXT --- */
         .news-container {
             overflow: hidden;
-            margin-bottom: 30px;
-            /* Transisi untuk efek buka tutup */
+            margin-bottom: 25px;
             transition: all 0.8s ease-in-out;
-            max-height: 60px; /* Tinggi normal */
+            max-height: 60px;
             opacity: 1;
             transform: scaleY(1);
         }
-
-        /* Class ini ditambahkan JS saat update berita */
         .news-container.closed {
-            max-height: 0;
-            opacity: 0;
-            transform: scaleY(0);
-            margin-bottom: 0;
+            max-height: 0; opacity: 0; transform: scaleY(0); margin-bottom: 0;
         }
 
         .news-wrapper {
@@ -117,7 +129,7 @@
             border-left: 5px solid #e74c3c;
             color: white;
             padding: 12px 0;
-            border-radius: 5px;
+            border-radius: 6px;
             white-space: nowrap;
             position: relative;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
@@ -126,13 +138,12 @@
         .marquee-content {
             display: inline-block;
             padding-left: 100%;
-            /* Animasi normal 60 detik */
             animation: scroll-left 60s linear infinite; 
         }
         
         .marquee-content span {
-            font-size: 1rem;
-            margin-right: 50px;
+            font-size: 0.95rem;
+            margin-right: 40px;
             display: inline-flex;
             align-items: center;
         }
@@ -141,17 +152,18 @@
             background: #e74c3c;
             color: white;
             font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 3px;
+            padding: 2px 8px;
+            border-radius: 4px;
             margin-right: 8px;
             font-weight: bold;
         }
+        .news-badge.danger { background: yellow; color: red; animation: blink 0.2s infinite; }
 
         .contact-info {
             border-top: 1px solid #ccc;
             padding-top: 20px;
-            font-size: 0.95rem;
-            color: #333;
+            font-size: 0.9rem;
+            color: #555;
         }
         
         .ig-link {
@@ -162,33 +174,86 @@
             align-items: center;
             gap: 8px;
             background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-            padding: 10px 20px;
+            padding: 10px 25px;
             border-radius: 50px;
             margin-top: 10px;
             transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
         .ig-link:hover { transform: scale(1.05); }
 
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        /* --- EMERGENCY MODE STYLES --- */
+        body.emergency-mode .overlay-bg {
+            background: rgba(50, 0, 0, 0.85);
+            animation: red-flash 1s infinite alternate;
+        }
+        body.emergency-mode .maintenance-card {
+            border: 4px solid red;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.8);
+            animation: shake 0.5s infinite;
+        }
+        body.emergency-mode h1 { color: red; text-shadow: 0 0 10px yellow; }
+        body.emergency-mode .news-wrapper { background: #500000; border-left: 5px solid yellow; }
+        body.emergency-mode .alert-box { background: #ff0000; color: white; border: 2px solid yellow; }
+
+        /* --- ANIMASI --- */
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes red-flash { from { background: rgba(50, 0, 0, 0.8); } to { background: rgba(150, 0, 0, 0.9); } }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
         }
 
-        @keyframes scroll-left {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-100%); }
+        /* =========================================
+           RESPONSIVE BREAKPOINTS (AGAR PRESISI)
+           ========================================= */
+        
+        /* Tablet & HP Layar Besar (Width < 768px) */
+        @media (max-width: 768px) {
+            .maintenance-card {
+                padding: 30px 20px;
+            }
+            h1 { font-size: 1.8rem; }
+            .clock-box { font-size: 1.6rem; }
+        }
+
+        /* HP Standar (Width < 576px) */
+        @media (max-width: 576px) {
+            body { padding: 15px; } /* Jarak pinggir lebih tipis */
+            .maintenance-card {
+                padding: 25px 15px;
+                width: 100%;
+            }
+            .logo-img { width: 90px; }
+            h1 { font-size: 1.5rem; margin-bottom: 10px; }
+            .alert-title { font-size: 1rem; }
+            p.desc { font-size: 0.9rem; }
+            .clock-box { 
+                font-size: 1.4rem; 
+                padding: 6px 20px;
+                letter-spacing: 1px;
+            }
+            .marquee-content span { font-size: 0.9rem; margin-right: 25px; }
+        }
+
+        /* HP Sangat Kecil / Lipat (Width < 380px) */
+        @media (max-width: 380px) {
+            h1 { font-size: 1.3rem; }
+            .logo-img { width: 80px; }
+            .clock-box { font-size: 1.2rem; }
+            .ig-link { font-size: 0.8rem; padding: 8px 15px; }
+            .alert-box { padding: 10px; }
         }
         
-        @keyframes popIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        @media (max-width: 480px) {
-            .maintenance-card { padding: 25px 15px; width: 95%; }
-            h1 { font-size: 1.5rem; }
-            .logo-img { width: 90px; }
-            .clock-box { font-size: 1.4rem; padding: 8px 20px; }
+        /* Landscape Mode di HP */
+        @media (max-height: 500px) {
+            body { align-items: flex-start; } /* Supaya bisa discroll kalau posisi tidur */
+            .maintenance-card { margin-top: 20px; margin-bottom: 20px; }
         }
     </style>
 </head>
@@ -196,24 +261,24 @@
 
     <div class="overlay-bg"></div>
 
-    <div class="maintenance-card">
+    <div class="maintenance-card" id="main-card">
         <div class="logo-container">
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI" class="logo-img">
         </div>
 
-        <h1>MAINTENANCE SERVER</h1>
+        <h1 id="page-title">MAINTENANCE SERVER</h1>
         
-        <div class="alert-box">
-            <h3 style="margin:0; font-size:1.1rem; display:flex; justify-content:center; align-items:center; gap:8px;">
+        <div class="alert-box" id="nexa-alert">
+            <h3 class="alert-title">
                 <i class="fas fa-exclamation-triangle"></i> GANGGUAN JARINGAN
             </h3>
-            <p class="desc" style="margin-top:5px; font-size:0.95rem;">
-                Mohon maaf, saat ini sedang terjadi kendala teknis dari sisi <b>ISP NEXA</b>. <br>
+            <p class="desc">
+                Mohon maaf, saat ini sedang terjadi kendala teknis dari sisi <b>ISP NEXA</b>. 
                 Akses ke website KTVDI terganggu sementara waktu.
             </p>
         </div>
 
-        <div class="clock-box" id="realtime-clock">Loading...</div>
+        <div class="clock-box" id="realtime-clock">00:00:00</div>
 
         <div class="news-container" id="news-container">
             <div class="news-wrapper">
@@ -223,7 +288,7 @@
                             <span><span class="news-badge">NASIONAL</span> {{ berita }}</span>
                         {% endfor %}
                     {% else %}
-                        <span><span class="news-badge">INFO</span> Mengambil data berita...</span>
+                        <span><span class="news-badge">INFO</span> Memuat berita...</span>
                     {% endif %}
                 </div>
             </div>
@@ -238,7 +303,7 @@
     </div>
 
     <script>
-        // 1. UPDATE JAM
+        // 1. JAM DIGITAL
         function updateClock() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('id-ID', {
@@ -250,51 +315,95 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 2. LOGIKA UPDATE BERITA + EFEK BUKA TUTUP
+        // 2. CEK KATA KUNCI BAHAYA
+        function checkEmergencyWords(newsArray) {
+            const keywords = ['gempa', 'laka', 'kecelakaan', 'tabrakan', 'tewas', 'meninggal'];
+            let isEmergency = false;
+
+            const fullText = newsArray.join(' ').toLowerCase();
+
+            for (let key of keywords) {
+                if (fullText.includes(key)) {
+                    isEmergency = true;
+                    break;
+                }
+            }
+
+            const body = document.body;
+            const title = document.getElementById('page-title');
+            const alertBox = document.getElementById('nexa-alert');
+
+            if (isEmergency) {
+                body.classList.add('emergency-mode');
+                title.innerText = "⚠ BREAKING NEWS ⚠";
+                alertBox.innerHTML = `
+                    <h3 class="alert-title" style="font-size:1.2rem;">
+                        <i class="fas fa-radiation"></i> PERINGATAN DARURAT
+                    </h3>
+                    <p class="desc" style="font-weight:bold;">
+                        Terdeteksi informasi Gempa/Kecelakaan dalam berita terkini. Harap waspada dan cek informasi selengkapnya.
+                    </p>
+                `;
+            } else {
+                body.classList.remove('emergency-mode');
+                title.innerText = "MAINTENANCE SERVER";
+                alertBox.innerHTML = `
+                    <h3 class="alert-title">
+                        <i class="fas fa-exclamation-triangle"></i> GANGGUAN JARINGAN
+                    </h3>
+                    <p class="desc">
+                        Mohon maaf, saat ini sedang terjadi kendala teknis dari sisi <b>ISP NEXA</b>. 
+                        Akses ke website KTVDI terganggu sementara waktu.
+                    </p>
+                `;
+            }
+        }
+
+        const initialText = document.getElementById('marquee-text').innerText;
+        checkEmergencyWords([initialText]);
+
+        // 3. UPDATE BERITA
         const marqueeInner = document.getElementById('marquee-text');
         const container = document.getElementById('news-container');
 
-        // Saat teks selesai satu putaran (animationiteration)
         marqueeInner.addEventListener('animationiteration', async () => {
-            console.log("Putaran selesai, melakukan refresh...");
-            
-            // A. TUTUP CONTAINER (Efek Visual)
+            console.log("Refresh berita...");
             container.classList.add('closed');
 
-            // Tunggu efek tutup selesai (0.8 detik sesuai CSS transition)
             setTimeout(async () => {
                 try {
-                    // B. AMBIL DATA BARU DARI SERVER
-                    // Tambahkan timestamp agar browser tidak pakai cache lama
                     const response = await fetch('/api/news-live?t=' + new Date().getTime());
                     const newsData = await response.json();
 
-                    // C. SUSUN HTML BARU
+                    checkEmergencyWords(newsData);
+
                     let newHtml = '';
                     if (newsData.length > 0) {
                         newsData.forEach(berita => {
-                            newHtml += `<span><span class="news-badge">UPDATE</span> ${berita}</span>`;
+                            let badgeClass = "news-badge";
+                            let badgeText = "UPDATE";
+                            let lower = berita.toLowerCase();
+                            
+                            if(lower.includes('gempa') || lower.includes('laka') || lower.includes('kecelakaan')){
+                                badgeClass = "news-badge danger";
+                                badgeText = "BAHAYA";
+                            }
+                            newHtml += `<span><span class="${badgeClass}">${badgeText}</span> ${berita}</span>`;
                         });
                     } else {
                         newHtml = `<span><span class="news-badge">INFO</span> Menunggu koneksi berita...</span>`;
                     }
                     
-                    // Ganti isi teks
                     marqueeInner.innerHTML = newHtml;
-                    
-                    // Reset animasi CSS agar mulai dari awal lagi (sedikit trik)
                     marqueeInner.style.animation = 'none';
-                    marqueeInner.offsetHeight; /* trigger reflow */
+                    marqueeInner.offsetHeight; 
                     marqueeInner.style.animation = 'scroll-left 60s linear infinite';
 
                 } catch (error) {
                     console.error("Gagal update:", error);
                 }
-
-                // D. BUKA KEMBALI CONTAINER
                 container.classList.remove('closed');
-
-            }, 800); // Waktu tunggu sama dengan durasi transition CSS (0.8s)
+            }, 800);
         });
     </script>
 
