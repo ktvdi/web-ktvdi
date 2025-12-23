@@ -3,366 +3,389 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MAINTENANCE - KTVDI</title>
+    <title>SYSTEM STATUS - KTVDI</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
-        /* RESET & BASE */
+        /* --- RESET & VARIABLES --- */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
+        
         :root {
             --primary: #00f3ff;
-            --bg-glass: rgba(20, 20, 25, 0.75);
-            --border-glass: rgba(255, 255, 255, 0.1);
+            --secondary: #0051ff;
+            --alert: #ff9d00;
+            --bg-dark: #050505;
+            --glass: rgba(12, 12, 16, 0.85);
+            --border: rgba(0, 243, 255, 0.2);
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
-            background-color: #050505;
+            font-family: 'Rajdhani', sans-serif;
+            background-color: var(--bg-dark);
             background-image: url('https://iili.io/f1LoZfS.md.png');
             background-size: cover;
             background-position: center;
-            background-attachment: fixed;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #fff;
+            padding: 15px;
             overflow-x: hidden;
-            position: relative;
-            padding: 20px;
         }
 
-        /* Overlay Gelap */
+        /* EFFECTS */
         .overlay-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(8, 8, 12, 0.92);
-            z-index: 1;
-            backdrop-filter: blur(8px);
+            background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.95) 90%);
+            z-index: 1; pointer-events: none;
+        }
+        .scanlines {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            z-index: 2; pointer-events: none;
         }
 
-        /* Container Utama */
-        .dashboard-container {
+        /* MAIN DASHBOARD */
+        .dashboard {
             position: relative; z-index: 10;
-            width: 100%; max-width: 900px;
+            width: 100%; max-width: 850px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-top: 4px solid var(--secondary);
+            border-radius: 8px;
+            box-shadow: 0 0 50px rgba(0, 81, 255, 0.15);
+            backdrop-filter: blur(15px);
+            padding: 25px;
             display: flex; flex-direction: column; gap: 20px;
         }
 
-        /* GLASS CARD STYLE */
-        .glass-card {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-glass);
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(20px);
-        }
-
         /* HEADER */
-        .header-section { text-align: center; border-top: 4px solid #007bff; }
-        .logo-img { width: 90px; height: auto; margin-bottom: 15px; filter: drop-shadow(0 0 15px rgba(255,255,255,0.1)); }
-        
+        .header { text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
+        .logo-img { width: 90px; filter: drop-shadow(0 0 10px var(--secondary)); margin-bottom: 10px; }
         h1 {
-            font-size: 2rem; font-weight: 900; letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase;
-            background: linear-gradient(90deg, #fff, #a0cfff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-family: 'Orbitron', sans-serif; font-size: 2rem;
+            background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-transform: uppercase; letter-spacing: 2px; margin: 0;
         }
-        
-        .subtitle {
-            font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #007bff; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;
-        }
+        .subtitle { color: var(--secondary); font-weight: 700; letter-spacing: 3px; font-size: 0.8rem; margin-top: 5px; }
 
         /* ALERT BOX */
         .alert-box {
-            background: rgba(255, 152, 0, 0.08);
-            border: 1px solid rgba(255, 152, 0, 0.2);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex; gap: 15px; align-items: start; margin-bottom: 10px;
+            background: rgba(255, 157, 0, 0.08);
+            border: 1px solid rgba(255, 157, 0, 0.3);
+            border-left: 4px solid var(--alert);
+            border-radius: 4px; padding: 15px;
+            display: flex; align-items: start; gap: 15px;
         }
-        .alert-icon { font-size: 1.5rem; color: #ff9800; margin-top: 2px; }
-        .alert-content h3 { font-size: 1rem; color: #ff9800; margin-bottom: 5px; font-weight: 700; }
-        .alert-content p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
+        .alert-icon { font-size: 1.4rem; color: var(--alert); margin-top: 3px; }
+        .alert-content h3 { color: var(--alert); font-size: 1rem; margin-bottom: 5px; text-transform: uppercase; }
+        .alert-content p { color: #ccc; font-size: 0.95rem; line-height: 1.4; }
 
-        /* COUNTDOWN 2026 */
-        .countdown-wrapper { text-align: center; margin: 10px 0; }
-        .countdown-title { font-size: 0.8rem; letter-spacing: 2px; color: #888; margin-bottom: 10px; text-transform: uppercase; }
-        .countdown-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .cd-box { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); padding: 15px 5px; border-radius: 10px; }
-        .cd-number { font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 700; color: #fff; display: block; line-height: 1; }
-        .cd-label { font-size: 0.7rem; color: #666; text-transform: uppercase; margin-top: 5px; display: block; }
-
-        /* SYSTEM GRID */
-        .system-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;
+        /* COUNTDOWN */
+        .countdown-wrap { text-align: center; }
+        .cd-head { font-size: 0.75rem; letter-spacing: 2px; color: #666; margin-bottom: 10px; text-transform: uppercase; }
+        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .cd-item {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
+            padding: 10px; border-radius: 6px; position: relative;
         }
-        
-        .sys-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-            transition: transform 0.2s;
-            position: relative;
-            overflow: hidden; /* Penting untuk bar baterai */
-        }
-        .sys-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); }
+        .cd-val { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: #fff; display: block; }
+        .cd-lbl { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-top: 2px; display: block; }
 
-        .sys-label { font-size: 0.7rem; color: #666; text-transform: uppercase; display: block; margin-bottom: 5px; letter-spacing: 1px; position: relative; z-index: 2; }
-        .sys-val { font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 700; color: #00aaff; position: relative; z-index: 2; }
-        .sys-val.green { color: #00ff9d; }
-
-        /* --- STYLING KHUSUS BATERAI (STRIP GARIS) --- */
-        .battery-card {
-            background: rgba(0, 0, 0, 0.3) !important;
+        /* DATA GRID */
+        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+        .info-card {
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+            padding: 10px; border-radius: 6px; text-align: center; position: relative; overflow: hidden;
         }
-        
-        .battery-bar {
-            position: absolute; top: 0; left: 0; bottom: 0;
-            width: 0%; z-index: 1; transition: width 1s ease-in-out, background 0.5s;
-            background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 0px, rgba(255, 255, 255, 0.15) 10px, transparent 10px, transparent 20px);
-            border-right: 2px solid rgba(255,255,255,0.5);
-            box-shadow: 2px 0 15px rgba(0,0,0,0.5);
+        .info-label { font-size: 0.7rem; color: #666; letter-spacing: 1px; display: block; margin-bottom: 4px; position: relative; z-index: 2; }
+        .info-val { font-size: 1rem; font-weight: 700; color: var(--primary); font-family: 'Rajdhani', sans-serif; position: relative; z-index: 2; }
+        .green { color: #0f0; } .yellow { color: #ff0; }
+
+        /* BATERAI STRIP */
+        .battery-bg {
+            position: absolute; top:0; left:0; bottom:0; width: 0%; z-index: 1;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255,255,255,0.1),
+                rgba(255,255,255,0.1) 10px,
+                rgba(0,255,0,0.15) 10px,
+                rgba(0,255,0,0.15) 20px
+            );
+            border-right: 2px solid rgba(255,255,255,0.3);
+            transition: width 1s ease;
         }
 
-        .bar-green { background-color: rgba(0, 255, 157, 0.2); border-right-color: #00ff9d; }
-        .bar-yellow { background-color: rgba(255, 204, 0, 0.2); border-right-color: #ffcc00; }
-        .bar-red { background-color: rgba(255, 0, 68, 0.2); border-right-color: #ff0044; }
-        .battery-text { text-shadow: 0 0 5px rgba(0,0,0,0.8); }
-
-        /* RUNNING TEXT */
-        .ticker-container {
-            background: #000; border: 1px solid #333; border-radius: 8px; height: 60px;
+        /* --- VERTICAL NEWS TICKER (FLIP) --- */
+        .news-container {
+            background: #000; border: 1px solid #333; border-radius: 6px;
+            height: 70px; /* Tinggi fix untuk 2 baris teks */
             display: flex; align-items: center; overflow: hidden; position: relative;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
-        .ticker-label {
-            background: #007bff; color: #fff; padding: 0 15px; height: 100%;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 0.8rem; z-index: 5; white-space: nowrap;
-        }
-        .ticker-wrapper { flex: 1; position: relative; height: 100%; overflow: hidden; }
-        .ticker-content {
-            position: absolute; white-space: nowrap; height: 100%; display: flex; align-items: center; padding-left: 100%;
-        }
-        .animate-scroll { animation: scroll-news 120s linear infinite; }
-
-        .news-item { display: inline-flex; align-items: center; margin-right: 60px; color: #ddd; }
-        .news-cat { font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; font-weight: 700; margin-right: 10px; color: #000; text-transform: uppercase; }
         
-        .cat-NASIONAL { background: #4dabf7; }
-        .cat-TEKNOLOGI { background: #d0bfff; }
-        .cat-OLAHRAGA { background: #69db7c; }
-        .cat-DAERAH { background: #ffc9c9; }
-        .cat-SYSTEM { background: #ced4da; }
+        .news-label {
+            background: var(--secondary); color: #fff; width: 100px; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.75rem; z-index: 5; text-align: center;
+            border-right: 1px solid #444; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+        }
+        .news-label i { font-size: 1.2rem; margin-bottom: 2px; }
 
-        .news-content { font-weight: 700; font-size: 0.95rem; margin-right: 8px; color: #fff; text-transform: uppercase; }
+        .news-viewport {
+            flex: 1; height: 100%; position: relative; overflow: hidden;
+            display: flex; align-items: center; padding: 0 20px;
+        }
+
+        /* Item Berita */
+        .ticker-item {
+            position: absolute; width: 100%; 
+            display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; transform: translateY(30px); transition: all 0.5s ease-in-out;
+            padding-right: 20px;
+        }
+        
+        /* Kelas untuk animasi JS */
+        .ticker-item.active { opacity: 1; transform: translateY(0); }
+        .ticker-item.exit { opacity: 0; transform: translateY(-30px); }
+
+        .news-cat {
+            display: inline-block; font-size: 0.65rem; font-weight: 800; 
+            padding: 2px 6px; border-radius: 2px; color: #000; width: fit-content; margin-bottom: 4px;
+        }
+        .cat-NASIONAL { background: #00f3ff; }
+        .cat-OLAHRAGA { background: #00ff66; }
+        .cat-TEKNOLOGI { background: #d400ff; }
+        .cat-DAERAH { background: #ffaa00; }
+        .cat-SYSTEM { background: #fff; }
+
+        .news-text {
+            font-family: 'Roboto', sans-serif; font-size: 0.9rem; color: #fff; 
+            line-height: 1.3; font-weight: 400;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
 
         /* FOOTER */
-        .footer { text-align: center; color: #555; font-size: 0.8rem; margin-top: 10px; }
-        .admin-link { color: #007bff; text-decoration: none; font-weight: 600; }
-
-        @keyframes scroll-news { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        .footer { text-align: center; font-size: 0.8rem; color: #555; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
+        .adm-btn { color: var(--primary); text-decoration: none; font-weight: 700; transition: 0.3s; }
+        .adm-btn:hover { text-shadow: 0 0 10px var(--primary); }
 
         /* RESPONSIVE */
         @media (max-width: 768px) {
-            .system-grid { grid-template-columns: 1fr 1fr; }
-            h1 { font-size: 1.8rem; }
+            .info-grid { grid-template-columns: 1fr 1fr; }
+            h1 { font-size: 1.6rem; }
         }
         @media (max-width: 480px) {
-            body { padding: 10px; align-items: flex-start; }
-            .dashboard-container { gap: 15px; margin-top: 20px; }
-            .glass-card { padding: 20px 15px; }
-            h1 { font-size: 1.5rem; }
-            .logo-img { width: 70px; }
-            .system-grid { grid-template-columns: 1fr 1fr; gap: 10px; } 
-            .ticker-label { display: none; }
-            .cd-number { font-size: 1.5rem; }
-            .alert-box { flex-direction: column; gap: 10px; }
-            .sys-card:last-child { grid-column: span 2; }
+            .dashboard { padding: 15px; gap: 15px; }
+            h1 { font-size: 1.4rem; }
+            .cd-val { font-size: 1.4rem; }
+            .news-label { width: 70px; font-size: 0.65rem; }
+            .news-text { font-size: 0.8rem; }
+            .alert-box { flex-direction: column; gap: 8px; }
+            
+            /* Baterai Full Width */
+            .info-card:nth-child(5) { grid-column: span 2; }
         }
     </style>
 </head>
 <body>
 
+    <div class="scanlines"></div>
     <div class="overlay-bg"></div>
 
-    <div class="dashboard-container">
-        
-        <div class="glass-card header-section">
+    <div class="dashboard">
+        <div class="header">
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="logo-img">
-            <h1>PEMELIHARAAN SISTEM</h1>
+            <h1>SYSTEM MAINTENANCE</h1>
             <div class="subtitle">PENINGKATAN KUALITAS LAYANAN</div>
+        </div>
 
-            <div class="alert-box">
-                <i class="fas fa-network-wired alert-icon"></i>
-                <div class="alert-content">
-                    <h3>OPTIMALISASI JARINGAN</h3>
-                    <p>Mohon maaf, saat ini sedang dilakukan sinkronisasi infrastruktur dengan <b>TIM NOC KTVDI</b> untuk meningkatkan stabilitas koneksi. Layanan akan kembali normal sesaat lagi.</p>
-                </div>
+        <div class="alert-box">
+            <i class="fas fa-tools alert-icon"></i>
+            <div class="alert-content">
+                <h3>OPTIMALISASI JARINGAN</h3>
+                <p>Saat ini sedang dilakukan sinkronisasi infrastruktur dengan <b>ISP NEXA</b> untuk meningkatkan stabilitas koneksi. Layanan akan kembali normal sesaat lagi.</p>
             </div>
         </div>
 
-        <div class="glass-card">
-            <div class="countdown-wrapper">
-                <div class="countdown-title">MENUJU ERA BARU 2026</div>
-                <div class="countdown-grid">
-                    <div class="cd-box"><span class="cd-number" id="d">00</span><span class="cd-label">HARI</span></div>
-                    <div class="cd-box"><span class="cd-number" id="h">00</span><span class="cd-label">JAM</span></div>
-                    <div class="cd-box"><span class="cd-number" id="m">00</span><span class="cd-label">MENIT</span></div>
-                    <div class="cd-box"><span class="cd-number" id="s">00</span><span class="cd-label">DETIK</span></div>
-                </div>
+        <div class="countdown-wrap">
+            <div class="cd-head">MENUJU ERA BARU 2026</div>
+            <div class="cd-grid">
+                <div class="cd-item"><span class="cd-val" id="d">00</span><span class="cd-lbl">HARI</span></div>
+                <div class="cd-item"><span class="cd-val" id="h">00</span><span class="cd-lbl">JAM</span></div>
+                <div class="cd-item"><span class="cd-val" id="m">00</span><span class="cd-lbl">MENIT</span></div>
+                <div class="cd-item"><span class="cd-val" id="s">00</span><span class="cd-lbl">DETIK</span></div>
             </div>
         </div>
 
-        <div class="system-grid">
-            <div class="sys-card">
-                <span class="sys-label">WAKTU (WIB)</span>
-                <span class="sys-val" id="clock-display">00.00.00</span>
+        <div class="info-grid">
+            <div class="info-card">
+                <span class="info-label">WAKTU (WIB)</span>
+                <span class="info-val" id="clock">00.00</span>
             </div>
-            <div class="sys-card">
-                <span class="sys-label">TANGGAL</span>
-                <span class="sys-val green" id="date-display">...</span>
+            <div class="info-card">
+                <span class="info-label">LOKASI</span>
+                <span class="info-val green" id="loc">...</span>
             </div>
-            <div class="sys-card">
-                <span class="sys-label">PROVIDER</span>
-                <span class="sys-val green" id="isp-display">Mendeteksi...</span>
+            <div class="info-card">
+                <span class="info-label">PROVIDER</span>
+                <span class="info-val green" id="isp">...</span>
             </div>
-            <div class="sys-card">
-                <span class="sys-label">PERANGKAT</span>
-                <span class="sys-val" id="device-display">...</span>
+            <div class="info-card">
+                <span class="info-label">PERANGKAT</span>
+                <span class="info-val" id="dev">...</span>
             </div>
-            
-            <div class="sys-card battery-card" style="grid-column: 1 / -1;">
-                <div class="battery-bar" id="battery-bar"></div>
-                <span class="sys-label">DAYA PERANGKAT</span>
-                <span class="sys-val battery-text" id="battery-display">Memuat...</span>
+            <div class="info-card" style="grid-column: span 4;">
+                <div class="battery-bg" id="bat-bar"></div>
+                <span class="info-label">DAYA PERANGKAT</span>
+                <span class="info-val yellow" id="bat-txt">--%</span>
             </div>
         </div>
 
-        <div class="ticker-container">
-            <div class="ticker-label">NEWS UPDATE</div>
-            <div class="ticker-wrapper">
-                <div class="ticker-content animate-scroll" id="ticker-text">
-                    {% if news_list %}
-                        {% for item in news_list %}
-                            <div class="news-item">
-                                <span class="news-cat cat-{{ item.category|lower }}">{{ item.category }}</span>
-                                <span class="news-content">{{ item.content }}</span>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="news-item"><span class="news-cat cat-system">INFO</span> Menghubungkan ke server...</div>
-                    {% endif %}
+        <div class="news-container">
+            <div class="news-label">
+                <i class="fas fa-broadcast-tower"></i><br>LIVE INFO
+            </div>
+            <div class="news-viewport" id="news-wrapper">
+                <div class="ticker-item active">
+                    <span class="news-cat cat-SYSTEM">SYSTEM</span>
+                    <span class="news-text">MENGHUBUNGKAN KE SATELIT BERITA... MOHON TUNGGU.</span>
                 </div>
             </div>
         </div>
 
         <div class="footer">
             &copy; 2025 Komunitas TV Digital Indonesia.<br>
-            Butuh bantuan? <a href="https://instagram.com/ktvdi.id" class="admin-link">Hubungi Admin</a>
+            <a href="https://instagram.com/ktvdi.id" class="adm-btn">HUBUNGI ADMIN</a>
         </div>
-
     </div>
 
+    <script id="news-data" type="application/json">
+        {{ news_list | tojson }}
+    </script>
+
     <script>
-        // 1. COUNTDOWN 2026
-        function updateCountdown() {
+        // --- 1. COUNTDOWN 2026 ---
+        function updateCD() {
             const target = new Date("Jan 1, 2026 00:00:00").getTime();
             const now = new Date().getTime();
-            const diff = target - now;
-            if (diff > 0) {
-                document.getElementById("d").innerText = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2,'0');
-                document.getElementById("h").innerText = String(Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))).padStart(2,'0');
-                document.getElementById("m").innerText = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2,'0');
-                document.getElementById("s").innerText = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2,'0');
+            const d = target - now;
+            if(d>0){
+                document.getElementById("d").innerText=Math.floor(d/(1000*60*60*24));
+                document.getElementById("h").innerText=Math.floor((d%(1000*60*60*24))/(1000*60*60));
+                document.getElementById("m").innerText=Math.floor((d%(1000*60*60))/(1000*60));
+                document.getElementById("s").innerText=Math.floor((d%(1000*60))/1000);
             }
         }
-        setInterval(updateCountdown, 1000);
-        updateCountdown();
+        setInterval(updateCD, 1000); updateCD();
 
-        // 2. JAM WIB
-        function updateTime() {
+        // --- 2. JAM WIB ---
+        setInterval(()=>{
             const now = new Date();
-            document.getElementById("clock-display").innerText = now.toLocaleTimeString('id-ID', {
-                timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-            }).replace(/:/g, '.');
-            document.getElementById("date-display").innerText = now.toLocaleDateString('id-ID', {
-                day: 'numeric', month: 'short', year: '2-digit', timeZone: 'Asia/Jakarta'
-            });
-        }
-        setInterval(updateTime, 1000);
-        updateTime();
+            document.getElementById("clock").innerText = now.toLocaleTimeString('id-ID', {timeZone:'Asia/Jakarta', hour:'2-digit', minute:'2-digit'});
+        }, 1000);
 
-        // 3. ISP & DEVICE
+        // --- 3. ISP & LOKASI (API) ---
         fetch('https://ipapi.co/json/').then(r=>r.json()).then(d=>{
-            document.getElementById("isp-display").innerText = (d.org||"Unknown").toUpperCase();
-        }).catch(()=>{ document.getElementById("isp-display").innerText="OFFLINE"; });
+            document.getElementById("loc").innerText = (d.city||"Unknown").toUpperCase();
+            document.getElementById("isp").innerText = (d.org||"Unknown").toUpperCase();
+        }).catch(()=>{ 
+            document.getElementById("loc").innerText = "LOCAL";
+            document.getElementById("isp").innerText = "OFFLINE";
+        });
 
+        // --- 4. DEVICE ---
         const ua = navigator.userAgent;
-        let device = "PC/LAPTOP";
-        if(/Android/i.test(ua)) device = "ANDROID";
-        else if(/iPhone/i.test(ua)) device = "IPHONE";
-        else if(/Mac/i.test(ua)) device = "MACBOOK";
-        document.getElementById("device-display").innerText = device;
+        let dev = "PC/LAPTOP";
+        if(/Android/i.test(ua)) dev="ANDROID";
+        else if(/iPhone/i.test(ua)) dev="IPHONE";
+        document.getElementById("dev").innerText=dev;
 
-        // 4. BATERAI VISUAL
-        if(navigator.getBattery) {
-            navigator.getBattery().then(bat => {
-                function updateBat() {
-                    const level = Math.round(bat.level * 100);
-                    const charging = bat.charging ? "⚡" : "";
-                    
-                    const display = document.getElementById("battery-display");
-                    const bar = document.getElementById("battery-bar");
-
-                    display.innerText = `${level}% ${charging}`;
-                    bar.style.width = `${level}%`;
-
-                    bar.className = 'battery-bar'; 
-                    if(level > 50) {
-                        bar.classList.add('bar-green');
-                        display.style.color = '#fff';
-                    } else if(level > 20) {
-                        bar.classList.add('bar-yellow');
-                        display.style.color = '#fff';
-                    } else {
-                        bar.classList.add('bar-red');
-                        display.style.color = '#ffaaaa';
-                    }
+        // --- 5. BATERAI (STRIP GARIS) ---
+        if(navigator.getBattery){
+            navigator.getBattery().then(b=>{
+                function up(){
+                    const l = Math.round(b.level*100);
+                    const c = b.charging?"⚡":"";
+                    document.getElementById("bat-txt").innerText=`${l}% ${c}`;
+                    document.getElementById("bat-bar").style.width=`${l}%`;
                 }
-                updateBat();
-                bat.addEventListener('levelchange', updateBat);
-                bat.addEventListener('chargingchange', updateBat);
+                up(); b.addEventListener('levelchange',up); b.addEventListener('chargingchange',up);
             });
         } else {
-            document.getElementById("battery-display").innerText = "100% (AC POWER)";
-            document.getElementById("battery-bar").style.width = "100%";
-            document.getElementById("battery-bar").classList.add('bar-green');
+            document.getElementById("bat-txt").innerText="AC POWER";
+            document.getElementById("bat-bar").style.width="100%";
         }
 
-        // 5. NEWS UPDATE
-        const ticker = document.getElementById('ticker-text');
-        ticker.addEventListener('animationiteration', () => {
-            fetch('/api/news-live').then(r=>r.json()).then(data=>{
-                let html = '';
-                data.forEach(item => {
-                    let c = 'cat-system';
-                    if(item.category=='NASIONAL') c='cat-nasional';
-                    if(item.category=='OLAHRAGA') c='cat-olahraga';
-                    if(item.category=='TEKNOLOGI') c='cat-tekno';
-                    if(item.category=='DAERAH') c='cat-daerah';
+        // --- 6. VERTICAL NEWS TICKER LOGIC ---
+        // Ambil data dari Python yang sudah di-pass ke script tag
+        let newsData = [];
+        try {
+            newsData = JSON.parse(document.getElementById('news-data').textContent);
+        } catch(e) { console.log("No news data"); }
+
+        if (newsData.length > 0) {
+            const wrapper = document.getElementById('news-wrapper');
+            let currentIndex = 0;
+
+            function renderNews() {
+                wrapper.innerHTML = ''; // Clear awal
+                
+                // Buat semua elemen tapi sembunyikan (kecuali index 0)
+                newsData.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = `ticker-item ${index === 0 ? 'active' : ''}`;
                     
-                    html += `<div class="news-item">
-                        <span class="news-cat ${c}">${item.category}</span>
-                        <span class="news-content">${item.content}</span>
-                    </div>`;
+                    let catColor = 'cat-SYSTEM';
+                    if(item.category=='NASIONAL') catColor='cat-NASIONAL';
+                    if(item.category=='OLAHRAGA') catColor='cat-OLAHRAGA';
+                    if(item.category=='TEKNOLOGI') catColor='cat-TEKNOLOGI';
+                    if(item.category=='DAERAH') catColor='cat-DAERAH';
+
+                    div.innerHTML = `
+                        <span class="news-cat ${catColor}">${item.category}</span>
+                        <span class="news-text">${item.content}</span>
+                    `;
+                    wrapper.appendChild(div);
                 });
-                ticker.innerHTML = html;
-            });
-        });
+            }
+
+            renderNews();
+
+            // Logic Flip Naik Turun
+            setInterval(() => {
+                const items = document.querySelectorAll('.ticker-item');
+                const currentItem = items[currentIndex];
+                
+                // Animasi Keluar (Naik ke atas)
+                currentItem.classList.remove('active');
+                currentItem.classList.add('exit');
+
+                // Siapkan Index Berikutnya
+                currentIndex = (currentIndex + 1) % items.length;
+                const nextItem = items[currentIndex];
+
+                // Reset state element yg akan masuk (hapus class exit jika ada)
+                nextItem.classList.remove('exit');
+                
+                // Animasi Masuk (Dari bawah)
+                // Sedikit delay agar transisi CSS smooth
+                setTimeout(() => {
+                   nextItem.classList.add('active');
+                }, 50);
+
+                // Cleanup class exit setelah animasi selesai agar siap dipanggil lagi nanti
+                setTimeout(() => {
+                    currentItem.classList.remove('exit');
+                }, 600); // Sesuai durasi CSS transition 0.5s
+
+            }, 6000); // Ganti berita setiap 6 detik (Standar baca)
+        }
     </script>
 </body>
 </html>
