@@ -12,7 +12,8 @@ from flask import Flask, request, render_template, redirect, url_for, session, j
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail
-from datetime import datetime
+from datetime import datetime, timedelta
+import time # Import time untuk parsing struct_time
 
 # --- KONFIGURASI ---
 load_dotenv() 
@@ -41,49 +42,80 @@ try:
 except Exception as e:
     print(f"⚠️ Peringatan Firebase: {e}")
 
+# --- HELPER TIME AGO ---
+def get_time_ago(published_parsed):
+    """Mengubah struct_time menjadi string 'x menit lalu'"""
+    if not published_parsed: return "BARU SAJA"
+    
+    pub_dt = datetime.fromtimestamp(time.mktime(published_parsed))
+    now = datetime.now()
+    diff = now - pub_dt
+    
+    seconds = diff.total_seconds()
+    minutes = int(seconds // 60)
+    hours = int(seconds // 3600)
+    
+    if hours > 24: return pub_dt.strftime("%d/%m")
+    if hours > 0: return f"{hours} JAM LALU"
+    if minutes > 0: return f"{minutes} MENIT LALU"
+    return "BARU SAJA"
+
 # --- FUNGSI BERITA ---
 def get_news_data():
     news_items = []
     
-    # 1. PESAN NATARU (STATIS - MUNCUL PERTAMA/DISELIPKAN)
+    # 1. HIMBAUAN NATARU (Wajib Ada)
     news_items.append({
         'category': 'HIMBAUAN',
-        'headline': 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, PASTIKAN GUNAKAN SABUK PENGAMAN DAN HELM SNI. PATUHI RAMBU LALU LINTAS.',
-        'source': 'KORLANTAS POLRI'
+        'headline': 'SELAMAT MUDIK NATARU 2025. UTAMAKAN KESELAMATAN, GUNAKAN SABUK PENGAMAN DAN HELM SNI. KELUARGA MENANTI DI RUMAH.',
+        'source': 'KORLANTAS POLRI',
+        'time': 'LIVE'
     })
 
-    # 2. SUMBER RSS LIVE
+    # 2. SUMBER RSS
     sources = [
-        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA UPDATE', 'url': 'https://news.google.com/rss/search?q=jasa+marga+macet+tol&hl=id&gl=ID&ceid=ID:id'},
+        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=macet+tol+jasa+marga&hl=id&gl=ID&ceid=ID:id'},
         {'cat': 'NASIONAL', 'src': 'ANTARA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+indonesia&hl=id&gl=ID&ceid=ID:id'},
-        {'cat': 'TEKNOLOGI', 'src': 'INET', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
-        {'cat': 'DAERAH', 'src': 'REGIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'}
+        {'cat': 'DAERAH', 'src': 'REGIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'TEKNOLOGI', 'src': 'INET', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'}
     ]
 
     try:
         for source in sources:
             feed = feedparser.parse(source['url'])
-            # Ambil 3 berita per kategori
+            # Ambil 3 berita terbaru
             for entry in feed.entries[:3]:
-                clean_title = entry.title.split(' - ')[0] # Hapus nama media di judul
+                # Bersihkan Judul
+                clean_title = entry.title.split(' - ')[0]
+                
+                # Ambil Summary (Isi Berita Pendek)
+                raw_summary = entry.get('summary', '') or entry.get('description', '')
+                clean_summary = re.sub('<.*?>', '', html.unescape(raw_summary))
+                # Ambil kalimat pertama saja untuk digabung ke headline jika judul terlalu pendek
+                first_sentence = clean_summary.split('.')[0] if clean_summary else ""
+                
+                # Gabung Judul + Kalimat Pertama agar panjang & informatif
+                full_text = f"{clean_title}. {first_sentence}"
+                
                 source_name = entry.source.title if 'source' in entry else source['src']
+                time_ago = get_time_ago(entry.published_parsed)
 
                 news_items.append({
                     'category': source['cat'],
-                    'headline': clean_title.upper(),
-                    'source': source_name.upper()
+                    'headline': full_text.upper(), # Uppercase semua
+                    'source': source_name.upper(),
+                    'time': time_ago
                 })
         
-        # Urutan Prioritas: Himbauan -> Lalin -> Nasional -> Polri
-        priority = {'HIMBAUAN': 0, 'LALU LINTAS': 1, 'NASIONAL': 2, 'KEPOLISIAN': 3, 'DAERAH': 4, 'TEKNOLOGI': 5}
+        # Urutan Prioritas
+        priority = {'HIMBAUAN':0, 'LALU LINTAS':1, 'NASIONAL':2, 'KEPOLISIAN':3, 'DAERAH':4, 'TEKNOLOGI':5}
         news_items.sort(key=lambda x: priority.get(x['category'], 99))
 
     except Exception as e:
         print(f"RSS Error: {e}")
-        # Tetap tampilkan himbauan meski error
         if not news_items:
-            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG PEMBARUAN...', 'source': 'ADMIN'})
+            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG PEMBARUAN DATA...', 'source': 'ADMIN', 'time': 'NOW'})
         
     return news_items
 
