@@ -45,7 +45,7 @@ except Exception as e:
 def get_news_data():
     news_items = []
     
-    # Sumber RSS Resmi & Kredibel
+    # Sumber RSS Resmi
     sources = [
         {'cat': 'NASIONAL', 'src': 'ANTARA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+indonesia&hl=id&gl=ID&ceid=ID:id'},
@@ -58,24 +58,21 @@ def get_news_data():
             feed = feedparser.parse(source['url'])
             # Ambil 4 berita per kategori
             for entry in feed.entries[:4]:
-                # Bersihkan Judul dari nama media (misal: "Judul - Detikcom")
+                # Bersihkan Judul
                 clean_title = entry.title.split(' - ')[0]
-                
-                # Nama Sumber
                 source_name = entry.source.title if 'source' in entry else source['src']
 
                 news_items.append({
                     'category': source['cat'],
-                    'headline': clean_title.upper(), # Judul Kapital
+                    'headline': clean_title.upper(),
                     'source': source_name.upper()
                 })
         
-        # Urutan Tampil
+        # Urutan: Nasional -> Polri -> Daerah -> Tekno
         priority = {'NASIONAL': 1, 'KEPOLISIAN': 2, 'DAERAH': 3, 'TEKNOLOGI': 4}
         news_items.sort(key=lambda x: priority.get(x['category'], 99))
 
     except Exception as e:
-        print(f"RSS Error: {e}")
         news_items = [{'category': 'INFO', 'headline': 'SISTEM SEDANG DALAM PEMBARUAN DATA...', 'source': 'ADMIN'}]
         
     return news_items
@@ -88,7 +85,6 @@ def api_news_live():
 
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    # 🔥 MODE MAINTENANCE 🔥
     berita_awal = get_news_data()
     return render_template('maintenance.html', news_list=berita_awal)
 
