@@ -40,36 +40,44 @@ except Exception as e:
 
 # --- HELPER FORMAT WAKTU (WIB) ---
 def format_pub_date(published_parsed):
-    if not published_parsed: return datetime.now().strftime("%d %b, %H:%M WIB").upper()
+    if not published_parsed: return "LIVE"
     try:
-        # Feedparser mengembalikan waktu dalam UTC (struct_time)
-        # Kita konversi ke datetime object
-        dt_utc = datetime(*published_parsed[:6])
-        # Tambah 7 Jam untuk WIB
-        dt_wib = dt_utc + timedelta(hours=7)
-        return dt_wib.strftime("%d %b, %H:%M WIB").upper()
-    except:
+        # Konversi UTC struct_time ke datetime
+        dt_utc = datetime.fromtimestamp(time.mktime(published_parsed))
+        # Tambah 7 Jam (WIB) - sesuaikan jika server sudah WIB
+        now = datetime.now()
+        
+        # Hitung selisih
+        diff = now - dt_utc
+        seconds = diff.total_seconds()
+        minutes = int(seconds // 60)
+        hours = int(seconds // 3600)
+        
+        if hours >= 24: return dt_utc.strftime("%d %b").upper()
+        if hours > 0: return f"{hours} JAM LALU"
+        if minutes > 0: return f"{minutes} MNT LALU"
         return "BARU SAJA"
+    except:
+        return "LIVE"
 
 # --- FUNGSI BERITA ---
 def get_news_data():
     news_items = []
     seen_titles = set() 
 
-    # 1. PESAN NATARU (Prioritas Utama)
-    nataru_msg = 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, UTAMAKAN KESELAMATAN. GUNAKAN SABUK PENGAMAN & HELM SNI.'
+    # 1. PESAN NATARU (STATIS - TETAP PENTING)
     news_items.append({
         'category': 'HIMBAUAN',
-        'headline': nataru_msg,
+        'headline': 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, PATUHI RAMBU LALU LINTAS. KELUARGA MENANTI DI RUMAH.',
         'source': 'KORLANTAS POLRI',
-        'date': datetime.now().strftime("%d %b, %H:%M WIB")
+        'date': 'LIVE'
     })
-    seen_titles.add(nataru_msg)
 
-    # 2. SUMBER RSS
+    # 2. SUMBER RSS (Query Dipertajam & Disortir)
     sources = [
-        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=tol+jasa+marga+macet+terkini&hl=id&gl=ID&ceid=ID%3Aid'},
-        {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+indonesia&hl=id&gl=ID&ceid=ID:id'},
+        # Gunakan query spesifik "Macet Tol" agar dapat info lalin, bukan berita saham
+        {'cat': 'LALU LINTAS', 'src': 'INFO TOL', 'url': 'https://news.google.com/rss/search?q=macet+tol+terkini+indonesia&hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+terkini&hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'NASIONAL', 'src': 'ANTARA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'DAERAH', 'src': 'REGIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'TEKNOLOGI', 'src': 'INET', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'}
@@ -78,9 +86,15 @@ def get_news_data():
     try:
         for source in sources:
             feed = feedparser.parse(source['url'])
+            
+            # --- WAJIB SORTIR BERDASARKAN WAKTU TERBARU ---
+            # Google News kadang ngacak, kita paksa urutkan by published_parsed (Time)
+            if feed.entries:
+                feed.entries.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.localtime(0), reverse=True)
+
             count = 0
             for entry in feed.entries:
-                if count >= 3: break 
+                if count >= 3: break # Ambil 3 Teratas (Paling Baru)
                 
                 # Bersihkan Judul
                 raw_title = entry.title
@@ -96,18 +110,19 @@ def get_news_data():
                     'category': source['cat'],
                     'headline': clean_title.upper(), 
                     'source': src_name.upper(),
-                    'date': pub_date # Tanggal & Jam Spesifik
+                    'date': pub_date
                 })
                 seen_titles.add(clean_title)
                 count += 1
         
-        # Urutan: Himbauan -> Lalin -> Polri -> Nasional -> Daerah -> Tekno
+        # Urutan Prioritas Tampil
         prio = {'HIMBAUAN':0, 'LALU LINTAS':1, 'KEPOLISIAN':2, 'NASIONAL':3, 'DAERAH':4, 'TEKNOLOGI':5}
         news_items.sort(key=lambda x: prio.get(x['category'], 99))
 
     except Exception as e:
+        print(f"Error RSS: {e}")
         if not news_items:
-            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG OPTIMALISASI DATA...', 'source': 'ADMIN', 'date': 'SEKARANG'})
+            news_items.append({'category': 'INFO', 'headline': 'MENYINKRONKAN DATA TERBARU...', 'source': 'SYSTEM', 'date': 'LOADING'})
         
     return news_items
 
