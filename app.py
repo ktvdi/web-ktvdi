@@ -38,30 +38,31 @@ try:
 except Exception as e:
     print(f"Firebase Warn: {e}")
 
-# --- HELPER TIME AGO ---
 def get_time_ago(published_parsed):
     if not published_parsed: return "BARU SAJA"
     pub_dt = datetime.fromtimestamp(time.mktime(published_parsed))
     diff = datetime.now() - pub_dt
     seconds = diff.total_seconds()
-    minutes = int(seconds // 60)
     hours = int(seconds // 3600)
+    minutes = int(seconds // 60)
     if hours > 24: return pub_dt.strftime("%d/%m")
     if hours > 0: return f"{hours} JAM LALU"
     if minutes > 0: return f"{minutes} MNT LALU"
     return "BARU SAJA"
 
-# --- FUNGSI BERITA ---
 def get_news_data():
     news_items = []
-    
-    # 1. PESAN NATARU (Prioritas Utama)
+    seen_headlines = set() # Set untuk mencegah duplikasi
+
+    # 1. PESAN NATARU
+    nataru_msg = 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, UTAMAKAN KESELAMATAN. GUNAKAN SABUK PENGAMAN & HELM SNI. PATUHI RAMBU LALU LINTAS.'
     news_items.append({
         'category': 'HIMBAUAN',
-        'headline': 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, UTAMAKAN KESELAMATAN. JANGAN LUPA GUNAKAN SABUK PENGAMAN DAN HELM SNI. KELUARGA MENANTI DI RUMAH.',
+        'headline': nataru_msg,
         'source': 'KORLANTAS POLRI',
         'time': 'LIVE'
     })
+    seen_headlines.add(nataru_msg)
 
     # 2. SUMBER RSS
     sources = [
@@ -75,20 +76,22 @@ def get_news_data():
     try:
         for source in sources:
             feed = feedparser.parse(source['url'])
-            # Ambil 3 berita per kategori
-            for entry in feed.entries[:3]:
-                # Judul Bersih
+            count = 0
+            for entry in feed.entries:
+                if count >= 3: break # Max 3 berita per kategori
+                
                 clean_title = entry.title.split(' - ')[0]
                 
-                # Ambil Summary (Isi Berita) -> Clean HTML -> Ambil 1 Kalimat Pertama
+                # Cek Duplikasi
+                if clean_title in seen_headlines: continue
+                
                 raw_sum = entry.get('summary', '') or entry.get('description', '')
                 clean_sum = re.sub('<.*?>', '', html.unescape(raw_sum)).strip()
-                first_sentence = clean_sum.split('.')[0] if len(clean_sum) > 10 else ""
+                first_sentence = clean_sum.split('.')[0] if len(clean_sum) > 20 else ""
                 
-                # Gabung: JUDUL + 1 KALIMAT ISI (Agar panjang & informatif)
+                # Format: JUDUL KAPITAL. Kalimat pertama isi berita.
                 full_text = f"{clean_title}. {first_sentence}"
                 
-                # Metadata
                 src_name = entry.source.title if 'source' in entry else source['src']
                 t_ago = get_time_ago(entry.published_parsed)
 
@@ -98,8 +101,9 @@ def get_news_data():
                     'source': src_name.upper(),
                     'time': t_ago
                 })
+                seen_headlines.add(clean_title)
+                count += 1
         
-        # Urutan Prioritas Tampil
         prio = {'HIMBAUAN':0, 'LALU LINTAS':1, 'KEPOLISIAN':2, 'NASIONAL':3, 'DAERAH':4, 'TEKNOLOGI':5}
         news_items.sort(key=lambda x: prio.get(x['category'], 99))
 
@@ -115,7 +119,6 @@ def api_news_live(): return jsonify(get_news_data())
 @app.route("/", methods=['GET', 'POST'])
 def home(): return render_template('maintenance.html', news_list=get_news_data())
 
-# Dummies
 @app.route("/dashboard")
 def dashboard(): return redirect(url_for('home'))
 @app.route("/login")
