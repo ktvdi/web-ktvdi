@@ -3,265 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYSTEM STATUS - KTVDI</title>
+    <title>MAINTENANCE - KTVDI</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@500;600;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
-        /* --- RESET & VARIABLES --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
+        /* --- VARIABLES (KTVDI IDENTITY) --- */
         :root {
-            --primary: #00f3ff;
-            --secondary: #0051ff;
-            --alert: #ff9d00;
-            --bg-dark: #050505;
-            --glass: rgba(12, 12, 16, 0.85);
-            --border: rgba(0, 243, 255, 0.2);
+            --ktvdi-blue: #0062cc;       /* Biru Utama KTVDI */
+            --ktvdi-dark: #0a1018;       /* Background Gelap Profesional */
+            --ktvdi-card: rgba(15, 23, 35, 0.95); /* Card Semi Transparan */
+            --ktvdi-border: rgba(255, 255, 255, 0.15);
+            --text-white: #ffffff;
+            --text-muted: #b0b8c4;
+            --accent-green: #00c853;
+            --accent-yellow: #ffd600;
         }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Rajdhani', sans-serif;
-            background-color: var(--bg-dark);
-            background-image: url('https://iili.io/f1LoZfS.md.png');
+            font-family: 'Inter', sans-serif;
+            background-color: var(--ktvdi-dark);
+            /* Background Image tetap ada tapi dipergelap agar elegan */
+            background-image: linear-gradient(rgba(10, 16, 24, 0.9), rgba(10, 16, 24, 0.9)), url('https://iili.io/f1LoZfS.md.png');
             background-size: cover;
             background-position: center;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            color: #fff;
-            padding: 15px;
+            color: var(--text-white);
             overflow-x: hidden;
         }
 
-        /* EFFECTS */
-        .overlay-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.95) 90%);
-            z-index: 1; pointer-events: none;
+        /* --- 1. TOP BAR: PRAYER TIMES (FLIP) --- */
+        .prayer-bar {
+            width: 100%;
+            background: linear-gradient(90deg, #004085, #0056b3);
+            color: white;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 100;
         }
-        .scanlines {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
-            background-size: 100% 4px;
-            z-index: 2; pointer-events: none;
+        
+        .prayer-content {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            gap: 10px;
+            animation: fadeIn 0.5s ease-in-out;
         }
 
-        /* MAIN DASHBOARD */
-        .dashboard {
-            position: relative; z-index: 10;
-            width: 100%; max-width: 850px;
-            background: var(--glass);
-            border: 1px solid var(--border);
-            border-top: 4px solid var(--secondary);
+        .prayer-icon { color: #ffd700; margin-right: 5px; }
+
+        /* --- 2. MAIN CONTAINER --- */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* --- 3. CARD STYLE (PROFESIONAL) --- */
+        .card {
+            background: var(--ktvdi-card);
+            border: 1px solid var(--ktvdi-border);
             border-radius: 8px;
-            box-shadow: 0 0 50px rgba(0, 81, 255, 0.15);
-            backdrop-filter: blur(15px);
             padding: 25px;
-            display: flex; flex-direction: column; gap: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Aksen garis biru di atas card */
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: var(--ktvdi-blue);
         }
 
-        /* HEADER */
-        .header { text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
-        .logo-img { width: 90px; filter: drop-shadow(0 0 10px var(--secondary)); margin-bottom: 10px; }
+        /* Logo & Header */
+        .logo-img { width: 100px; margin-bottom: 15px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+        
         h1 {
-            font-family: 'Orbitron', sans-serif; font-size: 2rem;
-            background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-transform: uppercase; letter-spacing: 2px; margin: 0;
+            font-size: 2rem; font-weight: 800; margin-bottom: 5px; letter-spacing: 1px;
+            color: white; text-transform: uppercase;
         }
-        .subtitle { color: var(--secondary); font-weight: 700; letter-spacing: 3px; font-size: 0.8rem; margin-top: 5px; }
+        .subtitle { color: var(--ktvdi-blue); font-weight: 700; font-size: 0.9rem; letter-spacing: 1.5px; margin-bottom: 20px; }
 
-        /* ALERT BOX */
+        /* ALERT BOX (Formal) */
         .alert-box {
-            background: rgba(255, 157, 0, 0.08);
-            border: 1px solid rgba(255, 157, 0, 0.3);
-            border-left: 4px solid var(--alert);
-            border-radius: 4px; padding: 15px;
-            display: flex; align-items: start; gap: 15px;
+            background: rgba(0, 98, 204, 0.1);
+            border: 1px solid rgba(0, 98, 204, 0.3);
+            border-radius: 6px;
+            padding: 15px;
+            display: flex; align-items: start; gap: 15px; text-align: left;
         }
-        .alert-icon { font-size: 1.4rem; color: var(--alert); margin-top: 3px; }
-        .alert-content h3 { color: var(--alert); font-size: 1rem; margin-bottom: 5px; text-transform: uppercase; }
-        .alert-content p { color: #ccc; font-size: 0.95rem; line-height: 1.4; }
+        .alert-icon { font-size: 1.5rem; color: var(--ktvdi-blue); margin-top: 2px; }
+        .alert-text h3 { color: var(--ktvdi-blue); font-size: 1rem; margin-bottom: 4px; font-weight: 700; }
+        .alert-text p { color: #ccc; font-size: 0.9rem; line-height: 1.5; }
 
         /* COUNTDOWN */
-        .countdown-wrap { text-align: center; }
-        .cd-head { font-size: 0.75rem; letter-spacing: 2px; color: #666; margin-bottom: 10px; text-transform: uppercase; }
+        .cd-wrapper { margin: 15px 0; }
+        .cd-title { font-size: 0.75rem; color: #888; letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; }
         .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .cd-item {
-            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);
-            padding: 10px; border-radius: 6px; position: relative;
-        }
-        .cd-val { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; color: #fff; display: block; }
-        .cd-lbl { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-top: 2px; display: block; }
+        .cd-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; }
+        .cd-val { font-family: 'Roboto Mono', monospace; font-size: 1.8rem; font-weight: 700; color: white; display: block; }
+        .cd-lbl { font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
 
-        /* DATA GRID */
+        /* INFO GRID */
         .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-        .info-card {
-            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
-            padding: 10px; border-radius: 6px; text-align: center; position: relative; overflow: hidden;
+        .info-item {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px; padding: 12px; position: relative;
         }
-        .info-label { font-size: 0.7rem; color: #666; letter-spacing: 1px; display: block; margin-bottom: 4px; position: relative; z-index: 2; }
-        .info-val { font-size: 1rem; font-weight: 700; color: var(--primary); font-family: 'Rajdhani', sans-serif; position: relative; z-index: 2; }
-        .green { color: #0f0; } .yellow { color: #ff0; }
+        .info-label { font-size: 0.7rem; color: #888; text-transform: uppercase; display: block; margin-bottom: 5px; letter-spacing: 0.5px; }
+        .info-val { font-family: 'Roboto Mono', monospace; font-size: 1rem; color: white; font-weight: 600; }
+        .green-text { color: var(--accent-green); }
 
         /* BATERAI STRIP */
-        .battery-bg {
-            position: absolute; top:0; left:0; bottom:0; width: 0%; z-index: 1;
-            background: repeating-linear-gradient(
-                45deg,
-                rgba(255,255,255,0.1),
-                rgba(255,255,255,0.1) 10px,
-                rgba(0,255,0,0.15) 10px,
-                rgba(0,255,0,0.15) 20px
-            );
-            border-right: 2px solid rgba(255,255,255,0.3);
-            transition: width 1s ease;
+        .battery-card { grid-column: span 4; overflow: hidden; position: relative; background: rgba(0,0,0,0.3); }
+        .battery-bar {
+            position: absolute; top:0; left:0; height: 100%; width: 0%; z-index: 0;
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 10px, transparent 10px, transparent 20px);
+            background-color: rgba(0, 98, 204, 0.3); /* Default Blue base */
+            transition: width 1s ease; border-right: 2px solid rgba(255,255,255,0.3);
         }
+        .bar-ok { background-color: rgba(0, 200, 83, 0.4); border-right-color: #00c853; }
+        .bar-warn { background-color: rgba(255, 214, 0, 0.4); border-right-color: #ffd600; }
+        .bar-low { background-color: rgba(255, 23, 68, 0.4); border-right-color: #ff1744; }
+        .battery-content { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
 
-        /* --- VERTICAL NEWS TICKER (FLIP) --- */
+        /* --- 4. NEWS TICKER (BOTTOM FLIP) --- */
         .news-container {
-            background: #000; border: 1px solid #333; border-radius: 6px;
-            height: 70px; /* Tinggi fix untuk 2 baris teks */
-            display: flex; align-items: center; overflow: hidden; position: relative;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            display: flex; height: 60px; background: black; border-radius: 6px;
+            overflow: hidden; border: 1px solid #333; margin-top: auto;
         }
-        
         .news-label {
-            background: var(--secondary); color: #fff; width: 100px; height: 100%;
+            background: var(--ktvdi-blue); color: white; width: 110px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 0.75rem; z-index: 5; text-align: center;
-            border-right: 1px solid #444; box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            font-size: 0.75rem; font-weight: 800; z-index: 2; text-align: center;
         }
-        .news-label i { font-size: 1.2rem; margin-bottom: 2px; }
-
         .news-viewport {
-            flex: 1; height: 100%; position: relative; overflow: hidden;
-            display: flex; align-items: center; padding: 0 20px;
-        }
-
-        /* Item Berita */
-        .ticker-item {
-            position: absolute; width: 100%; 
-            display: flex; flex-direction: column; justify-content: center;
-            opacity: 0; transform: translateY(30px); transition: all 0.5s ease-in-out;
-            padding-right: 20px;
+            flex: 1; position: relative; overflow: hidden; background: #0f1216;
         }
         
-        /* Kelas untuk animasi JS */
-        .ticker-item.active { opacity: 1; transform: translateY(0); }
-        .ticker-item.exit { opacity: 0; transform: translateY(-30px); }
-
-        .news-cat {
-            display: inline-block; font-size: 0.65rem; font-weight: 800; 
-            padding: 2px 6px; border-radius: 2px; color: #000; width: fit-content; margin-bottom: 4px;
+        .news-slide {
+            position: absolute; width: 100%; height: 100%;
+            display: flex; align-items: center; padding: 0 20px;
+            opacity: 0; transform: translateY(30px); transition: all 0.5s ease;
         }
-        .cat-NASIONAL { background: #00f3ff; }
-        .cat-OLAHRAGA { background: #00ff66; }
-        .cat-TEKNOLOGI { background: #d400ff; }
-        .cat-DAERAH { background: #ffaa00; }
-        .cat-SYSTEM { background: #fff; }
+        .news-slide.active { opacity: 1; transform: translateY(0); }
+        .news-slide.exit { opacity: 0; transform: translateY(-30px); }
 
-        .news-text {
-            font-family: 'Roboto', sans-serif; font-size: 0.9rem; color: #fff; 
-            line-height: 1.3; font-weight: 400;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        .cat-tag {
+            font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; color: #fff; font-weight: 700;
+            margin-right: 12px; text-transform: uppercase; letter-spacing: 0.5px;
         }
+        /* Warna Tag Berita */
+        .bg-NASIONAL { background: #0062cc; }
+        .bg-KEPOLISIAN { background: #4e342e; border: 1px solid #8d6e63; }
+        .bg-OLAHRAGA { background: #2e7d32; }
+        .bg-TEKNOLOGI { background: #6a1b9a; }
+        .bg-DAERAH { background: #ef6c00; }
+        .bg-SYSTEM { background: #424242; }
+
+        .news-title { font-size: 0.95rem; color: white; font-weight: 600; text-transform: uppercase; }
+        .news-source { color: #888; margin-left: 8px; font-weight: 400; font-size: 0.85rem; }
 
         /* FOOTER */
-        .footer { text-align: center; font-size: 0.8rem; color: #555; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
-        .adm-btn { color: var(--primary); text-decoration: none; font-weight: 700; transition: 0.3s; }
-        .adm-btn:hover { text-shadow: 0 0 10px var(--primary); }
+        .footer { text-align: center; font-size: 0.8rem; color: #666; margin: 20px 0; }
 
-        /* RESPONSIVE */
+        /* KEYFRAMES */
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        /* --- RESPONSIVE --- */
         @media (max-width: 768px) {
             .info-grid { grid-template-columns: 1fr 1fr; }
-            h1 { font-size: 1.6rem; }
+            .battery-card { grid-column: span 2; }
         }
         @media (max-width: 480px) {
-            .dashboard { padding: 15px; gap: 15px; }
-            h1 { font-size: 1.4rem; }
-            .cd-val { font-size: 1.4rem; }
-            .news-label { width: 70px; font-size: 0.65rem; }
-            .news-text { font-size: 0.8rem; }
-            .alert-box { flex-direction: column; gap: 8px; }
-            
-            /* Baterai Full Width */
-            .info-card:nth-child(5) { grid-column: span 2; }
+            .main-container { padding: 15px; gap: 15px; }
+            h1 { font-size: 1.5rem; }
+            .cd-val { font-size: 1.5rem; }
+            .info-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .news-label { width: 80px; font-size: 0.65rem; }
+            .news-title { font-size: 0.8rem; }
+            .alert-box { flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="scanlines"></div>
-    <div class="overlay-bg"></div>
-
-    <div class="dashboard">
-        <div class="header">
-            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="logo-img">
-            <h1>SYSTEM MAINTENANCE</h1>
-            <div class="subtitle">PENINGKATAN KUALITAS LAYANAN</div>
+    <div class="prayer-bar">
+        <div class="prayer-content" id="prayer-display">
+            <i class="fas fa-mosque prayer-icon"></i> MEMUAT JADWAL SHOLAT...
         </div>
+    </div>
 
-        <div class="alert-box">
-            <i class="fas fa-tools alert-icon"></i>
-            <div class="alert-content">
-                <h3>OPTIMALISASI JARINGAN</h3>
-                <p>Saat ini sedang dilakukan sinkronisasi infrastruktur dengan <b>ISP NEXA</b> untuk meningkatkan stabilitas koneksi. Layanan akan kembali normal sesaat lagi.</p>
+    <div class="main-container">
+        
+        <div class="card">
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="logo-img">
+            <h1>PEMELIHARAAN SISTEM</h1>
+            <div class="subtitle">PENINGKATAN KUALITAS & KEAMANAN SISTEM</div>
+
+            <div class="alert-box">
+                <i class="fas fa-server alert-icon"></i>
+                <div class="alert-text">
+                    <h3>OPTIMALISASI INFRASTRUKTUR JARINGAN</h3>
+                    <p>Mohon maaf atas ketidaknyamanannya. Saat ini kami sedang melakukan pembaruan keamanan dan peningkatan kapasitas server untuk menjamin layanan yang lebih stabil dan cepat. Layanan KTVDI akan segera kembali normal.</p>
+                </div>
             </div>
         </div>
 
-        <div class="countdown-wrap">
-            <div class="cd-head">MENUJU ERA BARU 2026</div>
-            <div class="cd-grid">
-                <div class="cd-item"><span class="cd-val" id="d">00</span><span class="cd-lbl">HARI</span></div>
-                <div class="cd-item"><span class="cd-val" id="h">00</span><span class="cd-lbl">JAM</span></div>
-                <div class="cd-item"><span class="cd-val" id="m">00</span><span class="cd-lbl">MENIT</span></div>
-                <div class="cd-item"><span class="cd-val" id="s">00</span><span class="cd-lbl">DETIK</span></div>
+        <div class="card" style="padding: 15px;">
+            <div class="cd-wrapper">
+                <div class="cd-title">MENUJU ERA BARU 2026</div>
+                <div class="cd-grid">
+                    <div class="cd-item"><span class="cd-val" id="d">00</span><span class="cd-lbl">HARI</span></div>
+                    <div class="cd-item"><span class="cd-val" id="h">00</span><span class="cd-lbl">JAM</span></div>
+                    <div class="cd-item"><span class="cd-val" id="m">00</span><span class="cd-lbl">MENIT</span></div>
+                    <div class="cd-item"><span class="cd-val" id="s">00</span><span class="cd-lbl">DETIK</span></div>
+                </div>
             </div>
         </div>
 
         <div class="info-grid">
-            <div class="info-card">
+            <div class="info-item">
                 <span class="info-label">WAKTU (WIB)</span>
-                <span class="info-val" id="clock">00.00</span>
+                <span class="info-val" id="clock">00:00:00</span>
             </div>
-            <div class="info-card">
+            <div class="info-item">
                 <span class="info-label">LOKASI</span>
-                <span class="info-val green" id="loc">...</span>
+                <span class="info-val green-text" id="loc">...</span>
             </div>
-            <div class="info-card">
+            <div class="info-item">
                 <span class="info-label">PROVIDER</span>
-                <span class="info-val green" id="isp">...</span>
+                <span class="info-val green-text" id="isp">...</span>
             </div>
-            <div class="info-card">
+            <div class="info-item">
                 <span class="info-label">PERANGKAT</span>
                 <span class="info-val" id="dev">...</span>
             </div>
-            <div class="info-card" style="grid-column: span 4;">
-                <div class="battery-bg" id="bat-bar"></div>
-                <span class="info-label">DAYA PERANGKAT</span>
-                <span class="info-val yellow" id="bat-txt">--%</span>
+            
+            <div class="info-item battery-card">
+                <div class="battery-bar" id="bat-bar"></div>
+                <div class="battery-content">
+                    <div>
+                        <span class="info-label">DAYA PERANGKAT</span>
+                        <span class="info-val" id="bat-txt">--%</span>
+                    </div>
+                    <i class="fas fa-bolt" style="color: #ffd700;" id="bat-icon"></i>
+                </div>
             </div>
         </div>
 
         <div class="news-container">
             <div class="news-label">
-                <i class="fas fa-broadcast-tower"></i><br>LIVE INFO
+                <i class="fas fa-newspaper"></i><br>UPDATE
             </div>
-            <div class="news-viewport" id="news-wrapper">
-                <div class="ticker-item active">
-                    <span class="news-cat cat-SYSTEM">SYSTEM</span>
-                    <span class="news-text">MENGHUBUNGKAN KE SATELIT BERITA... MOHON TUNGGU.</span>
+            <div class="news-viewport" id="news-viewport">
+                <div class="news-slide active">
+                    <span class="cat-tag bg-SYSTEM">SYSTEM</span>
+                    <span class="news-title">MENGHUBUNGKAN KE SERVER BERITA...</span>
                 </div>
             </div>
         </div>
 
         <div class="footer">
-            &copy; 2025 Komunitas TV Digital Indonesia.<br>
-            <a href="https://instagram.com/ktvdi.id" class="adm-btn">HUBUNGI ADMIN</a>
+            &copy; 2025 Komunitas TV Digital Indonesia.
         </div>
     </div>
 
@@ -270,121 +292,160 @@
     </script>
 
     <script>
-        // --- 1. COUNTDOWN 2026 ---
-        function updateCD() {
-            const target = new Date("Jan 1, 2026 00:00:00").getTime();
-            const now = new Date().getTime();
-            const d = target - now;
-            if(d>0){
-                document.getElementById("d").innerText=Math.floor(d/(1000*60*60*24));
-                document.getElementById("h").innerText=Math.floor((d%(1000*60*60*24))/(1000*60*60));
-                document.getElementById("m").innerText=Math.floor((d%(1000*60*60))/(1000*60));
-                document.getElementById("s").innerText=Math.floor((d%(1000*60))/1000);
+        // --- 1. JADWAL SHOLAT (FLIP) ---
+        // Daftar Kota (Ibukota Provinsi + Request Khusus)
+        const cities = [
+            "Jakarta", "Pekalongan", "Purwodadi", "Surabaya", "Bandung", "Semarang", "Medan", 
+            "Makassar", "Denpasar", "Jayapura", "Palembang", "Samarinda"
+        ];
+        
+        async function fetchPrayerTimes() {
+            const today = new Date();
+            const dateStr = `${today.getDate()}-${today.getMonth()+1}-${today.getFullYear()}`;
+            let prayerList = [];
+
+            // Kita ambil beberapa kota saja untuk demo agar tidak terlalu berat (Rate Limit API)
+            // Mengambil 4 kota acak dari daftar setiap kali refresh agar variatif
+            const selectedCities = cities.sort(() => 0.5 - Math.random()).slice(0, 4);
+            // Pastikan Pekalongan & Purwodadi selalu ada
+            if(!selectedCities.includes("Pekalongan")) selectedCities.push("Pekalongan");
+            if(!selectedCities.includes("Purwodadi")) selectedCities.push("Purwodadi");
+
+            const display = document.getElementById('prayer-display');
+            
+            // Loop fetch data
+            for (const city of selectedCities) {
+                try {
+                    const res = await fetch(`https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${city}&country=Indonesia&method=20`);
+                    const data = await res.json();
+                    const times = data.data.timings;
+                    prayerList.push({
+                        city: city.toUpperCase(),
+                        imsak: times.Imsak,
+                        maghrib: times.Maghrib,
+                        isya: times.Isha
+                    });
+                } catch(e) {}
+            }
+
+            // Logic Flip Text Sholat
+            if(prayerList.length > 0) {
+                let idx = 0;
+                setInterval(() => {
+                    const item = prayerList[idx];
+                    // Efek Fade Out
+                    display.style.opacity = 0;
+                    setTimeout(() => {
+                        display.innerHTML = `<i class="fas fa-clock prayer-icon"></i> ${item.city} : IMSAK ${item.imsak} | MAGHRIB ${item.maghrib} | ISYA ${item.isya}`;
+                        display.style.opacity = 1;
+                    }, 500);
+                    idx = (idx + 1) % prayerList.length;
+                }, 5000); // Ganti tiap 5 detik
+            } else {
+                display.innerText = "JADWAL SHOLAT TIDAK TERSEDIA (OFFLINE)";
             }
         }
-        setInterval(updateCD, 1000); updateCD();
+        fetchPrayerTimes();
 
-        // --- 2. JAM WIB ---
-        setInterval(()=>{
-            const now = new Date();
-            document.getElementById("clock").innerText = now.toLocaleTimeString('id-ID', {timeZone:'Asia/Jakarta', hour:'2-digit', minute:'2-digit'});
+
+        // --- 2. COUNTDOWN 2026 ---
+        setInterval(() => {
+            const diff = new Date("Jan 1, 2026 00:00:00").getTime() - new Date().getTime();
+            if(diff>0){
+                document.getElementById("d").innerText=Math.floor(diff/(864e5));
+                document.getElementById("h").innerText=Math.floor((diff%(864e5))/(36e5));
+                document.getElementById("m").innerText=Math.floor((diff%(36e5))/(6e4));
+                document.getElementById("s").innerText=Math.floor((diff%(6e4))/1e3);
+            }
         }, 1000);
 
-        // --- 3. ISP & LOKASI (API) ---
+        // --- 3. CLOCK (00:00:00) ---
+        setInterval(() => {
+            document.getElementById("clock").innerText = new Date().toLocaleTimeString('id-ID', {hour12:false});
+        }, 1000);
+
+        // --- 4. DEVICE INFO ---
         fetch('https://ipapi.co/json/').then(r=>r.json()).then(d=>{
             document.getElementById("loc").innerText = (d.city||"Unknown").toUpperCase();
             document.getElementById("isp").innerText = (d.org||"Unknown").toUpperCase();
-        }).catch(()=>{ 
-            document.getElementById("loc").innerText = "LOCAL";
-            document.getElementById("isp").innerText = "OFFLINE";
-        });
+        }).catch(()=>{ document.getElementById("loc").innerText="OFFLINE"; document.getElementById("isp").innerText="OFFLINE"; });
 
-        // --- 4. DEVICE ---
         const ua = navigator.userAgent;
-        let dev = "PC/LAPTOP";
-        if(/Android/i.test(ua)) dev="ANDROID";
-        else if(/iPhone/i.test(ua)) dev="IPHONE";
-        document.getElementById("dev").innerText=dev;
+        let d = "PC/LAPTOP";
+        if(/Android/i.test(ua)) d="HP ANDROID";
+        else if(/iPhone/i.test(ua)) d="IPHONE";
+        document.getElementById("dev").innerText=d;
 
-        // --- 5. BATERAI (STRIP GARIS) ---
+        // --- 5. BATERAI (STRIP & WARNA) ---
         if(navigator.getBattery){
             navigator.getBattery().then(b=>{
                 function up(){
                     const l = Math.round(b.level*100);
-                    const c = b.charging?"⚡":"";
-                    document.getElementById("bat-txt").innerText=`${l}% ${c}`;
-                    document.getElementById("bat-bar").style.width=`${l}%`;
+                    const t = document.getElementById("bat-txt");
+                    const bar = document.getElementById("bat-bar");
+                    
+                    t.innerText = `${l}% ${b.charging?"(CAS)":""}`;
+                    bar.style.width = `${l}%`;
+                    
+                    bar.className = 'battery-bar'; // Reset
+                    if(l>50) bar.classList.add('bar-ok');
+                    else if(l>20) bar.classList.add('bar-warn');
+                    else bar.classList.add('bar-low');
+                    
+                    document.getElementById("bat-icon").style.display = b.charging ? 'block' : 'none';
                 }
                 up(); b.addEventListener('levelchange',up); b.addEventListener('chargingchange',up);
             });
-        } else {
-            document.getElementById("bat-txt").innerText="AC POWER";
-            document.getElementById("bat-bar").style.width="100%";
         }
 
-        // --- 6. VERTICAL NEWS TICKER LOGIC ---
-        // Ambil data dari Python yang sudah di-pass ke script tag
+        // --- 6. NEWS FLIP (BOTTOM) ---
         let newsData = [];
-        try {
-            newsData = JSON.parse(document.getElementById('news-data').textContent);
-        } catch(e) { console.log("No news data"); }
+        try { newsData = JSON.parse(document.getElementById('news-data').textContent); } catch(e){}
 
-        if (newsData.length > 0) {
-            const wrapper = document.getElementById('news-wrapper');
-            let currentIndex = 0;
+        if(newsData.length > 0) {
+            const vp = document.getElementById('news-viewport');
+            let cIdx = 0;
 
-            function renderNews() {
-                wrapper.innerHTML = ''; // Clear awal
+            // Render awal function
+            function showSlide(idx) {
+                vp.innerHTML = '';
+                const item = newsData[idx];
+                const div = document.createElement('div');
+                div.className = 'news-slide active';
                 
-                // Buat semua elemen tapi sembunyikan (kecuali index 0)
-                newsData.forEach((item, index) => {
-                    const div = document.createElement('div');
-                    div.className = `ticker-item ${index === 0 ? 'active' : ''}`;
-                    
-                    let catColor = 'cat-SYSTEM';
-                    if(item.category=='NASIONAL') catColor='cat-NASIONAL';
-                    if(item.category=='OLAHRAGA') catColor='cat-OLAHRAGA';
-                    if(item.category=='TEKNOLOGI') catColor='cat-TEKNOLOGI';
-                    if(item.category=='DAERAH') catColor='cat-DAERAH';
+                // Warna Tag
+                let bg = 'bg-SYSTEM';
+                if(item.category=='NASIONAL') bg='bg-NASIONAL';
+                if(item.category=='OLAHRAGA') bg='bg-OLAHRAGA';
+                if(item.category=='TEKNOLOGI') bg='bg-TEKNOLOGI';
+                if(item.category=='DAERAH') bg='bg-DAERAH';
+                if(item.category=='KEPOLISIAN') bg='bg-KEPOLISIAN';
 
-                    div.innerHTML = `
-                        <span class="news-cat ${catColor}">${item.category}</span>
-                        <span class="news-text">${item.content}</span>
-                    `;
-                    wrapper.appendChild(div);
-                });
+                div.innerHTML = `
+                    <span class="cat-tag ${bg}">${item.category}</span>
+                    <span class="news-title">${item.headline}</span>
+                    <span class="news-source">- ${item.source}</span>
+                `;
+                vp.appendChild(div);
             }
+            
+            showSlide(0);
 
-            renderNews();
-
-            // Logic Flip Naik Turun
+            // Interval Ganti Berita
             setInterval(() => {
-                const items = document.querySelectorAll('.ticker-item');
-                const currentItem = items[currentIndex];
+                const current = vp.querySelector('.news-slide');
+                if(current) {
+                    current.classList.remove('active');
+                    current.classList.add('exit');
+                }
                 
-                // Animasi Keluar (Naik ke atas)
-                currentItem.classList.remove('active');
-                currentItem.classList.add('exit');
-
-                // Siapkan Index Berikutnya
-                currentIndex = (currentIndex + 1) % items.length;
-                const nextItem = items[currentIndex];
-
-                // Reset state element yg akan masuk (hapus class exit jika ada)
-                nextItem.classList.remove('exit');
+                cIdx = (cIdx + 1) % newsData.length;
                 
-                // Animasi Masuk (Dari bawah)
-                // Sedikit delay agar transisi CSS smooth
                 setTimeout(() => {
-                   nextItem.classList.add('active');
-                }, 50);
-
-                // Cleanup class exit setelah animasi selesai agar siap dipanggil lagi nanti
-                setTimeout(() => {
-                    currentItem.classList.remove('exit');
-                }, 600); // Sesuai durasi CSS transition 0.5s
-
-            }, 6000); // Ganti berita setiap 6 detik (Standar baca)
+                    showSlide(cIdx); // Render baru akan otomatis active (karena css animasi)
+                }, 500); // Tunggu animasi exit
+                
+            }, 6000); // 6 detik per berita
         }
     </script>
 </body>
