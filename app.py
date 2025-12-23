@@ -56,52 +56,49 @@ mail = Mail(app)
 # --- 4. KONEKSI AI (GEMINI) ---
 if os.environ.get("GEMINI_APP_KEY"):
     genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
-    model = genai.GenerativeModel("gemini-2.5-flash", system_instruction="Anda adalah Asisten KTVDI. Jawab singkat dan sopan.")
+    model = genai.GenerativeModel("gemini-2.5-flash")
 else:
     model = None
 
 # --- 5. FUNGSI BANTUAN ---
-def get_news_data():
-    """Mengambil Berita Nasional DAN Sport dengan format standar"""
-    news_items = []
-    try:
-        # Feed Nasional
-        feed_nas = feedparser.parse('https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid')
-        for entry in feed_nas.entries[:7]:
-            # PENTING: Gunakan key 'headline' dan 'category' yang konsisten
-            news_items.append({'category': 'NASIONAL', 'headline': entry.title})
+def clean_html(raw_html):
+    """Membersihkan tag HTML dari deskripsi berita"""
+    cleanr = re.compile('<.*?>')
+    cleantext = re.sub(cleanr, '', raw_html)
+    return cleantext[:100] + "..." # Ambil 100 karakter pertama saja
 
-        # Feed Sport
-        feed_sport = feedparser.parse('https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1ZEdvU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid')
-        for entry in feed_sport.entries[:7]: 
-            news_items.append({'category': 'SPORT', 'headline': entry.title})
+def get_news_data():
+    """Mengambil Berita (Nasional, Sport, Tekno, Daerah) + Snippet"""
+    news_items = []
+    
+    # Daftar Sumber RSS (Google News Topics)
+    sources = [
+        {'cat': 'NASIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'TEKNOLOGI', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'OLAHRAGA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1ZEdvU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'DAERAH', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'}
+    ]
+
+    try:
+        for source in sources:
+            feed = feedparser.parse(source['url'])
+            # Ambil 3 berita per kategori agar variatif
+            for entry in feed.entries[:3]:
+                snippet = clean_html(entry.get('summary', '') or entry.get('description', ''))
+                news_items.append({
+                    'category': source['cat'],
+                    'headline': entry.title,
+                    'snippet': snippet
+                })
             
-        random.shuffle(news_items)
+        random.shuffle(news_items) # Acak urutan berita
     except:
-        news_items = [{'category': 'SYSTEM', 'headline': 'Menunggu pembaruan data dari server...'}]
+        news_items = [{'category': 'SYSTEM', 'headline': 'Menunggu pembaruan data dari server...', 'snippet': 'Sedang menghubungkan...'}]
         
     return news_items
 
-def get_bmkg_gempa():
-    try:
-        resp = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.json", timeout=3)
-        if resp.status_code == 200:
-            data = resp.json()['Infogempa']['gempa']
-            data['Tanggal'] = f"{data['Tanggal']}, {data['Jam']}"
-            return data
-    except: return None
-    return None
-
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
-
-def time_since_published(published_time):
-    now = datetime.now()
-    publish_time = datetime(*published_time[:6])
-    delta = now - publish_time
-    if delta.days >= 1: return f"{delta.days} hari lalu"
-    if delta.seconds >= 3600: return f"{delta.seconds // 3600} jam lalu"
-    return "Baru saja"
 
 # --- 6. ROUTE API LIVE UPDATE ---
 @app.route('/api/news-live')
@@ -121,11 +118,8 @@ def home():
     
     # KODE ASLI DI BAWAH INI NON-AKTIF SEMENTARA
     if request.method == 'POST':
-        # ... logic chatbot ...
         pass
-    
-    # ... logic dashboard ...
-    return render_template('index.html', ...)
+    return render_template('index.html')
 
 # --- 8. ROUTE LAINNYA ---
 @app.route("/daftar-siaran")
@@ -135,21 +129,10 @@ def daftar_siaran():
     return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
 
 @app.route('/berita')
-def berita():
-    try:
-        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
-        articles = feed.entries[:5]
-        for a in articles:
-            if 'published_parsed' in a: a.time_since_published = time_since_published(a.published_parsed)
-        return render_template('berita.html', articles=articles, page=1, total_pages=1)
-    except: return render_template('berita.html', articles=[], page=1, total_pages=1)
+def berita(): return render_template('berita.html', articles=[], page=1, total_pages=1)
 
 @app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        # ... logic login ...
-        pass
-    return render_template('login.html')
+def login(): return render_template('login.html')
 
 @app.route('/logout')
 def logout():
@@ -165,9 +148,7 @@ def verify_register(): return render_template("verify-register.html")
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
-    try: p_list = list(db.reference("provinsi").get().values())
-    except: p_list = []
-    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=p_list)
+    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=[])
 
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data(): return redirect(url_for('dashboard')) 
