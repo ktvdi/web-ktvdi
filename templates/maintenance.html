@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Maintenance - KTVDI</title>
+    <title>SEDANG PERBAIKAN - KTVDI</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -63,7 +63,6 @@
             text-transform: uppercase;
         }
 
-        /* DEFAULT NEXA ALERT */
         .alert-box {
             background: #ffebee;
             color: #c62828;
@@ -73,7 +72,6 @@
             margin-bottom: 25px;
         }
 
-        /* --- CLOCK --- */
         .clock-box {
             background: #2c3e50;
             color: #00d2d3;
@@ -115,10 +113,14 @@
         .marquee-content {
             display: inline-block;
             padding-left: 100%;
-            /* Pastikan animasi jalan, durasi 40s agar terlihat gerak */
-            animation: scroll-left 40s linear infinite; 
+            /* Animasi diatur lewat class di JavaScript agar tidak macet */
         }
         
+        /* Class khusus untuk menjalankan animasi */
+        .run-animation {
+            animation: scroll-left 45s linear infinite; 
+        }
+
         .marquee-content span {
             font-size: 1rem;
             margin-right: 50px;
@@ -136,15 +138,14 @@
             font-weight: bold;
         }
         
-        /* Badge Khusus Bahaya */
         .news-badge.danger {
             background: yellow; color: red; animation: blink 0.5s infinite;
         }
 
         /* --- EMERGENCY MODE (ACTIVE) --- */
         body.emergency-mode .overlay-bg {
-            background: rgba(100, 0, 0, 0.9); /* Merah Gelap */
-            animation: red-flash 1s infinite alternate;
+            background: rgba(100, 0, 0, 0.9);
+            animation: red-flash 0.5s infinite alternate;
         }
 
         body.emergency-mode .maintenance-card {
@@ -172,7 +173,10 @@
         }
 
         /* Keyframes */
-        @keyframes scroll-left { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        @keyframes scroll-left { 
+            0% { transform: translateX(0); } 
+            100% { transform: translateX(-100%); } 
+        }
         @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         @keyframes red-flash { from { background: rgba(80, 0, 0, 0.85); } to { background: rgba(180, 0, 0, 0.95); } }
@@ -198,7 +202,6 @@
         }
         .ig-link:hover { transform: scale(1.05); }
 
-        /* Responsive */
         @media (max-width: 480px) {
             .maintenance-card { padding: 25px 15px; width: 95%; }
             h1 { font-size: 1.5rem; }
@@ -232,7 +235,7 @@
 
         <div class="news-container" id="news-container">
             <div class="news-wrapper">
-                <div class="marquee-content" id="marquee-text">
+                <div class="marquee-content run-animation" id="marquee-text">
                     {% if news_list %}
                         {% for berita in news_list %}
                             <span><span class="news-badge">NASIONAL</span> {{ berita }}</span>
@@ -252,6 +255,10 @@
         </div>
     </div>
 
+    <audio id="alarm-sound" loop>
+        <source src="https://assets.mixkit.co/active_storage/sfx/995/995-preview.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
         // 1. UPDATE JAM
         function updateClock() {
@@ -265,16 +272,14 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        // VARIABLE PENGONTROL AGAR TIDAK SPAM WARNING
         let isEmergencyShownRecently = false; 
 
-        // 2. FUNGSI CEK & TRIGGER WARNING
+        // 2. FUNGSI CEK & TRIGGER WARNING (DURASI 10 DETIK)
         function checkEmergencyWords(newsArray) {
             const keywords = ['gempa', 'laka', 'kecelakaan', 'tabrakan', 'tewas', 'meninggal'];
             let isEmergency = false;
             const fullText = newsArray.join(' ').toLowerCase();
 
-            // Cek kata kunci
             for (let key of keywords) {
                 if (fullText.includes(key)) {
                     isEmergency = true;
@@ -282,7 +287,7 @@
                 }
             }
 
-            // JIKA DARURAT DAN BELUM DITAMPILKAN BARU-BARU INI
+            // Trigger Warning jika ada bahaya & belum ditampilkan baru-baru ini
             if (isEmergency && !isEmergencyShownRecently) {
                 activateEmergencyMode();
             }
@@ -292,11 +297,11 @@
             const body = document.body;
             const title = document.getElementById('page-title');
             const alertBox = document.getElementById('nexa-alert');
+            const audio = document.getElementById('alarm-sound');
             
-            // Tandai sedang tampil
             isEmergencyShownRecently = true;
 
-            // UBAH TAMPILAN KE MERAH (DARURAT)
+            // UBAH TAMPILAN JADI MERAH
             body.classList.add('emergency-mode');
             title.innerText = "⚠ BREAKING NEWS ⚠";
             alertBox.innerHTML = `
@@ -304,18 +309,26 @@
                 <p>Terdeteksi informasi Gempa/Kecelakaan dalam berita terkini. Harap waspada.</p>
             `;
 
-            // SET TIMER 10 DETIK -> KEMBALI NORMAL
+            // BUNYIKAN ALARM
+            audio.currentTime = 0;
+            audio.volume = 1.0;
+            audio.play().catch(e => console.log("Audio blocked"));
+
+            // KEMBALIKAN KE NORMAL SETELAH 10 DETIK
             setTimeout(() => {
                 revertToNormalMode();
-            }, 10000); // 10000 ms = 10 Detik
+            }, 10000); 
         }
 
         function revertToNormalMode() {
             const body = document.body;
             const title = document.getElementById('page-title');
             const alertBox = document.getElementById('nexa-alert');
+            const audio = document.getElementById('alarm-sound');
 
-            // HAPUS KELAS DARURAT (KEMBALI BIRU)
+            audio.pause();
+            audio.currentTime = 0;
+
             body.classList.remove('emergency-mode');
             title.innerText = "MAINTENANCE SERVER";
             alertBox.innerHTML = `
@@ -327,24 +340,22 @@
                     Akses ke website KTVDI terganggu sementara waktu.
                 </p>
             `;
-
-            // Reset flag setelah beberapa saat (misal 5 menit) agar warning tidak muncul terus menerus
-            // Atau biarkan true agar hanya muncul sekali per reload halaman
-            // isEmergencyShownRecently = false; 
         }
 
-        // 3. LOGIKA UPDATE RUNNING TEXT
+        // 3. LOGIKA UPDATE RUNNING TEXT (ANTI MACET)
         const marqueeInner = document.getElementById('marquee-text');
         const container = document.getElementById('news-container');
 
         // Cek awal
-        const initialText = marqueeInner.innerText;
-        checkEmergencyWords([initialText]);
+        checkEmergencyWords([marqueeInner.innerText]);
 
         marqueeInner.addEventListener('animationiteration', async () => {
-            console.log("Refresh berita...");
+            console.log("Animasi selesai, refresh berita...");
             
-            // Efek Tutup Container
+            // 1. Matikan animasi sementara
+            marqueeInner.classList.remove('run-animation');
+            
+            // 2. Tutup container (Visual)
             container.classList.add('closed');
 
             setTimeout(async () => {
@@ -352,7 +363,7 @@
                     const response = await fetch('/api/news-live?t=' + new Date().getTime());
                     const newsData = await response.json();
 
-                    // Cek lagi apakah ada berita baru yg bahaya
+                    // Cek bahaya lagi
                     checkEmergencyWords(newsData);
 
                     let newHtml = '';
@@ -362,7 +373,6 @@
                             let badgeText = "UPDATE";
                             let lower = berita.toLowerCase();
                             
-                            // Badge merah di running text tetap ada walaupun mode layar sudah kembali normal
                             if(lower.includes('gempa') || lower.includes('laka') || lower.includes('kecelakaan')){
                                 badgeClass = "news-badge danger";
                                 badgeText = "BAHAYA";
@@ -373,21 +383,23 @@
                         newHtml = `<span><span class="news-badge">INFO</span> Menunggu koneksi berita...</span>`;
                     }
                     
+                    // 3. Update konten
                     marqueeInner.innerHTML = newHtml;
-                    
-                    // Reset Animasi CSS agar jalan ulang
-                    marqueeInner.style.animation = 'none';
-                    marqueeInner.offsetHeight; /* trigger reflow */
-                    marqueeInner.style.animation = 'scroll-left 40s linear infinite';
 
                 } catch (error) {
                     console.error("Gagal update:", error);
                 }
 
-                // Buka Container
+                // 4. Force Reflow (Penting agar animasi restart)
+                void marqueeInner.offsetWidth; 
+
+                // 5. Nyalakan animasi lagi
+                marqueeInner.classList.add('run-animation');
+
+                // 6. Buka container
                 container.classList.remove('closed');
 
-            }, 500); // Waktu tutup container
+            }, 500); 
         });
     </script>
 
