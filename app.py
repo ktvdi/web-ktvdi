@@ -45,8 +45,16 @@ except Exception as e:
 def get_news_data():
     news_items = []
     
-    # Sumber RSS Resmi
+    # 1. PESAN NATARU (STATIS - MUNCUL PERTAMA/DISELIPKAN)
+    news_items.append({
+        'category': 'HIMBAUAN',
+        'headline': 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, PASTIKAN GUNAKAN SABUK PENGAMAN DAN HELM SNI. PATUHI RAMBU LALU LINTAS.',
+        'source': 'KORLANTAS POLRI'
+    })
+
+    # 2. SUMBER RSS LIVE
     sources = [
+        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA UPDATE', 'url': 'https://news.google.com/rss/search?q=jasa+marga+macet+tol&hl=id&gl=ID&ceid=ID:id'},
         {'cat': 'NASIONAL', 'src': 'ANTARA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+indonesia&hl=id&gl=ID&ceid=ID:id'},
         {'cat': 'TEKNOLOGI', 'src': 'INET', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
@@ -56,10 +64,9 @@ def get_news_data():
     try:
         for source in sources:
             feed = feedparser.parse(source['url'])
-            # Ambil 4 berita per kategori
-            for entry in feed.entries[:4]:
-                # Bersihkan Judul
-                clean_title = entry.title.split(' - ')[0]
+            # Ambil 3 berita per kategori
+            for entry in feed.entries[:3]:
+                clean_title = entry.title.split(' - ')[0] # Hapus nama media di judul
                 source_name = entry.source.title if 'source' in entry else source['src']
 
                 news_items.append({
@@ -68,12 +75,15 @@ def get_news_data():
                     'source': source_name.upper()
                 })
         
-        # Urutan: Nasional -> Polri -> Daerah -> Tekno
-        priority = {'NASIONAL': 1, 'KEPOLISIAN': 2, 'DAERAH': 3, 'TEKNOLOGI': 4}
+        # Urutan Prioritas: Himbauan -> Lalin -> Nasional -> Polri
+        priority = {'HIMBAUAN': 0, 'LALU LINTAS': 1, 'NASIONAL': 2, 'KEPOLISIAN': 3, 'DAERAH': 4, 'TEKNOLOGI': 5}
         news_items.sort(key=lambda x: priority.get(x['category'], 99))
 
     except Exception as e:
-        news_items = [{'category': 'INFO', 'headline': 'SISTEM SEDANG DALAM PEMBARUAN DATA...', 'source': 'ADMIN'}]
+        print(f"RSS Error: {e}")
+        # Tetap tampilkan himbauan meski error
+        if not news_items:
+            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG PEMBARUAN...', 'source': 'ADMIN'})
         
     return news_items
 
