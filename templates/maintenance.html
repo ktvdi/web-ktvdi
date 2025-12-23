@@ -117,36 +117,21 @@
 
         /* --- STYLING KHUSUS BATERAI (STRIP GARIS) --- */
         .battery-card {
-            /* Override background default agar transparan untuk bar */
             background: rgba(0, 0, 0, 0.3) !important;
         }
         
         .battery-bar {
-            position: absolute;
-            top: 0; left: 0; bottom: 0;
-            width: 0%; /* Diatur JS */
-            z-index: 1; /* Di belakang teks */
-            transition: width 1s ease-in-out, background 0.5s;
-            
-            /* EFEK STRIP GARIS (CYBER STRIPES) */
-            background-image: repeating-linear-gradient(
-                45deg,
-                rgba(255, 255, 255, 0.15) 0px,
-                rgba(255, 255, 255, 0.15) 10px,
-                transparent 10px,
-                transparent 20px
-            );
-            border-right: 2px solid rgba(255,255,255,0.5); /* Garis batas kanan */
+            position: absolute; top: 0; left: 0; bottom: 0;
+            width: 0%; z-index: 1; transition: width 1s ease-in-out, background 0.5s;
+            background-image: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 0px, rgba(255, 255, 255, 0.15) 10px, transparent 10px, transparent 20px);
+            border-right: 2px solid rgba(255,255,255,0.5);
             box-shadow: 2px 0 15px rgba(0,0,0,0.5);
         }
 
-        /* Warna Status Baterai (Background Bar) */
         .bar-green { background-color: rgba(0, 255, 157, 0.2); border-right-color: #00ff9d; }
         .bar-yellow { background-color: rgba(255, 204, 0, 0.2); border-right-color: #ffcc00; }
         .bar-red { background-color: rgba(255, 0, 68, 0.2); border-right-color: #ff0044; }
-
-        /* Teks Baterai */
-        .sys-val.battery-text { text-shadow: 0 0 5px rgba(0,0,0,0.8); }
+        .battery-text { text-shadow: 0 0 5px rgba(0,0,0,0.8); }
 
         /* RUNNING TEXT */
         .ticker-container {
@@ -173,8 +158,7 @@
         .cat-DAERAH { background: #ffc9c9; }
         .cat-SYSTEM { background: #ced4da; }
 
-        .news-title { font-weight: 700; font-size: 0.95rem; margin-right: 8px; color: #fff; }
-        .news-snippet { font-size: 0.85rem; color: #aaa; font-style: italic; border-left: 2px solid #333; padding-left: 10px; }
+        .news-content { font-weight: 700; font-size: 0.95rem; margin-right: 8px; color: #fff; text-transform: uppercase; }
 
         /* FOOTER */
         .footer { text-align: center; color: #555; font-size: 0.8rem; margin-top: 10px; }
@@ -197,8 +181,6 @@
             .ticker-label { display: none; }
             .cd-number { font-size: 1.5rem; }
             .alert-box { flex-direction: column; gap: 10px; }
-            
-            /* Baterai full width di HP */
             .sys-card:last-child { grid-column: span 2; }
         }
     </style>
@@ -255,7 +237,6 @@
             
             <div class="sys-card battery-card" style="grid-column: 1 / -1;">
                 <div class="battery-bar" id="battery-bar"></div>
-                
                 <span class="sys-label">DAYA PERANGKAT</span>
                 <span class="sys-val battery-text" id="battery-display">Memuat...</span>
             </div>
@@ -269,8 +250,7 @@
                         {% for item in news_list %}
                             <div class="news-item">
                                 <span class="news-cat cat-{{ item.category|lower }}">{{ item.category }}</span>
-                                <span class="news-title">{{ item.headline }}</span>
-                                <span class="news-snippet">{{ item.snippet }}</span>
+                                <span class="news-content">{{ item.content }}</span>
                             </div>
                         {% endfor %}
                     {% else %}
@@ -328,7 +308,7 @@
         else if(/Mac/i.test(ua)) device = "MACBOOK";
         document.getElementById("device-display").innerText = device;
 
-        // 4. DETEKSI BATERAI + VISUAL BAR
+        // 4. BATERAI VISUAL
         if(navigator.getBattery) {
             navigator.getBattery().then(bat => {
                 function updateBat() {
@@ -339,15 +319,12 @@
                     const bar = document.getElementById("battery-bar");
 
                     display.innerText = `${level}% ${charging}`;
-                    
-                    // Set Lebar Bar
                     bar.style.width = `${level}%`;
 
-                    // Set Warna Bar berdasarkan Level
-                    bar.className = 'battery-bar'; // Reset class
+                    bar.className = 'battery-bar'; 
                     if(level > 50) {
                         bar.classList.add('bar-green');
-                        display.style.color = '#fff'; // Text putih di atas hijau
+                        display.style.color = '#fff';
                     } else if(level > 20) {
                         bar.classList.add('bar-yellow');
                         display.style.color = '#fff';
@@ -361,13 +338,12 @@
                 bat.addEventListener('chargingchange', updateBat);
             });
         } else {
-            // Fallback jika API tidak support (misal PC Desktop)
             document.getElementById("battery-display").innerText = "100% (AC POWER)";
             document.getElementById("battery-bar").style.width = "100%";
             document.getElementById("battery-bar").classList.add('bar-green');
         }
 
-        // 5. AUTO UPDATE NEWS (SMOOTH)
+        // 5. NEWS UPDATE
         const ticker = document.getElementById('ticker-text');
         ticker.addEventListener('animationiteration', () => {
             fetch('/api/news-live').then(r=>r.json()).then(data=>{
@@ -381,12 +357,12 @@
                     
                     html += `<div class="news-item">
                         <span class="news-cat ${c}">${item.category}</span>
-                        <span class="news-title">${item.content}</span> </div>`;
+                        <span class="news-content">${item.content}</span>
+                    </div>`;
                 });
                 ticker.innerHTML = html;
             });
         });
     </script>
-
 </body>
 </html>
