@@ -6,16 +6,13 @@ import re
 import html
 import requests
 import feedparser
-import google.generativeai as genai
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
-from flask_mail import Mail
 from datetime import datetime
 import time
 
-# --- KONFIGURASI ---
 load_dotenv() 
 app = Flask(__name__)
 CORS(app)
@@ -38,28 +35,41 @@ try:
             "universe_domain": "googleapis.com"
         })
         firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
-    print("✅ Firebase Terhubung!")
 except Exception as e:
-    print(f"⚠️ Peringatan Firebase: {e}")
+    print(f"Firebase Warn: {e}")
+
+# --- HELPER TIME AGO ---
+def get_time_ago(published_parsed):
+    if not published_parsed: return "BARU SAJA"
+    pub_dt = datetime.fromtimestamp(time.mktime(published_parsed))
+    diff = datetime.now() - pub_dt
+    seconds = diff.total_seconds()
+    minutes = int(seconds // 60)
+    hours = int(seconds // 3600)
+    if hours > 24: return pub_dt.strftime("%d/%m")
+    if hours > 0: return f"{hours} JAM LALU"
+    if minutes > 0: return f"{minutes} MNT LALU"
+    return "BARU SAJA"
 
 # --- FUNGSI BERITA ---
 def get_news_data():
     news_items = []
     
-    # 1. PESAN NATARU (WAJIB)
+    # 1. PESAN NATARU (Prioritas Utama)
     news_items.append({
         'category': 'HIMBAUAN',
-        'headline': 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, JANGAN LUPA GUNAKAN SABUK PENGAMAN DAN HELM SNI. PATUHI RAMBU LALU LINTAS DEMI KESELAMATAN BERSAMA.',
-        'source': 'KORLANTAS POLRI'
+        'headline': 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, UTAMAKAN KESELAMATAN. JANGAN LUPA GUNAKAN SABUK PENGAMAN DAN HELM SNI. KELUARGA MENANTI DI RUMAH.',
+        'source': 'KORLANTAS POLRI',
+        'time': 'LIVE'
     })
 
     # 2. SUMBER RSS
     sources = [
-        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=info+tol+jasa+marga+terkini&hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=tol+jasa+marga+macet+terkini&hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+indonesia&hl=id&gl=ID&ceid=ID:id'},
         {'cat': 'NASIONAL', 'src': 'ANTARA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
-        {'cat': 'TEKNOLOGI', 'src': 'INET', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
-        {'cat': 'DAERAH', 'src': 'REGIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'}
+        {'cat': 'DAERAH', 'src': 'REGIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'TEKNOLOGI', 'src': 'INET', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'}
     ]
 
     try:
@@ -67,48 +77,45 @@ def get_news_data():
             feed = feedparser.parse(source['url'])
             # Ambil 3 berita per kategori
             for entry in feed.entries[:3]:
-                # Bersihkan Judul
+                # Judul Bersih
                 clean_title = entry.title.split(' - ')[0]
                 
-                # Ambil Summary (Kalimat Pertama Saja)
-                raw_summary = entry.get('summary', '') or entry.get('description', '')
-                clean_summary = re.sub('<.*?>', '', html.unescape(raw_summary))
-                first_sentence = clean_summary.split('.')[0] if len(clean_summary) > 20 else ""
+                # Ambil Summary (Isi Berita) -> Clean HTML -> Ambil 1 Kalimat Pertama
+                raw_sum = entry.get('summary', '') or entry.get('description', '')
+                clean_sum = re.sub('<.*?>', '', html.unescape(raw_sum)).strip()
+                first_sentence = clean_sum.split('.')[0] if len(clean_sum) > 10 else ""
                 
-                # Gabung Judul + Isi Pendek
+                # Gabung: JUDUL + 1 KALIMAT ISI (Agar panjang & informatif)
                 full_text = f"{clean_title}. {first_sentence}"
                 
-                source_name = entry.source.title if 'source' in entry else source['src']
+                # Metadata
+                src_name = entry.source.title if 'source' in entry else source['src']
+                t_ago = get_time_ago(entry.published_parsed)
 
                 news_items.append({
                     'category': source['cat'],
                     'headline': full_text.upper(),
-                    'source': source_name.upper()
+                    'source': src_name.upper(),
+                    'time': t_ago
                 })
         
         # Urutan Prioritas Tampil
-        priority = {'HIMBAUAN': 0, 'LALU LINTAS': 1, 'KEPOLISIAN': 2, 'NASIONAL': 3, 'DAERAH': 4}
-        news_items.sort(key=lambda x: priority.get(x['category'], 99))
+        prio = {'HIMBAUAN':0, 'LALU LINTAS':1, 'KEPOLISIAN':2, 'NASIONAL':3, 'DAERAH':4, 'TEKNOLOGI':5}
+        news_items.sort(key=lambda x: prio.get(x['category'], 99))
 
     except Exception as e:
-        print(f"RSS Error: {e}")
         if not news_items:
-            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG DALAM PEMBARUAN DATA...', 'source': 'ADMIN'})
+            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG OPTIMALISASI DATA...', 'source': 'ADMIN', 'time': 'NOW'})
         
     return news_items
 
-# --- ROUTES ---
 @app.route('/api/news-live')
-def api_news_live():
-    data = get_news_data()
-    return jsonify(data)
+def api_news_live(): return jsonify(get_news_data())
 
 @app.route("/", methods=['GET', 'POST'])
-def home():
-    berita_awal = get_news_data()
-    return render_template('maintenance.html', news_list=berita_awal)
+def home(): return render_template('maintenance.html', news_list=get_news_data())
 
-# DUMMY ROUTES
+# Dummies
 @app.route("/dashboard")
 def dashboard(): return redirect(url_for('home'))
 @app.route("/login")
