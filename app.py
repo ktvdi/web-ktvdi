@@ -10,7 +10,7 @@ from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 load_dotenv() 
@@ -38,35 +38,32 @@ try:
 except Exception as e:
     print(f"Firebase Warn: {e}")
 
-def get_time_ago(published_parsed):
+# --- HELPER FORMAT WAKTU ---
+def format_pub_date(published_parsed):
     if not published_parsed: return "BARU SAJA"
-    pub_dt = datetime.fromtimestamp(time.mktime(published_parsed))
-    diff = datetime.now() - pub_dt
-    seconds = diff.total_seconds()
-    hours = int(seconds // 3600)
-    minutes = int(seconds // 60)
-    if hours > 24: return pub_dt.strftime("%d/%m")
-    if hours > 0: return f"{hours} JAM LALU"
-    if minutes > 0: return f"{minutes} MNT LALU"
-    return "BARU SAJA"
+    # Convert struct_time ke datetime
+    dt = datetime.fromtimestamp(time.mktime(published_parsed))
+    # Tambah 7 jam untuk WIB (karena server biasanya UTC) atau sesuaikan
+    # Disini kita asumsikan feed sudah ada timezonenya atau kita format simpel
+    return dt.strftime("%d %b, %H:%M WIB").upper()
 
+# --- FUNGSI BERITA ---
 def get_news_data():
     news_items = []
-    seen_headlines = set() # Set untuk mencegah duplikasi
+    seen_titles = set() # Cegah duplikasi judul persis
 
-    # 1. PESAN NATARU
-    nataru_msg = 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, UTAMAKAN KESELAMATAN. GUNAKAN SABUK PENGAMAN & HELM SNI. PATUHI RAMBU LALU LINTAS.'
+    # 1. PESAN NATARU (URGENT)
+    nataru_msg = 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, UTAMAKAN KESELAMATAN. GUNAKAN SABUK PENGAMAN & HELM SNI.'
     news_items.append({
         'category': 'HIMBAUAN',
         'headline': nataru_msg,
         'source': 'KORLANTAS POLRI',
-        'time': 'LIVE'
+        'date': datetime.now().strftime("%d %b, %H:%M WIB")
     })
-    seen_headlines.add(nataru_msg)
 
     # 2. SUMBER RSS
     sources = [
-        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=tol+jasa+marga+macet+terkini&hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'LALU LINTAS', 'src': 'JASA MARGA', 'url': 'https://news.google.com/rss/search?q=info+tol+jasa+marga+macet&hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'KEPOLISIAN', 'src': 'HUMAS POLRI', 'url': 'https://news.google.com/rss/search?q=polri+indonesia&hl=id&gl=ID&ceid=ID:id'},
         {'cat': 'NASIONAL', 'src': 'ANTARA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'DAERAH', 'src': 'REGIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
@@ -78,38 +75,38 @@ def get_news_data():
             feed = feedparser.parse(source['url'])
             count = 0
             for entry in feed.entries:
-                if count >= 3: break # Max 3 berita per kategori
+                if count >= 3: break 
                 
-                clean_title = entry.title.split(' - ')[0]
+                # 1. BERSIHKAN JUDUL (Hapus nama media di belakang)
+                # Contoh: "Macet di Tol Cikampek - Detikcom" -> "Macet di Tol Cikampek"
+                raw_title = entry.title
+                clean_title = raw_title.split(' - ')[0].strip()
                 
                 # Cek Duplikasi
-                if clean_title in seen_headlines: continue
+                if clean_title in seen_titles: continue
                 
-                raw_sum = entry.get('summary', '') or entry.get('description', '')
-                clean_sum = re.sub('<.*?>', '', html.unescape(raw_sum)).strip()
-                first_sentence = clean_sum.split('.')[0] if len(clean_sum) > 20 else ""
-                
-                # Format: JUDUL KAPITAL. Kalimat pertama isi berita.
-                full_text = f"{clean_title}. {first_sentence}"
-                
+                # 2. AMBIL SUMBER
                 src_name = entry.source.title if 'source' in entry else source['src']
-                t_ago = get_time_ago(entry.published_parsed)
+                
+                # 3. AMBIL WAKTU
+                pub_date = format_pub_date(entry.published_parsed)
 
                 news_items.append({
                     'category': source['cat'],
-                    'headline': full_text.upper(),
+                    'headline': clean_title.upper(), # Judul Kapital Saja (Tanpa Isi)
                     'source': src_name.upper(),
-                    'time': t_ago
+                    'date': pub_date
                 })
-                seen_headlines.add(clean_title)
+                seen_titles.add(clean_title)
                 count += 1
         
+        # Urutan Prioritas
         prio = {'HIMBAUAN':0, 'LALU LINTAS':1, 'KEPOLISIAN':2, 'NASIONAL':3, 'DAERAH':4, 'TEKNOLOGI':5}
         news_items.sort(key=lambda x: prio.get(x['category'], 99))
 
     except Exception as e:
         if not news_items:
-            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG OPTIMALISASI DATA...', 'source': 'ADMIN', 'time': 'NOW'})
+            news_items.append({'category': 'INFO', 'headline': 'SISTEM SEDANG OPTIMALISASI DATA...', 'source': 'ADMIN', 'date': 'NOW'})
         
     return news_items
 
