@@ -5,15 +5,13 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import time
-import re
-import html
 
 load_dotenv() 
 app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "rahasia_donk")
 
-# --- FORMAT WAKTU WIB ---
+# --- FORMAT WAKTU ---
 def format_pub_date(published_parsed):
     if not published_parsed: return datetime.now().strftime("%H:%M WIB")
     try:
@@ -27,25 +25,24 @@ def format_pub_date(published_parsed):
     except:
         return "BARU SAJA"
 
-# --- AMBIL BERITA ---
 def get_news_data():
     news_items = []
     seen_titles = set()
 
-    # 1. PESAN NATARU (Wajib)
+    # 1. HIMBAUAN (URGENT)
     news_items.append({
         'category': 'HIMBAUAN',
-        'headline': 'SELAMAT MUDIK NATARU 2025. HATI-HATI DI JALAN, JAGA KESEHATAN, DAN PATUHI RAMBU LALU LINTAS. KELUARGA MENANTI DI RUMAH.',
+        'headline': 'SELAMAT MUDIK NATARU 2025. UTAMAKAN KESELAMATAN, GUNAKAN SABUK PENGAMAN & HELM SNI. KELUARGA MENANTI DI RUMAH.',
         'source': 'TIM KTVDI',
         'date': 'PENTING'
     })
 
-    # 2. RSS FEEDS
+    # 2. RSS
     sources = [
         {'cat': 'LALU LINTAS', 'url': 'https://news.google.com/rss/search?q=info+tol+jasa+marga+macet+when:1d&hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'KEPOLISIAN', 'url': 'https://news.google.com/rss/search?q=humas+polri+terkini+when:1d&hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'NASIONAL', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFZxYUdjU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
-        {'cat': 'DAERAH', 'url': 'https://news.google.com/rss/search?q=berita+daerah+indonesia+terkini+when:1d&hl=id&gl=ID&ceid=ID%3Aid'},
+        {'cat': 'DAERAH', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGs0ZDNZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'TEKNOLOGI', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGRqTVhZU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'},
         {'cat': 'OLAHRAGA', 'url': 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRFp1ZEdvU0FtdHZHZ0pMVWlnQVAB?hl=id&gl=ID&ceid=ID%3Aid'}
     ]
@@ -53,22 +50,20 @@ def get_news_data():
     try:
         for source in sources:
             feed = feedparser.parse(source['url'])
-            # Sortir waktu terbaru
             if feed.entries:
                 feed.entries.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.localtime(0), reverse=True)
 
             count = 0
             for entry in feed.entries:
-                if count >= 4: break 
+                if count >= 3: break 
                 
-                # Bersihkan Judul
+                # --- PEMBERSIHAN JUDUL (ANTI DOUBLE) ---
                 raw_title = entry.title
+                # Hapus delimiter umum: " - ", " | "
                 clean_title = raw_title.split(' - ')[0].split(' | ')[0].strip()
                 
-                # Filter Kata Kunci Sampah
-                if any(x in clean_title.lower() for x in ['saham', 'ihsg', 'prediksi', 'togel', 'rekomendasi']):
-                    continue
-
+                # Filter Kata Terlarang
+                if any(x in clean_title.lower() for x in ['saham', 'ihsg', 'rekomendasi', 'prediksi']): continue
                 if clean_title in seen_titles: continue
                 
                 src_name = entry.source.title.upper() if 'source' in entry else "NEWS"
@@ -87,7 +82,7 @@ def get_news_data():
 
     except Exception as e:
         if not news_items:
-            news_items.append({'category': 'INFO', 'headline': 'MENYINKRONKAN DATA SERVER...', 'source': 'SYSTEM', 'date': 'NOW'})
+            news_items.append({'category': 'INFO', 'headline': 'MENYINKRONKAN DATA...', 'source': 'SYSTEM', 'date': 'NOW'})
         
     return news_items
 
