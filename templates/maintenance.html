@@ -5,189 +5,262 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SEDANG PERBAIKAN - KTVDI</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
         :root {
-            --corp-blue: #0056b3; --corp-dark: #0f172a; 
-            --corp-card: rgba(30, 41, 59, 0.95);
-            --border-light: rgba(255, 255, 255, 0.15); --text-white: #ffffff;
+            --bg-dark: #0b1120;
+            --card-bg: rgba(30, 41, 59, 0.95);
+            --blue-primary: #2563eb;
+            --blue-dark: #1e40af;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-gold: #fbbf24;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body {
-            font-family: 'Inter', sans-serif; background-color: var(--corp-dark);
-            background-image: linear-gradient(rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.95)), url('https://iili.io/f1LoZfS.md.png');
-            background-size: cover; background-position: center; min-height: 100vh;
-            display: flex; flex-direction: column; color: var(--text-white); overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0b1120 70%);
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            color: var(--text-main); overflow-x: hidden;
         }
 
-        /* --- UI COMPONENTS --- */
-        .top-bar { display: flex; align-items: center; justify-content: center; height: 35px; font-size: 0.85rem; font-weight: 600; color: white; border-bottom: 1px solid rgba(255,255,255,0.1); width: 100%; }
-        .bg-muslim { background: linear-gradient(90deg, #003366, #0056b3); }
-        .bg-christian { background: #1e293b; color: #fbbf24; }
-        .flip-content { display: flex; align-items: center; gap: 8px; animation: fadeIn 0.5s ease-in-out; white-space: nowrap; }
+        /* --- TOP TICKER (SLIM & ELEGANT) --- */
+        .ticker-wrapper { width: 100%; display: flex; flex-direction: column; }
         
-        .main-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; max-width: 900px; margin: 0 auto; padding: 20px; gap: 20px; }
-        .card { width: 100%; background: var(--corp-card); border: 1px solid var(--border-light); border-top: 4px solid var(--corp-blue); border-radius: 8px; padding: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); text-align: center; }
-        .logo-img { width: 100px; margin-bottom: 15px; }
-        
-        /* ALERT */
-        .alert-box { background: rgba(0, 98, 204, 0.1); border: 1px solid rgba(0, 98, 204, 0.3); border-radius: 6px; padding: 15px; display: flex; align-items: start; gap: 15px; text-align: left; }
-        .alert-icon { font-size: 1.5rem; color: var(--corp-blue); margin-top: 2px; }
-        .alert-text h3 { color: var(--corp-blue); font-size: 1rem; margin-bottom: 4px; font-weight: 700; }
-        .alert-text p { color: #ccc; font-size: 0.9rem; line-height: 1.5; margin: 0; }
-
-        /* GRIDS */
-        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; margin-top: 20px; }
-        .info-item { background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); border-radius: 6px; padding: 10px; text-align: center; }
-        .info-lbl { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 4px; }
-        .info-val { font-family: 'Roboto Mono', monospace; font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .cd-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
-        .cd-val { font-family: 'Roboto Mono', monospace; font-size: 1.6rem; font-weight: 700; display: block; }
-        .cd-lbl { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
-
-        /* BATTERY */
-        .battery-card { grid-column: span 4; overflow: hidden; position: relative; background: rgba(0,0,0,0.3); }
-        .battery-bar { position: absolute; top:0; left:0; height: 100%; width: 0%; z-index: 0; background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, rgba(255,255,255,0.1) 10px, transparent 10px, transparent 20px); background-color: #0056b3; transition: width 1s ease; }
-        .battery-content { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; }
-
-        /* --- SMART FLIP NEWS TICKER --- */
-        .news-container {
-            width: 100%; max-width: 900px; display: flex; 
-            min-height: 90px; /* Default height PC */
-            background: #0f172a; border-radius: 6px; overflow: hidden; border: 1px solid #334155; 
-            margin-top: auto; margin-bottom: 20px; transition: height 0.3s ease-out; position: relative;
+        .ticker-bar {
+            width: 100%; height: 32px; /* Slim */
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 600; letter-spacing: 0.5px;
+            white-space: nowrap; overflow: hidden;
         }
-        .news-label {
-            background: var(--corp-blue); color: white; width: 100px;
+        
+        .bar-muslim { background: #0f172a; color: #e2e8f0; border-bottom: 1px solid #334155; }
+        .bar-christian { background: #1e293b; color: var(--accent-gold); border-bottom: 1px solid #334155; }
+        
+        .flip-text { display: flex; align-items: center; gap: 8px; animation: fadeIn 0.5s ease; }
+        
+        /* --- MAIN CONTENT --- */
+        .container {
+            flex: 1; width: 100%; max-width: 800px; margin: 0 auto;
+            display: flex; flex-direction: column; justify-content: center;
+            padding: 20px; gap: 20px;
+        }
+
+        /* --- CARD STYLE --- */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative; overflow: hidden;
+        }
+        .card-top-accent {
+            position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--blue-primary), var(--blue-dark));
+        }
+
+        .logo { width: 100px; margin-bottom: 15px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); }
+        
+        h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 5px; letter-spacing: -0.5px; text-transform: uppercase; }
+        .subtitle { color: var(--blue-primary); font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 25px; }
+
+        /* ALERT BOX - FORMAL */
+        .notice-box {
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: 8px; padding: 15px;
+            display: flex; align-items: flex-start; gap: 15px; text-align: left;
+        }
+        .notice-icon { font-size: 1.2rem; color: var(--blue-primary); margin-top: 3px; }
+        .notice-title { color: var(--blue-primary); font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; text-transform: uppercase; }
+        .notice-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; }
+
+        /* COUNTDOWN & STATS */
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; margin-top: 20px; }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px; padding: 12px 5px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .stat-lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+        .stat-val { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; font-weight: 700; color: white; }
+        .text-green { color: #4ade80; }
+
+        /* BATTERY BAR */
+        .bat-container { grid-column: span 4; position: relative; overflow: hidden; background: rgba(0,0,0,0.3); padding: 0 !important; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .bat-fill {
+            position: absolute; top:0; left:0; height: 100%; width: 0%; z-index: 0;
+            background: repeating-linear-gradient(45deg, rgba(37,99,235,0.2), rgba(37,99,235,0.2) 10px, rgba(37,99,235,0.3) 10px, rgba(37,99,235,0.3) 20px);
+            transition: width 1s ease; border-right: 2px solid var(--blue-primary);
+        }
+        .bat-text { position: relative; z-index: 1; font-size: 0.8rem; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+
+        /* --- NEWS FLIP (RE-DESIGNED) --- */
+        .news-wrapper {
+            width: 100%; max-width: 800px; margin: 0 auto 30px auto;
+            background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+            display: flex; overflow: hidden; position: relative;
+            /* Auto Height Animation */
+            min-height: 100px; transition: height 0.3s ease; 
+        }
+        
+        .news-badge {
+            width: 90px; background: var(--blue-primary); color: white;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 0.7rem; font-weight: 800; z-index: 5; text-align: center; flex-shrink: 0;
-            position: absolute; top: 0; bottom: 0; left: 0;
-        }
-        .news-viewport { 
-            flex: 1; margin-left: 100px; position: relative; 
+            font-size: 0.7rem; font-weight: 800; text-align: center; flex-shrink: 0;
+            position: absolute; top: 0; left: 0; bottom: 0; z-index: 2;
         }
         
+        .news-content-area {
+            flex: 1; margin-left: 90px; position: relative;
+        }
+
         .news-slide {
-            position: absolute; width: 100%;
-            display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+            position: absolute; top: 0; left: 0; width: 100%;
             padding: 15px 20px;
-            opacity: 0; transform: translateY(30px); transition: all 0.5s ease;
+            display: flex; flex-direction: column; align-items: flex-start;
+            opacity: 0; transform: translateY(20px); transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
             visibility: hidden;
         }
         .news-slide.active { opacity: 1; transform: translateY(0); visibility: visible; }
-        .news-slide.exit { opacity: 0; transform: translateY(-30px); visibility: hidden; }
         
-        .cat-tag { 
-            font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; color: #fff; font-weight: 700; 
-            margin-bottom: 6px; text-transform: uppercase; display: inline-block; 
-        }
-        /* Color Palette */
-        .bg-NASIONAL { background: #0ea5e9; } .bg-KEPOLISIAN { background: #475569; border: 1px solid #94a3b8; }
-        .bg-DAERAH { background: #d97706; } .bg-TEKNOLOGI { background: #7c3aed; }
-        .bg-LALU { background: #dc2626; } .bg-HIMBAUAN { background: #ea580c; border: 1px solid #fff; animation: pulse 2s infinite; }
-        .bg-OLAHRAGA { background: #16a34a; } .bg-INFO { background: #334155; }
+        /* News Components */
+        .news-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+        .tag { font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; color: white; font-weight: 700; text-transform: uppercase; }
+        .time-badge { font-size: 0.7rem; color: #4ade80; border: 1px solid #4ade80; padding: 1px 6px; border-radius: 4px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        
+        /* Colors */
+        .bg-NASIONAL { background: #0284c7; } .bg-DAERAH { background: #d97706; }
+        .bg-TEKNOLOGI { background: #7c3aed; } .bg-OLAHRAGA { background: #16a34a; }
+        .bg-LALU { background: #dc2626; } .bg-KEPOLISIAN { background: #475569; }
+        .bg-HIMBAUAN { background: #ea580c; animation: pulse 2s infinite; }
 
-        .news-title { 
-            font-size: 0.95rem; color: white; font-weight: 600; text-transform: uppercase; line-height: 1.4;
-            margin-bottom: 6px; width: 100%; white-space: normal;
+        .headline { 
+            font-size: 0.95rem; font-weight: 600; line-height: 1.5; color: #f1f5f9; 
+            margin-bottom: 8px; width: 100%;
         }
-        .news-meta { 
-            font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; 
-        }
-        .news-source { color: #cbd5e1; font-weight: 400; display: flex; align-items: center; gap: 5px; }
-        .news-date { color: #4ade80; border: 1px solid #4ade80; padding: 0 5px; border-radius: 3px; font-weight: 700; font-size: 0.7rem; }
+        .source { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
 
+        .footer { text-align: center; font-size: 0.75rem; color: #64748b; padding-bottom: 20px; }
+
+        /* OVERLAY 10.00 */
         #anthem-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: none;
-            flex-direction: column; justify-content: center; align-items: center; text-align: center; backdrop-filter: blur(10px);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); z-index: 9999; display: none;
+            justify-content: center; align-items: center; animation: fadeIn 1s;
         }
-        
+        .anthem-content { text-align: center; color: white; padding: 20px; border: 2px solid #ffd700; border-radius: 10px; max-width: 90%; }
+
         @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
-        /* RESPONSIVE */
-        @media (max-width: 768px) { .info-grid { grid-template-columns: 1fr 1fr; } .battery-card { grid-column: span 2; } }
+        /* MOBILE RESPONSIVE */
         @media (max-width: 480px) {
-            .main-container { padding: 15px; gap: 15px; }
-            h1 { font-size: 1.4rem; }
-            .news-label { width: 60px; font-size: 0.6rem; }
-            .news-viewport { margin-left: 60px; }
+            .container { padding: 15px; }
+            h1 { font-size: 1.5rem; }
+            .notice-box { flex-direction: column; gap: 10px; }
+            
+            /* Ticker Mobile Adjustments */
+            .news-wrapper { min-height: 120px; }
+            .news-badge { width: 60px; font-size: 0.6rem; }
+            .news-content-area { margin-left: 60px; }
             .news-slide { padding: 12px 15px; }
-            .news-title { font-size: 0.85rem; }
-            .alert-box { flex-direction: column; gap: 10px; }
+            .headline { font-size: 0.85rem; }
+            .news-header { gap: 6px; }
         }
     </style>
 </head>
 <body>
 
     <div id="anthem-overlay">
-        <div style="background: linear-gradient(135deg, #d60000 0%, #990000 100%); padding: 30px; border-radius: 15px; border: 4px solid #ffd700; color: white; max-width: 90%;">
-            <h1 style="color: #ffd700; font-size: 2rem; margin-bottom: 15px;">🇮🇩 INDONESIA RAYA 🇮🇩</h1>
-            <p style="font-size: 1rem; line-height: 1.6;">Pukul 10.00 WIB.<br>Mohon sejenak hentikan aktivitas, berdiri tegak,<br>dan menyanyikan Lagu Kebangsaan.</p>
-            <div style="font-size: 2.5rem; margin-top: 15px;"><i class="fas fa-music"></i></div>
+        <div class="anthem-content">
+            <h1 style="color: #ffd700; margin-bottom: 20px;">🇮🇩 PUKUL 10.00 WIB</h1>
+            <p>Mohon berdiri sejenak dan menyanyikan<br>Lagu Kebangsaan <b>Indonesia Raya</b>.</p>
+            <i class="fas fa-music" style="font-size: 3rem; margin-top: 20px; color: #ffd700;"></i>
         </div>
     </div>
 
-    <div class="top-bar top-bar-muslim"><div class="flip-content" id="prayer-display"><i class="fas fa-mosque icon-gold"></i> MEMUAT DATA...</div></div>
-    <div class="top-bar top-bar-christian"><div class="flip-content" id="misa-display"><i class="fas fa-church icon-gold"></i> MEMUAT DATA...</div></div>
+    <div class="ticker-wrapper">
+        <div class="ticker-bar bar-muslim">
+            <div class="flip-content" id="prayer-display">
+                <i class="fas fa-mosque" style="color:#fbbf24; margin-right:5px;"></i> MEMUAT JADWAL SHOLAT...
+            </div>
+        </div>
+        <div class="ticker-bar bar-christian">
+            <div class="flip-content" id="misa-display">
+                <i class="fas fa-church" style="margin-right:5px;"></i> MEMUAT JADWAL MISA...
+            </div>
+        </div>
+    </div>
 
-    <div class="main-container">
+    <div class="container">
+        
         <div class="card">
-            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="logo-img">
+            <div class="card-top-accent"></div>
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="logo">
             <h1>PEMELIHARAAN SISTEM</h1>
-            <div class="subtitle">PENINGKATAN KUALITAS & KEAMANAN SISTEM</div>
-            <div class="alert-box">
-                <i class="fas fa-info-circle alert-icon"></i>
-                <div class="alert-text">
-                    <h3>STATUS SERVER: MAINTENANCE</h3>
-                    <p>Sistem saat ini sedang menjalani proses pembaruan keamanan dan peningkatan kapasitas server. Layanan KTVDI akan segera kembali normal.</p>
+            <div class="subtitle">JARINGAN & KEAMANAN TERPADU</div>
+
+            <div class="notice-box">
+                <i class="fas fa-server notice-icon"></i>
+                <div>
+                    <div class="notice-title">STATUS: PEMELIHARAAN TERJADWAL</div>
+                    <div class="notice-desc">
+                        PT. Komunitas TV Digital Indonesia sedang melakukan pembaruan infrastruktur server untuk meningkatkan stabilitas layanan. Mohon maaf atas ketidaknyamanan ini.
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="card" style="padding: 15px;">
-            <div style="font-size: 0.75rem; color: #94a3b8; letter-spacing: 2px;">MENUJU TAHUN 2026</div>
-            <div class="cd-grid">
-                <div class="cd-item"><span class="cd-val" id="d">00</span><span class="cd-lbl">HARI</span></div>
-                <div class="cd-item"><span class="cd-val" id="h">00</span><span class="cd-lbl">JAM</span></div>
-                <div class="cd-item"><span class="cd-val" id="m">00</span><span class="cd-lbl">MENIT</span></div>
-                <div class="cd-item"><span class="cd-val" id="s">00</span><span class="cd-lbl">DETIK</span></div>
+        <div class="card" style="padding: 20px;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 2px; margin-bottom: 15px;">MENUJU ERA BARU 2026</div>
+            <div class="grid-4">
+                <div class="stat-box"><span class="stat-val" id="d">00</span><span class="stat-lbl">HARI</span></div>
+                <div class="stat-box"><span class="stat-val" id="h">00</span><span class="stat-lbl">JAM</span></div>
+                <div class="stat-box"><span class="stat-val" id="m">00</span><span class="stat-lbl">MENIT</span></div>
+                <div class="stat-box"><span class="stat-val" id="s">00</span><span class="stat-lbl">DETIK</span></div>
             </div>
-        </div>
 
-        <div class="info-grid">
-            <div class="info-item"><span class="info-lbl">WAKTU (WIB)</span><span class="info-val" id="clock">00:00:00</span></div>
-            <div class="info-item"><span class="info-lbl">LOKASI</span><span class="info-val" id="loc" style="color:#4ade80;">...</span></div>
-            <div class="info-item"><span class="info-lbl">PROVIDER</span><span class="info-val" id="isp" style="color:#4ade80;">...</span></div>
-            <div class="info-item"><span class="info-lbl">PERANGKAT</span><span class="info-val" id="dev">...</span></div>
-            <div class="info-item battery-card">
-                <div class="battery-bar" id="bat-bar"></div>
-                <div class="battery-content">
-                    <div><span class="info-lbl">DAYA PERANGKAT</span><span class="info-val" id="bat-txt">--%</span></div>
-                    <i class="fas fa-bolt" style="color: #ffd700; display:none;" id="bat-icon"></i>
+            <div class="grid-4" style="margin-top: 15px;">
+                <div class="stat-box"><span class="stat-lbl">WAKTU</span><span class="stat-val" id="clock">00:00</span></div>
+                <div class="stat-box"><span class="stat-lbl">LOKASI</span><span class="stat-val text-green" id="loc">...</span></div>
+                <div class="stat-box"><span class="stat-lbl">PROVIDER</span><span class="stat-val text-green" id="isp">...</span></div>
+                <div class="stat-box"><span class="stat-lbl">DEVICE</span><span class="stat-val" id="dev">...</span></div>
+                
+                <div class="stat-box bat-container">
+                    <div class="bat-fill" id="bat-bar"></div>
+                    <div class="bat-text">
+                        <span id="bat-txt">--%</span> <i class="fas fa-bolt" id="bat-icon" style="display:none; color:#fbbf24;"></i>
+                    </div>
                 </div>
             </div>
         </div>
+
     </div>
 
-    <div style="width: 100%; display: flex; justify-content: center; padding: 0 15px;">
-        <div class="news-container" id="news-container">
-            <div class="news-label"><i class="fas fa-newspaper"></i><br>UPDATE</div>
-            <div class="news-viewport" id="news-viewport">
-                <div class="news-slide active">
-                    <span class="cat-tag bg-INFO">INFO</span>
-                    <span class="news-title">MENGHUBUNGKAN KE SERVER BERITA...</span>
-                </div>
+    <div class="news-wrapper" id="news-container">
+        <div class="news-badge">
+            <i class="fas fa-newspaper" style="font-size: 1.2rem; margin-bottom: 5px;"></i>
+            NEWS
+        </div>
+        <div class="news-content-area" id="news-viewport">
+            <div class="news-slide active">
+                <div class="news-header"><span class="tag bg-INFO">INFO</span></div>
+                <div class="headline">MENGHUBUNGKAN KE SERVER BERITA NASIONAL...</div>
+                <div class="source"><i class="fas fa-circle-notch fa-spin"></i> SYSTEM</div>
             </div>
         </div>
     </div>
 
-    <div style="text-align:center; color:#64748b; font-size:0.75rem; padding-bottom:20px;">
-        &copy; 2025 Komunitas TV Digital Indonesia.
-    </div>
+    <div class="footer">&copy; 2025 Komunitas TV Digital Indonesia.</div>
 
     <script id="news-data" type="application/json">{{ news_list | tojson }}</script>
 
@@ -195,112 +268,92 @@
         // --- 1. POPUP 10.00 WIB ---
         setInterval(() => {
             const now = new Date();
-            const h = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Jakarta', hour:'numeric', hour12:false}).format(now);
-            const m = new Intl.DateTimeFormat('en-US', {timeZone:'Asia/Jakarta', minute:'numeric'}).format(now);
-            document.getElementById('anthem-overlay').style.display = (h == 10 && m < 2) ? 'flex' : 'none';
+            const h = parseInt(now.toLocaleTimeString('en-US', {timeZone: 'Asia/Jakarta', hour12: false}).split(':')[0]);
+            const m = parseInt(now.toLocaleTimeString('en-US', {timeZone: 'Asia/Jakarta', hour12: false}).split(':')[1]);
+            document.getElementById('anthem-overlay').style.display = (h === 10 && m < 2) ? 'flex' : 'none';
         }, 10000);
 
-        // --- 2. SHOLAT ---
-        const priorityCities = ["PEKALONGAN", "PURWODADI"];
-        const otherCities = ["JAKARTA", "SURABAYA", "BANDUNG", "SEMARANG", "MEDAN", "MAKASSAR", "DENPASAR", "JAYAPURA", "BALIKPAPAN", "PONTIANAK", "BANJARMASIN", "MANADO", "AMBON", "MATARAM", "KUPANG", "ACEH", "PADANG"];
-        let sholatQueue = [...priorityCities, ...otherCities.sort(() => 0.5 - Math.random())];
-        let sholatIdx = 0;
+        // --- 2. JADWAL SHOLAT & MISA (DATA & LOGIC) ---
+        const cities = ["PEKALONGAN", "PURWODADI", "JAKARTA", "SURABAYA", "BANDUNG", "SEMARANG", "MEDAN", "MAKASSAR", "DENPASAR", "JAYAPURA"];
+        const misaData = [
+            {loc:"KATEDRAL JAKARTA", t:"06.00, 08.30, 16.30"}, {loc:"KATEDRAL SEMARANG", t:"05.30, 07.00, 16.30"},
+            {loc:"KATEDRAL SURABAYA", t:"07.00, 09.00, 18.30"}, {loc:"KATEDRAL MEDAN", t:"07.00, 09.00, 17.00"}
+        ];
 
-        async function runPrayer() {
-            const display = document.getElementById('prayer-display');
+        let cityIdx = 0;
+        let misaIdx = 0;
+
+        function updateTickers() {
+            // Sholat
+            const city = cities[cityIdx];
             const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-            async function update() {
-                const city = sholatQueue[sholatIdx];
-                try {
-                    const res = await fetch(`https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${city}&country=Indonesia&method=20`);
-                    const data = await res.json();
-                    const t = data.data.timings;
-                    display.style.opacity = 0;
+            fetch(`https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${city}&country=Indonesia&method=20`)
+                .then(r => r.json()).then(d => {
+                    const t = d.data.timings;
+                    const el = document.getElementById('prayer-display');
+                    el.style.opacity = 0;
                     setTimeout(() => {
-                        display.innerHTML = `<i class="fas fa-mosque icon-gold"></i> ${city} : IMSAK ${t.Imsak} | SUBUH ${t.Fajr} | MAGHRIB ${t.Maghrib}`;
-                        display.style.opacity = 1;
+                        el.innerHTML = `<i class="fas fa-mosque icon-gold"></i> ${city} : IMSAK ${t.Imsak} | SUBUH ${t.Fajr} | MAGHRIB ${t.Maghrib}`;
+                        el.style.opacity = 1;
                     }, 500);
-                } catch(e) {}
-                sholatIdx++;
-                if(sholatIdx >= sholatQueue.length) {
-                    sholatIdx = 0;
-                    sholatQueue = [...priorityCities, ...otherCities.sort(() => 0.5 - Math.random())];
-                }
-            }
-            update(); setInterval(update, 7000);
+                }).catch(() => {});
+            cityIdx = (cityIdx + 1) % cities.length;
+
+            // Misa
+            const m = misaData[misaIdx];
+            const elMisa = document.getElementById('misa-display');
+            elMisa.style.opacity = 0;
+            setTimeout(() => {
+                elMisa.innerHTML = `<i class="fas fa-church icon-gold"></i> ${m.loc} : ${m.t} WIB`;
+                elMisa.style.opacity = 1;
+            }, 500);
+            misaIdx = (misaIdx + 1) % misaData.length;
         }
-        runPrayer();
+        updateTickers();
+        setInterval(updateTickers, 8000);
 
-        // --- 3. MISA ---
-        const misaData = [ {loc:"KATEDRAL JAKARTA", t:"06.00, 08.30, 11.00, 16.30"}, {loc:"KATEDRAL SEMARANG", t:"05.30, 07.00, 08.45, 16.30"}, {loc:"KATEDRAL SURABAYA", t:"07.00, 09.00, 16.30, 18.30"}, {loc:"KATEDRAL MEDAN", t:"07.00, 09.00, 17.00"}, {loc:"KATEDRAL MAKASSAR", t:"06.30, 08.30, 18.30"}, {loc:"KATEDRAL BANDUNG", t:"06.00, 08.00, 10.00, 17.00"} ];
-        function runMisa() {
-            const display = document.getElementById('misa-display');
-            let idx = 0;
-            setInterval(() => {
-                const item = misaData[idx];
-                display.style.opacity = 0;
-                setTimeout(() => {
-                    display.innerHTML = `<i class="fas fa-church icon-gold"></i> ${item.loc} : ${item.t} WIB/WITA`;
-                    display.style.opacity = 1;
-                }, 500);
-                idx = (idx + 1) % misaData.length;
-            }, 7000);
-        }
-        runMisa();
-
-        // --- 4. CLOCK, BATTERY, ISP ---
-        setInterval(() => { document.getElementById("clock").innerText = new Date().toLocaleTimeString('id-ID', {hour12:false}); }, 1000);
-        
-        async function fetchISP() {
-            try {
-                const r = await fetch('https://ipapi.co/json/');
-                if(!r.ok) throw new Error();
-                const d = await r.json();
-                document.getElementById("loc").innerText = (d.city||"INDONESIA").toUpperCase();
-                document.getElementById("isp").innerText = (d.org||"TERHUBUNG").toUpperCase();
-            } catch(e) {
-                document.getElementById("loc").innerText = "LOKASI ANDA";
-                document.getElementById("isp").innerText = "JARINGAN AKTIF";
-            }
-        }
-        fetchISP();
-
-        const ua = navigator.userAgent;
-        let d = "PC/LAPTOP"; if(/Android/i.test(ua)) d="HP ANDROID"; else if(/iPhone/i.test(ua)) d="IPHONE";
-        document.getElementById("dev").innerText=d;
-
-        if(navigator.getBattery){
-            navigator.getBattery().then(b=>{
-                function up(){
-                    const l = Math.round(b.level*100);
-                    const t = document.getElementById("bat-txt");
-                    const bar = document.getElementById("bat-bar");
-                    t.innerText = `${l}% ${b.charging?"(CAS)":""}`;
-                    bar.style.width = `${l}%`;
-                    bar.className = `battery-bar`;
-                    bar.style.backgroundColor = l>50?'#10b981':l>20?'#f59e0b':'#ef4444';
-                    document.getElementById("bat-icon").style.display = b.charging ? 'block' : 'none';
-                }
-                up(); b.addEventListener('levelchange',up); b.addEventListener('chargingchange',up);
-            });
-        }
-
-        // --- 5. COUNTDOWN ---
+        // --- 3. SYSTEM INFO ---
         setInterval(() => {
-            const diff = new Date("Jan 1, 2026 00:00:00").getTime() - new Date().getTime();
-            if(diff>0){
-                document.getElementById("d").innerText=Math.floor(diff/864e5);
-                document.getElementById("h").innerText=Math.floor((diff%864e5)/36e5);
-                document.getElementById("m").innerText=Math.floor((diff%36e5)/6e4);
-                document.getElementById("s").innerText=Math.floor((diff%6e4)/1e3);
+            const now = new Date();
+            document.getElementById("clock").innerText = now.toLocaleTimeString('id-ID', {hour12:false, hour:'2-digit', minute:'2-digit'});
+            
+            // Countdown
+            const diff = new Date("Jan 1, 2026 00:00:00").getTime() - now.getTime();
+            if(diff>0) {
+                document.getElementById("d").innerText = Math.floor(diff/864e5);
+                document.getElementById("h").innerText = Math.floor((diff%864e5)/36e5);
+                document.getElementById("m").innerText = Math.floor((diff%36e5)/6e4);
+                document.getElementById("s").innerText = Math.floor((diff%6e4)/1e3);
             }
         }, 1000);
 
-        // --- 6. NEWS ENGINE (AUTO UPDATE + AUTO HEIGHT) ---
+        // ISP & Device
+        fetch('https://ipapi.co/json/').then(r=>r.json()).then(d=>{
+            document.getElementById("loc").innerText = (d.city||"INDONESIA").toUpperCase();
+            document.getElementById("isp").innerText = (d.org||"ONLINE").toUpperCase();
+        }).catch(()=>{ document.getElementById("loc").innerText="LOKASI"; document.getElementById("isp").innerText="ONLINE"; });
+
+        const ua = navigator.userAgent;
+        document.getElementById("dev").innerText = /Android/i.test(ua) ? "ANDROID" : /iPhone/i.test(ua) ? "IPHONE" : "PC/LAPTOP";
+
+        // Battery
+        if(navigator.getBattery) {
+            navigator.getBattery().then(b => {
+                function up() {
+                    const l = Math.round(b.level*100);
+                    document.getElementById("bat-txt").innerText = `${l}%`;
+                    document.getElementById("bat-bar").style.width = `${l}%`;
+                    document.getElementById("bat-icon").style.display = b.charging ? 'inline' : 'none';
+                }
+                up(); b.addEventListener('levelchange', up); b.addEventListener('chargingchange', up);
+            });
+        }
+
+        // --- 4. NEWS ENGINE (AUTO UPDATE + AUTO HEIGHT) ---
         let newsData = [];
         try { newsData = JSON.parse(document.getElementById('news-data').textContent); } catch(e){}
 
-        // Update Data Tiap 1 Menit
+        // Auto Fetch every 60s
         setInterval(async () => {
             try {
                 const res = await fetch('/api/news-live');
@@ -329,27 +382,26 @@
                 if(item.category=='OLAHRAGA') bg='bg-OLAHRAGA';
 
                 div.innerHTML = `
-                    <span class="cat-tag ${bg}">${item.category}</span>
-                    <div class="news-title">${item.headline}</div>
-                    <div class="news-meta">
-                        <span class="news-source"><i class="fas fa-rss"></i> ${item.source}</span>
-                        ${item.date ? `<span class="news-date">${item.date}</span>` : ''}
+                    <div class="news-header">
+                        <span class="tag ${bg}">${item.category}</span>
+                        <span class="time-badge"><i class="far fa-clock"></i> ${item.date}</span>
                     </div>
+                    <div class="headline">${item.headline}</div>
+                    <div class="source"><i class="fas fa-rss"></i> ${item.source}</div>
                 `;
                 
                 vp.innerHTML = '';
                 vp.appendChild(div);
 
-                // --- AUTO HEIGHT ADJUSTMENT (ANTI-POTONG) ---
+                // Auto Height Logic
                 setTimeout(() => {
-                    const contentHeight = div.scrollHeight + 30; // +Padding
-                    const minHeight = window.innerWidth < 480 ? 100 : 90;
-                    container.style.height = `${Math.max(minHeight, contentHeight)}px`;
-                }, 20);
+                    const h = div.scrollHeight + 30; // +Padding
+                    const minH = window.innerWidth < 480 ? 110 : 100;
+                    container.style.height = `${Math.max(minH, h)}px`;
+                }, 10);
             }
             
             showSlide(0);
-            
             setInterval(() => {
                 const current = vp.querySelector('.news-slide');
                 if(current) { current.classList.remove('active'); current.classList.add('exit'); }
