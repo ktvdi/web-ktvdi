@@ -8,13 +8,8 @@ import time
 import requests
 import feedparser
 import google.generativeai as genai
-import csv
-import io
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse, parse_qs
-from newsapi import NewsApiClient
 from firebase_admin import credentials, db
-from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_file
+from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
@@ -26,45 +21,55 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-
-app.secret_key = 'b/g5n!o0?hs&dm!fn8md7'
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 # Inisialisasi Firebase
-cred = credentials.Certificate('credentials.json')
-firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'  # Ganti dengan URL database Firebase Realtime kamu
-})
+try:
+    cred = credentials.Certificate({
+        "type": "service_account",
+        "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+        "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+        "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
+        "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+        "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
+        "universe_domain": "googleapis.com"
+    })
 
-# Referensi ke Realtime Database
-ref = db.reference('/')
+    firebase_admin.initialize_app(cred, {
+        'databaseURL': os.environ.get('DATABASE_URL')
+    })
+
+    ref = db.reference('/')
+    print("✅ Firebase berhasil terhubung!")
+
+except Exception as e:
+    print("❌ Error initializing Firebase:", str(e))
+    ref = None
 
 # Inisialisasi Email
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Misalnya menggunakan Gmail SMTP server
-app.config['MAIL_PORT'] = 587  # Port untuk SMTP TLS
-app.config['MAIL_USE_TLS'] = True  # Mengaktifkan TLS (enkripsi)
-app.config['MAIL_USE_SSL'] = False  # Tidak menggunakan SSL
-app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'  # Email pengirim
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'  # Password email pengirim
-app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'  # Pengirim defaul
+app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+app.config['MAIL_PORT'] = int(os.environ.get("MAIL_PORT", 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME")
+app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 
 mail = Mail(app)
 
-# Memuat API key dari variabel lingkungan
-NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-
-# Menginisialisasi NewsApiClient dengan API key
-newsapi = NewsApiClient(api_key=NEWS_API_KEY)
-
 # Konfigurasi Gemini API Key
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
 
 # Inisialisasi model Gemini
 model = genai.GenerativeModel(
     "gemini-2.5-flash", 
     system_instruction=
     "Anda adalah Chatbot AI KTVDI untuk website Komunitas TV Digital Indonesia (KTVDI). "
-    "Tugas Anda adalah menjawab pertanyaan pengguna seputar aplikasi KTVDI, "
-    "fungsi-fungsinya (login, daftar, tambah data, edit data, hapus data, poin, leaderboard, profil, komentar), "
+    "Tugas Anda adalah menjawab pertanyaan pengguna seputar website KTVDI, "
+    "fungsi-fungsinya (login, daftar, tambah data, edit data, hapus data), "
     "serta pertanyaan umum tentang TV Digital di Indonesia (DVB-T2, MUX, mencari siaran, antena, STB, merk TV). "
     "Jawab dengan ramah, informatif, dan ringkas. "
     "Gunakan bahasa Indonesia formal. "
@@ -157,6 +162,10 @@ def chatbot():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory('static', 'sitemap.xml')
+
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -194,8 +203,10 @@ Jika Anda tidak meminta reset, abaikan email ini.
 """
                 mail.send(msg)
 
-                flash(f"Kode OTP telah dikirim ke email Anda. Username: {username}, Nama: {nama}", "success")
-
+                flash(
+                    f"Kode OTP telah dikirim ke email Anda. Username: {username}, Nama: {nama}",
+                    "success"
+                )
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
 
@@ -429,21 +440,6 @@ def time_since_published(published_time):
     
     return "Beberapa detik yang lalu"
 
-def get_actual_url_from_google_news(link):
-    # Mengambil halaman dari URL Google News
-    response = requests.get(link)
-    
-    # Mengecek apakah permintaan berhasil
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        # Google News menyertakan URL asli artikel di dalam tag 'a' dengan atribut 'href'
-        # Biasanya akan ada di dalam elemen tertentu, kita cari URL asli
-        article_link = soup.find('a', {'class': 'DY5T1d'})  # Class ini berdasarkan struktur halaman Google News
-        if article_link:
-            return article_link['href']
-    return link  # Jika tidak ditemukan, kembalikan link aslinya
-
 @app.route('/berita')
 def berita():
     # URL RSS Feed Google News (misalnya kategori teknologi)
@@ -480,11 +476,6 @@ def berita():
             # Menghitung waktu yang telah berlalu sejak penerbitan
             article.time_since_published = time_since_published(article.published_parsed)
     
-    # Memperbarui link ke artikel asli (menggunakan scraping)
-    for article in articles_on_page:
-        actual_link = get_actual_url_from_google_news(article.link)
-        article.actual_link = actual_link  # Menyimpan URL asli
-
     # Menampilkan halaman dengan artikel dan navigasi paginasi
     return render_template(
         'berita.html', 
@@ -492,10 +483,6 @@ def berita():
         page=page,
         total_pages=total_pages
     )
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
 
 # Fungsi untuk melakukan hashing password
 def hash_password(password):
@@ -733,56 +720,6 @@ def logout():
     session.pop('user', None)
     print("User logged out.")  # Debugging logout
     return redirect(url_for('login'))
-
-@app.route('/download-sql')
-def download_sql():
-    # Ambil data dari Firebase
-    ref = db.reference('users')
-    users_data = ref.get()
-
-    if not users_data:
-        return "No data found in Firebase.", 404
-
-    # Siapkan data dalam format SQL
-    sql_queries = []
-    for username, user_data in users_data.items():
-        query = f"""
-        INSERT INTO users (username, nama, email, password)
-        VALUES ('{username}', '{user_data['nama']}', '{user_data['email']}', '{user_data['password']}');
-        """
-        sql_queries.append(query)
-
-    # Gabungkan semua query menjadi satu string
-    sql_content = "\n".join(sql_queries)
-
-    # Membuat file SQL untuk diunduh
-    return send_file(io.BytesIO(sql_content.encode()), as_attachment=True, download_name="export_users.sql", mimetype="text/plain")
-
-@app.route('/download-csv')
-def download_csv():
-    # Ambil data dari Firebase
-    ref = db.reference('users')
-    users_data = ref.get()
-
-    if not users_data:
-        return "No data found in Firebase.", 404
-
-    # Siapkan data dalam format CSV
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['username', 'nama', 'email', 'password'])  # Header CSV
-
-    for username, user_data in users_data.items():
-        writer.writerow([username, user_data['nama'], user_data['email'], user_data['password']])
-
-    output.seek(0)
-
-    # Menggunakan BytesIO untuk menyimpan data CSV dalam bentuk byte
-    csv_bytes = io.BytesIO(output.getvalue().encode('utf-8'))
-    csv_bytes.seek(0)
-
-    # Mengirimkan file CSV untuk diunduh
-    return send_file(csv_bytes, as_attachment=True, download_name="export_users.csv", mimetype="text/csv")
 
 @app.route("/test-firebase")
 def test_firebase():
