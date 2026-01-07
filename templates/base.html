@@ -1,411 +1,196 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#ffffff">
-    <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
-    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}KTVDI - Platform Siaran Digital{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    animation: {
+                        'marquee': 'marquee 45s linear infinite',
+                        'shimmer': 'shimmer 2s linear infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(100%)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-1000px 0' },
+                            '100%': { backgroundPosition: '1000px 0' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --primary: #0066FF; /* Biru Modern 'Electric' */
-            --primary-dark: #004ecc;
-            --secondary: #0F172A; /* Slate 900 */
-            --bg-body: #F8FAFC;   /* Slate 50 */
-            --surface: #FFFFFF;
-            --text-main: #334155; /* Slate 700 */
-            --text-light: #64748B; /* Slate 500 */
-            --accent-red: #EF4444;
-            --accent-green: #10B981;
-            --accent-yellow: #F59E0B;
-            --navbar-height: 72px;
-            --bottom-bar-height-desktop: 48px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
-            --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            padding-top: var(--navbar-height); 
-            /* Padding bottom dinamis nanti diatur media query */
-            padding-bottom: 140px; 
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        /* --- 1. NAVBAR PREMIUM (GLASSMORPHISM) --- */
-        header {
-            position: fixed;
-            top: 0; left: 0; width: 100%;
-            height: var(--navbar-height);
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        nav {
-            max-width: 1280px;
-            margin: 0 auto;
-            height: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 24px;
-        }
-
-        .brand {
-            display: flex; align-items: center; gap: 10px;
-            text-decoration: none;
-        }
-        .brand-logo { font-size: 1.8rem; color: var(--primary); }
-        .brand-text { font-size: 1.4rem; font-weight: 800; color: var(--secondary); letter-spacing: -0.03em; }
-
-        /* Desktop Menu */
-        .nav-items { display: flex; gap: 32px; list-style: none; margin: 0; padding: 0; }
-        .nav-link {
-            text-decoration: none; color: var(--text-main); font-weight: 600; font-size: 0.95rem;
-            transition: 0.2s; position: relative;
-        }
-        .nav-link:hover, .nav-link.active { color: var(--primary); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Buttons */
-        .btn-group { display: flex; gap: 12px; }
-        .btn {
-            padding: 10px 24px; border-radius: 100px; font-weight: 700; font-size: 0.9rem;
-            text-decoration: none; border: none; cursor: pointer; transition: all 0.2s;
-            display: inline-flex; align-items: center; justify-content: center;
-        }
-        .btn-ghost { background: transparent; color: var(--text-main); }
-        .btn-ghost:hover { background: #eff6ff; color: var(--primary); }
-        .btn-primary { 
-            background: var(--primary); color: white; 
-            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25);
-        }
-        .btn-primary:hover { transform: translateY(-2px); background: var(--primary-dark); box-shadow: 0 8px 16px rgba(0, 102, 255, 0.3); }
-
-        .hamburger { display: none; font-size: 1.6rem; color: var(--secondary); cursor: pointer; }
-
-        /* --- 2. BOTTOM BAR (ADAPTIF TOTAL) --- */
-        .bottom-bar-container {
-            position: fixed;
-            bottom: 0; left: 0; width: 100%;
-            z-index: 999;
-            background: var(--secondary);
-            color: white;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .info-grid {
-            display: grid;
-            /* Layout Desktop: Jadwal (1.5) | Tech (1) | Berita (1.5) */
-            grid-template-columns: 1.5fr 1fr 1.5fr; 
-            height: var(--bottom-bar-height-desktop);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        /* A. Jadwal Sholat */
-        .col-prayer {
-            background: rgba(255,255,255,0.03);
-            display: flex; align-items: center;
-            overflow: hidden; position: relative;
-        }
-        .prayer-badge {
-            background: var(--primary); color: white;
-            padding: 0 16px; height: 100%; display: flex; align-items: center;
-            font-weight: 700; font-size: 0.85rem; z-index: 2;
-            box-shadow: 4px 0 10px rgba(0,0,0,0.2);
-        }
-        .prayer-scroll {
-            display: flex; align-items: center;
-            white-space: nowrap; padding-left: 20px;
-            animation: ticker 40s linear infinite;
-        }
-        .prayer-item { margin-right: 40px; font-size: 0.85rem; }
-
-        /* B. Tech Info */
-        .col-tech {
-            display: flex; justify-content: center; align-items: center; gap: 20px;
-            font-family: 'Courier New', monospace; font-size: 0.8rem; color: var(--accent-yellow);
-            background: rgba(0,0,0,0.2);
-            border-left: 1px solid rgba(255,255,255,0.05);
-            border-right: 1px solid rgba(255,255,255,0.05);
-        }
-        .tech-pill { display: flex; align-items: center; gap: 6px; }
-
-        /* C. Berita Flip */
-        .col-news {
-            display: flex; align-items: center; justify-content: flex-end;
-            padding: 0 20px; overflow: hidden; position: relative;
-        }
-        .news-wrapper {
-            height: 100%; display: flex; flex-direction: column; width: 100%;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .news-slide {
-            height: var(--bottom-bar-height-desktop); min-height: var(--bottom-bar-height-desktop);
-            display: flex; align-items: center; justify-content: flex-end;
-            gap: 10px; width: 100%;
-        }
-        .news-tag { 
-            background: rgba(255,255,255,0.15); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; 
-            font-weight: 700; color: #fff;
-        }
-        .news-text {
-            font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;
-        }
-
-        /* Copyright bar kecil di bawah */
-        .copyright-bar {
-            background: #020617; text-align: center; padding: 8px; font-size: 0.75rem; color: #64748b;
-        }
-
-        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-        /* --- RESPONSIVE MOBILE (SANGAT PENTING) --- */
-        @media (max-width: 900px) {
-            body { padding-bottom: 180px; } /* Tambah padding bawah agar konten tdk tertutup bottom bar tinggi */
-
-            .nav-items, .btn-group { display: none; }
-            .hamburger { display: block; }
-            .brand-text { font-size: 1.2rem; }
-
-            /* Mobile Menu */
-            .mobile-menu {
-                display: none; position: fixed; top: var(--navbar-height); left: 0; width: 100%;
-                background: white; flex-direction: column; padding: 20px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-bottom: 1px solid #eee;
-            }
-            .mobile-menu.active { display: flex; }
-            .mobile-menu a { padding: 12px; text-align: center; border-bottom: 1px solid #f1f5f9; color: var(--secondary); font-weight: 600; text-decoration: none; }
-            
-            /* Bottom Bar Transformasi Total di HP */
-            .info-grid {
-                display: flex; flex-direction: column; /* Stack ke bawah */
-                height: auto; /* Auto height */
-            }
-
-            /* Baris 1: Jadwal Sholat (Full Width) */
-            .col-prayer {
-                height: 36px;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-            }
-            .prayer-badge { font-size: 0.75rem; padding: 0 10px; }
-            
-            /* Baris 2: Berita (Full Width) */
-            .col-news {
-                height: 36px;
-                justify-content: flex-start; /* Rata kiri di HP biar enak baca */
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-            }
-            .news-slide {
-                height: 36px; min-height: 36px;
-                justify-content: flex-start;
-            }
-            .news-text { max-width: 80vw; } /* Biar panjang di HP */
-
-            /* Baris 3: Tech Info (Full Width) */
-            .col-tech {
-                height: 30px;
-                font-size: 0.7rem;
-                justify-content: space-evenly; /* Sebar merata */
-                background: #0b1120;
-            }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
     </style>
 </head>
-<body class="{% block body_class %}default-page{% endblock %}">
+<body class="bg-gray-50 text-slate-800 font-sans antialiased flex flex-col min-h-screen">
 
-    <header>
-        <nav>
-            <a href="/" class="brand">
-                <i class="fa-solid fa-tv brand-logo"></i>
-                <span class="brand-text">KTVDI</span>
-            </a>
+    <nav class="fixed w-full z-50 glass-nav transition-all duration-300" id="navbar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer" onclick="window.location.href='/'">
+                    <div class="w-10 h-10 bg-gradient-to-br from-brand-600 to-brand-400 rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-500/30">
+                        <i class="fa-solid fa-satellite-dish text-xl"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight text-slate-900 hidden md:block">Digital<span class="text-brand-600">ID</span></span>
+                </div>
 
-            <div class="hamburger" onclick="toggleMobileMenu()"><i class="fa-solid fa-bars"></i></div>
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="/" class="text-slate-600 hover:text-brand-600 font-medium transition">Beranda</a>
+                    <a href="/daftar-siaran" class="text-slate-600 hover:text-brand-600 font-medium transition">Daftar Siaran</a>
+                    <a href="/berita" class="text-slate-600 hover:text-brand-600 font-medium transition">Berita Digital</a>
+                    <a href="/tentang" class="text-slate-600 hover:text-brand-600 font-medium transition">Tentang</a>
+                </div>
 
-            <ul class="nav-items">
-                <li><a href="/" class="nav-link">Beranda</a></li>
-                <li><a href="/daftar-siaran" class="nav-link">Daftar Siaran</a></li>
-                <li><a href="/berita" class="nav-link">Berita</a></li>
-                <li><a href="/about" class="nav-link">Tentang</a></li>
-            </ul>
+                <div class="hidden md:flex items-center space-x-3">
+                    <a href="/masuk" class="text-slate-600 hover:text-slate-900 font-medium px-4 py-2">Masuk</a>
+                    <a href="/daftar" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-full font-medium transition shadow-lg shadow-brand-500/30 transform hover:-translate-y-0.5">Daftar</a>
+                </div>
 
-            <div class="btn-group">
-                {% if session.get('user') %}
-                    <a href="/dashboard" class="btn btn-primary">Dashboard</a>
-                    <a href="/logout" class="btn btn-ghost">Logout</a>
-                {% else %}
-                    <a href="/login" class="btn btn-ghost">Masuk</a>
-                    <a href="/register" class="btn btn-primary">Daftar</a>
-                {% endif %}
+                <div class="md:hidden flex items-center">
+                    <button class="text-slate-600 hover:text-slate-900 focus:outline-none" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                        <i class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
             </div>
-        </nav>
-
-        <div id="mobile-menu" class="mobile-menu">
-            <a href="/">Beranda</a>
-            <a href="/daftar-siaran">Daftar Siaran</a>
-            <a href="/berita">Berita</a>
-            <a href="/about">Tentang</a>
-            {% if session.get('user') %}
-                <a href="/dashboard" style="color:var(--primary);">Dashboard</a>
-                <a href="/logout">Logout</a>
-            {% else %}
-                <a href="/login">Masuk</a>
-                <a href="/register" style="color:var(--primary);">Daftar</a>
-            {% endif %}
         </div>
-    </header>
 
-    <main>
-        {% block content %}{% endblock %}
+        <div class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full" id="mobile-menu">
+            <div class="px-4 pt-2 pb-4 space-y-1 shadow-xl">
+                <a href="/" class="block px-3 py-3 text-base font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-600 rounded-lg">Beranda</a>
+                <a href="/daftar-siaran" class="block px-3 py-3 text-base font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-600 rounded-lg">Daftar Siaran</a>
+                <a href="/berita" class="block px-3 py-3 text-base font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-600 rounded-lg">Berita</a>
+                <div class="pt-4 flex gap-2">
+                    <a href="/masuk" class="flex-1 text-center py-2 border border-slate-200 rounded-lg text-slate-600">Masuk</a>
+                    <a href="/daftar" class="flex-1 text-center py-2 bg-brand-600 text-white rounded-lg">Daftar</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow pt-20">
+        {% block content %}
+        {% endblock %}
     </main>
 
-    <div class="bottom-bar-container">
-        
-        <div class="info-grid">
-            <div class="col-prayer">
-                <div class="prayer-badge">JADWAL</div>
-                <div class="prayer-scroll" id="prayer-ticker">
-                    <span class="prayer-item">Memuat data sholat...</span>
+    <footer class="bg-slate-900 text-slate-300 py-12 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div class="col-span-1 md:col-span-2">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fa-solid fa-satellite-dish text-brand-500 text-2xl"></i>
+                    <span class="text-2xl font-bold text-white">Digital<span class="text-brand-500">ID</span></span>
+                </div>
+                <p class="text-slate-400 mb-6 max-w-sm leading-relaxed">
+                    Platform komunitas TV Digital terbesar di Indonesia. Pantau kualitas sinyal, diskusi frekuensi MUX, dan nikmati era baru penyiaran yang bersih, jernih, dan canggih.
+                </p>
+                <div class="flex space-x-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-600 transition"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-600 transition"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-600 transition"><i class="fa-brands fa-instagram"></i></a>
                 </div>
             </div>
-
-            <div class="col-news">
-                <div class="news-wrapper" id="news-slider">
-                    {% if breaking_news %}
-                        {% for news in breaking_news %}
-                        <div class="news-slide">
-                            <span class="news-tag">INFO</span>
-                            <span class="news-text">{{ news }}</span>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="news-slide"><span class="news-tag">KTVDI</span><span class="news-text">Selamat Datang di Web Komunitas TV Digital</span></div>
-                        <div class="news-slide"><span class="news-tag">UPDATE</span><span class="news-text">Cek Frekuensi MUX Terbaru di Kotamu</span></div>
-                    {% endif %}
-                </div>
+            <div>
+                <h3 class="text-white font-semibold mb-4 text-lg">Menu</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="hover:text-brand-400 transition">Cek Sinyal</a></li>
+                    <li><a href="#" class="hover:text-brand-400 transition">Daftar MUX</a></li>
+                    <li><a href="#" class="hover:text-brand-400 transition">Komunitas</a></li>
+                    <li><a href="#" class="hover:text-brand-400 transition">Bantuan STB</a></li>
+                </ul>
             </div>
-
-            <div class="col-tech">
-                <div class="tech-pill"><i class="fa-solid fa-wifi"></i> <span id="isp-name">Detecting...</span></div>
-                <div class="tech-pill"><i class="fa-solid fa-battery-half"></i> <span id="batt-level">--%</span></div>
-                <div class="tech-pill"><i class="fa-regular fa-clock"></i> <span id="clock-display">00:00</span></div>
+            <div>
+                <h3 class="text-white font-semibold mb-4 text-lg">Legal</h3>
+                <ul class="space-y-2">
+                    <li><a href="#" class="hover:text-brand-400 transition">Kebijakan Privasi</a></li>
+                    <li><a href="#" class="hover:text-brand-400 transition">Syarat & Ketentuan</a></li>
+                    <li><a href="#" class="hover:text-brand-400 transition">Disclaimer</a></li>
+                </ul>
             </div>
         </div>
-
-        <div class="copyright-bar">
+        <div class="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
             &copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.
         </div>
+    </footer>
+
+    <div class="fixed bottom-6 right-6 z-50 group">
+        <div id="chat-window" class="hidden mb-4 w-[350px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all origin-bottom-right">
+            <div class="bg-gradient-to-r from-brand-700 to-brand-500 p-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <i class="fa-solid fa-robot text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-white font-bold text-sm">Asisten Digital</h4>
+                        <p class="text-blue-100 text-xs flex items-center gap-1"><span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Online</p>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="text-white/80 hover:text-white"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="h-80 bg-gray-50 p-4 overflow-y-auto space-y-3" id="chat-messages">
+                <div class="flex gap-2">
+                    <div class="w-8 h-8 bg-brand-100 rounded-full flex-shrink-0 flex items-center justify-center"><i class="fa-solid fa-robot text-brand-600 text-xs"></i></div>
+                    <div class="bg-white p-3 rounded-2xl rounded-tl-none text-sm text-slate-600 shadow-sm border border-gray-100">
+                        Halo! Ada yang bisa saya bantu mengenai siaran TV Digital atau setting STB hari ini?
+                    </div>
+                </div>
+            </div>
+            <div class="p-3 bg-white border-t border-gray-100">
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Tanya sesuatu..." class="flex-1 bg-gray-100 border-0 rounded-full px-4 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:bg-white transition">
+                    <button class="w-9 h-9 bg-brand-600 hover:bg-brand-700 text-white rounded-full flex items-center justify-center shadow-md transition"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="toggleChat()" class="w-14 h-14 bg-gradient-to-br from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white rounded-full shadow-lg shadow-brand-500/40 flex items-center justify-center transform hover:scale-110 transition duration-300 animate-float">
+            <i class="fa-solid fa-message text-xl"></i>
+        </button>
     </div>
 
     <script>
-        // --- 1. MOBILE MENU ---
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            const icon = document.querySelector('.hamburger i');
-            
-            if(menu.style.display === 'flex') {
-                menu.style.display = 'none';
-                icon.classList.remove('fa-xmark'); icon.classList.add('fa-bars');
-            } else {
-                menu.style.display = 'flex';
-                icon.classList.remove('fa-bars'); icon.classList.add('fa-xmark');
-            }
+        function toggleChat() {
+            const chat = document.getElementById('chat-window');
+            chat.classList.toggle('hidden');
         }
-
-        // --- 2. TECH: CLOCK & BATTERY & ISP ---
-        // Clock
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('clock-display').innerText = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-        }, 1000);
-
-        // Battery
-        if ('getBattery' in navigator) {
-            navigator.getBattery().then(batt => {
-                const updateBatt = () => document.getElementById('batt-level').innerText = Math.round(batt.level * 100) + "%";
-                updateBatt();
-                batt.addEventListener('levelchange', updateBatt);
-            });
-        }
-
-        // ISP Mock (Karena API asli butuh HTTPS/CORS)
-        document.getElementById('isp-name').innerText = "Unknown Net";
-        fetch('http://ip-api.com/json/?fields=isp').then(r=>r.json()).then(d=>{
-            // Ambil kata pertama biar muat di HP
-            let shortIsp = d.isp.split(' ')[0];
-            if(shortIsp.length > 10) shortIsp = shortIsp.substring(0,8) + '..';
-            document.getElementById('isp-name').innerText = shortIsp;
-        }).catch(e=>console.log(e));
-
-        // --- 3. NEWS FLIP ANIMATION ---
-        const slider = document.getElementById('news-slider');
-        const slideCount = slider.children.length;
-        let slideIdx = 0;
-        
-        // Detect mobile to adjust flip height
-        function getSlideHeight() {
-            return window.innerWidth <= 900 ? 36 : 48; // 36px on mobile, 48px desktop
-        }
-
-        setInterval(() => {
-            slideIdx++;
-            if (slideIdx >= slideCount) slideIdx = 0;
-            slider.style.transform = `translateY(-${slideIdx * getSlideHeight()}px)`;
-        }, 4000);
-
-        // --- 4. JADWAL SHOLAT (15 KOTA) ---
-        // Kita gabungkan string HTML panjang agar scrolling lancar
-        const cities = [
-            {id:'1301', n:'Jakarta'}, {id:'1638', n:'Surabaya'}, {id:'1219', n:'Bandung'}, 
-            {id:'1634', n:'Semarang'}, {id:'1204', n:'Pekalongan'}, {id:'1633', n:'Purwodadi'},
-            {id:'1226', n:'Medan'}, {id:'1629', n:'Makassar'}, {id:'1206', n:'Yogyakarta'}, 
-            {id:'1635', n:'Solo'}
-        ];
-
-        async function loadPrayers() {
-            const container = document.getElementById('prayer-ticker');
-            const d = new Date();
-            const dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
-            
-            let htmlStr = '';
-            // Load secara asinkron tapi tampilkan placeholder dulu
-            container.innerHTML = '<span class="prayer-item">Sedang mengambil data jadwal sholat seluruh Indonesia...</span>';
-            
-            let tempHtml = '';
-            for(let c of cities) {
-                try {
-                    const res = await fetch(`https://api.myquran.com/v2/sholat/jadwal/${c.id}/${dateStr}`);
-                    const data = await res.json();
-                    const j = data.data.jadwal;
-                    tempHtml += `<span class="prayer-item" style="font-weight:600; color:#fff;">📍 ${c.n}: [Subuh ${j.subuh} - Maghrib ${j.maghrib} - Isya ${j.isya}]</span>`;
-                } catch(e) {}
-            }
-            // Duplicate content 2x agar scrolling infinite terlihat nyambung
-            container.innerHTML = tempHtml + tempHtml;
-        }
-        loadPrayers();
     </script>
 </body>
 </html>
