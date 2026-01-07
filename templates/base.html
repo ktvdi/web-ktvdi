@@ -15,30 +15,32 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: {
                         brand: {
-                            deep: '#0f172a',    // Navy Blue (Background Navbar)
-                            primary: '#2563eb', // Royal Blue (Tombol/Aksen)
-                            light: '#f8fafc',   // Background Page
-                            accent: '#38bdf8',  // Cyan Highlight
+                            navy: '#0f172a',    /* Background Navbar (Gelap) */
+                            blue: '#2563eb',    /* Biru Utama */
+                            sky: '#38bdf8',     /* Biru Muda */
+                            surface: '#f8fafc', /* Background Web */
                         }
                     },
                     animation: {
-                        'marquee': 'marquee 180s linear infinite', /* SANGAT LAMBAT & HALUS */
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'float': 'float 6s ease-in-out infinite',
+                        'news-flip': 'flipVertical 12s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                        'marquee': 'marquee 150s linear infinite', /* Running Text Sangat Lambat */
                     },
                     keyframes: {
+                        flipVertical: {
+                            '0%, 10%': { transform: 'translateY(0)' },
+                            '15%, 25%': { transform: 'translateY(-100%)' },
+                            '30%, 40%': { transform: 'translateY(-200%)' },
+                            '45%, 55%': { transform: 'translateY(-300%)' },
+                            '60%, 70%': { transform: 'translateY(-400%)' },
+                            '75%, 85%': { transform: 'translateY(-500%)' },
+                            '90%, 100%': { transform: 'translateY(-600%)' }
+                        },
                         marquee: {
                             '0%': { transform: 'translateX(100%)' },
                             '100%': { transform: 'translateX(-100%)' },
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0)' },
-                            '50%': { transform: 'translateY(-10px)' },
                         }
                     }
                 }
@@ -46,401 +48,308 @@
         }
     </script>
     <style>
-        /* Navbar Solid Dark Blue untuk Logo Putih */
-        .navbar-premium {
-            background: rgba(15, 23, 42, 0.95); /* Slate 900 + Blur */
-            backdrop-filter: blur(12px);
+        /* Navbar Solid Navy agar Logo Putih Terlihat */
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.98);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
         
-        /* Custom Scrollbar */
-        .chat-scroll::-webkit-scrollbar { width: 5px; }
-        .chat-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        /* Container untuk Flip Berita */
+        .news-container { height: 20px; overflow: hidden; position: relative; }
+        .news-wrapper { display: flex; flex-direction: column; }
+        .news-item { height: 20px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.75rem; font-weight: 600; color: #334155; }
         
         /* Masking Running Text */
         .mask-gradient {
-            mask-image: linear-gradient(to right, transparent, black 2%, black 98%, transparent);
-            -webkit-mask-image: linear-gradient(to right, transparent, black 2%, black 98%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
     </style>
 </head>
-<body class="bg-brand-light text-slate-800 font-sans flex flex-col min-h-screen">
+<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen">
 
-    <nav class="fixed top-0 w-full z-50 navbar-premium transition-all duration-300">
+    <nav class="fixed top-0 w-full z-50 glass-nav transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 
                 <a href="/" class="flex items-center gap-3 group">
-                    <div class="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white group-hover:scale-110 transition duration-300">
-                        <i class="fa-solid fa-tower-broadcast text-lg"></i>
+                    <div class="relative w-10 h-10 group-hover:scale-105 transition duration-300">
+                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="w-full h-full object-contain filter drop-shadow-lg">
                     </div>
                     <div class="flex flex-col">
-                        <span class="text-xl font-extrabold tracking-tight text-white leading-none">KTVDI<span class="text-brand-accent">.id</span></span>
+                        <span class="text-xl font-extrabold text-white tracking-tight leading-none">KTVDI<span class="text-brand-sky">.id</span></span>
                         <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Komunitas Digital</span>
                     </div>
                 </a>
 
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="/" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 relative group">
-                        Beranda
-                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-accent transition-all group-hover:w-full"></span>
-                    </a>
-                    <a href="#tentang" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 relative group">
-                        Tentang
-                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-accent transition-all group-hover:w-full"></span>
-                    </a>
-                    <a href="{{ url_for('daftar_siaran') }}" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 relative group">
-                        Database Siaran
-                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-accent transition-all group-hover:w-full"></span>
-                    </a>
-                    <a href="{{ url_for('berita') }}" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 relative group">
-                        Berita Digital
-                        <span class="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-accent transition-all group-hover:w-full"></span>
-                    </a>
+                    <a href="/" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Beranda</a>
+                    <a href="/daftar-siaran" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Database Siaran</a>
+                    <a href="/berita" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Berita</a>
+                    <a href="/about" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Tentang Kami</a>
                 </div>
 
                 <div class="hidden md:flex items-center gap-3">
                     {% if session.get('user') %}
                         <div class="flex items-center gap-3 pl-4 border-l border-slate-700">
-                            <div class="text-right hidden lg:block">
-                                <div class="text-[10px] text-slate-400 uppercase">Halo,</div>
-                                <div class="text-sm font-bold text-white leading-none">{{ session.get('nama', 'User') }}</div>
-                            </div>
-                            <a href="{{ url_for('dashboard') }}" class="px-4 py-2 bg-brand-primary hover:bg-blue-600 text-white text-xs font-bold rounded-full transition shadow-lg shadow-blue-500/20">Dashboard</a>
-                            <a href="{{ url_for('logout') }}" class="w-8 h-8 flex items-center justify-center bg-slate-800 text-red-400 rounded-full hover:bg-red-600 hover:text-white transition"><i class="fa-solid fa-power-off"></i></a>
+                            <span class="text-xs font-bold text-slate-400 uppercase hidden lg:block">Halo, {{ session.get('nama', 'User') }}</span>
+                            <a href="/dashboard" class="px-4 py-2 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-600 transition shadow-lg shadow-blue-900/50">Dashboard</a>
+                            <a href="/logout" class="text-red-400 hover:text-red-300 text-lg"><i class="fa-solid fa-power-off"></i></a>
                         </div>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="text-sm font-bold text-slate-300 hover:text-white px-3">Masuk</a>
-                        <a href="{{ url_for('register') }}" class="px-6 py-2.5 bg-brand-primary hover:bg-blue-600 text-white text-sm font-bold rounded-full shadow-lg shadow-blue-500/20 transition transform hover:-translate-y-0.5">
-                            Daftar
-                        </a>
+                        <a href="/login" class="text-sm font-bold text-slate-300 hover:text-white px-3">Masuk</a>
+                        <a href="/register" class="px-6 py-2.5 bg-brand-blue hover:bg-blue-600 text-white text-sm font-bold rounded-full shadow-lg shadow-blue-900/50 transition">Daftar</a>
                     {% endif %}
                 </div>
 
-                <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="md:hidden text-white text-2xl focus:outline-none">
-                    <i class="fa-solid fa-bars-staggered"></i>
+                <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="md:hidden text-white text-2xl">
+                    <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
         </div>
 
-        <div id="mobile-menu" class="hidden md:hidden bg-brand-deep border-t border-slate-800 absolute w-full shadow-2xl z-50">
+        <div id="mobile-menu" class="hidden md:hidden bg-brand-navy border-t border-slate-800 absolute w-full shadow-2xl z-50">
             <div class="p-5 space-y-4">
                 <a href="/" class="block text-slate-300 hover:text-white font-bold">Beranda</a>
-                <a href="#tentang" class="block text-slate-300 hover:text-white font-bold">Tentang</a>
-                <a href="{{ url_for('daftar_siaran') }}" class="block text-slate-300 hover:text-white font-bold">Database</a>
-                <a href="{{ url_for('berita') }}" class="block text-slate-300 hover:text-white font-bold">Berita</a>
+                <a href="/daftar-siaran" class="block text-slate-300 hover:text-white font-bold">Database</a>
+                <a href="/berita" class="block text-slate-300 hover:text-white font-bold">Berita</a>
+                <a href="/about" class="block text-slate-300 hover:text-white font-bold">Tentang</a>
                 <div class="pt-4 border-t border-slate-700 grid grid-cols-2 gap-3">
                     {% if session.get('user') %}
-                        <a href="{{ url_for('dashboard') }}" class="col-span-2 py-3 bg-brand-primary text-white text-center rounded-xl font-bold">Dashboard</a>
+                        <a href="/dashboard" class="col-span-2 py-3 bg-brand-blue text-white text-center rounded-xl font-bold">Dashboard</a>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="py-3 border border-slate-600 text-slate-300 text-center rounded-xl font-bold">Masuk</a>
-                        <a href="{{ url_for('register') }}" class="py-3 bg-brand-primary text-white text-center rounded-xl font-bold">Daftar</a>
+                        <a href="/login" class="py-3 border border-slate-600 text-slate-300 text-center rounded-xl font-bold">Masuk</a>
+                        <a href="/register" class="py-3 bg-brand-blue text-white text-center rounded-xl font-bold">Daftar</a>
                     {% endif %}
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow pt-20 pb-20">
+    <main class="flex-grow pt-20 pb-24">
         {% block content %}{% endblock %}
     </main>
-    
-    <footer class="bg-brand-deep text-white pb-16 pt-16 border-t border-slate-800">
+
+    <footer class="bg-brand-navy text-white pt-12 pb-20 border-t border-slate-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                <div class="col-span-1 md:col-span-2">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i class="fa-solid fa-satellite-dish text-brand-primary text-2xl"></i>
-                        <span class="text-2xl font-extrabold">KTVDI.id</span>
-                    </div>
-                    <p class="text-slate-400 text-sm leading-relaxed max-w-sm mb-6">
-                        Platform komunitas independen yang berdedikasi untuk edukasi dan pendataan siaran TV Digital (DVB-T2) di Indonesia. Kami menghubungkan pemirsa dari Sabang sampai Merauke untuk menikmati siaran jernih berkualitas.
-                    </p>
-                    <div class="flex gap-4">
-                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#1877F2] transition text-white"><i class="fa-brands fa-facebook-f"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#1DA1F2] transition text-white"><i class="fa-brands fa-twitter"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#E1306C] transition text-white"><i class="fa-brands fa-instagram"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#FF0000] transition text-white"><i class="fa-brands fa-youtube"></i></a>
-                        <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-green-500 transition text-white"><i class="fa-brands fa-whatsapp"></i></a>
-                    </div>
-                </div>
-
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center border-b border-slate-800 pb-8">
                 <div>
-                    <h4 class="font-bold text-lg mb-4">Tautan</h4>
-                    <ul class="space-y-2 text-sm text-slate-400">
-                        <li><a href="/" class="hover:text-brand-primary transition">Beranda</a></li>
-                        <li><a href="{{ url_for('daftar_siaran') }}" class="hover:text-brand-primary transition">Database MUX</a></li>
-                        <li><a href="{{ url_for('berita') }}" class="hover:text-brand-primary transition">Berita Digital</a></li>
-                        <li><a href="#tentang" class="hover:text-brand-primary transition">Tentang Kami</a></li>
-                    </ul>
+                    <h3 class="text-2xl font-bold mb-2">KTVDI.id</h3>
+                    <p class="text-slate-400 text-sm max-w-md">Platform komunitas TV Digital terbesar di Indonesia. Menyediakan data MUX real-time, panduan teknis, dan forum diskusi.</p>
                 </div>
-
-                <div>
-                    <h4 class="font-bold text-lg mb-4">Kontak</h4>
-                    <ul class="space-y-2 text-sm text-slate-400">
-                        <li><i class="fa-solid fa-envelope mr-2 text-brand-primary"></i> help@ktvdi.id</li>
-                        <li><i class="fa-solid fa-map-pin mr-2 text-brand-primary"></i> Jakarta, Indonesia</li>
-                    </ul>
+                <div class="flex justify-center md:justify-end gap-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition text-white"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition text-white"><i class="fa-brands fa-twitter"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition text-white"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition text-white"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-green-500 transition text-white"><i class="fa-brands fa-whatsapp"></i></a>
                 </div>
             </div>
-            
-            <div class="border-t border-slate-800 pt-8 text-center text-xs text-slate-500">
+            <div class="pt-6 text-center text-xs text-slate-500">
                 &copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi Undang-Undang.
             </div>
         </div>
     </footer>
 
-    <div class="fixed bottom-0 w-full z-40 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] h-12 flex items-center justify-between px-4 md:px-8 select-none">
+    <div class="fixed bottom-0 w-full z-40 bg-white border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] h-14 flex items-center justify-between px-2 md:px-6 select-none">
         
-        <div class="flex-1 overflow-hidden h-full flex items-center relative mr-6">
-            <div class="absolute left-0 z-10 bg-white h-full flex items-center pr-4 shadow-[10px_0_15px_white]">
-                <div class="flex items-center gap-2 bg-red-600 text-white px-3 py-1 rounded-full shadow-md shadow-red-500/20">
-                    <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                    <span class="text-[10px] font-extrabold tracking-wider">LIVE INFO</span>
-                </div>
+        <div class="hidden md:flex w-1/3 h-full items-center border-r border-slate-200 pr-4">
+            <div class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded mr-3 whitespace-nowrap shadow-sm">
+                BREAKING
             </div>
-            
-            <div class="w-full overflow-hidden mask-gradient pl-28">
-                <div class="animate-marquee whitespace-nowrap text-xs font-medium text-slate-600 flex items-center gap-16" id="running-content">
-                    <span><i class="fa-solid fa-circle-notch fa-spin"></i> Memuat data satelit...</span>
+            <div class="news-container flex-1">
+                <div class="news-wrapper animate-news-flip">
+                    {% if breaking_news %}
+                        {% for news in breaking_news %}
+                        <div class="news-item hover:text-brand-blue cursor-pointer" title="{{ news }}">
+                            {{ news }}
+                        </div>
+                        {% endfor %}
+                        {% for news in breaking_news %}
+                        <div class="news-item">
+                            {{ news }}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="news-item">Selamat Datang di KTVDI</div>
+                        <div class="news-item">Update Frekuensi Terbaru</div>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-4 pl-6 border-l border-slate-200 h-8 flex-shrink-0 bg-white z-20">
-            <div class="hidden md:flex items-center gap-1.5 text-[10px] font-extrabold text-brand-primary bg-blue-50 px-2 py-1 rounded-md" id="net-status">
-                <i class="fa-solid fa-wifi"></i> <span>ONLINE</span>
+        <div class="flex-1 overflow-hidden h-full flex items-center relative mx-4">
+            <div class="bg-brand-blue text-white text-[10px] font-bold px-2 py-1 rounded mr-2 whitespace-nowrap z-10 shadow-sm">
+                JADWAL SHOLAT
             </div>
-            <div class="text-xs font-mono font-bold text-slate-800 tracking-widest" id="system-clock">00:00</div>
-            <div class="flex items-center gap-1.5 text-xs text-slate-600">
-                <span class="text-[10px] font-bold" id="battery-level">--%</span>
-                <i class="fa-solid fa-battery-half text-green-500 text-sm"></i>
+            <div class="w-full overflow-hidden mask-gradient">
+                <div class="animate-marquee whitespace-nowrap text-xs font-medium text-slate-600 flex items-center gap-16" id="sholat-container">
+                    <span><i class="fa-solid fa-spinner fa-spin"></i> Memuat Data 17 Kota...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 pl-4 border-l border-slate-200 h-8 flex-shrink-0 bg-white">
+            <div class="hidden lg:flex items-center gap-1.5 text-[10px] font-bold text-brand-blue bg-blue-50 px-2 py-1 rounded">
+                <i class="fa-solid fa-wifi"></i> <span id="net-stat">ONLINE</span>
+            </div>
+            <div class="text-xs font-mono font-bold text-slate-800" id="clock">00:00</div>
+            <div class="flex items-center gap-1 text-xs text-slate-600">
+                <i class="fa-solid fa-battery-half text-green-500"></i>
+                <span id="battery">--%</span>
             </div>
         </div>
     </div>
 
-    <div class="fixed bottom-20 left-6 z-50 group">
-        <a href="tel:112" class="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 hover:pr-6 group-hover:w-auto overflow-hidden ring-4 ring-red-500/20">
-            <i class="fa-solid fa-phone-volume text-xl animate-pulse"></i>
-            <span class="font-bold text-sm whitespace-nowrap w-0 group-hover:w-auto overflow-hidden transition-all duration-300 pl-0 group-hover:pl-2">DARURAT 112</span>
+    <div class="fixed bottom-20 left-4 z-50 group">
+        <a href="tel:112" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-2xl transition-all duration-300 hover:pr-5 group-hover:w-auto overflow-hidden ring-4 ring-red-100">
+            <i class="fa-solid fa-phone-volume text-lg animate-pulse"></i>
+            <span class="font-bold text-xs whitespace-nowrap w-0 group-hover:w-auto overflow-hidden transition-all duration-300 pl-0 group-hover:pl-2">SOS 112</span>
         </a>
     </div>
 
-    <div class="fixed bottom-20 right-6 z-50">
-        <div id="chat-window" class="hidden w-[90vw] md:w-[350px] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col transition-all duration-300 origin-bottom-right transform scale-95 opacity-0 mb-4 ring-1 ring-black/5">
-            <div class="bg-gradient-to-r from-brand-deep to-brand-primary p-4 flex justify-between items-center text-white">
+    <div class="fixed bottom-20 right-4 z-50">
+        <div id="chat-window" class="hidden w-[90vw] md:w-[340px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden mb-2 transition-all duration-300 transform scale-95 opacity-0 origin-bottom-right">
+            <div class="bg-brand-navy p-4 flex justify-between items-center text-white">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-md border border-white/20">
-                        <i class="fa-solid fa-headset text-lg"></i>
-                    </div>
+                    <div class="w-8 h-8 bg-brand-blue rounded-full flex items-center justify-center border border-white/20"><i class="fa-solid fa-robot text-xs"></i></div>
                     <div>
                         <h4 class="font-bold text-sm">Asisten KTVDI</h4>
-                        <p class="text-[10px] text-slate-200 flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Online & Siap
-                        </p>
+                        <p class="text-[10px] text-slate-400">AI Support System</p>
                     </div>
                 </div>
-                <button onclick="toggleChat()" class="hover:bg-white/10 rounded-full p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button onclick="toggleChat()" class="hover:text-red-400"><i class="fa-solid fa-xmark"></i></button>
             </div>
-
-            <div id="chat-messages" class="h-80 bg-[#f8fafc] p-4 overflow-y-auto space-y-4 flex flex-col chat-scroll">
+            <div id="chat-messages" class="h-72 bg-slate-50 p-4 overflow-y-auto space-y-3 flex flex-col chat-scroll">
                 <div class="flex gap-2 items-end">
-                    <div class="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs flex-shrink-0 shadow-sm"><i class="fa-solid fa-robot"></i></div>
-                    <div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-600 shadow-sm border border-slate-200 max-w-[85%] leading-relaxed">
-                        Halo! 👋 Saya asisten virtual KTVDI. Tanyakan apa saja tentang <strong>TV Digital</strong>, <strong>Sinyal MUX</strong>, atau <strong>Jadwal Bola</strong>.
+                    <div class="w-6 h-6 bg-brand-blue rounded-full flex-shrink-0 flex items-center justify-center text-white text-[9px]"><i class="fa-solid fa-robot"></i></div>
+                    <div class="bg-white p-3 rounded-lg text-xs text-slate-600 shadow-sm border border-slate-200">
+                        Halo! Saya siap bantu cek frekuensi, info STB, atau jadwal bola. Tanyakan saja! 😊
                     </div>
                 </div>
             </div>
-
-            <div class="p-3 bg-white border-t border-slate-100">
-                <form id="chat-form" onsubmit="handleChat(event)" class="flex gap-2 relative">
-                    <input type="text" id="chat-input" placeholder="Ketik pesan..." autocomplete="off" class="w-full bg-slate-50 text-slate-800 text-xs rounded-full pl-4 pr-11 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary transition border border-slate-200">
-                    <button type="submit" id="send-btn" class="absolute right-2 top-1.5 w-8 h-8 bg-brand-primary hover:bg-brand-deep text-white rounded-full flex items-center justify-center shadow-md transition disabled:opacity-50">
-                        <i class="fa-solid fa-paper-plane text-xs"></i>
-                    </button>
+            <div class="p-3 bg-white border-t border-slate-200">
+                <form onsubmit="handleChat(event)" class="flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Tanya sesuatu..." class="w-full bg-slate-100 text-xs px-3 py-2 rounded-md focus:outline-none focus:ring-1 focus:ring-brand-blue transition">
+                    <button type="submit" class="bg-brand-blue text-white px-3 py-2 rounded-md hover:bg-blue-700 transition shadow-sm"><i class="fa-solid fa-paper-plane text-xs"></i></button>
                 </form>
             </div>
         </div>
-
-        <button onclick="toggleChat()" class="w-16 h-16 bg-brand-primary hover:bg-brand-deep text-white rounded-full shadow-2xl shadow-brand-primary/40 flex items-center justify-center text-2xl transition-all duration-300 hover:scale-110 group border-4 border-white">
+        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl flex items-center justify-center text-xl hover:scale-110 transition border-4 border-white group">
             <i class="fa-solid fa-comment-dots group-hover:animate-bounce"></i>
         </button>
     </div>
 
     <script>
-        // 1. SYSTEM MONITOR (Jam, Net, Baterai)
-        function updateSystem() {
-            const now = new Date();
-            document.getElementById('system-clock').innerText = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-            
-            const netStatus = document.getElementById('net-status');
-            if(navigator.onLine) {
-                netStatus.innerHTML = '<i class="fa-solid fa-wifi"></i> <span>ONLINE</span>';
-                netStatus.className = "hidden md:flex items-center gap-1.5 text-[10px] font-extrabold text-brand-primary bg-blue-50 px-2 py-1 rounded-md";
-            } else {
-                netStatus.innerHTML = '<i class="fa-solid fa-plane"></i> <span>OFFLINE</span>';
-                netStatus.className = "hidden md:flex items-center gap-1.5 text-[10px] font-extrabold text-red-600 bg-red-50 px-2 py-1 rounded-md";
-            }
-
-            if(navigator.getBattery) {
-                navigator.getBattery().then(bat => {
-                    document.getElementById('battery-level').innerText = Math.round(bat.level * 100) + "%";
-                });
-            } else {
-                document.getElementById('battery-level').innerText = "100%";
-            }
+        // 1. CLOCK & BATTERY
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+        }, 1000);
+        
+        if(navigator.getBattery) {
+            navigator.getBattery().then(b => document.getElementById('battery').innerText = Math.round(b.level*100)+"%");
         }
-        setInterval(updateSystem, 1000);
-        updateSystem();
 
-        // 2. RUNNING TEXT (17 Kota + Berita)
-        async function updateRunningText() {
-            // Daftar Kota Lengkap + Pekalongan + Purwodadi
+        // 2. JADWAL SHOLAT (15 Kota + Pekalongan + Purwodadi)
+        async function fetchSholat() {
             const cities = [
                 'Jakarta', 'Surabaya', 'Bandung', 'Medan', 'Semarang', 
                 'Makassar', 'Palembang', 'Pekalongan', 'Purwodadi', 'Yogyakarta',
                 'Denpasar', 'Balikpapan', 'Banjarmasin', 'Padang', 'Malang', 'Aceh', 'Manado'
             ];
+            // Randomly pick 5 cities per refresh to keep marquee fast
+            const subset = cities.sort(() => 0.5 - Math.random()).slice(0, 5);
+            let html = "";
+            const date = new Date();
             
-            // Randomly select 4 cities per refresh to keep it dynamic and fast
-            const selectedCities = cities.sort(() => 0.5 - Math.random()).slice(0, 4);
-            let sholatHTML = "";
-
             try {
-                const date = new Date();
-                const requests = selectedCities.map(city => 
-                    fetch(`https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${city}&country=Indonesia&method=20`)
-                    .then(res => res.json())
-                );
+                const reqs = subset.map(c => fetch(`https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${c}&country=Indonesia&method=20`).then(r=>r.json()));
+                const res = await Promise.all(reqs);
                 
-                const results = await Promise.all(requests);
-                
-                results.forEach((data, index) => {
-                    if(data.data) {
-                        const city = selectedCities[index];
-                        const t = data.data.timings;
-                        sholatHTML += `
-                            <span class="font-bold text-brand-primary ml-10 uppercase"><i class="fa-solid fa-mosque"></i> ${city}:</span>
-                            <span class="mx-1 text-slate-700">Subuh ${t.Fajr}</span> • 
-                            <span class="mx-1 text-slate-700">Maghrib ${t.Maghrib}</span> • 
-                            <span class="mx-1 text-slate-700">Isya ${t.Isha}</span>
-                            <span class="text-slate-300 mx-6">|</span>
-                        `;
+                res.forEach((d, i) => {
+                    if(d.data) {
+                        const t = d.data.timings;
+                        html += `<span class="font-bold text-brand-blue uppercase ml-12"><i class="fa-solid fa-location-dot"></i> ${subset[i]}</span> 
+                                 <span class="text-slate-600 mx-1">Subuh ${t.Fajr}</span> • 
+                                 <span class="text-slate-600 mx-1">Maghrib ${t.Maghrib}</span> • 
+                                 <span class="text-slate-600 mx-1">Isya ${t.Isha}</span> <span class="text-slate-300 mx-2">|</span> `;
                     }
                 });
-
-                let newsHTML = "";
-                {% if breaking_news %}
-                    {% for news in breaking_news %}
-                        newsHTML += `<span class="font-bold text-slate-800"><i class="fa-solid fa-newspaper text-red-500"></i> NEWS:</span> <span class="mr-8 text-slate-600">${news}</span> <span class="text-slate-300">|</span> `;
-                    {% endfor %}
-                {% else %}
-                    newsHTML = "<span>Selamat Datang di KTVDI. Komunitas TV Digital Terbesar di Indonesia.</span>";
-                {% endif %}
-
-                document.getElementById('running-content').innerHTML = newsHTML + sholatHTML;
-
-            } catch (e) {
-                console.log("Error fetching prayer", e);
-                document.getElementById('running-content').innerHTML = "Gagal memuat data live. Periksa koneksi internet.";
+                document.getElementById('sholat-container').innerHTML = html;
+            } catch(e) {
+                document.getElementById('sholat-container').innerHTML = "Gagal memuat data jadwal sholat.";
             }
         }
-        updateRunningText();
+        fetchSholat();
 
-        // 3. CHATBOT CERDAS (FALLBACK MODE)
-        const knowledgeBase = {
-            "halo": "Halo sobat digital! 👋 Ada yang bisa saya bantu hari ini?",
-            "siaran": "Untuk melihat daftar channel, klik menu 'Database Siaran' di atas.",
-            "bola": "Piala Dunia 2026 akan tayang di TVRI Sport atau Indosiar/SCTV (Emtek). Pastikan sinyal Anda kuat!",
-            "sinyal": "Sinyal lemah? Coba putar antena, naikkan tiang, atau pakai Booster jika jauh dari pemancar.",
-            "stb": "Pastikan STB Anda sudah bersertifikat Kominfo. Fitur EWS wajib aktif.",
-            "daftar": "Ingin jadi kontributor? Klik tombol 'Daftar' di pojok kanan atas.",
-            "default": "Maaf, server AI sedang sibuk. Namun Anda bisa mencari info lengkap di menu Berita kami."
+        // 3. CHATBOT LOGIC (Fallback)
+        const chatWindow = document.getElementById('chat-window');
+        const msgs = document.getElementById('chat-messages');
+        const fallbackResponses = {
+            'halo': 'Halo! Ada yang bisa saya bantu?',
+            'tv': 'Cek menu Database Siaran di atas untuk info lengkap.',
+            'bola': 'Jadwal bola ada di TVRI Sport atau Indosiar. Pastikan sinyal kuat!',
+            'sinyal': 'Putar antena perlahan sambil cek bar sinyal di TV.',
+            'default': 'Maaf API sedang sibuk. Silakan cek menu Berita.'
         };
 
-        const chatWindow = document.getElementById('chat-window');
         function toggleChat() {
             chatWindow.classList.toggle('hidden');
-            if(!chatWindow.classList.contains('hidden')) {
-                setTimeout(() => chatWindow.classList.remove('scale-95', 'opacity-0'), 10);
-            } else {
-                chatWindow.classList.add('scale-95', 'opacity-0');
-            }
+            if(!chatWindow.classList.contains('hidden')) setTimeout(()=>chatWindow.classList.remove('scale-95','opacity-0'),10);
+            else chatWindow.classList.add('scale-95','opacity-0');
         }
 
         async function handleChat(e) {
             e.preventDefault();
             const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if(!text) return;
+            const txt = input.value.trim();
+            if(!txt) return;
 
-            appendMsg(text, 'user');
+            addMsg(txt, 'user');
             input.value = '';
             
-            const loadId = 'load-'+Date.now();
-            appendLoading(loadId);
+            // Loading
+            const loadId = 'load'+Date.now();
+            msgs.innerHTML += `<div id="${loadId}" class="flex gap-2"><div class="w-6 h-6 bg-brand-blue rounded-full text-white flex justify-center items-center text-[9px]"><i class="fa-solid fa-robot"></i></div><div class="bg-white p-2 rounded text-xs text-slate-400">...</div></div>`;
+            msgs.scrollTop = msgs.scrollHeight;
 
             try {
-                // Coba API
                 const res = await fetch('/', {
-                    method: 'POST',
-                    headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({prompt: text})
+                    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({prompt: txt})
                 });
                 const data = await res.json();
                 document.getElementById(loadId).remove();
 
-                // DETEKSI ERROR -> SWAP KE FALLBACK
-                if(data.error) {
-                    console.warn("API Busy/Error:", data.error);
+                if(data.error && (data.error.includes('429') || data.error.includes('Quota'))) {
+                    // Fallback Logic
+                    let reply = fallbackResponses.default;
+                    const l = txt.toLowerCase();
+                    if(l.includes('halo')) reply = fallbackResponses.halo;
+                    else if(l.includes('tv') || l.includes('siaran')) reply = fallbackResponses.tv;
+                    else if(l.includes('bola')) reply = fallbackResponses.bola;
+                    else if(l.includes('sinyal')) reply = fallbackResponses.sinyal;
                     
-                    let reply = knowledgeBase.default;
-                    const lower = text.toLowerCase();
-                    
-                    if(lower.includes('halo') || lower.includes('pagi') || lower.includes('siang')) reply = knowledgeBase.halo;
-                    else if(lower.includes('siaran') || lower.includes('tv') || lower.includes('channel')) reply = knowledgeBase.siaran;
-                    else if(lower.includes('bola') || lower.includes('sport') || lower.includes('piala dunia')) reply = knowledgeBase.bola;
-                    else if(lower.includes('sinyal') || lower.includes('rusak') || lower.includes('semut')) reply = knowledgeBase.sinyal;
-                    else if(lower.includes('stb') || lower.includes('box')) reply = knowledgeBase.stb;
-
-                    appendMsg(reply, 'bot');
-                } else if (data.response) {
-                    appendMsg(data.response, 'bot');
+                    addMsg(reply, 'bot');
+                } else if(data.response) {
+                    addMsg(data.response, 'bot');
                 } else {
-                    appendMsg("Maaf, saya tidak mengerti.", 'bot');
+                    addMsg("Maaf, saya tidak mengerti.", 'bot');
                 }
             } catch(err) {
                 document.getElementById(loadId).remove();
-                appendMsg("Koneksi terputus. Mohon periksa internet Anda.", 'bot');
+                addMsg("Koneksi error. Cek internet Anda.", 'bot');
             }
         }
 
-        function appendMsg(text, sender) {
-            const box = document.getElementById('chat-messages');
+        function addMsg(txt, sender) {
             const div = document.createElement('div');
-            const content = text.replace(/\n/g, '<br>');
-            
-            if(sender === 'user') {
-                div.className = "flex gap-2 items-end justify-end";
-                div.innerHTML = `<div class="bg-brand-primary text-white p-3 rounded-2xl rounded-br-none text-xs shadow-md max-w-[85%] leading-relaxed">${content}</div>`;
-            } else {
-                div.className = "flex gap-2 items-end";
-                div.innerHTML = `<div class="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs flex-shrink-0 shadow-sm"><i class="fa-solid fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm border border-slate-200 max-w-[85%] leading-relaxed">${content}</div>`;
-            }
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function appendLoading(id) {
-            const box = document.getElementById('chat-messages');
-            const div = document.createElement('div');
-            div.id = id;
-            div.className = "flex gap-2 items-end";
-            div.innerHTML = `<div class="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-white text-xs flex-shrink-0"><i class="fa-solid fa-robot"></i></div><div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs border border-slate-200"><i class="fa-solid fa-ellipsis fa-fade text-slate-400"></i></div>`;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
+            div.className = sender === 'user' ? "flex justify-end" : "flex gap-2";
+            div.innerHTML = sender === 'user' ? 
+                `<div class="bg-brand-blue text-white p-2 rounded-lg rounded-br-none text-xs shadow-md max-w-[85%]">${txt}</div>` : 
+                `<div class="w-6 h-6 bg-brand-blue rounded-full flex-shrink-0 flex items-center justify-center text-white text-[9px]"><i class="fa-solid fa-robot"></i></div><div class="bg-white p-2 rounded-lg rounded-bl-none text-xs text-slate-700 shadow-sm border border-slate-200 max-w-[85%]">${txt}</div>`;
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
         }
     </script>
 </body>
