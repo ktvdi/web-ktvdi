@@ -2,116 +2,173 @@
 
 {% block content %}
 
-<section class="relative bg-white pt-10 pb-20 overflow-hidden">
-    <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-light rounded-full blur-3xl opacity-30 -mr-20 -mt-20"></div>
-    <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-100 rounded-full blur-3xl opacity-30 -ml-20 -mb-20"></div>
+<section class="relative bg-white pt-10 pb-16 overflow-hidden">
+    <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-light rounded-full blur-3xl opacity-50 -mr-32 -mt-32"></div>
+    <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-50 rounded-full blur-3xl opacity-50 -ml-20 -mb-20"></div>
 
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-        <div class="inline-block px-4 py-1.5 rounded-full bg-brand-light/50 border border-brand-main/20 text-brand-dark text-xs font-bold mb-6">
-            <i class="fa-solid fa-check-circle mr-1"></i> Platform Siaran Digital Indonesia Terpercaya
-        </div>
-        
-        <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6">
-            Solusi Nonton TV <br>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-main to-purple-600">Jernih, Gratis & Canggih</span>
-        </h1>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div class="text-left">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 border border-blue-100 text-brand-primary text-xs font-bold rounded-full mb-6">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-primary opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-primary"></span>
+                    </span>
+                    Update Terakhir: {{ last_updated_time }}
+                </div>
 
-        <p class="text-slate-600 text-lg md:text-xl leading-relaxed mb-8 max-w-3xl mx-auto">
-            <strong>(Apa)</strong> KTVDI adalah platform streaming terintegrasi yang menghadirkan siaran TV Digital. 
-            <strong>(Siapa)</strong> Didedikasikan untuk masyarakat Indonesia yang menginginkan kualitas HD. 
-            <strong>(Dimana & Kapan)</strong> Akses kapan saja dan di mana saja melalui browser perangkat Anda tanpa perlu instalasi rumit.
-            <strong>(Mengapa)</strong> Solusi tepat untuk menghindari siaran analog yang "bersemut" dan delay. 
-            <strong>(Bagaimana)</strong> Cukup pilih channel di bawah ini, kami menggunakan teknologi streaming HLS adaptif hemat data.
-        </p>
+                <h1 class="text-4xl md:text-6xl font-extrabold text-brand-dark leading-tight mb-6">
+                    Pusat Data <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-accent">TV Digital Indonesia</span>
+                </h1>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#channels" class="px-8 py-3 bg-brand-main hover:bg-brand-dark text-white rounded-full font-bold shadow-xl transition transform hover:scale-105">
-                <i class="fa-solid fa-play mr-2"></i> Tonton Sekarang
-            </a>
-            <a href="#about" class="px-8 py-3 bg-white border border-slate-200 text-slate-700 hover:text-brand-main hover:border-brand-main rounded-full font-bold shadow-sm transition">
-                <i class="fa-solid fa-info-circle mr-2"></i> Pelajari Lebih Lanjut
-            </a>
+                <p class="text-slate-500 text-lg leading-relaxed mb-8">
+                    <strong>(Apa)</strong> Platform komunitas untuk berbagi data frekuensi MUX & siaran DVB-T2. 
+                    <strong>(Siapa)</strong> Dibangun oleh dan untuk masyarakat Indonesia. 
+                    <strong>(Dimana)</strong> Mencakup seluruh provinsi dari Sabang sampai Merauke.
+                    <strong>(Mengapa)</strong> Memastikan semua orang mendapatkan siaran jernih dan gratis.
+                </p>
+
+                <div class="flex flex-wrap gap-4">
+                    <a href="{{ url_for('daftar_siaran') }}" class="px-8 py-3.5 bg-brand-primary hover:bg-blue-600 text-white font-bold rounded-lg shadow-xl shadow-brand-primary/30 transition transform hover:-translate-y-1">
+                        <i class="fa-solid fa-database mr-2"></i> Cari Frekuensi
+                    </a>
+                    {% if not session.get('user') %}
+                    <a href="{{ url_for('register') }}" class="px-8 py-3.5 bg-white border border-slate-200 text-slate-700 hover:border-brand-primary hover:text-brand-primary font-bold rounded-lg transition">
+                        <i class="fa-solid fa-user-plus mr-2"></i> Gabung Kontributor
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('add_data') }}" class="px-8 py-3.5 bg-white border border-slate-200 text-slate-700 hover:border-brand-primary hover:text-brand-primary font-bold rounded-lg transition">
+                        <i class="fa-solid fa-plus mr-2"></i> Tambah Data
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="relative bg-white p-6 rounded-2xl shadow-xl border border-slate-100">
+                <h3 class="text-lg font-bold text-brand-dark mb-4 border-b pb-2">Sebaran Wilayah Layanan</h3>
+                <canvas id="provinsiChart" class="w-full h-[300px]"></canvas>
+            </div>
         </div>
     </div>
 </section>
 
-<section id="channels" class="py-16 bg-slate-50 border-t border-slate-200">
+<section class="py-12 bg-brand-dark text-white relative overflow-hidden">
+    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-slate-700/50">
+            <div class="p-4">
+                <div class="text-4xl font-bold text-brand-accent mb-1">{{ jumlah_wilayah_layanan }}</div>
+                <div class="text-sm text-slate-400 uppercase tracking-wider">Wilayah Layanan</div>
+            </div>
+            <div class="p-4">
+                <div class="text-4xl font-bold text-brand-accent mb-1">{{ jumlah_penyelenggara_mux }}</div>
+                <div class="text-sm text-slate-400 uppercase tracking-wider">Penyelenggara MUX</div>
+            </div>
+            <div class="p-4">
+                <div class="text-4xl font-bold text-brand-accent mb-1">{{ jumlah_siaran }}</div>
+                <div class="text-sm text-slate-400 uppercase tracking-wider">Total Channel</div>
+            </div>
+            <div class="p-4">
+                <div class="text-4xl font-bold text-brand-accent mb-1">{{ most_common_siaran_name }}</div>
+                <div class="text-sm text-slate-400 uppercase tracking-wider">Channel Terpopuler</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-20 bg-slate-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-slate-900">Saluran <span class="text-brand-main">Pilihan</span></h2>
-            <p class="text-slate-500 mt-2">Live Streaming Kualitas HD - Klik tombol Play pada layar.</p>
+            <h2 class="text-3xl font-bold text-brand-dark">Pantau <span class="text-brand-primary">Kualitas Siaran</span></h2>
+            <p class="text-slate-500 mt-2">Cek streaming langsung beberapa channel nasional (Membutuhkan koneksi internet).</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            
-            <div class="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 hover:shadow-2xl transition duration-300 group">
-                <div class="relative w-full aspect-video bg-black">
-                    <video id="video-nusantara" class="w-full h-full" controls poster="https://source.unsplash.com/800x450/?news,studio"></video>
-                    <div class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded animate-pulse">LIVE</div>
-                </div>
-                <div class="p-5">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-lg font-bold text-slate-800">Nusantara TV</h3>
-                        <span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">Stabil</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300 border border-slate-100 group">
+                <div class="relative aspect-video bg-black">
+                    <video id="vid-ntv" class="w-full h-full object-contain" controls poster="https://source.unsplash.com/800x450/?news,studio"></video>
+                    <div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE
                     </div>
-                    <p class="text-sm text-slate-500">Berita aktual dan terpercaya dari seluruh penjuru negeri.</p>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-bold text-slate-800">Nusantara TV</h3>
+                    <p class="text-xs text-slate-500">Berita Nasional</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 hover:shadow-2xl transition duration-300 group relative ring-2 ring-brand-main ring-offset-2">
-                <div class="absolute top-0 right-0 bg-brand-main text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg z-10">
-                    OFFICIAL BROADCASTER
+            <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300 border border-slate-100 group">
+                <div class="relative aspect-video bg-black">
+                    <video id="vid-rtv" class="w-full h-full object-contain" controls poster="https://source.unsplash.com/800x450/?cartoon"></video>
                 </div>
-                <div class="relative w-full aspect-video bg-black">
-                    <video id="video-matrix" class="w-full h-full" controls poster="https://source.unsplash.com/800x450/?soccer,stadium"></video>
-                </div>
-                <div class="p-5">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-lg font-bold text-slate-800">Matrix TV (Jogja)</h3>
-                        <span class="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded">HD</span>
-                    </div>
-                    <p class="text-sm text-slate-500">Saluran hiburan dan olahraga lokal kualitas digital.</p>
+                <div class="p-4">
+                    <h3 class="font-bold text-slate-800">RTV HD</h3>
+                    <p class="text-xs text-slate-500">Hiburan Keluarga</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 hover:shadow-2xl transition duration-300 group">
-                <div class="relative w-full aspect-video bg-black">
-                    <video id="video-beritasatu" class="w-full h-full" controls poster="https://source.unsplash.com/800x450/?finance,news"></video>
+             <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300 border border-slate-100 group">
+                <div class="relative aspect-video bg-black">
+                    <video id="vid-matrix" class="w-full h-full object-contain" controls poster="https://source.unsplash.com/800x450/?soccer"></video>
                 </div>
-                <div class="p-5">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-lg font-bold text-slate-800">BTV (Berita Satu)</h3>
-                        <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">Bisnis</span>
-                    </div>
-                    <p class="text-sm text-slate-500">Market movers, analisis ekonomi, dan headline news.</p>
+                <div class="p-4">
+                    <h3 class="font-bold text-slate-800">Matrix TV</h3>
+                    <p class="text-xs text-slate-500">Olahraga & Event</p>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl overflow-hidden shadow-lg border border-slate-100 hover:shadow-2xl transition duration-300 group">
-                <div class="relative w-full aspect-video bg-black">
-                    <video id="video-rtv" class="w-full h-full" controls poster="https://source.unsplash.com/800x450/?cartoon,family"></video>
+            <div class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition duration-300 border border-slate-100 group">
+                <div class="relative aspect-video bg-black">
+                    <video id="vid-bsatu" class="w-full h-full object-contain" controls poster="https://source.unsplash.com/800x450/?finance"></video>
                 </div>
-                <div class="p-5">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-lg font-bold text-slate-800">RTV HD-2</h3>
-                        <span class="text-xs font-bold text-purple-600 bg-purple-100 px-2 py-1 rounded">Family</span>
-                    </div>
-                    <p class="text-sm text-slate-500">Sahabat keluarga, kartun pilihan, dan hiburan anak.</p>
+                <div class="p-4">
+                    <h3 class="font-bold text-slate-800">BTV</h3>
+                    <p class="text-xs text-slate-500">Ekonomi & Bisnis</p>
                 </div>
             </div>
-
         </div>
     </div>
 </section>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Daftar Link Stream Sesuai Request
+    // 1. CHART JS IMPLEMENTATION
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ambil data JSON dari Python (app.py)
+        const labels = JSON.parse('{{ chart_labels | safe }}');
+        const dataValues = JSON.parse('{{ chart_data | safe }}');
+
+        const ctx = document.getElementById('provinsiChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Jumlah Wilayah Layanan',
+                    data: dataValues,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { display: false } },
+                    x: { grid: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // 2. HLS PLAYER IMPLEMENTATION
         const streams = {
-            'video-nusantara': 'https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8',
-            'video-matrix': 'https://stream.matrixtv.id/hls/stream.m3u8',
-            'video-beritasatu': 'https://beritasatu.secureswiftcontent.com/han/beritasatu/bsatu10008/srtoutput/manifest.m3u8',
-            'video-rtv': 'https://rtvstream.rtv.co.id:4555/hls/rtv.m3u8'
+            'vid-ntv': 'https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8',
+            'vid-rtv': 'https://rtvstream.rtv.co.id:4555/hls/rtv.m3u8',
+            'vid-matrix': 'https://stream.matrixtv.id/hls/stream.m3u8',
+            'vid-bsatu': 'https://beritasatu.secureswiftcontent.com/han/beritasatu/bsatu10008/srtoutput/manifest.m3u8'
         };
 
         for (const [id, url] of Object.entries(streams)) {
