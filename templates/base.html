@@ -21,12 +21,12 @@
                             navy: '#0f172a',    /* Background Navbar Navy */
                             blue: '#2563eb',    /* Primary Blue */
                             sky: '#38bdf8',     /* Accent Sky */
-                            surface: '#f8fafc', /* Light Background */
+                            surface: '#f8fafc', /* Background Web */
                         }
                     },
                     animation: {
                         'news-flip': 'flipVertical 15s cubic-bezier(0.4, 0, 0.2, 1) infinite',
-                        'marquee': 'marquee 150s linear infinite', /* Running Text Sangat Lambat */
+                        'marquee': 'marquee 150s linear infinite', 
                     },
                     keyframes: {
                         flipVertical: {
@@ -48,7 +48,7 @@
         }
     </script>
     <style>
-        /* Glassmorphism Navbar (Dark Blue) */
+        /* Glassmorphism Navbar (Solid Navy) */
         .glass-nav {
             background: rgba(15, 23, 42, 0.98); 
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -56,15 +56,24 @@
         }
         
         /* Container Flip News */
-        .news-container { height: 20px; overflow: hidden; position: relative; }
+        .news-container { height: 24px; overflow: hidden; position: relative; width: 100%; }
         .news-wrapper { display: flex; flex-direction: column; }
-        .news-item { height: 20px; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.75rem; font-weight: 600; color: #334155; }
+        .news-item { 
+            height: 24px; display: flex; align-items: center; 
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            font-size: 0.8rem; font-weight: 600; color: #334155; 
+        }
         
-        /* Mask Gradient untuk Running Text */
+        /* Mask Gradient */
         .mask-gradient {
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
+        
+        /* Custom Chat Scrollbar */
+        .chat-scroll::-webkit-scrollbar { width: 5px; }
+        .chat-scroll::-webkit-scrollbar-track { background: #f8fafc; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen">
@@ -73,33 +82,29 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 
-                <a href="/" class="flex items-center gap-3 group">
-                    <div class="relative w-10 h-10 group-hover:scale-105 transition duration-300">
-                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="w-full h-full object-contain filter drop-shadow-md">
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="text-xl font-extrabold text-white tracking-tight leading-none">KTVDI<span class="text-brand-sky">.id</span></span>
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Komunitas Digital</span>
+                <a href="/" class="flex items-center gap-3">
+                    <div class="relative w-36 h-12 flex items-center">
+                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-10 w-auto object-contain filter drop-shadow-md">
                     </div>
                 </a>
 
                 <div class="hidden md:flex items-center space-x-8">
-                    <a href="/" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Beranda</a>
-                    <a href="/daftar-siaran" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Database Siaran</a>
-                    <a href="/berita" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Berita</a>
-                    <a href="/about" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 hover:border-b-2 border-brand-sky">Tentang Kami</a>
+                    <a href="/" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 border-b-2 border-transparent hover:border-brand-sky">Beranda</a>
+                    <a href="/daftar-siaran" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 border-b-2 border-transparent hover:border-brand-sky">Database Siaran</a>
+                    <a href="/berita" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 border-b-2 border-transparent hover:border-brand-sky">Berita</a>
+                    <a href="/about" class="text-sm font-medium text-slate-300 hover:text-white transition py-2 border-b-2 border-transparent hover:border-brand-sky">Tentang Kami</a>
                 </div>
 
                 <div class="hidden md:flex items-center gap-3">
                     {% if session.get('user') %}
                         <div class="flex items-center gap-3 pl-4 border-l border-slate-700">
-                            <span class="text-xs font-bold text-slate-400 uppercase hidden lg:block">Halo, {{ session.get('nama', 'User') }}</span>
-                            <a href="/dashboard" class="px-4 py-2 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-600 transition shadow-lg shadow-blue-900/50">Dashboard</a>
+                            <span class="text-xs font-bold text-slate-400 uppercase hidden lg:block">Hi, {{ session.get('nama', 'User') }}</span>
+                            <a href="/dashboard" class="px-4 py-2 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-600 transition shadow-lg">Dashboard</a>
                             <a href="/logout" class="text-red-400 hover:text-red-300 text-lg"><i class="fa-solid fa-power-off"></i></a>
                         </div>
                     {% else %}
                         <a href="/login" class="text-sm font-bold text-slate-300 hover:text-white px-3">Masuk</a>
-                        <a href="/register" class="px-6 py-2.5 bg-brand-blue hover:bg-blue-600 text-white text-sm font-bold rounded-full shadow-lg shadow-blue-900/50 transition">Daftar</a>
+                        <a href="/register" class="px-6 py-2.5 bg-brand-blue hover:bg-blue-600 text-white text-sm font-bold rounded-full shadow-lg transition">Daftar</a>
                     {% endif %}
                 </div>
 
@@ -127,35 +132,49 @@
         </div>
     </nav>
 
-    <main class="flex-grow pt-20 pb-24">
+    <main class="flex-grow pt-20 pb-28">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-brand-navy text-white pt-12 pb-20 border-t border-slate-800">
+    <footer class="bg-brand-navy text-white pt-12 pb-24 border-t border-slate-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center border-b border-slate-800 pb-8">
-                <div>
-                    <h3 class="text-2xl font-bold mb-2">KTVDI.id</h3>
-                    <p class="text-slate-400 text-sm max-w-md">Platform komunitas TV Digital terbesar di Indonesia. Data MUX real-time & panduan teknis.</p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 pb-8 border-b border-slate-800">
+                <div class="col-span-1 md:col-span-2">
+                    <h3 class="text-xl font-bold mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-tower-broadcast text-brand-sky"></i> KTVDI.id
+                    </h3>
+                    <p class="text-slate-400 text-sm leading-relaxed max-w-sm">
+                        Platform komunitas TV Digital terbesar di Indonesia. Menyediakan data MUX real-time, panduan teknis, dan forum diskusi untuk masyarakat agar menikmati siaran jernih.
+                    </p>
                 </div>
-                <div class="flex justify-center md:justify-end gap-4">
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition text-white"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition text-white"><i class="fa-brands fa-twitter"></i></a>
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition text-white"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition text-white"><i class="fa-brands fa-youtube"></i></a>
+                <div>
+                    <h4 class="font-bold text-sm text-slate-200 mb-4 uppercase tracking-wider">Tautan</h4>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li><a href="/" class="hover:text-brand-sky transition">Beranda</a></li>
+                        <li><a href="/daftar-siaran" class="hover:text-brand-sky transition">Cek Frekuensi</a></li>
+                        <li><a href="/berita" class="hover:text-brand-sky transition">Berita</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm text-slate-200 mb-4 uppercase tracking-wider">Sosial Media</h4>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-blue transition text-white"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition text-white"><i class="fa-brands fa-twitter"></i></a>
+                        <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition text-white"><i class="fa-brands fa-instagram"></i></a>
+                    </div>
                 </div>
             </div>
-            <div class="pt-6 text-center text-xs text-slate-500">
+            <div class="text-center text-xs text-slate-500">
                 &copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi Undang-Undang.
             </div>
         </div>
     </footer>
 
-    <div class="fixed bottom-0 w-full z-40 bg-white border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] h-14 flex items-center justify-between px-2 md:px-6 select-none">
+    <div class="fixed bottom-0 w-full z-40 bg-white border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] h-16 md:h-14 flex items-center justify-between px-2 md:px-6 select-none">
         
-        <div class="hidden md:flex w-1/3 h-full items-center border-r border-slate-200 pr-4">
-            <div class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded mr-3 whitespace-nowrap shadow-sm">
-                BREAKING
+        <div class="hidden md:flex w-1/3 h-full items-center border-r border-slate-200 pr-4 overflow-hidden">
+            <div class="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded mr-3 whitespace-nowrap shadow-sm animate-pulse">
+                UPDATE
             </div>
             <div class="news-container flex-1">
                 <div class="news-wrapper animate-news-flip">
@@ -167,31 +186,30 @@
                         <div class="news-item">{{ news }}</div>
                         {% endfor %}
                     {% else %}
-                        <div class="news-item">Selamat Datang di KTVDI</div>
-                        <div class="news-item">Update Frekuensi Terbaru</div>
+                        <div class="news-item">Memuat Berita...</div>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="flex-1 overflow-hidden h-full flex items-center relative mx-4">
+        <div class="flex-1 overflow-hidden h-full flex items-center relative mx-2 md:mx-4">
             <div class="bg-brand-blue text-white text-[10px] font-bold px-2 py-1 rounded mr-2 whitespace-nowrap z-10 shadow-sm">
-                JADWAL SHOLAT
+                JADWAL
             </div>
             <div class="w-full overflow-hidden mask-gradient">
-                <div class="animate-marquee whitespace-nowrap text-xs font-medium text-slate-600 flex items-center gap-16" id="sholat-container">
-                    <span><i class="fa-solid fa-spinner fa-spin"></i> Memuat Data 17 Kota...</span>
+                <div class="animate-marquee whitespace-nowrap text-xs font-medium text-slate-600 flex items-center gap-12" id="sholat-container">
+                    <span><i class="fa-solid fa-spinner fa-spin"></i> Sinkronisasi Data 17 Kota...</span>
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-3 pl-4 border-l border-slate-200 h-8 flex-shrink-0 bg-white">
+        <div class="flex items-center gap-3 pl-3 border-l border-slate-200 h-8 flex-shrink-0 bg-white">
             <div class="hidden lg:flex items-center gap-1.5 text-[10px] font-bold text-brand-blue bg-blue-50 px-2 py-1 rounded">
-                <i class="fa-solid fa-wifi"></i> <span id="net-stat">ONLINE</span>
+                <i class="fa-solid fa-wifi"></i> <span id="net-stat">4G LTE</span>
             </div>
             <div class="text-xs font-mono font-bold text-slate-800" id="clock">00:00</div>
             <div class="flex items-center gap-1 text-xs text-slate-600">
-                <i class="fa-solid fa-battery-half text-green-500"></i>
+                <i class="fa-solid fa-battery-full text-green-500"></i>
                 <span id="battery">--%</span>
             </div>
         </div>
@@ -205,13 +223,13 @@
     </div>
 
     <div class="fixed bottom-20 right-4 z-50">
-        <div id="chat-window" class="hidden w-[85vw] md:w-[340px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden mb-2 transition-all duration-300 transform scale-95 opacity-0 origin-bottom-right">
+        <div id="chat-window" class="hidden w-[90vw] md:w-[340px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden mb-2 transition-all duration-300 transform scale-95 opacity-0 origin-bottom-right">
             <div class="bg-brand-navy p-4 flex justify-between items-center text-white">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 bg-brand-blue rounded-full flex items-center justify-center border border-white/20"><i class="fa-solid fa-robot text-xs"></i></div>
                     <div>
                         <h4 class="font-bold text-sm">Asisten KTVDI</h4>
-                        <p class="text-[10px] text-slate-400">AI Support System</p>
+                        <p class="text-[10px] text-slate-400">Siap Membantu 24/7</p>
                     </div>
                 </div>
                 <button onclick="toggleChat()" class="hover:text-red-400"><i class="fa-solid fa-xmark"></i></button>
@@ -220,7 +238,7 @@
                 <div class="flex gap-2 items-end">
                     <div class="w-6 h-6 bg-brand-blue rounded-full flex-shrink-0 flex items-center justify-center text-white text-[9px]"><i class="fa-solid fa-robot"></i></div>
                     <div class="bg-white p-3 rounded-lg text-xs text-slate-600 shadow-sm border border-slate-200">
-                        Halo! Saya siap bantu cek frekuensi, info STB, atau jadwal bola. Tanyakan saja! 😊
+                        Halo! 👋 Tanyakan apa saja tentang TV Digital, Frekuensi MUX, atau Jadwal Bola.
                     </div>
                 </div>
             </div>
@@ -237,7 +255,7 @@
     </div>
 
     <script>
-        // 1. CLOCK & BATTERY
+        // 1. JAM & BATERAI
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
         }, 1000);
@@ -246,14 +264,14 @@
             navigator.getBattery().then(b => document.getElementById('battery').innerText = Math.round(b.level*100)+"%");
         }
 
-        // 2. JADWAL SHOLAT (17 Kota)
+        // 2. JADWAL SHOLAT (17 Kota - Updated)
         async function fetchSholat() {
             const cities = [
                 'Jakarta', 'Surabaya', 'Bandung', 'Medan', 'Semarang', 
                 'Makassar', 'Palembang', 'Pekalongan', 'Purwodadi', 'Yogyakarta',
                 'Denpasar', 'Balikpapan', 'Banjarmasin', 'Padang', 'Malang', 'Aceh', 'Manado'
             ];
-            // Randomly select subset to prevent API clogging
+            // Ambil 5 kota acak tiap refresh agar ringan
             const subset = cities.sort(() => 0.5 - Math.random()).slice(0, 5);
             let html = "";
             const date = new Date();
@@ -265,7 +283,7 @@
                 res.forEach((d, i) => {
                     if(d.data) {
                         const t = d.data.timings;
-                        html += `<span class="font-bold text-brand-blue uppercase ml-12"><i class="fa-solid fa-location-dot"></i> ${subset[i]}</span> 
+                        html += `<span class="font-bold text-brand-blue uppercase ml-12"><i class="fa-solid fa-mosque"></i> ${subset[i]}</span> 
                                  <span class="text-slate-600 mx-1">Subuh ${t.Fajr}</span> • 
                                  <span class="text-slate-600 mx-1">Maghrib ${t.Maghrib}</span> • 
                                  <span class="text-slate-600 mx-1">Isya ${t.Isha}</span> <span class="text-slate-300 mx-2">|</span> `;
@@ -278,7 +296,7 @@
         }
         fetchSholat();
 
-        // 3. CHATBOT LOGIC (Fallback)
+        // 3. CHATBOT (Fallback Manual)
         const chatWindow = document.getElementById('chat-window');
         const msgs = document.getElementById('chat-messages');
         const fallbackResponses = {
@@ -305,7 +323,6 @@
             addMsg(txt, 'user');
             input.value = '';
             
-            // Loading
             const loadId = 'load'+Date.now();
             msgs.innerHTML += `<div id="${loadId}" class="flex gap-2"><div class="w-6 h-6 bg-brand-blue rounded-full text-white flex justify-center items-center text-[9px]"><i class="fa-solid fa-robot"></i></div><div class="bg-white p-2 rounded text-xs text-slate-400">...</div></div>`;
             msgs.scrollTop = msgs.scrollHeight;
@@ -318,7 +335,7 @@
                 document.getElementById(loadId).remove();
 
                 if(data.error && (data.error.includes('429') || data.error.includes('Quota'))) {
-                    // Smart Fallback
+                    // Fallback
                     let reply = fallbackResponses.default;
                     const l = txt.toLowerCase();
                     if(l.includes('halo')) reply = fallbackResponses.halo;
@@ -326,7 +343,6 @@
                     else if(l.includes('bola')) reply = fallbackResponses.bola;
                     else if(l.includes('sinyal')) reply = fallbackResponses.sinyal;
                     else if(l.includes('stb')) reply = fallbackResponses.stb;
-                    
                     addMsg(reply, 'bot');
                 } else if(data.response) {
                     addMsg(data.response, 'bot');
