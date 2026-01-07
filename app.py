@@ -65,7 +65,7 @@ genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
 
 # Inisialisasi model Gemini
 model = genai.GenerativeModel(
-    "gemini-2.5-flash", 
+    "gemini-3.0-flash", 
     system_instruction=
     "Anda adalah Chatbot AI KTVDI untuk website Komunitas TV Digital Indonesia (KTVDI). "
     "Tugas Anda adalah menjawab pertanyaan pengguna seputar website KTVDI, "
