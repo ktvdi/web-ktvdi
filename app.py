@@ -25,30 +25,27 @@ CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 # --- KONFIGURASI GEMINI AI (UPDATED) ---
-# Menggunakan model 1.5-flash yang lebih stabil dan hemat kuota
+# Menggunakan model 1.5-flash (Lebih Cepat & Stabil)
 GOOGLE_API_KEY = os.environ.get("GEMINI_APP_KEY")
 if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
     try:
-        # Konfigurasi agar respon lebih natural
+        genai.configure(api_key=GOOGLE_API_KEY)
+        # Konfigurasi safety dan kreativitas
         generation_config = {
             "temperature": 0.7,
             "top_p": 0.95,
             "top_k": 40,
-            "max_output_tokens": 8192,
+            "max_output_tokens": 2048,
             "response_mime_type": "text/plain",
         }
-        
-        system_instruction = (
-            "Anda adalah Chatbot AI KTVDI. Jawablah dengan ramah, singkat, dan membantu. "
-            "Topik: TV Digital, STB, Antena, Sinyal, dan Jadwal Bola. "
-            "Jika ditanya di luar topik itu, arahkan kembali ke TV Digital."
-        )
-        
         model = genai.GenerativeModel(
             model_name="gemini-1.5-flash",
             generation_config=generation_config,
-            system_instruction=system_instruction
+            system_instruction=(
+                "Anda adalah Asisten Virtual KTVDI. Jawablah dengan ramah, singkat, dan membantu masyarakat awam. "
+                "Topik utama: TV Digital, Antena UHF, Set Top Box (STB), Sinyal MUX, dan Jadwal Bola Piala Dunia. "
+                "Jangan menjawab hal di luar topik teknologi penyiaran."
+            )
         )
         print("✅ Gemini AI 1.5 Flash Siap!")
     except Exception as e:
@@ -58,7 +55,7 @@ else:
     print("❌ API Key Gemini tidak ditemukan.")
     model = None
 
-# Inisialisasi Firebase
+# --- INISIALISASI FIREBASE (KODE ASLI) ---
 try:
     cred = credentials.Certificate({
         "type": "service_account",
@@ -95,21 +92,28 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 
 mail = Mail(app)
 
-# --- HELPER: RSS NEWS ---
+# --- FUNGSI RSS BERITA (BARU) ---
 def get_breaking_news():
     """Mengambil berita terbaru untuk Flip Text"""
-    news = []
+    news_list = []
     try:
-        # Feed Google News Indonesia (Teknologi)
-        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo&hl=id&gl=ID&ceid=ID:id')
-        for entry in feed.entries[:7]: # Ambil 7 berita
-            news.append(entry.title)
+        # Feed Google News Indonesia (Teknologi/Kominfo)
+        rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo+siaran&hl=id&gl=ID&ceid=ID:id'
+        feed = feedparser.parse(rss_url)
+        for entry in feed.entries[:8]: # Ambil 8 berita terbaru
+            news_list.append(entry.title)
     except:
         pass
     
-    if not news:
-        news = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat Kominfo"]
-    return news
+    # Fallback jika gagal fetch
+    if not news_list:
+        news_list = [
+            "Selamat Datang di Komunitas TV Digital Indonesia",
+            "Pastikan Perangkat STB Anda Bersertifikat Kominfo",
+            "Arahkan Antena ke Pemancar MUX Terdekat untuk Sinyal Maksimal",
+            "TVRI Sport Siarkan Event Olahraga Dunia Tahun Ini"
+        ]
+    return news_list
 
 # --- ROUTES ---
 
@@ -176,7 +180,7 @@ def home():
     else:
         last_updated_time = "-"
 
-    # Ambil Berita RSS Terbaru (UPDATED)
+    # Ambil Berita RSS (Baru)
     breaking_news = get_breaking_news()
 
     # Kirim data ke template
@@ -192,20 +196,24 @@ def home():
                            chart_data=json.dumps(chart_provinsi_data),
                            breaking_news=breaking_news)
 
+# --- ROUTE CHATBOT (UPDATED) ---
 @app.route('/', methods=['POST'])
 def chatbot():
     data = request.get_json()
     prompt = data.get("prompt")
 
+    # Cek Model
     if not model:
-        return jsonify({"error": "Offline Mode (Server AI Busy)"}), 503
+        # Kirim kode khusus agar frontend tau harus pakai fallback manual
+        return jsonify({"error": "Offline Mode (Model Not Loaded)"}), 503
 
     try:
         response = model.generate_content(prompt)
         return jsonify({"response": response.text})
     except Exception as e:
         error_msg = str(e)
-        # Deteksi spesifik error kuota agar frontend bisa switch ke mode manual
+        print(f"Gemini Error: {error_msg}")
+        # Deteksi Error Kuota Habis (429)
         if "429" in error_msg or "Quota" in error_msg:
             return jsonify({"error": "Quota Exceeded"}), 429
         return jsonify({"error": str(e)}), 500
@@ -213,6 +221,8 @@ def chatbot():
 @app.route('/sitemap.xml')
 def sitemap():
     return send_from_directory('static', 'sitemap.xml')
+
+# --- ROUTE AUTHENTICATION & CRUD (KODE ASLI) ---
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
@@ -265,7 +275,6 @@ Jika Anda tidak meminta reset, abaikan email ini.
 
     return render_template("forgot-password.html")
 
-# --- Halaman verifikasi OTP ---
 @app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():
     uid = session.get("reset_uid")
@@ -284,7 +293,6 @@ def verify_otp():
 
     return render_template("verify-otp.html")
 
-# --- Halaman reset password ---
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     uid = session.get("reset_uid")
