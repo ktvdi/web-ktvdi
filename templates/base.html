@@ -4,63 +4,127 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/x-icon" />
     
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <style>
         :root {
-            --primary-blue: #0088ff;
-            --dark-blue: #0056b3;
-            --text-dark: #0f172a;
-            --text-gray: #64748b;
-            --bg-light: #f8fafc;
-            --white: #ffffff;
-            --shadow: 0 4px 20px rgba(0,0,0,0.05);
+            --primary: #0088ff;       /* Biru Utama KTVDI */
+            --primary-dark: #0066cc;  /* Biru Gelap Hover */
+            --secondary: #0f172a;     /* Hitam Kebiruan (Teks) */
+            --bg-light: #ffffff;      /* Background Putih Bersih */
+            --text-gray: #64748b;     /* Teks Abu */
+            --accent-green: #10b981;  /* Hijau untuk Jadwal Sholat */
+            --header-height: 70px;
+            --topbar-height: 40px;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: 'Poppins', sans-serif;
             background-color: var(--bg-light);
-            color: var(--text-dark);
+            color: var(--secondary);
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            /* Padding top = Header + Topbar agar konten tidak tertutup */
+            padding-top: calc(var(--header-height) + var(--topbar-height));
+            overflow-x: hidden;
         }
 
-        /* --- NAVBAR --- */
-        header {
-            background: var(--white);
-            box-shadow: var(--shadow);
-            position: sticky;
+        /* --- 1. TOP BAR (INFO & JADWAL SHOLAT) --- */
+        .top-bar {
+            position: fixed;
             top: 0;
-            z-index: 1000;
+            left: 0;
+            width: 100%;
+            height: var(--topbar-height);
+            background: var(--secondary);
+            color: white;
+            z-index: 1002;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 0.85rem;
+        }
+
+        .prayer-widget {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            min-width: 300px; /* Space agar tidak goyang saat flip */
+        }
+
+        .prayer-location {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .prayer-time-display {
+            color: var(--accent-green);
+            font-weight: 600;
+            transition: opacity 0.5s ease-in-out; /* Animasi Flip/Fade */
+        }
+
+        .news-ticker {
+            flex: 1;
+            text-align: right;
+            overflow: hidden;
+            white-space: nowrap;
+            margin-left: 20px;
+            color: #ccc;
+        }
+        
+        .ticker-content {
+            display: inline-block;
+            animation: tickerSlide 25s linear infinite;
+        }
+
+        @keyframes tickerSlide {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* --- 2. NAVBAR (MENU UTAMA) --- */
+        header {
+            position: fixed;
+            top: var(--topbar-height);
+            left: 0;
+            width: 100%;
+            height: var(--header-height);
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            z-index: 1001;
+            backdrop-filter: blur(10px);
         }
 
         nav {
             max-width: 1280px;
             margin: 0 auto;
-            padding: 15px 20px;
+            height: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0 20px;
         }
 
         .logo {
+            text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--primary-blue);
-            text-decoration: none;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
         }
 
-        .nav-links {
+        .nav-menu {
             list-style: none;
             display: flex;
             gap: 30px;
@@ -69,72 +133,132 @@
             align-items: center;
         }
 
-        .nav-links a {
+        .nav-link {
             text-decoration: none;
-            color: var(--text-dark);
+            color: var(--secondary);
             font-weight: 500;
-            transition: 0.3s;
+            font-size: 0.95rem;
+            transition: color 0.3s;
         }
+        .nav-link:hover { color: var(--primary); }
 
-        .nav-links a:hover { color: var(--primary-blue); }
-
-        .auth-buttons { display: flex; gap: 15px; }
-
-        .btn-auth {
+        /* Auth Buttons Desktop */
+        .auth-desktop {
+            display: flex;
+            gap: 15px;
+        }
+        .btn {
             padding: 8px 24px;
             border-radius: 50px;
-            font-size: 0.9rem;
-            font-weight: 600;
             text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
             transition: 0.3s;
         }
+        .btn-login { color: var(--primary); border: 1px solid transparent; }
+        .btn-login:hover { background: #f0f9ff; }
+        .btn-register { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(0,136,255,0.3); }
+        .btn-register:hover { background: var(--primary-dark); transform: translateY(-2px); }
 
-        .login { color: var(--primary-blue); }
-        .register { background: var(--primary-blue); color: var(--white); }
-        .register:hover { background: var(--dark-blue); }
-
-        /* Mobile Menu */
-        .menu-toggle { display: none; font-size: 1.5rem; cursor: pointer; }
-
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-                position: absolute; top: 100%; left: 0; width: 100%;
-                background: var(--white); flex-direction: column;
-                padding: 20px 0; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            }
-            .nav-links.active { display: flex; }
-            .menu-toggle { display: block; }
+        /* Hamburger Menu (Mobile) */
+        .hamburger {
+            display: none;
+            font-size: 1.5rem;
+            color: var(--secondary);
+            cursor: pointer;
         }
 
-        /* --- FOOTER --- */
+        /* --- 3. RESPONSIVE MOBILE --- */
+        @media (max-width: 968px) {
+            .prayer-widget { font-size: 0.75rem; min-width: auto; }
+            .news-ticker { display: none; } /* Hide news di HP agar tidak sempit */
+            .top-bar { justify-content: center; } /* Center jadwal sholat di HP */
+
+            .hamburger { display: block; }
+            .nav-menu, .auth-desktop { display: none; } /* Hide default menu */
+
+            /* Mobile Dropdown Menu */
+            .nav-mobile-active {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: var(--header-height);
+                left: 0;
+                width: 100%;
+                background: white;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                padding: 20px;
+                gap: 20px;
+                text-align: center;
+                border-top: 1px solid #eee;
+            }
+            .nav-mobile-active .btn { width: 100%; display: block; margin-bottom: 10px; }
+        }
+
+        /* Footer */
         footer {
-            background: var(--white);
+            background: #f8fafc;
             border-top: 1px solid #eee;
             padding: 40px 20px;
             text-align: center;
-            margin-top: auto;
+            margin-top: 60px;
+            color: var(--text-gray);
+            font-size: 0.9rem;
         }
-        .social-icons a { margin: 0 10px; color: var(--text-gray); font-size: 1.5rem; transition: 0.3s; }
-        .social-icons a:hover { color: var(--primary-blue); }
     </style>
 </head>
 <body class="{% block body_class %}default-page{% endblock %}">
+
+    <div class="top-bar">
+        <div class="prayer-widget">
+            <i class="fa-solid fa-mosque"></i>
+            <span id="lokasi-sholat" class="prayer-location">Loading...</span> : 
+            <span id="waktu-sholat" class="prayer-time-display">Mengambil data...</span>
+        </div>
+
+        <div class="news-ticker">
+            <div class="ticker-content">
+                {% if breaking_news %}
+                    {% for news in breaking_news %}
+                        <span style="margin-right: 40px;"><i class="fa-solid fa-bolt" style="color:#f59e0b;"></i> {{ news }}</span>
+                    {% endfor %}
+                {% else %}
+                    Selamat Datang di Komunitas TV Digital Indonesia • Update Frekuensi & MUX Terkini •
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
     <header>
         <nav>
             <a href="/" class="logo">
                 <i class="fa-solid fa-tv"></i> KTVDI
             </a>
-            <div class="menu-toggle" onclick="toggleMenu()"><i class="fa-solid fa-bars"></i></div>
-            <ul class="nav-links" id="navLinks">
-                <li><a href="/">Beranda</a></li>
-                <li><a href="/daftar-siaran">Daftar Siaran</a></li>
-                <li><a href="/berita">Berita</a></li>
-                <li><a href="/login" class="login">Masuk</a></li>
-                <li><a href="/register" class="btn-auth register">Daftar</a></li>
+
+            <div class="hamburger" onclick="toggleMobileMenu()">
+                <i class="fa-solid fa-bars"></i>
+            </div>
+
+            <ul class="nav-menu" id="desktopMenu">
+                <li><a href="/" class="nav-link">Beranda</a></li>
+                <li><a href="/daftar-siaran" class="nav-link">Daftar Siaran</a></li>
+                <li><a href="/berita" class="nav-link">Berita</a></li>
+                <li><a href="/about" class="nav-link">Tentang</a></li>
             </ul>
+
+            <div class="auth-desktop" id="authDesktop">
+                {% if session.get('user') %}
+                    <a href="/dashboard" class="btn btn-register">Dashboard</a>
+                    <a href="/logout" class="btn btn-login">Logout</a>
+                {% else %}
+                    <a href="/login" class="btn btn-login">Masuk</a>
+                    <a href="/register" class="btn btn-register">Daftar</a>
+                {% endif %}
+            </div>
         </nav>
+
+        <div id="mobileMenuContainer" style="display: none;">
+            </div>
     </header>
 
     <main>
@@ -142,19 +266,115 @@
     </main>
 
     <footer>
-        <div class="social-icons">
-            <a href="#"><i class="fab fa-instagram"></i></a>
-            <a href="#"><i class="fab fa-facebook"></i></a>
-            <a href="#"><i class="fab fa-youtube"></i></a>
-            <a href="#"><i class="fab fa-whatsapp"></i></a>
+        <p>&copy; 2026 Komunitas TV Digital Indonesia. All rights reserved.</p>
+        <div style="margin-top: 10px; font-size: 1.2rem;">
+            <a href="#" style="color:#888; margin:0 10px;"><i class="fab fa-instagram"></i></a>
+            <a href="#" style="color:#888; margin:0 10px;"><i class="fab fa-facebook"></i></a>
+            <a href="#" style="color:#888; margin:0 10px;"><i class="fab fa-youtube"></i></a>
         </div>
-        <p style="color: #888; font-size: 0.9rem; margin-top:15px;">&copy; 2025 Komunitas TV Digital Indonesia.</p>
     </footer>
 
     <script>
-        function toggleMenu() {
-            document.getElementById('navLinks').classList.toggle('active');
+        // --- 1. LOGIC MENU MOBILE (PRESISI) ---
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenuContainer');
+            const icon = document.querySelector('.hamburger i');
+            
+            if (menu.style.display === 'none') {
+                // Buka Menu
+                menu.style.display = 'flex';
+                menu.className = 'nav-mobile-active';
+                // Masukkan konten menu
+                menu.innerHTML = `
+                    <a href="/" class="nav-link">Beranda</a>
+                    <a href="/daftar-siaran" class="nav-link">Daftar Siaran</a>
+                    <a href="/berita" class="nav-link">Berita</a>
+                    <a href="/about" class="nav-link">Tentang</a>
+                    <hr style="width:100%; border:0; border-top:1px solid #eee; margin:10px 0;">
+                    {% if session.get('user') %}
+                        <a href="/dashboard" class="btn btn-register">Dashboard</a>
+                        <a href="/logout" class="btn btn-login">Logout</a>
+                    {% else %}
+                        <a href="/login" class="btn btn-login">Masuk</a>
+                        <a href="/register" class="btn btn-register">Daftar</a>
+                    {% endif %}
+                `;
+                icon.classList.remove('fa-bars');
+                icon.classList.add('fa-xmark');
+            } else {
+                // Tutup Menu
+                menu.style.display = 'none';
+                icon.classList.remove('fa-xmark');
+                icon.classList.add('fa-bars');
+            }
         }
+
+        // --- 2. API JADWAL SHOLAT FLIP (Sesuai Request: 15 Kota + Pekalongan/Purwodadi) ---
+        // Data ID Kota dari API myquran.com
+        const cityList = [
+            { id: '1301', name: 'Jakarta' },
+            { id: '1638', name: 'Surabaya' },
+            { id: '1219', name: 'Bandung' },
+            { id: '1634', name: 'Semarang' },
+            { id: '1204', name: 'Pekalongan' }, // REQUESTED
+            { id: '1633', name: 'Purwodadi' },  // REQUESTED (Grobogan)
+            { id: '1226', name: 'Medan' },
+            { id: '1629', name: 'Makassar' },
+            { id: '1228', name: 'Palembang' },
+            { id: '1206', name: 'Yogyakarta' },
+            { id: '1635', name: 'Solo' },
+            { id: '1632', name: 'Malang' },
+            { id: '1214', name: 'Denpasar' },
+            { id: '1225', name: 'Pekanbaru' },
+            { id: '1306', name: 'Banda Aceh' }
+        ];
+
+        let cityIndex = 0;
+
+        async function updatePrayerTime() {
+            const city = cityList[cityIndex];
+            const date = new Date();
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+
+            // API URL
+            const apiUrl = `https://api.myquran.com/v2/sholat/jadwal/${city.id}/${yyyy}/${mm}/${dd}`;
+
+            try {
+                // Efek Fade Out
+                document.getElementById('waktu-sholat').style.opacity = 0;
+                document.getElementById('lokasi-sholat').style.opacity = 0;
+
+                const response = await fetch(apiUrl);
+                const result = await response.json();
+                const jadwal = result.data.jadwal;
+
+                setTimeout(() => {
+                    // Update Text
+                    document.getElementById('lokasi-sholat').innerText = city.name;
+                    // Format: Subuh 04:30 | Maghrib 18:00
+                    document.getElementById('waktu-sholat').innerText = 
+                        `Subuh ${jadwal.subuh} • Dzuhur ${jadwal.dzuhur} • Ashar ${jadwal.ashar} • Maghrib ${jadwal.maghrib} • Isya ${jadwal.isya}`;
+                    
+                    // Efek Fade In
+                    document.getElementById('waktu-sholat').style.opacity = 1;
+                    document.getElementById('lokasi-sholat').style.opacity = 1;
+                }, 500); // Tunggu setengah detik saat opacity 0
+
+            } catch (error) {
+                console.error("Gagal mengambil jadwal sholat:", error);
+            }
+
+            // Pindah ke kota berikutnya (Looping)
+            cityIndex = (cityIndex + 1) % cityList.length;
+        }
+
+        // Jalankan saat load
+        updatePrayerTime();
+        // Ganti kota setiap 8 detik
+        setInterval(updatePrayerTime, 8000);
+
     </script>
 </body>
 </html>
