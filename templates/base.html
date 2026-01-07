@@ -3,30 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}KTVDI - Platform Siaran Digital{% endblock %}</title>
+    <title>{% block title %}KTVDI - Komunitas TV Digital Indonesia{% endblock %}</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
                     },
                     colors: {
                         brand: {
-                            light: '#bae6fd', // Sky 200
-                            main: '#0284c7',  // Sky 600
-                            dark: '#0c4a6e',  // Sky 900
-                            accent: '#38bdf8', // Sky 400
+                            dark: '#0f172a',
+                            primary: '#2563eb',
+                            accent: '#38bdf8',
+                            light: '#eff6ff'
                         }
                     },
                     animation: {
-                        'marquee': 'marquee 80s linear infinite', /* Kecepatan diperlambat (80s) */
+                        'marquee': 'marquee 40s linear infinite',
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
@@ -40,259 +41,294 @@
         }
     </script>
     <style>
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Chat Animations */
+        .chat-enter { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        /* Custom Scrollbar Chat */
-        .chat-scroll::-webkit-scrollbar { width: 5px; }
-        .chat-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 10px; }
+        
+        /* Glassmorphism */
+        .glass-nav {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans flex flex-col min-h-screen">
+<body class="bg-[#F8FAFC] text-slate-800 font-sans flex flex-col min-h-screen">
 
-    <nav class="fixed w-full z-50 glass-nav transition-all duration-300 shadow-sm">
+    <nav class="fixed top-0 w-full z-50 glass-nav text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
-                <a href="/" class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-dark to-brand-main flex items-center justify-center text-white shadow-lg shadow-brand-main/30">
-                        <i class="fa-solid fa-satellite-dish"></i>
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center shadow-lg shadow-brand-primary/50 group-hover:scale-110 transition duration-300">
+                        <i class="fa-solid fa-satellite-dish text-xl"></i>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-bold bg-gradient-to-r from-brand-dark to-brand-main bg-clip-text text-transparent">Digital<span class="text-brand-accent">ID</span></h1>
+                    <div class="flex flex-col">
+                        <span class="text-xl font-bold tracking-tight leading-none">KTVDI<span class="text-brand-accent">.id</span></span>
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest">Komunitas Digital</span>
                     </div>
                 </a>
 
-                <div class="hidden md:flex space-x-8 items-center">
-                    <a href="/" class="text-slate-600 hover:text-brand-main font-semibold transition">Beranda</a>
-                    <a href="#channels" class="text-slate-600 hover:text-brand-main font-semibold transition">Live TV</a>
-                    <a href="#about" class="text-slate-600 hover:text-brand-main font-semibold transition">Tentang</a>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="/" class="text-sm font-medium hover:text-brand-accent transition">Beranda</a>
+                    <a href="{{ url_for('daftar_siaran') }}" class="text-sm font-medium hover:text-brand-accent transition">Database Siaran</a>
+                    <a href="{{ url_for('berita') }}" class="text-sm font-medium hover:text-brand-accent transition">Berita</a>
+                    <a href="{{ url_for('about') }}" class="text-sm font-medium hover:text-brand-accent transition">Tentang</a>
                 </div>
 
-                <div class="hidden md:flex items-center space-x-3">
-                    <a href="/masuk" class="text-brand-dark font-semibold px-4">Masuk</a>
-                    <a href="/daftar" class="bg-gradient-to-r from-brand-main to-brand-accent hover:from-brand-dark hover:to-brand-main text-white px-6 py-2.5 rounded-full font-bold shadow-lg transform hover:-translate-y-0.5 transition">Daftar</a>
+                <div class="hidden md:flex items-center gap-4">
+                    {% if session.get('user') %}
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-slate-300 text-right hidden lg:block">
+                                Halo, <br><span class="font-bold text-white">{{ session.get('nama', 'User') }}</span>
+                            </span>
+                            <a href="{{ url_for('dashboard') }}" class="px-5 py-2 bg-brand-primary hover:bg-blue-600 text-white text-sm font-bold rounded-full shadow-lg transition">
+                                Dashboard
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="w-9 h-9 rounded-full bg-slate-700 hover:bg-red-600 flex items-center justify-center transition" title="Logout">
+                                <i class="fa-solid fa-power-off text-xs"></i>
+                            </a>
+                        </div>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-sm font-medium text-slate-300 hover:text-white transition">Masuk</a>
+                        <a href="{{ url_for('register') }}" class="px-6 py-2.5 bg-white text-brand-dark hover:bg-brand-accent hover:text-white text-sm font-bold rounded-full shadow-lg transition transform hover:-translate-y-0.5">
+                            Daftar
+                        </a>
+                    {% endif %}
                 </div>
 
-                <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="md:hidden text-brand-dark text-2xl">
+                <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="md:hidden text-white text-2xl">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>
         </div>
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full shadow-xl">
-            <div class="px-4 py-4 space-y-3">
-                <a href="/" class="block text-slate-700 font-medium">Beranda</a>
-                <a href="#channels" class="block text-slate-700 font-medium">Live TV</a>
-                <div class="pt-2 flex gap-2">
-                    <a href="/masuk" class="flex-1 text-center py-2 border border-brand-main text-brand-main rounded-lg">Masuk</a>
-                    <a href="/daftar" class="flex-1 text-center py-2 bg-brand-main text-white rounded-lg">Daftar</a>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-brand-dark border-t border-slate-700">
+            <div class="px-4 py-4 space-y-4">
+                <a href="/" class="block text-slate-300 hover:text-white">Beranda</a>
+                <a href="{{ url_for('daftar_siaran') }}" class="block text-slate-300 hover:text-white">Database</a>
+                <a href="{{ url_for('berita') }}" class="block text-slate-300 hover:text-white">Berita</a>
+                <div class="pt-4 border-t border-slate-700 grid grid-cols-2 gap-3">
+                    {% if session.get('user') %}
+                        <a href="{{ url_for('dashboard') }}" class="col-span-2 text-center py-2 bg-brand-primary rounded-lg text-white font-bold">Dashboard</a>
+                        <a href="{{ url_for('logout') }}" class="col-span-2 text-center py-2 bg-red-600 rounded-lg text-white font-bold">Keluar</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-center py-2 border border-slate-500 rounded-lg text-slate-300">Masuk</a>
+                        <a href="{{ url_for('register') }}" class="text-center py-2 bg-white text-brand-dark rounded-lg font-bold">Daftar</a>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow pt-20 pb-24"> {% block content %}{% endblock %}
+    <main class="flex-grow pt-20 pb-16">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 mt-6">
+              {% for category, message in messages %}
+                <div class="p-4 mb-4 rounded-lg flex items-center gap-3 shadow-sm {{ 'bg-green-100 text-green-700 border border-green-200' if category == 'success' else 'bg-red-100 text-red-700 border border-red-200' }}">
+                  <i class="fa-solid {{ 'fa-check-circle' if category == 'success' else 'fa-exclamation-circle' }}"></i>
+                  <span>{{ message }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-brand-dark text-white pt-10 pb-0 mt-auto relative z-40">
-        
-        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 text-sm">
-            <div>
-                <h4 class="font-bold text-lg mb-2">KTVDI Official</h4>
-                <p class="text-brand-light opacity-80">Platform streaming digital komunitas Indonesia.</p>
+    <div class="fixed bottom-0 w-full z-40 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] h-12 flex items-center justify-between px-4 md:px-8">
+        <div class="flex-1 overflow-hidden h-full flex items-center mr-4 relative mask-image-linear-gradient">
+            <div class="bg-red-600 text-white text-[10px] font-bold px-3 py-0.5 rounded mr-3 whitespace-nowrap animate-pulse-slow">
+                LIVE INFO
             </div>
-            <div>
-                <h4 class="font-bold text-lg mb-2">Kontak</h4>
-                <p class="text-brand-light opacity-80">support@ktvdi.id | Jakarta, Indonesia</p>
-            </div>
-            <div class="text-right">
-                <p class="text-xs text-brand-light opacity-60 mt-4">&copy; 2026 KTVDI. All Rights Reserved.</p>
-            </div>
-        </div>
-
-        <div class="bg-slate-900 border-t border-slate-700 w-full h-12 flex items-center justify-between px-2 md:px-6 select-none relative z-50">
-            
-            <div class="flex-1 overflow-hidden relative h-full flex items-center mask-gradient pr-4">
-                <div class="bg-red-600 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 rounded mr-3 whitespace-nowrap animate-pulse-slow">
-                    LIVE INFO
-                </div>
-                <div class="whitespace-nowrap overflow-hidden w-full">
-                    <div class="animate-marquee inline-block text-[11px] md:text-sm text-slate-300 font-light tracking-wide">
-                        <i class="fa-solid fa-mosque text-brand-accent ml-4"></i> <strong>MAGHRIB:</strong> Jakarta 18:15 | Bandung 18:11 | Surabaya 17:52 | Makassar 18:20 
-                        <span class="mx-4 text-slate-600">|</span> 
-                        <i class="fa-solid fa-newspaper text-brand-accent"></i> <strong>BERITA:</strong> TVRI Sport Resmi Siarkan World Cup 2026 - Pastikan Antena Digital Anda Mengarah Tepat 
-                        <span class="mx-4 text-slate-600">|</span>
-                        <i class="fa-solid fa-triangle-exclamation text-yellow-500"></i> <strong>GANGGUAN:</strong> Maintenance Pemancar MUX Jogja (23:00 - 04:00 WIB).
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-3 md:gap-5 text-slate-400 pl-4 border-l border-slate-700 h-full bg-slate-900 flex-shrink-0">
-                <div class="hidden md:flex items-center gap-1">
-                    <i class="fa-solid fa-wifi text-xs text-green-500"></i>
-                    <span class="text-xs font-mono font-bold">KTVDI-NET 5G</span>
-                </div>
-                <div class="font-mono text-xs md:text-sm text-white font-bold" id="system-clock">00:00</div>
-                <div class="flex items-center gap-1">
-                    <span class="text-[10px] hidden md:inline">100%</span>
-                    <i class="fa-solid fa-battery-full text-lg text-green-500"></i>
+            <div class="w-full overflow-hidden">
+                <div class="animate-marquee whitespace-nowrap text-xs md:text-sm font-medium text-slate-600">
+                    {% if breaking_news %}
+                        {% for news in breaking_news %}
+                            <span class="mr-8"><i class="fa-solid fa-newspaper text-brand-primary mr-2"></i> {{ news }}</span>
+                        {% endfor %}
+                    {% else %}
+                        <span class="mr-8">Selamat Datang di Komunitas TV Digital Indonesia. Login untuk kontribusi data.</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
-    </footer>
 
-    <div class="fixed bottom-20 right-4 z-50">
-        <div id="chat-window" class="hidden w-[85vw] md:w-[350px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden mb-4 transition-all duration-300 transform origin-bottom-right">
-            <div class="bg-gradient-to-r from-brand-main to-brand-dark p-4 flex justify-between items-center text-white">
+        <div class="flex items-center gap-4 pl-4 border-l border-slate-200 h-8 flex-shrink-0 text-slate-500">
+            <div class="hidden md:flex items-center gap-1 text-xs font-bold text-brand-primary">
+                <i class="fa-solid fa-wifi"></i> Online
+            </div>
+            <div class="text-xs font-mono font-bold text-slate-800" id="clock">00:00</div>
+            <div class="flex items-center gap-1 text-xs">
+                <i class="fa-solid fa-battery-full text-green-500 text-base"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-16 right-6 z-50">
+        <div id="chat-window" class="hidden w-[85vw] md:w-[350px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col transition-all duration-300 origin-bottom-right transform scale-95 opacity-0">
+            <div class="bg-brand-primary p-4 flex justify-between items-center text-white bg-gradient-to-r from-brand-primary to-blue-600">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                    <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                         <i class="fa-solid fa-robot"></i>
                     </div>
                     <div>
-                        <h4 class="font-bold text-sm">AI Assistant</h4>
-                        <p class="text-[10px] text-brand-light flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span> Online (Gemini)</p>
+                        <h4 class="font-bold text-sm">Asisten KTVDI</h4>
+                        <p class="text-[10px] text-blue-100 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Gemini AI Connected
+                        </p>
                     </div>
                 </div>
-                <button onclick="toggleChat()" class="hover:text-gray-200"><i class="fa-solid fa-times"></i></button>
+                <button onclick="toggleChat()" class="hover:text-blue-200 transition"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
-            <div id="chat-messages" class="h-64 bg-slate-50 p-4 overflow-y-auto chat-scroll flex flex-col gap-3">
+
+            <div id="chat-messages" class="h-72 bg-slate-50 p-4 overflow-y-auto space-y-3 flex flex-col">
                 <div class="flex gap-2 items-end">
-                    <div class="w-6 h-6 rounded-full bg-brand-light flex-shrink-0 flex items-center justify-center text-brand-dark text-[10px]"><i class="fa-solid fa-robot"></i></div>
-                    <div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm border border-gray-100 max-w-[85%]">
-                        Halo! Saya asisten pintar KTVDI. Tanyakan apa saja tentang TV Digital, Frekuensi, atau Jadwal Bola!
+                    <div class="w-6 h-6 rounded-full bg-brand-primary flex items-center justify-center text-white text-[10px] flex-shrink-0"><i class="fa-solid fa-robot"></i></div>
+                    <div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm border border-slate-100 max-w-[85%]">
+                        Halo! Saya Chatbot AI KTVDI. Tanyakan apa saja tentang siaran digital, MUX, atau cara menggunakan website ini.
                     </div>
                 </div>
             </div>
 
-            <div class="p-3 bg-white border-t border-gray-100">
-                <form onsubmit="handleGeminiChat(event)" class="flex gap-2">
-                    <input type="text" id="user-input" placeholder="Ketik pesan..." class="flex-1 bg-gray-100 rounded-full px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-brand-main text-slate-800">
-                    <button type="submit" id="send-btn" class="w-8 h-8 bg-brand-main hover:bg-brand-dark text-white rounded-full flex items-center justify-center transition shadow-md">
+            <div class="p-3 bg-white border-t border-slate-100">
+                <form id="chat-form" onsubmit="sendMessage(event)" class="flex gap-2 relative">
+                    <input type="text" id="chat-input" placeholder="Ketik pertanyaan..." autocomplete="off" class="w-full bg-slate-100 text-slate-800 text-xs rounded-full pl-4 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-brand-primary transition">
+                    <button type="submit" id="send-btn" class="absolute right-2 top-1.5 w-8 h-8 bg-brand-primary hover:bg-brand-dark text-white rounded-full flex items-center justify-center shadow-sm transition disabled:opacity-50">
                         <i class="fa-solid fa-paper-plane text-xs"></i>
                     </button>
                 </form>
             </div>
         </div>
 
-        <button onclick="toggleChat()" class="w-14 h-14 bg-gradient-to-br from-brand-main to-brand-accent text-white rounded-full shadow-lg shadow-brand-main/40 flex items-center justify-center text-2xl hover:scale-105 transition animate-pulse-slow">
+        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-dark hover:bg-brand-primary text-white rounded-full shadow-2xl flex items-center justify-center text-2xl transition-all duration-300 hover:scale-105 border-2 border-white/20">
             <i class="fa-solid fa-comment-dots"></i>
         </button>
     </div>
 
     <script>
-        // 1. Clock Logic
-        function updateClock() {
+        // Clock Function
+        setInterval(() => {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('system-clock').innerText = timeString;
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+        }, 1000);
 
-        // 2. Chat Toggle
+        // Chatbot Logic
+        const chatWindow = document.getElementById('chat-window');
+        
         function toggleChat() {
-            document.getElementById('chat-window').classList.toggle('hidden');
+            chatWindow.classList.toggle('hidden');
+            if(!chatWindow.classList.contains('hidden')) {
+                setTimeout(() => {
+                    chatWindow.classList.remove('scale-95', 'opacity-0');
+                    chatWindow.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            } else {
+                chatWindow.classList.add('scale-95', 'opacity-0');
+                chatWindow.classList.remove('scale-100', 'opacity-100');
+            }
         }
 
-        // 3. GEMINI API HANDLER (Simulasi/Fetch Real)
-        async function handleGeminiChat(e) {
+        async function sendMessage(e) {
             e.preventDefault();
-            const inputField = document.getElementById('user-input');
-            const messageBox = document.getElementById('chat-messages');
-            const userText = inputField.value.trim();
-            const sendBtn = document.getElementById('send-btn');
+            const input = document.getElementById('chat-input');
+            const messages = document.getElementById('chat-messages');
+            const btn = document.getElementById('send-btn');
+            const text = input.value.trim();
 
-            if (!userText) return;
+            if (!text) return;
 
-            // Tampilkan Pesan User
-            appendMessage(userText, 'user');
-            inputField.value = '';
-            
-            // Loading State
+            // 1. Tampilkan Pesan User
+            appendMessage(text, 'user');
+            input.value = '';
+            btn.disabled = true;
+
+            // 2. Loading State
             const loadingId = 'loading-' + Date.now();
             appendLoading(loadingId);
-            sendBtn.disabled = true;
 
             try {
-                // ============================================================
-                // KONFIGURASI API GEMINI (PASTE API KEY ANDA DI BAWAH INI)
-                // ============================================================
-                const API_KEY = "PASTE_API_KEY_GEMINI_ANDA_DISINI"; 
-                // Jika API Key kosong, gunakan fallback simulasi agar tidak error saat demo
-                
-                let botReply = "";
+                // 3. Kirim ke Backend Flask (app.py)
+                const response = await fetch('/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: text })
+                });
 
-                if (API_KEY === "PASTE_API_KEY_GEMINI_ANDA_DISINI" || API_KEY === "") {
-                    // FALLBACK JIKA API KEY BELUM DIISI USER
-                    await new Promise(r => setTimeout(r, 1500)); // Simulasi delay
-                    botReply = "Maaf, API Key belum dikonfigurasi di script. Namun sistem chat ini sudah siap! Masukkan API Key Google Gemini Anda di baris 190 file base.html untuk respon cerdas otomatis.";
-                } else {
-                    // LOGIKA FETCH API GEMINI REAL
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: "Jawablah dalam Bahasa Indonesia singkat dan ramah sebagai CS TV Digital: " + userText }] }]
-                        })
-                    });
-                    const data = await response.json();
-                    botReply = data.candidates[0].content.parts[0].text;
-                }
+                const data = await response.json();
                 
-                // Hapus Loading & Tampilkan Balasan
+                // 4. Hapus loading & Tampilkan Balasan
                 document.getElementById(loadingId).remove();
-                appendMessage(botReply, 'bot');
+                
+                if (data.response) {
+                    appendMessage(data.response, 'bot');
+                } else if (data.error) {
+                    appendMessage("Maaf, terjadi kesalahan: " + data.error, 'bot');
+                } else {
+                    appendMessage("Maaf, saya tidak mengerti.", 'bot');
+                }
 
             } catch (error) {
                 document.getElementById(loadingId).remove();
-                appendMessage("Maaf, koneksi ke server AI terputus. Coba lagi nanti.", 'bot');
+                appendMessage("Gagal terhubung ke server. Coba lagi nanti.", 'bot');
                 console.error(error);
             }
 
-            sendBtn.disabled = false;
+            btn.disabled = false;
         }
 
         function appendMessage(text, sender) {
-            const box = document.getElementById('chat-messages');
+            const messages = document.getElementById('chat-messages');
             const div = document.createElement('div');
             
+            // Format HTML sederhana untuk newlines dari Gemini
+            const formattedText = text.replace(/\n/g, '<br>');
+
             if (sender === 'user') {
-                div.className = "flex gap-2 items-end justify-end";
+                div.className = "flex gap-2 items-end justify-end chat-enter";
                 div.innerHTML = `
-                    <div class="bg-brand-main text-white p-3 rounded-2xl rounded-br-none text-xs shadow-md max-w-[85%]">
-                        ${text}
+                    <div class="bg-brand-primary text-white p-3 rounded-2xl rounded-br-none text-xs shadow-md max-w-[85%]">
+                        ${formattedText}
                     </div>
                 `;
             } else {
-                div.className = "flex gap-2 items-end";
+                div.className = "flex gap-2 items-end chat-enter";
                 div.innerHTML = `
-                    <div class="w-6 h-6 rounded-full bg-brand-light flex-shrink-0 flex items-center justify-center text-brand-dark text-[10px]"><i class="fa-solid fa-robot"></i></div>
-                    <div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm border border-gray-100 max-w-[85%]">
-                        ${marked ? marked.parse(text) : text} </div>
+                    <div class="w-6 h-6 rounded-full bg-brand-primary flex items-center justify-center text-white text-[10px] flex-shrink-0"><i class="fa-solid fa-robot"></i></div>
+                    <div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-700 shadow-sm border border-slate-100 max-w-[85%]">
+                        ${formattedText}
+                    </div>
                 `;
             }
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
         }
 
         function appendLoading(id) {
-            const box = document.getElementById('chat-messages');
+            const messages = document.getElementById('chat-messages');
             const div = document.createElement('div');
             div.id = id;
-            div.className = "flex gap-2 items-end";
+            div.className = "flex gap-2 items-end chat-enter";
             div.innerHTML = `
-                <div class="w-6 h-6 rounded-full bg-brand-light flex-shrink-0 flex items-center justify-center text-brand-dark text-[10px]"><i class="fa-solid fa-robot"></i></div>
-                <div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-500 shadow-sm border border-gray-100">
-                    <span class="animate-pulse">Mengetik...</span>
+                <div class="w-6 h-6 rounded-full bg-brand-primary flex items-center justify-center text-white text-[10px] flex-shrink-0"><i class="fa-solid fa-robot"></i></div>
+                <div class="bg-white p-3 rounded-2xl rounded-bl-none text-xs text-slate-500 shadow-sm border border-slate-100">
+                    <span class="flex gap-1">
+                        <span class="w-1 h-1 bg-slate-400 rounded-full animate-bounce"></span>
+                        <span class="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                        <span class="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+                    </span>
                 </div>
             `;
-            box.appendChild(div);
-            box.scrollTop = box.scrollHeight;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
         }
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> 
 </body>
 </html>
