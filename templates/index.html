@@ -5,94 +5,451 @@
 {% block body_class %}home-page{% endblock %}
 
 {% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+    :root {
+        --primary-blue: #0056b3;
+        --secondary-blue: #0088ff;
+        --dark-blue: #003366;
+        --accent-light: #eef7ff;
+        --white: #ffffff;
+        --text-dark: #1f2937;
+        --text-muted: #6b7280;
+        --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.1);
+        --shadow-hover: 0 20px 40px -5px rgba(0, 0, 0, 0.15);
+        --radius: 16px;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8fafc;
+        color: var(--text-dark);
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    /* --- HERO SECTION --- */
+    .hero {
+        position: relative;
+        background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+        color: var(--white);
+        padding: 80px 20px 120px; /* Padding bawah lebih besar untuk blending */
+        text-align: center;
+        border-radius: 0 0 50px 50px;
+        margin-bottom: 40px;
+        overflow: hidden;
+    }
+
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+        pointer-events: none;
+    }
+
+    .hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .hero p {
+        font-size: 1.125rem;
+        max-width: 700px;
+        margin: 0 auto 2rem;
+        line-height: 1.6;
+        opacity: 0.9;
+        font-weight: 300;
+    }
+
+    .btn-hero {
+        display: inline-block;
+        padding: 12px 32px;
+        background-color: var(--white);
+        color: var(--primary-blue);
+        text-decoration: none;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn-hero:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+        background-color: var(--accent-light);
+    }
+
+    /* --- STATISTIK SECTION --- */
+    .statistik {
+        max-width: 1200px;
+        margin: -80px auto 50px; /* Negative margin agar naik ke atas hero */
+        padding: 0 20px;
+        position: relative;
+        z-index: 10;
+    }
+
+    .statistik-title {
+        text-align: center;
+        margin-bottom: 40px;
+        color: var(--white); /* Judul statistik tetap putih karena overlap hero */
+        font-size: 1.8rem;
+        font-weight: 600;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Agar judul statistik berubah warna jika tidak overlap (opsional, tp aman biarkan putih di layout ini) */
+
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 24px;
+    }
+
+    .card-statistik {
+        background: var(--white);
+        border-radius: var(--radius);
+        padding: 30px;
+        box-shadow: var(--shadow-card);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .card-statistik:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--secondary-blue);
+    }
+
+    .card-header-statistik h2 {
+        font-size: 3rem;
+        margin: 0;
+        color: var(--primary-blue);
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -1px;
+    }
+
+    .card-header-statistik p {
+        margin: 5px 0 15px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-body-statistik p {
+        font-size: 0.95rem;
+        color: var(--text-dark);
+        line-height: 1.5;
+        margin-bottom: 20px;
+    }
+
+    .card-footer-statistik {
+        border-top: 1px solid #eee;
+        padding-top: 15px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .card-footer-statistik i {
+        color: var(--secondary-blue);
+    }
+
+    /* --- CHATBOT WIDGET --- */
+    #chat-toggle {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 65px;
+        height: 65px;
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        box-shadow: 0 5px 20px rgba(0, 86, 179, 0.4);
+        cursor: pointer;
+        font-size: 28px;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 1000;
+        display: flex; /* Override display:none from inline script if needed */
+        align-items: center;
+        justify-content: center;
+    }
+
+    #chat-toggle:hover {
+        transform: scale(1.1);
+        background: var(--dark-blue);
+    }
+
+    .chatbot {
+        position: fixed;
+        bottom: 110px;
+        right: 30px;
+        width: 380px;
+        height: 550px;
+        background: var(--white);
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        z-index: 999;
+        transform-origin: bottom right;
+        transition: all 0.3s ease;
+        border: 1px solid #eee;
+        /* Start hidden controlled by JS */
+    }
+
+    .chatbot h1 {
+        background: var(--primary-blue);
+        color: white;
+        margin: 0;
+        padding: 20px;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .chatbot h1::before {
+        content: '\f4ad'; /* FontAwesome icon code */
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+    }
+
+    .chat-body {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background-color: #f4f6f9;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    /* Scrollbar styling */
+    .chat-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    .chat-body::-webkit-scrollbar-thumb {
+        background-color: #ccc;
+        border-radius: 3px;
+    }
+
+    .message {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        position: relative;
+        word-wrap: break-word;
+    }
+
+    .message.user {
+        background: var(--primary-blue);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+    }
+
+    .message.bot {
+        background: white;
+        color: var(--text-dark);
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+    }
+
+    .input-area {
+        padding: 15px;
+        background: white;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .input-area textarea {
+        flex: 1;
+        border: 1px solid #ddd;
+        border-radius: 25px;
+        padding: 12px 15px;
+        resize: none;
+        height: 45px; /* Fixed height for neatness */
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.2s;
+        box-sizing: border-box; /* Penting */
+    }
+
+    .input-area textarea:focus {
+        border-color: var(--primary-blue);
+    }
+
+    .send-btn {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .send-btn:hover {
+        background: var(--dark-blue);
+    }
+
+    /* --- RESPONSIVE MEDIA QUERIES --- */
+    @media (max-width: 768px) {
+        .hero {
+            padding: 60px 20px 100px;
+            border-radius: 0 0 30px 30px;
+        }
+        
+        .hero h1 {
+            font-size: 1.8rem;
+        }
+        
+        .statistik {
+            margin-top: -60px;
+        }
+
+        .card-header-statistik h2 {
+            font-size: 2.5rem;
+        }
+
+        .chatbot {
+            width: 90%;
+            height: 60vh;
+            right: 5%;
+            bottom: 100px;
+        }
+    }
+</style>
+
     <section class="hero">
-        <h1 id="headline">Selamat Datang di Website Komunitas TV Digital Indonesia</h1>
-        <p id="paragraph" style="display: none;">
-          KTVDI menjadi wadah diskusi bagi semua pemirsa siaran televisi digital di Indonesia untuk memperluas wawasan terkait segala hal yang berkaitan dengan siaran televisi, khususnya Televisi Digital Terestrial (DTT).
+        <h1 id="headline">Selamat Datang di<br>Komunitas TV Digital Indonesia</h1>
+        <p id="paragraph">
+          Wadah diskusi pemirsa siaran televisi digital di Indonesia. Memperluas wawasan terkait siaran televisi, khususnya Televisi Digital Terestrial (DTT).
         </p>
-        <a href="#statistic-tv" id="read-more" style="display:none;">Selengkapnya</a>
+        <a href="#statistic-tv" id="read-more" class="btn-hero">
+            Lihat Statistik <i class="fa-solid fa-arrow-down" style="margin-left:8px;"></i>
+        </a>
     </section>
     
-    <div class="statistik" id="statistic-tv" style="display:none;">
+    <div class="statistik" id="statistic-tv">
       <h1 class="statistik-title">Siaran Digital dalam Angka</h1>
 
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_wilayah_layanan }}</h2>
-          <p>Wilayah Layanan</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah Wilayah Layanan yang tersedia di seluruh Indonesia berjumlah {{ jumlah_wilayah_layanan }} Wilayah Layanan.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_penyelenggara_mux }}</h2>
-          <p>Layanan MUX</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah Layanan MUX yang beroperasi di seluruh Indonesia berjumlah {{ jumlah_penyelenggara_mux }} layanan MUX.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_siaran }}</h2>
-          <p>Siaran TV Digital</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah siaran TV Digital yang beroperasi di seluruh Indonesia berjumlah {{ jumlah_siaran }} siaran.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ most_common_siaran_name }}</h2>
-          <p>Siaran TV Digital Terluas</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini {{ most_common_siaran_name }} merupakan saluran TV Digital dengan jangkauan terluas di Indonesia, yang tersedia di {{ most_common_siaran_count }} layanan MUX.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
+      <div class="grid-container">
+          <div class="card-statistik">
+            <div class="card-header-statistik">
+              <h2>{{ jumlah_wilayah_layanan }}</h2>
+              <p>Wilayah Layanan</p>
+            </div>
+            <div class="card-body-statistik">
+              <p>Jumlah Wilayah Layanan yang tersedia dan siap mencakup seluruh Indonesia.</p>
+            </div>
+            <div class="card-footer-statistik">
+              <p><i class="fa-solid fa-clock-rotate-left"></i> Update: {{ last_updated_time }}</p>
+            </div>
+          </div>
+
+          <div class="card-statistik">
+            <div class="card-header-statistik">
+              <h2>{{ jumlah_penyelenggara_mux }}</h2>
+              <p>Layanan MUX</p>
+            </div>
+            <div class="card-body-statistik">
+              <p>Total Layanan MUX yang beroperasi aktif menyiarkan konten digital.</p>
+            </div>
+            <div class="card-footer-statistik">
+              <p><i class="fa-solid fa-clock-rotate-left"></i> Update: {{ last_updated_time }}</p>
+            </div>
+          </div>
+
+          <div class="card-statistik">
+            <div class="card-header-statistik">
+              <h2>{{ jumlah_siaran }}</h2>
+              <p>Siaran TV Digital</p>
+            </div>
+            <div class="card-body-statistik">
+              <p>Jumlah kanal siaran TV Digital yang dapat dinikmati masyarakat saat ini.</p>
+            </div>
+            <div class="card-footer-statistik">
+              <p><i class="fa-solid fa-clock-rotate-left"></i> Update: {{ last_updated_time }}</p>
+            </div>
+          </div>
+
+          <div class="card-statistik">
+            <div class="card-header-statistik">
+              <h2 style="font-size: 2.2rem;">{{ most_common_siaran_name }}</h2>
+              <p>Jangkauan Terluas</p>
+            </div>
+            <div class="card-body-statistik">
+              <p>Saluran dengan jangkauan terluas, tersedia di <strong>{{ most_common_siaran_count }}</strong> layanan MUX nasional.</p>
+            </div>
+            <div class="card-footer-statistik">
+              <p><i class="fa-solid fa-clock-rotate-left"></i> Update: {{ last_updated_time }}</p>
+            </div>
+          </div>
       </div>
     </div>
 
-    <!-- Tombol Toggle -->
-    <button id="chat-toggle" style="display: none;"><i class="fa-solid fa-comments"></i></button>
+    <button id="chat-toggle"><i class="fa-solid fa-comments"></i></button>
 
-    <!-- Chat Popup -->
     <div class="chatbot" id="chatbot" style="display: none;">
       <h1>ChatKTVDI</h1>
       <div class="chat-body" id="chat-body">
-        <!-- Pesan muncul di sini -->
+        <div class="message bot">Halo! Ada yang bisa saya bantu seputar TV Digital hari ini? 📺</div>
       </div>
       <div class="input-area">
-        <textarea id="prompt" placeholder="Tulis pertanyaan..."></textarea>
+        <textarea id="prompt" placeholder="Tulis pertanyaan..." rows="1"></textarea>
         <button class="send-btn" onclick="sendPrompt()"><i class="fa-solid fa-paper-plane"></i></button>
       </div>
     </div>
 
     <script>
-      // Toggle Chat Widget
+      // --- UI TOGGLE LOGIC ---
       const toggleBtn = document.getElementById("chat-toggle");
       const chatbot = document.getElementById("chatbot");
       const chatBody = document.getElementById("chat-body");
       const promptInput = document.getElementById("prompt");
 
       toggleBtn.addEventListener("click", () => {
-        chatbot.style.display = chatbot.style.display === "flex" ? "none" : "flex";
+        if (chatbot.style.display === "none" || chatbot.style.display === "") {
+            chatbot.style.display = "flex";
+            toggleBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; // Ubah icon jadi silang
+            setTimeout(() => promptInput.focus(), 100);
+        } else {
+            chatbot.style.display = "none";
+            toggleBtn.innerHTML = '<i class="fa-solid fa-comments"></i>';
+        }
       });
 
-      // Fungsi kirim prompt ke server Flask
+      // --- CHAT LOGIC ---
       async function sendPrompt() {
         const prompt = promptInput.value.trim();
         if (!prompt) return;
@@ -101,8 +458,12 @@
         appendMessage(prompt, "user");
         promptInput.value = "";
 
-        // Tambahkan placeholder sementara
-        const thinkingMsg = appendMessage("⏳ Sedang memproses...", "bot");
+        // Tampilkan indikator loading
+        const loadingDiv = document.createElement("div");
+        loadingDiv.classList.add("message", "bot");
+        loadingDiv.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Sedang memproses...';
+        chatBody.appendChild(loadingDiv);
+        chatBody.scrollTop = chatBody.scrollHeight;
 
         try {
           const res = await fetch("/", {
@@ -112,57 +473,60 @@
           });
 
           const data = await res.json();
-          chatBody.removeChild(thinkingMsg);
+          chatBody.removeChild(loadingDiv); // Hapus loading
 
           if (data.response) {
-            appendMessage(data.response, "bot");
+            typeWriterEffect(data.response, "bot");
           } else {
             appendMessage("❌ Terjadi kesalahan: " + data.error, "bot");
           }
         } catch (err) {
-          chatBody.removeChild(thinkingMsg);
+          if(loadingDiv.parentNode) chatBody.removeChild(loadingDiv);
           appendMessage("⚠️ Gagal terhubung ke server.", "bot");
         }
       }
 
-      // Fungsi untuk mengupdate pesan bot secara animasi
       function appendMessage(text, sender) {
         const msg = document.createElement("div");
         msg.classList.add("message", sender);
+        // Ganti newline dengan <br> untuk tampilan HTML
+        msg.innerHTML = text.replace(/\n/g, '<br>');
         chatBody.appendChild(msg);
         chatBody.scrollTop = chatBody.scrollHeight;
-
-        // Replace newlines with <br> tags
-        const formattedText = text.replace(/\n/g, '<br>');
-
-        let i = 0;
-        msg.innerText = ""; // Mulai dengan teks kosong
-
-        // Fungsi untuk menambahkan karakter satu per satu
-        function typeWriter() {
-          if (i < text.length) {
-            msg.textContent += text.charAt(i);
-            i++;
-            chatBody.scrollTop = chatBody.scrollHeight;
-            setTimeout(typeWriter, 20); // Adjust kecepatan pengetikan di sini (50ms)
-          } else {
-            requestAnimationFrame(() => {
-              chatBody.scrollTop = chatBody.scrollHeight;
-            });
-          }  
-        }
-
-        // Mulai efek pengetikan
-        typeWriter();
-
-        requestAnimationFrame(() => {
-          chatBody.scrollTop = chatBody.scrollHeight;
-        });
-
         return msg;
       }
+
+      // Efek mengetik yang lebih aman untuk HTML tags
+      function typeWriterEffect(text, sender) {
+        const msg = document.createElement("div");
+        msg.classList.add("message", sender);
+        chatBody.appendChild(msg);
+        
+        let i = 0;
+        // Kita gunakan textContent untuk keamanan, tapi jika butuh bold/newline dari bot
+        // kita perlu parsing. Untuk simplifikasi & keamanan, kita pakai typing manual:
+        
+        // Split text by lines to handle logic better if needed, 
+        // but simple char-by-char is robust visually.
+        
+        function typing() {
+          if (i < text.length) {
+            // Jika karakter adalah newline, tambahkan <br>
+            if (text.charAt(i) === '\n') {
+                msg.innerHTML += '<br>';
+            } else {
+                // Append text node untuk menghindari re-rendering HTML yang berat
+                msg.appendChild(document.createTextNode(text.charAt(i)));
+            }
+            i++;
+            chatBody.scrollTop = chatBody.scrollHeight;
+            setTimeout(typing, 15); // Kecepatan mengetik
+          }
+        }
+        typing();
+      }
       
-      // Enter = kirim pesan
+      // Auto-resize textarea dan Enter to send
       promptInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
           e.preventDefault();
