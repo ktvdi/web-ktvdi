@@ -7,6 +7,7 @@ import pytz
 import time
 import requests
 import feedparser
+import json 
 import google.generativeai as genai
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
@@ -65,7 +66,7 @@ genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
 
 # Inisialisasi model Gemini
 model = genai.GenerativeModel(
-    "gemini-2.5-flash", 
+    "gemini-2.0-flash", 
     system_instruction=
     "Anda adalah Chatbot AI KTVDI untuk website Komunitas TV Digital Indonesia (KTVDI). "
     "Tugas Anda adalah menjawab pertanyaan pengguna seputar website KTVDI, "
@@ -98,58 +99,90 @@ model = genai.GenerativeModel(
 def home():
     # Ambil data dari seluruh node "siaran" untuk semua provinsi
     ref = db.reference('siaran')
-    siaran_data = ref.get()
+    siaran_data = ref.get() or {}
 
     # Variabel Statistik
     jumlah_wilayah_layanan = 0
     jumlah_siaran = 0
-    jumlah_penyelenggara_mux = 0  # Variabel untuk menghitung jumlah penyelenggara mux
+    jumlah_penyelenggara_mux = 0 
     siaran_counts = Counter()
-    last_updated_time = None  # Variabel untuk menyimpan waktu terakhir pembaruan
+    last_updated_time = None 
     
+    # Data untuk Diagram (Chart)
+    chart_provinsi_labels = []
+    chart_provinsi_data = []
+
     # Iterasi melalui provinsi, wilayah layanan, dan penyelenggara mux
-    for provinsi, provinsi_data in siaran_data.items():  # Iterasi pada setiap provinsi
-        if isinstance(provinsi_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
-            jumlah_wilayah_layanan += len(provinsi_data)
-            for wilayah, wilayah_data in provinsi_data.items():  # Iterasi pada setiap wilayah
-                if isinstance(wilayah_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
-                    jumlah_penyelenggara_mux += len(wilayah_data)  # Menghitung jumlah penyelenggara mux
+    for provinsi, provinsi_data in siaran_data.items():
+        if isinstance(provinsi_data, dict):
+            # Hitung data untuk chart (Jumlah Wilayah per Provinsi)
+            jumlah_wilayah_provinsi = len(provinsi_data)
+            chart_provinsi_labels.append(provinsi)
+            chart_provinsi_data.append(jumlah_wilayah_provinsi)
+            
+            # Statistik Global
+            jumlah_wilayah_layanan += jumlah_wilayah_provinsi
+
+            for wilayah, wilayah_data in provinsi_data.items():
+                if isinstance(wilayah_data, dict):
+                    jumlah_penyelenggara_mux += len(wilayah_data)
                     
-                    # Menghitung jumlah siaran dari penyelenggara mux
+                    # Menghitung jumlah siaran
                     for penyelenggara, penyelenggara_details in wilayah_data.items():
                         if 'siaran' in penyelenggara_details:
-                            jumlah_siaran += len(penyelenggara_details['siaran'])  # Menambahkan jumlah siaran dari penyelenggara mux
+                            jumlah_siaran += len(penyelenggara_details['siaran'])
                             for siaran in penyelenggara_details['siaran']:
                                 siaran_counts[siaran.lower()] += 1
-                # Mengambil waktu terakhir pembaruan jika ada
-                if 'last_updated_date' in penyelenggara_details:
-                    current_updated_time_str = penyelenggara_details['last_updated_date']
-                    try:
-                        current_updated_time = datetime.strptime(current_updated_time_str, '%d-%m-%Y')
-                    except ValueError:
-                        current_updated_time = None
-                    if current_updated_time and (last_updated_time is None or current_updated_time > last_updated_time):
-                        last_updated_time = current_updated_time
+                        
+                        # Mengambil waktu update terakhir
+                        if 'last_updated_date' in penyelenggara_details:
+                            current_updated_time_str = penyelenggara_details['last_updated_date']
+                            try:
+                                current_updated_time = datetime.strptime(current_updated_time_str, '%d-%m-%Y')
+                            except ValueError:
+                                current_updated_time = None
+                            if current_updated_time and (last_updated_time is None or current_updated_time > last_updated_time):
+                                last_updated_time = current_updated_time
 
-    # Menentukan siaran TV terbanyak berdasarkan hitungan
+    # Menentukan siaran TV terbanyak
     if siaran_counts:
-        most_common_siaran = siaran_counts.most_common(1)[0]  # Ambil siaran dengan frekuensi tertinggi
+        most_common_siaran = siaran_counts.most_common(1)[0]
         most_common_siaran_name = most_common_siaran[0].upper()
         most_common_siaran_count = most_common_siaran[1]
     else:
-        most_common_siaran_name = None
+        most_common_siaran_name = "-"
         most_common_siaran_count = 0
 
     if last_updated_time:
         last_updated_time = last_updated_time.strftime('%d-%m-%Y')
-    
-    # Kirim jumlah siaran, jumlah penyelenggara mux, dan waktu pembaruan ke template
-    return render_template('index.html', most_common_siaran_name=most_common_siaran_name,
-                                            most_common_siaran_count=most_common_siaran_count,
-                                            jumlah_wilayah_layanan=jumlah_wilayah_layanan,
-                                            jumlah_siaran=jumlah_siaran, 
-                                            jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
-                                            last_updated_time=last_updated_time)
+    else:
+        last_updated_time = "-"
+
+    # Ambil Berita Singkat untuk Header (Flip News) via RSS
+    # Menggunakan RSS Google News Topik TV Digital
+    breaking_news = []
+    try:
+        rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id'
+        feed = feedparser.parse(rss_url)
+        # Ambil 5 berita teratas
+        for entry in feed.entries[:5]:
+            breaking_news.append(entry.title)
+    except Exception as e:
+        print(f"Error fetching RSS: {e}")
+        breaking_news = ["Selamat Datang di KTVDI", "Komunitas TV Digital Indonesia"]
+
+    # Kirim data ke template
+    return render_template('index.html', 
+                           most_common_siaran_name=most_common_siaran_name,
+                           most_common_siaran_count=most_common_siaran_count,
+                           jumlah_wilayah_layanan=jumlah_wilayah_layanan,
+                           jumlah_siaran=jumlah_siaran, 
+                           jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
+                           last_updated_time=last_updated_time,
+                           # Kirim data chart JSON
+                           chart_labels=json.dumps(chart_provinsi_labels),
+                           chart_data=json.dumps(chart_provinsi_data),
+                           breaking_news=breaking_news)
 
 @app.route('/', methods=['POST'])
 def chatbot():
@@ -188,7 +221,6 @@ def forgot_password():
             })
 
             try:
-                # username = uid, nama = field di dalam
                 username = found_uid
                 nama = found_user.get("nama", "")
 
@@ -228,7 +260,6 @@ def verify_otp():
     if request.method == "POST":
         otp_input = request.form.get("otp")
 
-        # ambil OTP dari Firebase
         otp_data = db.reference(f"otp/{uid}").get()
         if otp_data and otp_data["otp"] == otp_input:
             flash("OTP benar, silakan ganti password Anda.", "success")
@@ -253,13 +284,11 @@ def reset_password():
             flash("Password harus minimal 8 karakter.", "error")
             return render_template("reset-password.html")
 
-        # hash password (pakai sha256 agar sama kayak login-mu sebelumnya)
         hashed_pw = hashlib.sha256(new_password.encode()).hexdigest()
 
         user_ref = db.reference(f"users/{uid}")
         user_ref.update({"password": hashed_pw})
 
-        # hapus OTP setelah reset
         db.reference(f"otp/{uid}").delete()
         session.pop("reset_uid", None)
 
@@ -298,13 +327,9 @@ def register():
             flash("Username sudah dipakai!", "error")
             return render_template("register.html")
 
-        # hash password
         hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-
-        # generate OTP
         otp = str(random.randint(100000, 999999))
 
-        # simpan ke pending_users di Firebase
         db.reference(f"pending_users/{username}").set({
             "nama": nama,
             "email": email,
@@ -312,7 +337,6 @@ def register():
             "otp": otp
         })
 
-        # kirim OTP ke email
         try:
             msg = Message("Kode OTP Verifikasi Akun", recipients=[email])
             msg.body = f"""
@@ -352,7 +376,6 @@ def verify_register():
         otp_input = request.form.get("otp")
 
         if pending_data.get("otp") == otp_input:
-            # pindahkan ke users
             db.reference(f"users/{username}").set({
                 "nama": pending_data["nama"],
                 "email": pending_data["email"],
@@ -360,7 +383,6 @@ def verify_register():
                 "points": 0
             })
 
-            # hapus dari pending
             pending_ref.delete()
             session.pop("pending_username", None)
 
@@ -372,13 +394,11 @@ def verify_register():
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
-    # Ambil daftar provinsi dari Firebase
     ref = db.reference("provinsi")
     data = ref.get() or {}
-    provinsi_list = list(data.values())  # misalnya: {"bengkulu": "Bengkulu"} → ambil value
+    provinsi_list = list(data.values())
     return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
 
-# 🔹 API ambil daftar wilayah
 @app.route("/get_wilayah")
 def get_wilayah():
     provinsi = request.args.get("provinsi")
@@ -387,7 +407,6 @@ def get_wilayah():
     wilayah_list = list(data.keys())
     return jsonify({"wilayah": wilayah_list})
 
-# 🔹 API ambil daftar MUX
 @app.route("/get_mux")
 def get_mux():
     provinsi = request.args.get("provinsi")
@@ -397,7 +416,6 @@ def get_mux():
     mux_list = list(data.keys())
     return jsonify({"mux": mux_list})
 
-# 🔹 API ambil detail siaran
 @app.route("/get_siaran")
 def get_siaran():
     provinsi = request.args.get("provinsi")
@@ -415,16 +433,10 @@ def get_siaran():
     })
 
 def time_since_published(published_time):
-    # Menghitung waktu sekarang
     now = datetime.now()
-    
-    # Mengonversi waktu penerbitan ke datetime
     publish_time = datetime(*published_time[:6])
-    
-    # Menghitung selisih waktu
     delta = now - publish_time
     
-    # Menyusun hasil dalam format yang lebih ramah pengguna
     if delta.days >= 1:
         if delta.days == 1:
             return "1 hari yang lalu"
@@ -442,41 +454,22 @@ def time_since_published(published_time):
 
 @app.route('/berita')
 def berita():
-    # URL RSS Feed Google News (misalnya kategori teknologi)
     rss_url = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
-    
-    # Mengambil dan mem-parsing RSS Feed
     feed = feedparser.parse(rss_url)
-    
-    # Mengambil artikel-artikel dari feed
     articles = feed.entries
-    
-    # Menentukan jumlah artikel per halaman (misalnya 5 artikel per halaman)
     articles_per_page = 5
-    
-    # Mendapatkan halaman yang diminta oleh pengguna (default halaman 1)
     page = request.args.get('page', 1, type=int)
-    
-    # Menghitung total jumlah artikel
     total_articles = len(articles)
     
-    # Menentukan batas artikel yang akan ditampilkan di halaman saat ini
     start = (page - 1) * articles_per_page
     end = start + articles_per_page
-    
-    # Mengambil artikel yang akan ditampilkan di halaman saat ini
     articles_on_page = articles[start:end]
-    
-    # Menghitung jumlah halaman yang ada
     total_pages = (total_articles + articles_per_page - 1) // articles_per_page
 
-    # Menambahkan waktu yang telah berlalu sejak diterbitkan ke setiap artikel
     for article in articles_on_page:
         if 'published_parsed' in article:
-            # Menghitung waktu yang telah berlalu sejak penerbitan
             article.time_since_published = time_since_published(article.published_parsed)
     
-    # Menampilkan halaman dengan artikel dan navigasi paginasi
     return render_template(
         'berita.html', 
         articles=articles_on_page, 
@@ -488,83 +481,58 @@ def berita():
 def about():
     return render_template('about.html')
 
-# Fungsi untuk melakukan hashing password
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Route untuk halaman login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error_message = None
 
     if request.method == 'POST':
-        username = request.form['username'].strip()  # Hapus spasi di awal/akhir
-        password = request.form['password'].strip()  # Hapus spasi di awal/akhir
-
-        # Hash password yang dimasukkan oleh pengguna
+        username = request.form['username'].strip()
+        password = request.form['password'].strip()
         hashed_password = hash_password(password)
-        print(f"Hashed entered password: {hashed_password}")  # Debugging hash
-
-        # Mengambil referensi ke data pengguna di Firebase
+        
         ref = db.reference('users')
-
         try:
-            # Ambil data pengguna berdasarkan username
             user_data = ref.child(username).get()
-            print(f"User data fetched: {user_data}")  # Debugging data pengguna
-
             if not user_data:
                 error_message = "Username tidak ditemukan."
                 return render_template('login.html', error=error_message)
 
-            # Bandingkan password yang di-hash dengan password yang ada di database
             if user_data.get('password') == hashed_password:
-                # Simpan informasi pengguna di session
                 session['user'] = username
                 session['nama'] = user_data.get("nama", "Pengguna")
-                print(f"Login successful. Session user: {session['user']}")  # Debugging session
                 return redirect(url_for('dashboard', name=user_data['nama']))
 
-            # Jika password tidak cocok
             error_message = "Password salah."
-            print("Password mismatch")  # Debugging password mismatch
 
         except Exception as e:
             error_message = f"Error fetching data from Firebase: {str(e)}"
-            print(f"Error: {str(e)}")
 
     return render_template('login.html', error=error_message)
 
 @app.route("/dashboard")
 def dashboard():
-    # Check if the user is logged in
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    # Ambil nama lengkap dari session
     nama_lengkap = session.get('nama', 'Pengguna')
-
-    # Mengganti '%20' dengan spasi jika ada dalam nama lengkap
     nama_lengkap = nama_lengkap.replace('%20', ' ')
 
-    # Ambil daftar provinsi dari Firebase
     ref = db.reference("provinsi")
     data = ref.get() or {}
     provinsi_list = list(data.values())
 
     return render_template("dashboard.html", name=nama_lengkap, provinsi_list=provinsi_list)
 
-# 🔹 Route untuk menambahkan data siaran
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data():
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    # Ambil data provinsi dari Firebase
     ref = db.reference("provinsi")
     provinsi_data = ref.get() or {}
-
-    # Pastikan data provinsi tersedia
     provinsi_list = list(provinsi_data.values())
 
     if request.method == 'POST':
@@ -577,17 +545,18 @@ def add_data():
         wilayah_clean = re.sub(r'\s*-\s*', '-', wilayah.strip())
         mux_clean = mux.strip()
 
-        # Validations
         is_valid = True
+        error_message = ""
+        
         if not all([provinsi, wilayah_clean, mux_clean, siaran_list]):
             is_valid = False
             error_message = "Harap isi semua kolom."
         else:
-            # Validate format for wilayah
+            # Validasi format wilayah
             wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
             if not re.fullmatch(wilayah_pattern, wilayah_clean):
                 is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
+                error_message = "Format **Wilayah Layanan** tidak valid. Gunakan 'Nama Provinsi-Angka'."
 
             # Validasi kecocokan provinsi
             wilayah_parts = wilayah_clean.split('-')
@@ -595,20 +564,19 @@ def add_data():
                 provinsi_from_wilayah = '-'.join(wilayah_parts[:-1]).strip()
                 if provinsi_from_wilayah.lower() != provinsi.lower():
                     is_valid = False
-                    error_message = f"Nama provinsi '{provinsi_from_wilayah}' dalam **Wilayah Layanan** tidak cocok dengan **Provinsi** yang dipilih ('{provinsi}')."
+                    error_message = f"Provinsi wilayah '{provinsi_from_wilayah}' tidak cocok dengan pilihan '{provinsi}'."
             else:
                 is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak lengkap (tidak ada tanda hubung dan angka)."
+                error_message = "Format **Wilayah Layanan** tidak lengkap."
             
-            # Validate mux format
+            # Validasi MUX
             mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
             if not re.fullmatch(mux_pattern, mux_clean):
                 is_valid = False
-                error_message = "Format **Penyelenggara MUX** tidak valid. Harap gunakan format 'UHF XX - Nama MUX'."
+                error_message = "Format **MUX** tidak valid. Gunakan 'UHF XX - Nama MUX'."
 
         if is_valid:
             try:
-                # Save data to Firebase
                 tz = pytz.timezone('Asia/Jakarta')
                 now_wib = datetime.now(tz)
                 updated_date = now_wib.strftime("%d-%m-%Y")
@@ -629,19 +597,16 @@ def add_data():
 
         return render_template('add_data_form.html', error_message=error_message, provinsi_list=provinsi_list)
 
-    # Display form to add data
     return render_template('add_data_form.html', provinsi_list=provinsi_list)
 
-# 🔹 Route untuk mengedit data siaran
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux):
     if 'user' not in session:
         return redirect(url_for('login'))
 
-    # Replace %20 with space for better display in form
     provinsi = provinsi.replace('%20',' ')
-    wilayah = wilayah.replace('%20', ' ')  # Mengganti '%20' dengan spasi
-    mux = mux.replace('%20', ' ')  # Mengganti '%20' dengan spasi
+    wilayah = wilayah.replace('%20', ' ')
+    mux = mux.replace('%20', ' ')
 
     if request.method == 'POST':
         siaran_input = request.form['siaran']
@@ -650,38 +615,33 @@ def edit_data(provinsi, wilayah, mux):
         wilayah_clean = re.sub(r'\s*-\s*', '-', wilayah.strip())
         mux_clean = mux.strip()
 
-        # Validations
         is_valid = True
+        error_message = ""
+        
         if not all([provinsi, wilayah_clean, mux_clean, siaran_list]):
             is_valid = False
             error_message = "Harap isi semua kolom."
         else:
-            # Validate format for wilayah
+            # Validasi ulang seperti add_data
             wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
             if not re.fullmatch(wilayah_pattern, wilayah_clean):
                 is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
+                error_message = "Format Wilayah tidak valid."
 
-            # Validasi kecocokan provinsi
             wilayah_parts = wilayah_clean.split('-')
             if len(wilayah_parts) > 1:
                 provinsi_from_wilayah = '-'.join(wilayah_parts[:-1]).strip()
                 if provinsi_from_wilayah.lower() != provinsi.lower():
                     is_valid = False
-                    error_message = f"Nama provinsi '{provinsi_from_wilayah}' dalam **Wilayah Layanan** tidak cocok dengan **Provinsi** yang dipilih ('{provinsi}')."
-            else:
-                is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak lengkap (tidak ada tanda hubung dan angka)."
+                    error_message = "Provinsi tidak cocok."
             
-            # Validate mux format
             mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
             if not re.fullmatch(mux_pattern, mux_clean):
                 is_valid = False
-                error_message = "Format **Penyelenggara MUX** tidak valid. Harap gunakan format 'UHF XX - Nama MUX'."
+                error_message = "Format MUX tidak valid."
 
         if is_valid:
             try:
-                # Update data to Firebase
                 tz = pytz.timezone('Asia/Jakarta')
                 now_wib = datetime.now(tz)
                 updated_date = now_wib.strftime("%d-%m-%Y")
@@ -703,10 +663,8 @@ def edit_data(provinsi, wilayah, mux):
 
         return render_template('edit_data_form.html', error_message=error_message)
 
-    # Display form to edit data
     return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
 
-# 🔹 Route untuk menghapus data siaran
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
 def delete_data(provinsi, wilayah, mux):
     if 'user' not in session:
@@ -718,11 +676,9 @@ def delete_data(provinsi, wilayah, mux):
     except Exception as e:
         return f"Gagal menghapus data: {e}"
 
-# Route untuk logout
 @app.route('/logout')
 def logout():
     session.pop('user', None)
-    print("User logged out.")  # Debugging logout
     return redirect(url_for('login'))
 
 @app.route("/test-firebase")
@@ -730,10 +686,7 @@ def test_firebase():
     try:
         if ref is None:
             return "❌ Firebase belum terhubung"
-
-        # Ambil semua data root
         data = ref.get()
-
         if not data:
             return "✅ Firebase terhubung, tapi data kosong."
         return f"✅ Firebase terhubung! Data root:<br><pre>{data}</pre>"
