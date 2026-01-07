@@ -1,259 +1,246 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard KTVDI</h1>
 
-{% block title %}Dashboard - Komunitas TV Digital Indonesia{% endblock %}
-
-{% block content %}
-<style>
-    /* --- CSS Khusus Dashboard --- */
-    .dashboard-container { max-width: 900px; margin-top: 2rem; }
-
-    .dashboard-header {
-        display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 2rem; flex-wrap: wrap; gap: 15px;
-    }
-
-    /* Profil Card */
-    .profile-card {
-        display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-    }
-    .profile-icon {
-        background: #e3f2fd; width: 65px; height: 65px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0; color: var(--primary); font-size: 2rem;
-    }
-
-    /* Form Styles */
-    .step-label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; }
-    .custom-select {
-        width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd;
-        background-color: #fff; font-size: 1rem; transition: 0.3s;
-    }
-    .custom-select:focus { border-color: var(--primary); outline: none; }
-
-    /* Action Buttons */
-    .action-group { display: flex; gap: 10px; margin-top: 20px; }
-    
-    /* Tombol Tambah Data (Always Visible) */
-    .btn-add-permanent {
-        background: var(--primary); color: white; width: 100%; padding: 12px;
-        border-radius: 8px; font-weight: 600; text-align: center; border: none;
-        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-        margin-bottom: 20px; text-decoration: none; transition: 0.3s;
-    }
-    .btn-add-permanent:hover { background: var(--primary-dark); transform: translateY(-2px); }
-
-    .channel-list { padding-left: 20px; columns: 2; }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .dashboard-header { flex-direction: column; align-items: flex-start; }
-        .btn-logout { width: 100%; text-align: center; }
-        .action-group { flex-direction: column; }
-        .channel-list { columns: 1 !important; }
-    }
-</style>
-
-<div class="container fade-in-up dashboard-container">
-    
-    <div class="dashboard-header">
-        <h1 style="color: var(--primary); margin: 0; font-size: 1.8rem; font-weight: 700;">Dashboard Pengguna</h1>
-        <a href="/logout" class="btn-full btn-logout" style="width: auto; background: #ffebee; color: #c62828; padding: 10px 25px; font-size: 0.95rem; border: 1px solid #ffcdd2;">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
-    </div>
-
-    <div class="auth-card" style="margin-bottom: 2rem; text-align: left; border-left: 5px solid var(--primary);">
-        <div class="profile-card">
-            <div class="profile-icon">
-                <i class="fas fa-user-circle"></i>
+        <div class="card">
+            <div class="card-header">
+                <h4>Selamat Datang, {{ name }}!</h4>
             </div>
-            <div>
-                <h3 style="margin: 0; color: #333;">Halo, {{ name }}!</h3>
-                <p style="margin: 5px 0 0; color: #666; font-size: 0.95rem;">Selamat datang di panel kontributor.</p>
+            <div class="card-body">
+                <p>Anda berhasil login. Berikut adalah informasi akun Anda:</p>
+                <ul>
+                    <li><strong>Nama Lengkap:</strong> {{ name }}</li>
+                </ul>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
             </div>
         </div>
+
+        <!-- Daftar Siaran TV Digital -->
+        <h2 class="mt-4">📺 Daftar Siaran TV Digital</h2>
+
+        <!-- Filter Provinsi -->
+        <label class="select-label" for="provinsi">Pilih Provinsi:</label>
+        <select id="provinsi">
+            <option value="">-- Pilih Provinsi --</option>
+            {% for p in provinsi_list %}
+                <option value="{{ p }}">{{ p }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Filter Wilayah -->
+        <label class="select-label" for="wilayah">Pilih Wilayah:</label>
+        <select id="wilayah">
+            <option value="">-- Pilih Wilayah --</option>
+        </select>
+
+        <!-- Filter MUX -->
+        <label class="select-label" for="mux">Pilih MUX:</label>
+        <select id="mux">
+            <option value="">-- Pilih MUX --</option>
+        </select>
+
+        <!-- Detail Siaran -->
+        <div id="detail"></div>
+
+        <!-- Manage Data Buttons -->
+        {% if session.get('user') %}
+            <div class="mt-4">
+                <button id="addDataBtn" class="btn-primer">Tambah Data</button>
+                <div id="data-buttons" style="display: none;">
+                    <button id="editDataBtn" class="btn-warning">Edit Data</button>
+                    <button id="deleteDataBtn" class="btn-danger">Hapus Data</button>
+                </div>
+            </div>
+        {% endif %}
     </div>
 
-    <div class="auth-card" style="text-align: left;">
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-            <h3 style="margin: 0; color: var(--primary);">
-                <i class="fas fa-database"></i> Kelola Data Siaran
-            </h3>
-        </div>
+    <!-- Script -->
+    <script>
+$(document).ready(function () {
+    // Fungsi untuk mengatur tombol sesuai dengan pilihan
+    function toggleButtons() {
+        var provinsi = $("#provinsi").val();
+        var wilayah = $("#wilayah").val();
+        var mux = $("#mux").val();
 
-        <a href="{{ url_for('add_data') }}" class="btn-add-permanent">
-            <i class="fas fa-plus-circle"></i> Tambah Data Baru (Wilayah/MUX)
-        </a>
-
-        <p style="text-align: center; color: #888; font-size: 0.9rem; margin: 10px 0 20px;">
-            &mdash; Atau edit data yang sudah ada &mdash;
-        </p>
-
-        <div class="form-group">
-            <label for="provinsi" class="step-label">1. Pilih Provinsi (Untuk Edit)</label>
-            <select id="provinsi" class="custom-select">
-                <option value="">-- Silakan Pilih --</option>
-                {% for p in provinsi_list %}
-                    <option value="{{ p }}">{{ p }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="wilayah" class="step-label">2. Pilih Wilayah Layanan</label>
-            <select id="wilayah" class="custom-select" disabled>
-                <option value="">-- Menunggu Provinsi --</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="mux" class="step-label">3. Pilih Penyelenggara MUX</label>
-            <select id="mux" class="custom-select" disabled>
-                <option value="">-- Menunggu Wilayah --</option>
-            </select>
-        </div>
-
-        <div id="editDeleteGroup" class="action-group" style="display: none;">
-            <button id="editDataBtn" class="btn-full" style="background: #ff9800; flex: 1; border: none;">
-                <i class="fas fa-edit"></i> Edit Data
-            </button>
-            <button id="deleteDataBtn" class="btn-full" style="background: #f44336; flex: 1; border: none;">
-                <i class="fas fa-trash"></i> Hapus
-            </button>
-        </div>
-    </div>
-
-    <div id="detail" style="margin-top: 20px;"></div>
-
-</div>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function () {
-        
-        // Helper: Reset Dropdown
-        function resetDropdown(selector, defaultText) {
-            $(selector).empty().append('<option value="">' + defaultText + '</option>').prop('disabled', true);
-        }
-
-        // Helper: Tampilkan Tombol Edit/Hapus
-        function showEditButtons(show) {
-            if (show) {
-                $("#editDeleteGroup").slideDown();
-                $("#editDeleteGroup").css("display", "flex");
+        // Jika hanya Provinsi yang dipilih, tampilkan tombol Tambah Data dan sembunyikan Edit/Hapus
+        if (provinsi && !wilayah && !mux) {
+            $("#data-buttons").hide();  // Sembunyikan tombol Edit dan Hapus
+            $("#addDataBtn").show();    // Tampilkan tombol Tambah Data
+        } else {
+            // Jika Provinsi, Wilayah, dan MUX sudah dipilih, tampilkan tombol Edit dan Hapus
+            if (provinsi && wilayah && mux) {
+                $("#addDataBtn").hide();    // Sembunyikan tombol Tambah Data
+                $("#data-buttons").show();  // Tampilkan tombol Edit dan Hapus
             } else {
-                $("#editDeleteGroup").slideUp();
+                $("#addDataBtn").show();    // Tampilkan tombol Tambah Data
+                $("#data-buttons").hide();  // Sembunyikan tombol Edit dan Hapus
             }
         }
+    }
 
-        // 1. GANTI PROVINSI
-        $("#provinsi").change(function () {
-            var provinsi = $(this).val();
-            resetDropdown("#wilayah", "-- Memuat... --");
-            resetDropdown("#mux", "-- Menunggu Wilayah --");
-            $("#detail").empty();
-            showEditButtons(false);
+    // Saat pilih provinsi
+    $("#provinsi").change(function () {
+        var provinsi = $(this).val();
 
-            if (provinsi) {
-                $.getJSON("/get_wilayah", { provinsi: provinsi }, function (data) {
-                    if (data.wilayah && data.wilayah.length > 0) {
-                        $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
-                        $.each(data.wilayah, function (i, w) {
-                            $("#wilayah").append('<option value="' + w + '">' + w + "</option>");
-                        });
-                        $("#wilayah").prop('disabled', false);
-                    } else {
-                        resetDropdown("#wilayah", "-- Tidak ada data --");
-                        $("#detail").html('<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:8px;">⚠️ Belum ada data wilayah. Silakan klik tombol "Tambah Data Baru" di atas.</div>');
-                    }
-                });
-            } else {
-                resetDropdown("#wilayah", "-- Menunggu Provinsi --");
-            }
-        });
-
-        // 2. GANTI WILAYAH
-        $("#wilayah").change(function () {
-            var provinsi = $("#provinsi").val();
-            var wilayah = $(this).val();
-            resetDropdown("#mux", "-- Memuat... --");
-            $("#detail").empty();
-            showEditButtons(false);
-
-            if (wilayah) {
-                $.getJSON("/get_mux", { provinsi: provinsi, wilayah: wilayah }, function (data) {
-                    if (data.mux && data.mux.length > 0) {
-                        $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
-                        $.each(data.mux, function (i, m) {
-                            $("#mux").append('<option value="' + m + '">' + m + "</option>");
-                        });
-                        $("#mux").prop('disabled', false);
-                    } else {
-                        resetDropdown("#mux", "-- Tidak ada data --");
-                        $("#detail").html('<div style="background:#fff3cd; color:#856404; padding:15px; border-radius:8px;">⚠️ Belum ada data MUX di wilayah ini.</div>');
-                    }
-                });
-            } else {
-                resetDropdown("#mux", "-- Menunggu Wilayah --");
-            }
-        });
-
-        // 3. GANTI MUX (TAMPILKAN DATA)
-        $("#mux").change(function () {
-            var provinsi = $("#provinsi").val();
-            var wilayah = $("#wilayah").val();
-            var mux = $(this).val();
-
-            if (mux) {
-                $("#detail").html('<p style="text-align:center; color:#666; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Memuat data...</p>');
-                
-                $.getJSON("/get_siaran", { provinsi: provinsi, wilayah: wilayah, mux: mux }, function (data) {
-                    if (data.siaran && data.siaran.length > 0) {
-                        var html = `
-                            <div class="auth-card fade-in-up" style="text-align:left; border-top: 5px solid var(--primary);">
-                                <h3 style="color:var(--primary); margin-top:0; font-size:1.3rem;">📡 ${mux}</h3>
-                                <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">
-                                    <i class="fas fa-clock"></i> Update: ${data.last_updated_date || "-"} ${data.last_updated_time || ""} <br>
-                                    <i class="fas fa-user"></i> Oleh: <strong>${data.last_updated_by_name || "-"}</strong>
-                                </p>
-                                <h4 style="border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom: 10px;">Daftar Saluran:</h4>
-                                <ul class="channel-list">
-                                    ${data.siaran.map(s => `<li style="margin-bottom:5px;">${s}</li>`).join('')}
-                                </ul>
-                            </div>
-                        `;
-                        $("#detail").html(html);
-                        showEditButtons(true); // Tampilkan tombol Edit/Hapus
-                    } else {
-                        $("#detail").html('<div style="background:#e8f5e9; color:#2e7d32; padding:15px; border-radius:8px;">Data kosong atau belum lengkap.</div>');
-                        showEditButtons(false);
-                    }
-                });
-            } else {
-                $("#detail").empty();
-                showEditButtons(false);
-            }
-        });
-
-        // --- BUTTON ACTIONS ---
-        // Tombol Tambah Data sudah berupa Link <a> jadi tidak perlu JS khusus
-
-        $("#editDataBtn").click(function() {
-            var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $("#mux").val();
-            if(p && w && m) window.location.href = `/edit_data/${p}/${w}/${m}`;
-        });
-
-        $("#deleteDataBtn").click(function() {
-            var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $("#mux").val();
-            if(p && w && m && confirm("Yakin ingin menghapus data MUX ini? Tindakan tidak bisa dibatalkan.")) {
-                $.post(`/delete_data/${p}/${w}/${m}`, function() {
-                    alert("Data berhasil dihapus.");
-                    location.reload();
-                });
-            }
-        });
-
+        if (provinsi) {
+            $.getJSON("/get_wilayah", { provinsi: provinsi }, function (data) {
+                if (!data.wilayah || data.wilayah.length === 0) {
+                    $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
+                    $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                    $("#detail").html(
+                        '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan untuk menambahkan data siaran!</div>'
+                    );
+                    toggleButtons(); // Memanggil fungsi untuk menyesuaikan tombol
+                } else {
+                    $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
+                    $.each(data.wilayah, function (i, w) {
+                        $("#wilayah").append('<option value="' + w + '">' + w + "</option>");
+                    });
+                    $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                    $("#detail").html("");
+                    toggleButtons(); // Memanggil fungsi untuk menyesuaikan tombol
+                }
+            });
+        } else {
+            $("#wilayah").empty().append('<option value="">-- Pilih Wilayah --</option>');
+            $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+            $("#detail").html("");
+            toggleButtons(); // Memanggil fungsi untuk menyesuaikan tombol
+        }
     });
-</script>
-{% endblock %}
+
+    // Saat pilih wilayah
+    $("#wilayah").change(function () {
+        var provinsi = $("#provinsi").val();
+        var wilayah = $(this).val();
+
+        if (wilayah) {
+            $.getJSON("/get_mux", { provinsi: provinsi, wilayah: wilayah }, function (data) {
+                if (!data.mux || data.mux.length === 0) {
+                    $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                    $("#detail").html(
+                        '<div class="alert alert-warning">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
+                    );
+                    toggleButtons(); // Memanggil fungsi untuk menyesuaikan tombol
+                } else {
+                    $("#mux").empty().append('<option value="">-- Pilih MUX --</option>');
+                    $.each(data.mux, function (i, m) {
+                        $("#mux").append('<option value="' + m + '">' + m + "</option>");
+                    });
+                    $("#detail").html("");
+                    toggleButtons(); // Memanggil fungsi untuk menyesuaikan tombol
+                }
+            });
+        }
+    });
+
+    // Saat pilih mux (fetch data siaran)
+    $("#mux").change(function () {
+        var provinsi = $("#provinsi").val();
+        var wilayah = $("#wilayah").val();
+        var mux = $(this).val();
+
+        if (mux) {
+            $.getJSON(
+                "/get_siaran",
+                { provinsi: provinsi, wilayah: wilayah, mux: mux },
+                function (data) {
+                    // Jika tidak ada data siaran
+                    if (!data.siaran || data.siaran.length === 0) {
+                        $("#detail").html(
+                            '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>'
+                        );
+                        // Sembunyikan tombol Edit dan Hapus
+                        $("#data-buttons").hide();
+                        // Tampilkan tombol Tambah Data
+                        $("#addDataBtn").show();
+                    } else {
+                        // Jika ada data siaran
+                        var html = '<div class="card">';
+                        html += "<h3>📡 " + mux + "</h3>";
+                        html +=
+                            "<p><strong>Update:</strong> " +
+                            (data.last_updated_date || "-") +
+                            " " +
+                            (data.last_updated_time || "") +
+                            "</p>";
+                        html +=
+                            "<p><strong>Oleh:</strong> " +
+                            (data.last_updated_by_name || "-") +
+                            " (" +
+                            (data.last_updated_by_username || "-") +
+                            ")</p>";
+                        html += "<h4>📺 Daftar Siaran:</h4><ul>";
+
+                        $.each(data.siaran, function (i, s) {
+                            html += "<li>" + s + "</li>";
+                        });
+
+                        html += "</ul></div>";
+                        $("#detail").html(html);
+
+                        // Sembunyikan tombol Tambah Data dan tampilkan tombol Edit/Hapus
+                        $("#addDataBtn").hide();
+                        $("#data-buttons").show();
+                    }
+                }
+            );
+        }
+    });
+
+    // Memanggil fungsi untuk memeriksa tombol saat pertama kali dimuat
+    toggleButtons();
+
+    // Handle Add Data Button
+    $("#addDataBtn").click(function() {
+        window.location.href = "{{ url_for('add_data') }}";  // Arahkan ke halaman tambah data
+    });
+
+    // Handle Edit Data Button
+    $("#editDataBtn").click(function() {
+        var provinsi = $("#provinsi").val();
+        var wilayah = $("#wilayah").val();
+        var mux = $("#mux").val();
+
+        if (provinsi && wilayah && mux) {
+            window.location.href = "/edit_data/" + provinsi + "/" + wilayah + "/" + mux;  // Arahkan ke halaman edit data
+        } else {
+            alert("Harap pilih Provinsi, Wilayah, dan MUX terlebih dahulu.");
+        }
+    });
+
+    // Handle Delete Data Button
+    $("#deleteDataBtn").click(function() {
+        var provinsi = $("#provinsi").val();
+        var wilayah = $("#wilayah").val();
+        var mux = $("#mux").val();
+
+        if (provinsi && wilayah && mux) {
+            if (confirm("Apakah Anda yakin ingin menghapus data ini?")) {
+                $.post("/delete_data/" + provinsi + "/" + wilayah + "/" + mux, function(data) {
+                    alert("Data berhasil dihapus.");
+                    location.reload();  // Refresh halaman setelah penghapusan
+                });
+            }
+        } else {
+            alert("Harap pilih Provinsi, Wilayah, dan MUX terlebih dahulu.");
+        }
+    });
+});
+
+    </script>
+
+    <!-- Footer -->
+    <div id="footer"></div>
+</body>
+</html>

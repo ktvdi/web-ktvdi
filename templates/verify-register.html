@@ -1,126 +1,33 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Komunitas TV Digital Indonesia</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header"></div>
 
-{% block title %}Verifikasi Akun - KTVDI{% endblock %}
-
-{% block content %}
-<div class="auth-wrapper">
-    <div class="auth-card fade-in-up">
-        
-        <div style="text-align: center; margin-bottom: 25px;">
-            <div style="width: 80px; height: 80px; background: #e3f2fd; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
-                <i class="fas fa-envelope-open-text" style="font-size: 2.5rem; color: var(--primary);"></i>
-            </div>
-        </div>
-
-        <h2 style="text-align: center; margin-bottom: 10px; color: var(--text-main);">Verifikasi Email</h2>
-        <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px; font-size: 0.95rem; line-height: 1.6;">
-            Kode OTP telah dikirim ke <strong>{{ username }}</strong>.<br>
-            Cek kotak masuk atau folder spam email Anda.
-        </p>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div style="margin-bottom: 20px;">
-                {% for category, msg in messages %}
-                  <div class="alert alert-{{ category }}">
-                      <span>{{ msg }}</span>
-                      <span class="close-alert" onclick="this.parentElement.style.display='none';">&times;</span>
-                  </div>
-                {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
-
-        <form method="POST">
-            <div class="form-group">
-                <label for="otp" style="text-align: center; display: block; margin-bottom: 15px; font-weight: 500;">
-                    Masukkan 6 Digit Kode
-                </label>
-                
-                <input type="text" 
-                       id="otp" 
-                       name="otp" 
-                       placeholder="• • • • • •" 
-                       required 
-                       maxlength="6"
-                       inputmode="numeric" 
-                       pattern="[0-9]*"
-                       autocomplete="one-time-code"
-                       class="otp-input">
-            </div>
-
-            <button type="submit" class="btn-full" style="margin-top: 10px;">
-                <i class="fas fa-check-circle"></i> Verifikasi Akun
-            </button>
-        </form>
-
-        <div class="auth-footer" style="text-align: center; margin-top: 30px; font-size: 0.9rem; color: #666;">
-            <p style="margin-bottom: 15px;">
-                Belum terima kode? <a href="#" style="color: var(--primary); font-weight: 600;">Kirim Ulang</a>
-            </p>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-            
-            <p>Salah alamat email?</p>
-            <a href="/register" style="color: var(--text-main); font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
-                <i class="fas fa-arrow-left"></i> Daftar Ulang
-            </a>
-        </div>
-
+  <div class="container">
+    <h1>Verifikasi Akun</h1>
+    
+    <form method="POST">
+      <input type="text" name="otp" placeholder="Masukkan kode OTP" required>
+      <button type="submit">Verifikasi</button>
+    </form>
+    <div class="flash-message-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <p class="{{ category }}">{{ msg }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     </div>
-</div>
+    <a href="/login" class="forgot">← Pergi ke Login</a>
+  </div>
 
-<style>
-    /* Styling Input OTP agar terlihat seperti kotak kode */
-    .otp-input {
-        text-align: center;
-        font-size: 2rem;
-        letter-spacing: 12px; /* Jarak antar angka */
-        font-weight: 700;
-        color: var(--primary);
-        padding: 15px;
-        border: 2px solid #e0e0e0;
-        border-radius: 12px;
-        background: #fdfdfd;
-        transition: all 0.3s ease;
-    }
-
-    /* Efek saat diklik */
-    .otp-input:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 5px rgba(0, 123, 255, 0.15);
-        background: #fff;
-        outline: none;
-        letter-spacing: 12px;
-    }
-
-    /* Placeholder styling */
-    .otp-input::placeholder {
-        color: #ddd;
-        font-weight: 400;
-        font-size: 2rem;
-        letter-spacing: 8px;
-    }
-
-    /* Responsif untuk HP Kecil */
-    @media (max-width: 400px) {
-        .otp-input {
-            font-size: 1.5rem;
-            letter-spacing: 8px;
-            padding: 12px;
-        }
-    }
-</style>
-
-<script>
-    // Script agar Input hanya menerima Angka
-    document.addEventListener("DOMContentLoaded", function() {
-        const otpInput = document.getElementById("otp");
-        
-        otpInput.addEventListener("input", function(e) {
-            // Hapus karakter non-angka
-            this.value = this.value.replace(/[^0-9]/g, '');
-        });
-    });
-</script>
-
-{% endblock %}
+</body>
+</html>

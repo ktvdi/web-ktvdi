@@ -1,226 +1,138 @@
 {% extends "base.html" %}
 
-{% block title %}Daftar Siaran Digital - KTVDI{% endblock %}
+{% block title %}Daftar Siaran TV Digital Indonesia{% endblock %}
 
 {% block content %}
-<div class="container fade-in-up" style="max-width: 800px; margin-top: 2rem;">
+  <div class="container">
+    <h1>Daftar Siaran TV Digital</h1>
 
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: var(--primary); font-weight: 700;">Daftar Siaran Digital</h1>
-        <p class="text-muted" style="color: var(--text-muted);">
-            Cari frekuensi dan daftar saluran TV di wilayah Anda.
-        </p>
-    </div>
+    <!-- Filter Provinsi -->
+    <label for="provinsi">Pilih Provinsi:</label>
+    <select id="provinsi">
+      <option value="">-- Pilih Provinsi --</option>
+      {% for p in provinsi_list %}
+        <option value="{{ p }}">{{ p }}</option>
+      {% endfor %}
+    </select>
 
-    <div class="auth-card" style="text-align: left; margin-bottom: 2rem; padding: 2rem;">
-        
-        <div class="form-group">
-            <label for="provinsi" style="font-weight: 500;">
-                <i class="fas fa-map-marker-alt" style="color: var(--primary); margin-right: 5px;"></i> Pilih Provinsi
-            </label>
-            <div style="position: relative;">
-                <select id="provinsi" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #fff; appearance: none; cursor: pointer;">
-                    <option value="">-- Silakan Pilih --</option>
-                    {% for p in provinsi_list %}
-                        <option value="{{ p }}">{{ p }}</option>
-                    {% endfor %}
-                </select>
-                <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 15px; color: #999; pointer-events: none;"></i>
-            </div>
-        </div>
+    <!-- Filter Wilayah -->
+    <label for="wilayah">Pilih Wilayah:</label>
+    <select id="wilayah">
+      <option value="">-- Pilih Wilayah --</option>
+    </select>
 
-        <div class="form-group">
-            <label for="wilayah" style="font-weight: 500;">
-                <i class="fas fa-map" style="color: var(--primary); margin-right: 5px;"></i> Pilih Wilayah Layanan
-            </label>
-            <div style="position: relative;">
-                <select id="wilayah" disabled style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; appearance: none; cursor: not-allowed; color: #777;">
-                    <option value="">-- Menunggu Provinsi --</option>
-                </select>
-                <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 15px; color: #999; pointer-events: none;"></i>
-            </div>
-        </div>
+    <!-- Filter MUX -->
+    <label for="mux">Pilih MUX:</label>
+    <select id="mux">
+      <option value="">-- Pilih MUX --</option>
+    </select>
 
-        <div class="form-group">
-            <label for="mux" style="font-weight: 500;">
-                <i class="fas fa-broadcast-tower" style="color: var(--primary); margin-right: 5px;"></i> Pilih Penyelenggara MUX
-            </label>
-            <div style="position: relative;">
-                <select id="mux" disabled style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; appearance: none; cursor: not-allowed; color: #777;">
-                    <option value="">-- Menunggu Wilayah --</option>
-                </select>
-                <i class="fas fa-chevron-down" style="position: absolute; right: 15px; top: 15px; color: #999; pointer-events: none;"></i>
-            </div>
-        </div>
-    </div>
-
-    <div id="loading" style="display: none; text-align: center; margin: 30px 0;">
-        <i class="fas fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--primary);"></i>
-        <p style="color: #666; margin-top: 10px; font-style: italic;">Sedang memuat data...</p>
-    </div>
-
+    <!-- Detail Siaran -->
     <div id="detail"></div>
+  </div>
 
-</div>
-
-<script>
+  <!-- Script -->
+  <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const provinsiSelect = document.getElementById("provinsi");
-        const wilayahSelect = document.getElementById("wilayah");
-        const muxSelect = document.getElementById("mux");
-        const detailDiv = document.getElementById("detail");
-        const loadingDiv = document.getElementById("loading");
-
-        // Helper: Reset Dropdown
-        function resetDropdown(element, defaultText) {
-            element.innerHTML = `<option value="">${defaultText}</option>`;
-            element.disabled = true;
-            element.style.background = "#f9f9f9";
-            element.style.cursor = "not-allowed";
+      // Saat pilih provinsi
+      document.getElementById("provinsi").addEventListener("change", function () {
+        var provinsi = this.value;
+    
+        if (provinsi) {
+          fetch("/get_wilayah?provinsi=" + provinsi)
+            .then((response) => response.json())
+            .then((data) => {
+              var wilayahSelect = document.getElementById("wilayah");
+              var muxSelect = document.getElementById("mux");
+              var detailDiv = document.getElementById("detail");
+    
+              if (!data.wilayah || data.wilayah.length === 0) {
+                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                detailDiv.innerHTML =
+                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
+              } else {
+                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
+                data.wilayah.forEach(function (w) {
+                  var option = document.createElement("option");
+                  option.value = w;
+                  option.textContent = w;
+                  wilayahSelect.appendChild(option);
+                });
+    
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                detailDiv.innerHTML = "";
+              }
+            });
+        } else {
+          document.getElementById("wilayah").innerHTML = '<option value="">-- Pilih Wilayah --</option>';
+          document.getElementById("mux").innerHTML = '<option value="">-- Pilih MUX --</option>';
+          document.getElementById("detail").innerHTML = "";
         }
-
-        // Helper: Aktifkan Dropdown
-        function enableDropdown(element) {
-            element.disabled = false;
-            element.style.background = "#fff";
-            element.style.cursor = "pointer";
+      });
+    
+      // Saat pilih wilayah
+      document.getElementById("wilayah").addEventListener("change", function () {
+        var provinsi = document.getElementById("provinsi").value;
+        var wilayah = this.value;
+    
+        if (wilayah) {
+          fetch("/get_mux?provinsi=" + provinsi + "&wilayah=" + wilayah)
+            .then((response) => response.json())
+            .then((data) => {
+              var muxSelect = document.getElementById("mux");
+              var detailDiv = document.getElementById("detail");
+    
+              if (!data.mux || data.mux.length === 0) {
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                detailDiv.innerHTML =
+                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
+              } else {
+                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
+                data.mux.forEach(function (m) {
+                  var option = document.createElement("option");
+                  option.value = m;
+                  option.textContent = m;
+                  muxSelect.appendChild(option);
+                });
+                detailDiv.innerHTML = "";
+              }
+            });
         }
-
-        // --- 1. Saat Provinsi Dipilih ---
-        provinsiSelect.addEventListener("change", function () {
-            const provinsi = this.value;
-            
-            resetDropdown(wilayahSelect, "-- Silakan Pilih --");
-            resetDropdown(muxSelect, "-- Menunggu Wilayah --");
-            detailDiv.innerHTML = ""; 
-
-            if (provinsi) {
-                loadingDiv.style.display = "block";
-                
-                fetch(`/get_wilayah?provinsi=${encodeURIComponent(provinsi)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        loadingDiv.style.display = "none";
-                        enableDropdown(wilayahSelect);
-
-                        data.wilayah.forEach(w => {
-                            const option = document.createElement("option");
-                            option.value = w;
-                            option.textContent = w;
-                            wilayahSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        loadingDiv.style.display = "none";
-                    });
-            }
-        });
-
-        // --- 2. Saat Wilayah Dipilih ---
-        wilayahSelect.addEventListener("change", function () {
-            const provinsi = provinsiSelect.value;
-            const wilayah = this.value;
-
-            resetDropdown(muxSelect, "-- Silakan Pilih --");
-            detailDiv.innerHTML = ""; 
-
-            if (wilayah) {
-                loadingDiv.style.display = "block";
-
-                fetch(`/get_mux?provinsi=${encodeURIComponent(provinsi)}&wilayah=${encodeURIComponent(wilayah)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        loadingDiv.style.display = "none";
-                        enableDropdown(muxSelect);
-
-                        data.mux.forEach(m => {
-                            const option = document.createElement("option");
-                            option.value = m;
-                            option.textContent = m;
-                            muxSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        loadingDiv.style.display = "none";
-                        console.error('Error:', error);
-                    });
-            }
-        });
-
-        // --- 3. Saat MUX Dipilih (Tampilkan Tabel) ---
-        muxSelect.addEventListener("change", function () {
-            const provinsi = provinsiSelect.value;
-            const wilayah = wilayahSelect.value;
-            const mux = this.value;
-
-            detailDiv.innerHTML = ""; 
-
-            if (mux) {
-                loadingDiv.style.display = "block";
-
-                fetch(`/get_siaran?provinsi=${encodeURIComponent(provinsi)}&wilayah=${encodeURIComponent(wilayah)}&mux=${encodeURIComponent(mux)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        loadingDiv.style.display = "none";
-
-                        let html = `
-                            <div class="auth-card fade-in-up" style="border-top: 5px solid var(--primary);">
-                                <h3 style="color: var(--primary); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                                    <i class="fas fa-tv"></i> Daftar Saluran
-                                </h3>
-                                
-                                <div style="background: #e3f2fd; color: #0d47a1; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; border: 1px solid #bbdefb;">
-                                    <strong><i class="fas fa-info-circle"></i> Info Pembaruan:</strong><br>
-                                    Terakhir update: <strong>${data.last_updated_date || "-"}</strong> pukul ${data.last_updated_time || ""}<br>
-                                    Kontributor: <strong>${data.last_updated_by_name || "Admin"}</strong>
-                                </div>
-                                
-                                <div style="overflow-x: auto;">
-                                    <table style="width: 100%; border-collapse: collapse; min-width: 300px;">
-                                        <thead>
-                                            <tr style="background: var(--primary); color: white;">
-                                                <th style="padding: 12px; text-align: left; width: 50px; border-top-left-radius: 8px;">No</th>
-                                                <th style="padding: 12px; text-align: left; border-top-right-radius: 8px;">Nama Saluran</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                        `;
-
-                        if (data.siaran.length > 0) {
-                            data.siaran.forEach((siaran, index) => {
-                                html += `
-                                    <tr style="border-bottom: 1px solid #eee; transition: 0.2s;">
-                                        <td style="padding: 12px;">${index + 1}</td>
-                                        <td style="padding: 12px; font-weight: 500; color: #333;">${siaran}</td>
-                                    </tr>
-                                `;
-                            });
-                        } else {
-                            html += `<tr><td colspan="2" style="padding: 20px; text-align: center; color: #666;">Belum ada data siaran.</td></tr>`;
-                        }
-
-                        html += `
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        `;
-
-                        detailDiv.innerHTML = html;
-                    })
-                    .catch(error => {
-                        loadingDiv.style.display = "none";
-                        console.error('Error:', error);
-                        detailDiv.innerHTML = `
-                            <div class="alert alert-error" style="text-align: center;">
-                                <i class="fas fa-exclamation-triangle"></i> Gagal mengambil data siaran.
-                            </div>
-                        `;
-                    });
-            }
-        });
+      });
+    
+      // Saat pilih mux
+      document.getElementById("mux").addEventListener("change", function () {
+        var provinsi = document.getElementById("provinsi").value;
+        var wilayah = document.getElementById("wilayah").value;
+        var mux = this.value;
+    
+        if (mux) {
+          fetch("/get_siaran?provinsi=" + provinsi + "&wilayah=" + wilayah + "&mux=" + mux)
+            .then((response) => response.json())
+            .then((data) => {
+              var detailDiv = document.getElementById("detail");
+    
+              if (!data.siaran || data.siaran.length === 0) {
+                detailDiv.innerHTML =
+                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
+              } else {
+                var html = '<div class="card">';
+                html += "<h3>📡 " + mux + "</h3>";
+                html += "<p><strong>Update:</strong> " + (data.last_updated_date || "-") + " " + (data.last_updated_time || "") + "</p>";
+                html += "<p><strong>Oleh:</strong> " + (data.last_updated_by_name || "-") + " (" + (data.last_updated_by_username || "-") + ")</p>";
+                html += "<h4>📺 Daftar Siaran:</h4><ul>";
+    
+                data.siaran.forEach(function (s) {
+                  html += "<li>" + s + "</li>";
+                });
+    
+                html += "</ul></div>";
+                detailDiv.innerHTML = html;
+              }
+            });
+        }
+      });
     });
-</script>
-
+  </script>
 {% endblock %}

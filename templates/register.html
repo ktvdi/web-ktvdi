@@ -1,121 +1,44 @@
 {% extends "base.html" %}
 
-{% block title %}Daftar Akun - KTVDI{% endblock %}
+{% block title %}Komunitas TV Digital Indonesia{% endblock %}
 
 {% block content %}
-<div class="auth-wrapper">
-    <div class="auth-card fade-in-up">
-        
-        <div style="text-align: center; margin-bottom: 25px;">
-            <div style="width: 80px; height: 80px; background: #e3f2fd; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;">
-                <i class="fas fa-user-plus" style="font-size: 2.5rem; color: var(--primary);"></i>
-            </div>
-        </div>
 
-        <h2 style="text-align: center; margin-bottom: 10px; color: var(--text-main);">Buat Akun Baru</h2>
-        <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px; font-size: 0.95rem;">
-            Bergabunglah dengan komunitas TV Digital Indonesia.
-        </p>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div style="margin-bottom: 20px;">
-                {% for category, msg in messages %}
-                  <div class="alert alert-{{ category }}">
-                      <span>{{ msg }}</span>
-                      <span class="close-alert" onclick="this.parentElement.style.display='none';">&times;</span>
-                  </div>
-                {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
-
-        <form method="POST">
-            
-            <div class="form-group">
-                <label for="nama" style="font-weight: 500;">Nama Lengkap</label>
-                <div style="position: relative;">
-                    <input type="text" id="nama" name="nama" placeholder="Contoh: Budi Santoso" required style="padding-left: 40px;">
-                    <i class="fas fa-user" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="email" style="font-weight: 500;">Alamat Email</label>
-                <div style="position: relative;">
-                    <input type="email" id="email" name="email" placeholder="nama@email.com" required style="padding-left: 40px;">
-                    <i class="fas fa-envelope" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="username" style="font-weight: 500;">Username</label>
-                <div style="position: relative;">
-                    <input type="text" 
-                           id="username" 
-                           name="username" 
-                           placeholder="hurufkecil123" 
-                           pattern="[a-z0-9]+" 
-                           title="Hanya huruf kecil dan angka, tanpa spasi" 
-                           required 
-                           style="padding-left: 40px;">
-                    <i class="fas fa-at" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
-                </div>
-                <small style="color: #888; font-size: 0.8rem; margin-top: 4px; display: block;">
-                    *Hanya huruf kecil & angka (tanpa spasi).
-                </small>
-            </div>
-
-            <div class="form-group">
-                <label for="password" style="font-weight: 500;">Password</label>
-                <div style="position: relative;">
-                    <input type="password" 
-                           id="password" 
-                           name="password" 
-                           placeholder="Minimal 8 karakter" 
-                           required 
-                           minlength="8"
-                           style="padding-left: 40px; padding-right: 50px;">
-                    
-                    <i class="fas fa-lock" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
-                    
-                    <span onclick="togglePassword()" 
-                          style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999; padding: 5px;">
-                        <i class="fas fa-eye" id="toggleIcon"></i>
-                    </span>
-                </div>
-            </div>
-
-            <button type="submit" class="btn-full" style="margin-top: 20px;">
-                <i class="fas fa-paper-plane"></i> Daftar Sekarang
-            </button>
-        </form>
-
-        <div class="auth-footer" style="text-align: center; margin-top: 30px;">
-            <p style="color: var(--text-muted); font-size: 0.95rem;">
-                Sudah punya akun? <a href="/login" style="color: var(--primary); font-weight: 600; text-decoration: none;">Login disini</a>
-            </p>
-        </div>
-
+  <div class="container">
+    <h1>Daftar Akun</h1>
+    <form method="POST">
+      <input type="text" name="nama" placeholder="Nama Lengkap" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="text" name="username" placeholder="Username (huruf kecil & angka)" pattern="[a-z0-9]+" required>
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" placeholder="Password" required>
+        <span class="toggle-password" onclick="togglePassword()">👁️</span>
+      </div>
+      <button type="submit">Daftar</button>
+    </form>
+    <a href="/login" class="forgot">← Sudah punya akun? Login</a>
+    <div class="flash-message-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <p class="{{ category }}">{{ msg }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     </div>
-</div>
-
+  </div>
 <script>
-    function togglePassword() {
-        const passwordField = document.getElementById("password");
-        const toggleIcon = document.getElementById("toggleIcon");
+  function togglePassword() {
+      const password = document.getElementById("password");
+      const toggle = document.querySelector(".toggle-password");
 
-        if (passwordField.type === "password") {
-            passwordField.type = "text";
-            toggleIcon.classList.remove("fa-eye");
-            toggleIcon.classList.add("fa-eye-slash");
-            toggleIcon.style.color = "var(--primary)";
-        } else {
-            passwordField.type = "password";
-            toggleIcon.classList.remove("fa-eye-slash");
-            toggleIcon.classList.add("fa-eye");
-            toggleIcon.style.color = "#999";
-        }
+      if (password.type === "password") {
+        password.type = "text";
+        toggle.textContent = "🙈";
+      } else {
+        password.type = "password";
+        toggle.textContent = "👁️";
+      }
     }
 </script>
 {% endblock %}
