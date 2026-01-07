@@ -24,6 +24,40 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
+# --- KONFIGURASI GEMINI AI (UPDATED) ---
+# Menggunakan model 1.5-flash yang lebih stabil dan hemat kuota
+GOOGLE_API_KEY = os.environ.get("GEMINI_APP_KEY")
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+    try:
+        # Konfigurasi agar respon lebih natural
+        generation_config = {
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 8192,
+            "response_mime_type": "text/plain",
+        }
+        
+        system_instruction = (
+            "Anda adalah Chatbot AI KTVDI. Jawablah dengan ramah, singkat, dan membantu. "
+            "Topik: TV Digital, STB, Antena, Sinyal, dan Jadwal Bola. "
+            "Jika ditanya di luar topik itu, arahkan kembali ke TV Digital."
+        )
+        
+        model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config=generation_config,
+            system_instruction=system_instruction
+        )
+        print("✅ Gemini AI 1.5 Flash Siap!")
+    except Exception as e:
+        print(f"❌ Error Config Gemini: {e}")
+        model = None
+else:
+    print("❌ API Key Gemini tidak ditemukan.")
+    model = None
+
 # Inisialisasi Firebase
 try:
     cred = credentials.Certificate({
@@ -61,39 +95,23 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 
 mail = Mail(app)
 
-# Konfigurasi Gemini API Key
-genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
+# --- HELPER: RSS NEWS ---
+def get_breaking_news():
+    """Mengambil berita terbaru untuk Flip Text"""
+    news = []
+    try:
+        # Feed Google News Indonesia (Teknologi)
+        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo&hl=id&gl=ID&ceid=ID:id')
+        for entry in feed.entries[:7]: # Ambil 7 berita
+            news.append(entry.title)
+    except:
+        pass
+    
+    if not news:
+        news = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat Kominfo"]
+    return news
 
-# Inisialisasi model Gemini
-model = genai.GenerativeModel(
-    "gemini-2.0-flash", 
-    system_instruction=
-    "Anda adalah Chatbot AI KTVDI untuk website Komunitas TV Digital Indonesia (KTVDI). "
-    "Tugas Anda adalah menjawab pertanyaan pengguna seputar website KTVDI, "
-    "fungsi-fungsinya (login, daftar, tambah data, edit data, hapus data), "
-    "serta pertanyaan umum tentang TV Digital di Indonesia (DVB-T2, MUX, mencari siaran, antena, STB, merk TV). "
-    "Jawab dengan ramah, informatif, dan ringkas. "
-    "Gunakan bahasa Indonesia formal. "
-    "Jika pertanyaan di luar cakupan Anda atau memerlukan informasi real-time yang tidak Anda miliki, "
-    "arahkan pengguna untuk mencari informasi lebih lanjut di sumber resmi atau bertanya di forum/komunitas terkait TV Digital."
-    "\n\nBerikut adalah beberapa contoh FAQ yang bisa Anda jawab dan informasi yang harus Anda pertimbangkan:"
-    "\n- **Apa itu KTVDI?** KTVDI adalah platform komunitas online tempat pengguna dapat berbagi, menambahkan, memperbarui, dan melihat data siaran TV Digital (DVB-T2) di berbagai provinsi dan wilayah di Indonesia."
-    "\n- **Bagaimana cara menambahkan data siaran?** Anda perlu login ke akun KTVDI Anda. Setelah login, Anda akan melihat bagian 'Tambahkan Data Siaran Baru' di halaman utama. Isi detail provinsi, wilayah, penyelenggara MUX, dan daftar siaran yang tersedia."
-    "\n- **Bagaimana cara mendapatkan poin?** Anda mendapatkan 10 poin setiap kali Anda berhasil menambahkan data siaran baru. Anda mendapatkan 5 poin saat memperbarui data siaran yang sudah ada. Anda juga mendapatkan 1 poin setiap kali Anda mengirimkan komentar pada data MUX tertentu."
-    "\n- **Apa itu MUX?** MUX adalah singkatan dari Multiplex. Dalam konteks TV Digital, MUX adalah teknologi yang memungkinkan beberapa saluran televisi digital disiarkan secara bersamaan melalui satu frekuensi atau kanal UHF. Setiap MUX biasanya dikelola oleh satu penyelenggara (misalnya, Metro TV, SCTV, Trans TV, TVRI)."
-    "\n- **Bagaimana cara mencari siaran TV digital?** Anda dapat mencari siaran TV digital dengan melakukan pemindaian otomatis (auto scan) pada televisi digital Anda atau Set Top Box (STB) DVB-T2. Pastikan antena Anda terpasang dengan benar dan mengarah ke pemancar terdekat."
-    "\n- **Apa itu DVB-T2?** DVB-T2 adalah standar penyiaran televisi digital terestrial generasi kedua yang digunakan di Indonesia. Standar ini memungkinkan kualitas gambar dan suara yang lebih baik serta efisiensi frekuensi yang lebih tinggi dibandingkan siaran analog."
-    "\n- **Apakah saya bisa mengedit data yang diinput orang lain?** Tidak, Anda hanya bisa mengedit data siaran yang Anda tambahkan sendiri. Jika ada data yang salah atau perlu diperbarui yang diinput oleh pengguna lain, Anda dapat melaporkan atau menunggu kontributor yang bersangkutan untuk memperbaruinya."
-    "\n- **Bagaimana cara melihat profil pengguna lain?** Di sidebar aplikasi, terdapat tombol 'Lihat Profil Pengguna Lain'. Anda bisa memilih username dari daftar untuk melihat informasi profil publik mereka seperti nama, poin, provinsi, wilayah, dan merk perangkat TV digital mereka."
-    "\n- **Bagaimana cara reset password?** Jika Anda lupa password, di halaman login, klik tombol 'Lupa Password?'. Masukkan email yang terdaftar, dan Anda akan menerima kode OTP untuk mereset password Anda."
-    "\n- **Bisakah saya menghapus komentar saya?** Saat ini, tidak ada fitur langsung untuk menghapus komentar setelah dikirim. Harap berhati-hati dalam menulis komentar Anda."
-    "\n- **Poin untuk apa?** Poin adalah bentuk apresiasi atas kontribusi Anda dalam berbagi dan memperbarui data siaran. Pengguna dengan poin tertinggi akan ditampilkan di halaman Leaderboard."
-    "\n- **Apakah harus login untuk melihat data siaran?** Tidak, Anda dapat melihat data siaran tanpa login. Login hanya diperlukan untuk menambahkan, mengedit, menghapus data, memberi komentar, melihat profil Anda, dan mengakses leaderboard."
-    "\n- **Format apa untuk Wilayah Layanan?** Formatnya adalah 'Nama Provinsi-Angka'. Contoh: 'Jawa Timur-1', 'DKI Jakarta-2'."
-    "\n- **Format apa untuk Penyelenggara MUX?** Formatnya adalah 'UHF XX - Nama MUX'. Contoh: 'UHF 27 - Metro TV'."
-    "\n- **Bagaimana cara kerja poin?** Poin diberikan secara otomatis setiap kali Anda berkontribusi. Tambah data (10 poin), edit data (5 poin), komentar (1 poin)."
-    "\n- **Apa yang harus saya lakukan jika siaran tidak muncul?** Pastikan TV/STB Anda mendukung DVB-T2, antena terpasang benar dan mengarah ke pemancar, serta lakukan scan ulang saluran."
-)
+# --- ROUTES ---
 
 @app.route("/")
 def home():
@@ -158,18 +176,8 @@ def home():
     else:
         last_updated_time = "-"
 
-    # Ambil Berita Singkat untuk Header (Flip News) via RSS
-    # Menggunakan RSS Google News Topik TV Digital
-    breaking_news = []
-    try:
-        rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id'
-        feed = feedparser.parse(rss_url)
-        # Ambil 5 berita teratas
-        for entry in feed.entries[:5]:
-            breaking_news.append(entry.title)
-    except Exception as e:
-        print(f"Error fetching RSS: {e}")
-        breaking_news = ["Selamat Datang di KTVDI", "Komunitas TV Digital Indonesia"]
+    # Ambil Berita RSS Terbaru (UPDATED)
+    breaking_news = get_breaking_news()
 
     # Kirim data ke template
     return render_template('index.html', 
@@ -189,11 +197,18 @@ def chatbot():
     data = request.get_json()
     prompt = data.get("prompt")
 
+    if not model:
+        return jsonify({"error": "Offline Mode (Server AI Busy)"}), 503
+
     try:
         response = model.generate_content(prompt)
         return jsonify({"response": response.text})
     except Exception as e:
-        return jsonify({"error": str(e)})
+        error_msg = str(e)
+        # Deteksi spesifik error kuota agar frontend bisa switch ke mode manual
+        if "429" in error_msg or "Quota" in error_msg:
+            return jsonify({"error": "Quota Exceeded"}), 429
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/sitemap.xml')
 def sitemap():
