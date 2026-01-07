@@ -6,97 +6,224 @@
     <meta name="google-site-verification" content="aFor1zxHtm-oPfHoTIdxvVFAIapnM6_MeblwG_M4W2o">
     <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}" type="image/x-icon" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <style>
+        :root {
+            --primary-blue: #0088ff;
+            --dark-blue: #0056b3;
+            --text-dark: #0f172a;
+            --text-gray: #64748b;
+            --bg-light: #f8fafc;
+            --white: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* --- NAVBAR MODERN --- */
+        header {
+            background: var(--white);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        nav {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 30px;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 500;
+            transition: 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-blue);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn-auth {
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+
+        .login {
+            color: var(--primary-blue);
+            background: transparent;
+        }
+
+        .register {
+            background: var(--primary-blue);
+            color: var(--white);
+            box-shadow: 0 4px 10px rgba(0, 136, 255, 0.3);
+        }
+
+        .register:hover {
+            background: var(--dark-blue);
+            transform: translateY(-2px);
+        }
+
+        /* Mobile Menu Toggle */
+        .menu-toggle {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-dark);
+        }
+
+        /* --- FOOTER --- */
+        footer {
+            background: var(--white);
+            border-top: 1px solid #eee;
+            padding: 40px 20px;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .social-icons {
+            margin-bottom: 20px;
+        }
+
+        .social-icon {
+            font-size: 1.5rem;
+            margin: 0 10px;
+            color: var(--text-gray);
+            transition: 0.3s;
+        }
+
+        .social-icon:hover { color: var(--primary-blue); }
+        .social-icon.instagram:hover { color: #E1306C; }
+        .social-icon.youtube:hover { color: #FF0000; }
+        .social-icon.whatsapp:hover { color: #25D366; }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none; /* Hide default on mobile */
+                position: absolute;
+                top: 100%;
+                left: 0;
+                width: 100%;
+                background: var(--white);
+                flex-direction: column;
+                padding: 20px 0;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+                text-align: center;
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+            
+            .auth-buttons {
+                display: none; /* Opsional: Sembunyikan tombol auth di header mobile agar rapi, masukkan ke menu list jika perlu */
+            }
+        }
+    </style>
 </head>
 <body class="{% block body_class %}default-page{% endblock %}">
-    <header>
-        <input type="checkbox" id="menu-toggle">
-        <label for="menu-toggle" class="menu-icon">&#9776;</label>
 
-        <div class="logo">
-          <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI">
-        </div>
+    <header>
         <nav>
-            <ul>
+            <a href="/" class="logo">
+                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI">
+                KTVDI
+            </a>
+
+            <div class="menu-toggle" onclick="toggleMenu()">
+                <i class="fa-solid fa-bars"></i>
+            </div>
+
+            <ul class="nav-links" id="navLinks">
                 <li><a href="/">Beranda</a></li>
                 <li><a href="/daftar-siaran">Daftar Siaran</a></li>
                 <li><a href="/berita">Berita</a></li>
-                <li><a href="">Tentang</a></li>
-                <li><a href="/login" class="login">Login</a></li>
+                <li><a href="/login" class="login">Masuk</a></li>
                 <li><a href="/register" class="register">Daftar</a></li>
             </ul>
         </nav>
     </header>
 
     <main>
-    {% block content %}
-        <!-- Content from child templates will go here -->
-    {% endblock %}
+        {% block content %}
+        {% endblock %}
     </main>
-    
-    <footer id="footers" style="display: none;">
-        <div class="social-icons">
-          <a href="https://www.instagram.com/ktvdi.id?igsh=YWNteGY0Yms0NGNp" class="social-icon instagram"><i class="fab fa-instagram"></i></a>
-          <a href="https://www.facebook.com/share/g/18CKU4FayC/?mibextid=A7sQZp" class="social-icon facebook"><i class="fab fa-facebook"></i></a>
-          <a href="https://youtube.com/@ktvdi_id?si=NU-Ig6WQORKGvt_E" class="social-icon youtube"><i class="fab fa-youtube"></i></a>
-          <a href="https://chat.whatsapp.com/DwqpvihDPRrKFX44bPVDPb" class="social-icon whatsapp"><i class="fab fa-whatsapp"></i></a>
-          <a href="https://t.me/SiaranDigitalIndonesia" class="social-icon telegram"><i class="fab fa-telegram-plane"></i></a>
-        </div>
-        <p>&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
-    </footer>
-    <script>
-        // animasi
-        document.addEventListener('DOMContentLoaded', () => {
-          const headline = document.getElementById('headline');
-          const paragraph = document.getElementById('paragraph');
-          const readMoreButton = document.getElementById('read-more');
-          const statistictv = document.getElementById('statistic-tv');
-          const footerss = document.getElementById('footers');
-          const toggleBot = document.getElementById('chat-toggle');
-    
-          // Fungsi typewriter effect
-          function typeWriter(element, text, i = 0, callback) {
-            if (i < text.length) {
-              element.innerHTML = text.substring(0, i + 1);
-              setTimeout(() => typeWriter(element, text, i + 1, callback), 90);
-            } else if (callback) {
-              callback();
-            }
-          }
-    
-          // Menggunakan URL untuk memeriksa apakah ini halaman utama
-          const isHomePage = window.location.pathname === '/';  // Memeriksa apakah URL adalah halaman utama
-    
-          if (footerss) {
-            if (isHomePage) {
-              // Animasi typewriter untuk headline jika halaman utama
-              typeWriter(headline, headline.textContent, 0, () => {
-                paragraph.style.display = 'block';
-                paragraph.classList.add('fade-in-up');
-    
-                readMoreButton.style.display = 'block';
-                readMoreButton.classList.add('fade-in-up');
-    
-                statistictv.style.display = 'grid';
-                statistictv.classList.add('fade-in-up');
 
-                toggleBot.style.display = 'flex';
-                toggleBot.classList.add('fade-in-up');
-    
-                // Menampilkan footer setelah animasi selesai
-                footerss.style.display = 'block';
-                footerss.classList.add('fade-in-up');
-              });
-            } else {
-              // Di halaman lain, footer langsung tampil
-              footerss.style.display = 'block';
-            }
-          }
-        });
+    <footer>
+        <div class="social-icons">
+            <a href="https://www.instagram.com/ktvdi.id?igsh=YWNteGY0Yms0NGNp" class="social-icon instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.facebook.com/share/g/18CKU4FayC/?mibextid=A7sQZp" class="social-icon facebook"><i class="fab fa-facebook"></i></a>
+            <a href="https://youtube.com/@ktvdi_id?si=NU-Ig6WQORKGvt_E" class="social-icon youtube"><i class="fab fa-youtube"></i></a>
+            <a href="https://chat.whatsapp.com/DwqpvihDPRrKFX44bPVDPb" class="social-icon whatsapp"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://t.me/SiaranDigitalIndonesia" class="social-icon telegram"><i class="fab fa-telegram-plane"></i></a>
+        </div>
+        <p style="color: var(--text-gray); font-size: 0.9rem;">&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
+    </footer>
+
+    <script>
+        function toggleMenu() {
+            const nav = document.getElementById('navLinks');
+            nav.classList.toggle('active');
+        }
     </script>
 </body>
-
 </html>
-
-
