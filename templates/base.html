@@ -15,39 +15,41 @@
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 'marquee': 'marquee 200s linear infinite', 'marquee-mobile': 'marquee 100s linear infinite' },
+                    animation: { 'marquee': 'marquee 200s linear infinite', 'marquee-mobile': 'marquee 120s linear infinite' },
                     keyframes: { marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-100%)' } } }
                 }
             }
         }
     </script>
     <style>
-        .glass-nav { background: rgba(15, 23, 42, 0.98); border-bottom: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2); }
-        .mask-edges { mask-image: linear-gradient(to right, transparent, black 2%, black 98%, transparent); }
+        .glass-nav { background: rgba(15, 23, 42, 0.98); border-bottom: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); }
+        .mask-edges { mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
+        .chat-scroll::-webkit-scrollbar { width: 4px; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen">
 
-    <nav class="fixed top-0 w-full z-50 glass-nav transition-all duration-300">
+    <nav class="fixed top-0 w-full z-50 glass-nav shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <a href="/" class="flex items-center gap-3">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-10 w-auto object-contain filter drop-shadow-md">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-9 w-auto filter drop-shadow-md">
                 </a>
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="/" class="text-sm font-medium text-slate-300 hover:text-white transition">Beranda</a>
+                    <a href="/cctv" class="text-sm font-medium text-slate-300 hover:text-white transition">CCTV Live</a>
                     <a href="/daftar-siaran" class="text-sm font-medium text-slate-300 hover:text-white transition">Database</a>
-                    <a href="/cctv" class="text-sm font-medium text-slate-300 hover:text-white transition flex items-center gap-1"><i class="fa-solid fa-video text-brand-sky"></i> CCTV</a>
                     <a href="/berita" class="text-sm font-medium text-slate-300 hover:text-white transition">Berita</a>
                     <a href="/about" class="text-sm font-medium text-slate-300 hover:text-white transition">Tentang</a>
                 </div>
                 <div class="hidden md:flex items-center gap-3">
                     {% if session.get('user') %}
-                        <a href="/dashboard" class="px-5 py-2 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-600 shadow-lg">Dashboard</a>
-                        <a href="/logout" class="text-red-400 hover:text-red-300 text-lg"><i class="fa-solid fa-power-off"></i></a>
+                        <a href="/dashboard" class="px-5 py-2 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-600 transition">Dashboard</a>
+                        <a href="/logout" class="text-red-400 hover:text-red-300 text-lg ml-2"><i class="fa-solid fa-power-off"></i></a>
                     {% else %}
                         <a href="/login" class="text-sm font-bold text-slate-300 hover:text-white px-3">Masuk</a>
-                        <a href="/register" class="px-5 py-2 bg-brand-blue text-white text-sm font-bold rounded-full transition hover:bg-blue-600">Daftar</a>
+                        <a href="/register" class="px-5 py-2 bg-brand-blue text-white text-sm font-bold rounded-full transition">Daftar</a>
                     {% endif %}
                 </div>
                 <button onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" class="md:hidden text-white text-2xl"><i class="fa-solid fa-bars"></i></button>
@@ -67,7 +69,7 @@
         <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div class="col-span-1 md:col-span-2">
                 <h3 class="text-2xl font-bold mb-4">KTVDI.id</h3>
-                <p class="text-slate-400 text-sm leading-relaxed">Platform komunitas TV Digital terbesar di Indonesia. Menyediakan data frekuensi MUX real-time, pantauan CCTV lalu lintas, dan edukasi penyiaran.</p>
+                <p class="text-slate-400 text-sm leading-relaxed">Platform komunitas TV Digital terbesar di Indonesia. Menyediakan data frekuensi MUX real-time, pantauan CCTV, dan edukasi penyiaran.</p>
             </div>
             <div>
                 <h4 class="font-bold mb-4 text-slate-200">Layanan</h4>
@@ -82,7 +84,6 @@
                 <div class="flex gap-4">
                     <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-blue"><i class="fa-brands fa-facebook"></i></a>
                     <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-blue"><i class="fa-brands fa-twitter"></i></a>
-                    <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-blue"><i class="fa-brands fa-instagram"></i></a>
                 </div>
             </div>
         </div>
@@ -99,9 +100,7 @@
             </div>
         </div>
         <div class="bg-white h-full flex items-center px-4 border-l border-slate-200 z-20 gap-3">
-            <div class="hidden md:flex items-center gap-1 text-[10px] font-bold text-brand-blue">
-                <i class="fa-solid fa-signal"></i> <span id="net-provider">ONLINE</span>
-            </div>
+            <div class="hidden md:flex items-center gap-1 text-[10px] font-bold text-brand-blue"><i class="fa-solid fa-wifi"></i> <span id="net-provider">ONLINE</span></div>
             <div class="text-xs font-mono font-bold text-slate-800" id="clock">00:00</div>
         </div>
     </div>
@@ -119,8 +118,8 @@
                 <div class="flex items-center gap-2"><i class="fa-solid fa-robot"></i> <span class="font-bold text-sm">Asisten KTVDI</span></div>
                 <button onclick="document.getElementById('chat-window').classList.add('hidden')"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div id="chat-messages" class="h-64 bg-slate-50 p-4 overflow-y-auto space-y-3 flex flex-col">
-                <div class="flex gap-2"><div class="bg-white p-2 rounded-lg text-xs shadow-sm border border-slate-200 text-slate-600">Halo! Tanya saya tentang sinyal, STB, atau bola. (Bisa Offline)</div></div>
+            <div id="chat-messages" class="h-64 bg-slate-50 p-4 overflow-y-auto space-y-3 flex flex-col chat-scroll">
+                <div class="flex gap-2"><div class="bg-white p-2 rounded-lg text-xs shadow-sm border border-slate-200 text-slate-600">Halo! Saya siap bantu jawab pertanyaan seputar TV Digital.</div></div>
             </div>
             <div class="p-3 bg-white border-t border-slate-200">
                 <form onsubmit="handleChat(event)" class="flex gap-2">
