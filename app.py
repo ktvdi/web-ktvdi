@@ -22,26 +22,24 @@ from flask_mail import Mail, Message
 from datetime import datetime
 from collections import Counter
 
-# Muat variabel lingkungan
+# --- KONFIGURASI AWAL ---
 load_dotenv()
-
 app = Flask(__name__)
 CORS(app)
+app.secret_key = os.environ.get("SECRET_KEY", "b/g5n!o0?hs&dm!fn8md7")
 
-app.secret_key = 'b/g5n!o0?hs&dm!fn8md7'
-
-# --- KONEKSI FIREBASE (SAFE MODE UNTUK VERCEL) ---
+# --- 1. KONEKSI FIREBASE (VERCEL SAFE) ---
 ref = None
 try:
     cred = None
-    # 1. Cek Env Var (Vercel)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        priv_key = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
-        cred_dict = {
+        # Membersihkan format private key untuk Vercel
+        pk = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
+        cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
             "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": priv_key,
+            "private_key": pk,
             "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
             "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -49,9 +47,7 @@ try:
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
             "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
             "universe_domain": "googleapis.com"
-        }
-        cred = credentials.Certificate(cred_dict)
-    # 2. Cek File (Localhost)
+        })
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -63,11 +59,11 @@ try:
         ref = db.reference('/')
         print("✅ Firebase Connected!")
     else:
-        print("⚠️ Warning: Firebase Credentials Not Found")
+        print("⚠️ Warning: Firebase Credentials Missing")
 except Exception as e:
-    print(f"❌ Firebase Error: {e}")
+    print(f"❌ Firebase Init Error: {e}")
 
-# --- EMAIL CONFIG ---
+# --- 2. CONFIG EMAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -77,27 +73,24 @@ app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- API CONFIG ---
+# --- 3. CONFIG API ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
 
-GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_APP_KEY"))
 model = None
-if GOOGLE_API_KEY:
-    try:
-        genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash", 
-            system_instruction="Kamu adalah Asisten KTVDI. Jawab singkat seputar TV Digital, Bola, dan Teknis.")
-    except: pass
+try:
+    model = genai.GenerativeModel("gemini-1.5-flash", 
+        system_instruction="Anda adalah Asisten Profesional KTVDI. Jawablah dengan singkat, padat, dan ramah.")
+except: pass
 
-# --- GLOBAL VARS (BERITA TERKINI) ---
+# --- GLOBAL VARS (BERITA UMUM) ---
 @app.context_processor
 def inject_global_vars():
-    """Mengirim berita ke Navbar/Footer di semua halaman"""
     news_list = []
     try:
-        # RSS CNN Indonesia / Google News (Topik Umum & Tekno)
-        rss_url = 'https://www.cnnindonesia.com/teknologi/rss'
+        # Menggunakan CNN Nasional agar berita lebih umum & update
+        rss_url = 'https://www.cnnindonesia.com/nasional/rss'
         feed = feedparser.parse(rss_url)
         for entry in feed.entries[:8]:
             news_list.append(entry.title)
@@ -117,7 +110,6 @@ def home():
         try: siaran_data = ref.child('siaran').get() or {}
         except: pass
     
-    # Statistik
     stats = {"wilayah": 0, "mux": 0, "channel": 0}
     chart_labels = []
     chart_data = []
@@ -141,23 +133,22 @@ def home():
                            chart_data=json.dumps(chart_data))
 
 @app.route('/cctv')
-def cctv_page():
+def cctv():
     return render_template('cctv.html')
 
 @app.route('/chatbot', methods=['POST'])
 def chatbot_api():
     data = request.get_json()
-    if not model: return jsonify({"error": "Offline"}), 503
+    if not model: return jsonify({"error": "Offline Mode"}), 503
     try:
         res = model.generate_content(data.get("prompt"))
         return jsonify({"response": res.text})
     except: return jsonify({"error": "Busy"}), 500
 
-# Legacy Route
 @app.route('/', methods=['POST'])
 def chatbot_legacy(): return chatbot_api()
 
-# --- ROUTES BAWAAN (TIDAK DIHAPUS) ---
+# --- ROUTES LAIN ---
 @app.route('/about')
 def about(): return render_template('about.html')
 
