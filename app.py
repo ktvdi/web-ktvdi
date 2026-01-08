@@ -1,42 +1,42 @@
 import os
 import hashlib
-import firebase_admin
 import random
 import re
-import pytz
 import time
-import requests
-import feedparser
 import json
 import io
 import csv
-import google.generativeai as genai
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse, parse_qs
-from newsapi import NewsApiClient
-from firebase_admin import credentials, db
-from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_file
-from flask_cors import CORS
-from dotenv import load_dotenv
-from flask_mail import Mail, Message
 from datetime import datetime
 from collections import Counter
 
-# --- KONFIGURASI AWAL ---
+# Import Library dengan Safety Check
+try:
+    import firebase_admin
+    from firebase_admin import credentials, db
+    from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_file
+    from flask_cors import CORS
+    from flask_mail import Mail, Message
+    from dotenv import load_dotenv
+    import requests
+    import feedparser
+    import google.generativeai as genai
+    from newsapi import NewsApiClient
+    import pytz
+except ImportError as e:
+    print(f"CRITICAL: Library Missing - {e}")
+
+# --- KONFIGURASI ---
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
-
-# Secret Key (Gunakan Env di Vercel, fallback ke string acak di lokal)
 app.secret_key = os.environ.get("SECRET_KEY", "b/g5n!o0?hs&dm!fn8md7")
 
-# --- 1. KONEKSI FIREBASE (VERCEL SAFE MODE) ---
-# Menggunakan logika: Cek Env Var dulu, jika gagal cek file json lokal
+# --- 1. FIREBASE CONNECTION ---
 ref = None
 try:
     cred = None
+    # Cek Env Vercel
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Membersihkan format private key yang sering rusak saat copy-paste
         pk = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
         cred = credentials.Certificate({
             "type": "service_account",
@@ -51,6 +51,7 @@ try:
             "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
             "universe_domain": "googleapis.com"
         })
+    # Cek Localhost
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -62,12 +63,11 @@ try:
         ref = db.reference('/')
         print("✅ Firebase Connected!")
     else:
-        print("⚠️ Warning: Firebase Credentials Missing (Cek Environment Variables)")
-
+        print("⚠️ Warning: Firebase Credentials Missing")
 except Exception as e:
-    print(f"❌ Firebase Init Error: {e}")
+    print(f"❌ Firebase Error: {e}")
 
-# --- 2. CONFIG EMAIL ---
+# --- 2. EMAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -77,25 +77,23 @@ app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- 3. CONFIG API (News & AI) ---
+# --- 3. API SETUP ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_APP_KEY"))
 model = None
 try:
-    # Menggunakan model flash yang lebih ringan dan cepat
     model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Anda adalah Asisten Profesional KTVDI. Jawablah dengan singkat, padat, dan ramah.")
+        system_instruction="Anda adalah Asisten KTVDI. Jawab singkat seputar TV Digital, STB, dan Bola.")
 except: pass
 
-# --- HELPER: INJECT BERITA KE SEMUA HALAMAN (MENCEGAH ERROR 500) ---
+# --- GLOBAL CONTEXT (BERITA UNTUK SEMUA HALAMAN) ---
 @app.context_processor
 def inject_global_vars():
-    """Mengirim data berita ke Base HTML agar Ticker selalu jalan di semua halaman"""
     news_list = []
     try:
-        # Menggunakan RSS Feed Nasional CNN (Lebih stabil daripada Google News kadang)
+        # RSS CNN Nasional
         rss_url = 'https://www.cnnindonesia.com/nasional/rss'
         feed = feedparser.parse(rss_url)
         for entry in feed.entries[:8]:
@@ -116,12 +114,10 @@ def home():
         try: siaran_data = ref.child('siaran').get() or {}
         except: pass
     
-    # Statistik Default
     stats = {"wilayah": 0, "mux": 0, "channel": 0}
     chart_labels = []
     chart_data = []
 
-    # Hitung Statistik dari Firebase
     for provinsi, p_data in siaran_data.items():
         if isinstance(p_data, dict):
             w_count = len(p_data)
@@ -156,7 +152,7 @@ def chatbot_api():
 @app.route('/', methods=['POST'])
 def chatbot_legacy(): return chatbot_api()
 
-# --- ROUTES BAWAAN (DEFAULT ANDA - LOGIN/REGISTER/CRUD) ---
+# --- AUTH & CRUD ---
 
 @app.route('/about')
 def about(): return render_template('about.html')
@@ -190,11 +186,9 @@ def get_siaran():
 @app.route('/berita')
 def berita():
     try:
-        # RSS Teknologi untuk halaman berita khusus
         feed = feedparser.parse('https://www.cnnindonesia.com/teknologi/rss')
         articles = feed.entries
     except: articles = []
-    
     page = request.args.get('page', 1, type=int)
     start = (page-1)*6
     return render_template('berita.html', articles=articles[start:start+6], page=page, total_pages=(len(articles)+5)//6)
@@ -268,7 +262,6 @@ def register():
         if ref:
             otp = str(random.randint(100000, 999999))
             ref.child(f"pending_users/{u}").set({"nama":n, "email":e, "password":hash_password(p), "otp":otp})
-            # mail.send(...) # Email di-uncomment di production jika SMTP sudah diset
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
     return render_template("register.html")
