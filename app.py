@@ -28,16 +28,14 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Secret Key
-app.secret_key = os.environ.get("SECRET_KEY", "b/g5n!o0?hs&dm!fn8md7")
+app.secret_key = 'b/g5n!o0?hs&dm!fn8md7'
 
-# --- 1. KONEKSI FIREBASE (VERCEL SAFE) ---
+# --- 1. KONEKSI FIREBASE (SAFE MODE) ---
 ref = None
 try:
     cred = None
-    # Cek Environment Variable (Vercel)
+    # Cek Environment Variable (Vercel Production)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Membersihkan format private key
         private_key = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
         cred_dict = {
             "type": "service_account",
@@ -53,6 +51,7 @@ try:
             "universe_domain": "googleapis.com"
         }
         cred = credentials.Certificate(cred_dict)
+    # Cek File JSON (Localhost)
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -75,8 +74,8 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
-app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
+app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg' 
+app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com' 
 mail = Mail(app)
 
 # --- 3. CONFIG API ---
@@ -86,16 +85,31 @@ if NEWS_API_KEY:
     try: newsapi = NewsApiClient(api_key=NEWS_API_KEY)
     except: pass
 
-# Gemini AI (Cek 2 kemungkinan nama variabel)
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_APP_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 model = None
 try:
-    # Model flash lebih cepat & murah resource
     model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Kamu adalah Asisten KTVDI. Jawab singkat, padat, dan ramah tentang TV Digital.")
-except:
-    pass
+        system_instruction="Anda adalah Asisten Profesional KTVDI. Jawablah singkat dan solutif.")
+except: pass
+
+# --- HELPER: INJECT BERITA KE SEMUA HALAMAN ---
+@app.context_processor
+def inject_global_vars():
+    """Mengambil berita agar Ticker di Base.html selalu jalan"""
+    news_list = []
+    try:
+        # Feed RSS Google News Teknologi
+        rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia+teknologi&hl=id&gl=ID&ceid=ID:id'
+        feed = feedparser.parse(rss_url)
+        for entry in feed.entries[:8]:
+            news_list.append(entry.title)
+    except: pass
+    
+    if not news_list:
+        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat Kominfo"]
+        
+    return dict(breaking_news=news_list)
 
 # --- ROUTES ---
 
@@ -106,9 +120,7 @@ def home():
         try: siaran_data = ref.child('siaran').get() or {}
         except: pass
     
-    # Statistik Simple
     stats = {"wilayah": 0, "mux": 0, "channel": 0}
-    
     chart_labels = []
     chart_data = []
 
@@ -131,46 +143,24 @@ def home():
                            chart_labels=json.dumps(chart_labels),
                            chart_data=json.dumps(chart_data))
 
-# --- API KHUSUS BERITA (AGAR TIDAK BERAT DI HOME) ---
-@app.route('/api/news')
-def api_news():
-    """Endpoint khusus untuk mengambil berita via AJAX"""
-    news_list = []
-    try:
-        # Gunakan RSS Google News yang lebih umum agar pasti ada isi
-        rss_url = 'https://news.google.com/rss/search?q=indonesia+teknologi+digital&hl=id&gl=ID&ceid=ID:id'
-        feed = feedparser.parse(rss_url)
-        for entry in feed.entries[:10]:
-            news_list.append(entry.title)
-    except Exception as e:
-        print(f"RSS Error: {e}")
-        
-    if not news_list:
-        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat Kominfo"]
-    
-    return jsonify(news_list)
-
-# --- CHATBOT API (FIXED) ---
 @app.route('/chatbot', methods=['POST'])
 def chatbot_api():
     data = request.get_json()
     prompt = data.get("prompt")
     
     if not model:
-        # Jika model belum siap/API key salah
-        return jsonify({"error": "Maaf, server AI sedang sibuk. Cek kembali nanti."}), 503
+        # Return 503 agar frontend masuk mode Offline
+        return jsonify({"error": "Offline Mode"}), 503
 
     try:
         response = model.generate_content(prompt)
         return jsonify({"response": response.text})
     except Exception as e:
-        # Menangani error kuota atau error lain
-        return jsonify({"error": "Maaf, saya sedang istirahat sebentar (Kuota Limit). Tanya lagi nanti ya!"}), 429
+        return jsonify({"error": "Quota Exceeded"}), 429
 
-# Fallback route chatbot lama
+# Fallback route lama
 @app.route('/', methods=['POST'])
-def chatbot_legacy():
-    return chatbot_api()
+def chatbot_legacy(): return chatbot_api()
 
 # --- ROUTES LAIN ---
 
@@ -249,7 +239,8 @@ def add_data():
                 "siaran": [x.strip() for x in s],
                 "last_updated_by_username": session['user'],
                 "last_updated_by_name": session['nama'],
-                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y")
+                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
             })
         return redirect(url_for('dashboard'))
     return render_template('add_data_form.html', provinsi_list=list((data or {}).values()))
@@ -264,7 +255,8 @@ def edit_data(provinsi, wilayah, mux):
             ref.child(f"siaran/{provinsi}/{w_cl}/{mux}").update({
                 "siaran": sorted([x.strip() for x in s]),
                 "last_updated_by_name": session['nama'],
-                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y")
+                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
             })
         return redirect(url_for('dashboard'))
     return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
