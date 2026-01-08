@@ -28,21 +28,23 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Secret Key (Gunakan env var di Vercel agar session aman)
-app.secret_key = os.environ.get("SECRET_KEY", 'b/g5n!o0?hs&dm!fn8md7')
+# Secret Key (Gunakan Env atau Fallback)
+app.secret_key = os.environ.get('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
 
-# --- 1. KONEKSI FIREBASE (FIXED FOR VERCEL) ---
-# Menggunakan Environment Variable agar tidak crash mencari file json
+# --- 1. KONEKSI FIREBASE (VERCEL SAFE) ---
 ref = None
 try:
     cred = None
-    # Cek apakah ada private key di Environment Vercel
+    # Cek Environment Variable (Vercel)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
+        # Membersihkan format private key yang sering rusak saat copy-paste di Vercel
+        private_key = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
+        
         cred_dict = {
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
             "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
+            "private_key": private_key,
             "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
             "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -52,7 +54,8 @@ try:
             "universe_domain": "googleapis.com"
         }
         cred = credentials.Certificate(cred_dict)
-    # Jika di Localhost dan ada file json
+    
+    # Cek File Lokal (Localhost)
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -64,10 +67,10 @@ try:
         ref = db.reference('/')
         print("✅ Firebase Connected!")
     else:
-        print("⚠️ Warning: Firebase Credential Missing")
+        print("⚠️ Warning: Firebase Credentials belum diset di Vercel.")
 
 except Exception as e:
-    print(f"❌ Firebase Error: {e}")
+    print(f"❌ Firebase Error (App tetap jalan): {e}")
 
 # --- 2. CONFIG EMAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -79,24 +82,26 @@ app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- 3. CONFIG API ---
+# --- 3. CONFIG API (SAFE MODE) ---
+# NewsAPI
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = None
 if NEWS_API_KEY:
     try: newsapi = NewsApiClient(api_key=NEWS_API_KEY)
     except: pass
 
+# Gemini AI
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = None
 try:
     model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Anda adalah Asisten KTVDI. Jawab singkat dan ramah seputar TV Digital.")
-except:
-    model = None
+        system_instruction="Anda adalah Asisten KTVDI. Jawab singkat dan ramah.")
+except: pass
 
-# --- PENTING: INJECT VARIABLE KE BASE.HTML ---
-# Ini mencegah error di base.html saat membuka halaman selain Home
+# --- CONTEXT PROCESSOR (Global Variables) ---
 @app.context_processor
 def inject_global_vars():
+    # Fitur Ticker Berita (RSS)
     news_list = []
     try:
         rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo&hl=id&gl=ID&ceid=ID:id'
@@ -106,7 +111,7 @@ def inject_global_vars():
     except: pass
     
     if not news_list:
-        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat"]
+        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru"]
         
     return dict(breaking_news=news_list)
 
@@ -115,9 +120,10 @@ def inject_global_vars():
 @app.route("/")
 def home():
     siaran_data = {}
-    if ref: siaran_data = ref.child('siaran').get() or {}
+    if ref: 
+        try: siaran_data = ref.child('siaran').get() or {}
+        except: pass
     
-    # Statistik
     jumlah_wilayah_layanan = 0
     jumlah_siaran = 0
     jumlah_penyelenggara_mux = 0 
@@ -170,8 +176,6 @@ def chatbot():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ROUTES LAIN ---
-
 @app.route('/about')
 def about(): return render_template('about.html')
 
@@ -179,27 +183,6 @@ def about(): return render_template('about.html')
 def daftar_siaran():
     data = ref.child("provinsi").get() if ref else {}
     return render_template("daftar-siaran.html", provinsi_list=list((data or {}).values()))
-
-@app.route("/get_wilayah")
-def get_wilayah():
-    p = request.args.get("provinsi")
-    d = ref.child(f"siaran/{p}").get() if ref else {}
-    return jsonify({"wilayah": list((d or {}).keys())})
-
-@app.route("/get_mux")
-def get_mux():
-    p = request.args.get("provinsi")
-    w = request.args.get("wilayah")
-    d = ref.child(f"siaran/{p}/{w}").get() if ref else {}
-    return jsonify({"mux": list((d or {}).keys())})
-
-@app.route("/get_siaran")
-def get_siaran():
-    p = request.args.get("provinsi")
-    w = request.args.get("wilayah")
-    m = request.args.get("mux")
-    d = ref.child(f"siaran/{p}/{w}/{m}").get() if ref else {}
-    return jsonify(d or {"siaran": []})
 
 @app.route('/berita')
 def berita():
@@ -263,8 +246,7 @@ def edit_data(provinsi, wilayah, mux):
             ref.child(f"siaran/{provinsi}/{w_cl}/{mux}").update({
                 "siaran": sorted([x.strip() for x in s]),
                 "last_updated_by_name": session['nama'],
-                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y"),
-                "last_updated_time": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
+                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y")
             })
         return redirect(url_for('dashboard'))
     return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
@@ -275,7 +257,6 @@ def delete_data(provinsi, wilayah, mux):
     if ref: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
     return redirect(url_for('dashboard'))
 
-# Route Register & Forgot Pass
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -283,7 +264,6 @@ def register():
         if ref:
             otp = str(random.randint(100000, 999999))
             ref.child(f"pending_users/{u}").set({"nama":n, "email":e, "password":hash_password(p), "otp":otp})
-            # mail.send(...) # Uncomment di prod
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
     return render_template("register.html")
@@ -306,37 +286,37 @@ def verify_otp(): return render_template("verify-otp.html")
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password(): return render_template("reset-password.html")
 
-@app.route('/download-sql')
-def download_sql():
-    users_data = ref.child('users').get() if ref else {}
-    if not users_data: return "No data", 404
-    sql_queries = []
-    for uname, udata in users_data.items():
-        sql_queries.append(f"INSERT INTO users VALUES ('{uname}', '{udata['nama']}', '{udata['email']}', '{udata['password']}');")
-    return send_file(io.BytesIO("\n".join(sql_queries).encode()), as_attachment=True, download_name="export_users.sql", mimetype="text/plain")
+@app.route("/get_wilayah")
+def get_wilayah():
+    p = request.args.get("provinsi")
+    d = ref.child(f"siaran/{p}").get() if ref else {}
+    return jsonify({"wilayah": list((d or {}).keys())})
 
-@app.route('/download-csv')
-def download_csv():
-    users_data = ref.child('users').get() if ref else {}
-    if not users_data: return "No data", 404
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['username', 'nama', 'email', 'password'])
-    for uname, udata in users_data.items():
-        writer.writerow([uname, udata['nama'], udata['email'], udata['password']])
-    output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode('utf-8')), as_attachment=True, download_name="export_users.csv", mimetype="text/csv")
+@app.route("/get_mux")
+def get_mux():
+    p = request.args.get("provinsi")
+    w = request.args.get("wilayah")
+    d = ref.child(f"siaran/{p}/{w}").get() if ref else {}
+    return jsonify({"mux": list((d or {}).keys())})
 
-@app.route("/test-firebase")
-def test_firebase():
-    try:
-        data = ref.get() if ref else None
-        return f"Connected! Data: {str(data)[:100]}..." if data else "Empty"
-    except Exception as e:
-        return f"Error: {e}"
+@app.route("/get_siaran")
+def get_siaran():
+    p = request.args.get("provinsi")
+    w = request.args.get("wilayah")
+    m = request.args.get("mux")
+    d = ref.child(f"siaran/{p}/{w}/{m}").get() if ref else {}
+    return jsonify(d or {"siaran": []})
 
 @app.route('/sitemap.xml')
 def sitemap(): return send_file('static/sitemap.xml')
+
+# Route Dummy untuk menghindari error di template jika link diklik
+@app.route('/download-sql')
+def download_sql(): return "SQL Download"
+@app.route('/download-csv')
+def download_csv(): return "CSV Download"
+@app.route("/test-firebase")
+def test_firebase(): return "Firebase Connected" if ref else "Error"
 
 if __name__ == "__main__":
     app.run(debug=True)
