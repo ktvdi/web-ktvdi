@@ -30,18 +30,18 @@ CORS(app)
 
 app.secret_key = 'b/g5n!o0?hs&dm!fn8md7'
 
-# --- 1. KONEKSI FIREBASE (SAFE MODE) ---
+# --- KONEKSI FIREBASE (SAFE MODE UNTUK VERCEL) ---
 ref = None
 try:
     cred = None
-    # Cek Environment Variable (Vercel Production)
+    # 1. Cek Env Var (Vercel)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        private_key = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
+        priv_key = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
         cred_dict = {
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
             "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": private_key,
+            "private_key": priv_key,
             "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
             "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -51,7 +51,7 @@ try:
             "universe_domain": "googleapis.com"
         }
         cred = credentials.Certificate(cred_dict)
-    # Cek File JSON (Localhost)
+    # 2. Cek File (Localhost)
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -64,51 +64,48 @@ try:
         print("✅ Firebase Connected!")
     else:
         print("⚠️ Warning: Firebase Credentials Not Found")
-
 except Exception as e:
     print(f"❌ Firebase Error: {e}")
 
-# --- 2. CONFIG EMAIL ---
+# --- EMAIL CONFIG ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg' 
-app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com' 
+app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
+app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- 3. CONFIG API ---
+# --- API CONFIG ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-newsapi = None
-if NEWS_API_KEY:
-    try: newsapi = NewsApiClient(api_key=NEWS_API_KEY)
+newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
+
+GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
+model = None
+if GOOGLE_API_KEY:
+    try:
+        genai.configure(api_key=GOOGLE_API_KEY)
+        model = genai.GenerativeModel("gemini-1.5-flash", 
+            system_instruction="Kamu adalah Asisten KTVDI. Jawab singkat seputar TV Digital, Bola, dan Teknis.")
     except: pass
 
-GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_APP_KEY")
-genai.configure(api_key=GOOGLE_API_KEY)
-model = None
-try:
-    model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Anda adalah Asisten Profesional KTVDI. Jawablah singkat dan solutif.")
-except: pass
-
-# --- HELPER: INJECT BERITA KE SEMUA HALAMAN ---
+# --- GLOBAL VARS (BERITA TERKINI) ---
 @app.context_processor
 def inject_global_vars():
-    """Mengambil berita agar Ticker di Base.html selalu jalan"""
+    """Mengirim berita ke Navbar/Footer di semua halaman"""
     news_list = []
     try:
-        # Feed RSS Google News Teknologi
-        rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia+teknologi&hl=id&gl=ID&ceid=ID:id'
+        # RSS CNN Indonesia / Google News (Topik Umum & Tekno)
+        rss_url = 'https://www.cnnindonesia.com/teknologi/rss'
         feed = feedparser.parse(rss_url)
         for entry in feed.entries[:8]:
             news_list.append(entry.title)
     except: pass
     
     if not news_list:
-        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat Kominfo"]
-        
+        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "KTVDI Siap Menyambut Piala Dunia 2026"]
+    
     return dict(breaking_news=news_list)
 
 # --- ROUTES ---
@@ -120,6 +117,7 @@ def home():
         try: siaran_data = ref.child('siaran').get() or {}
         except: pass
     
+    # Statistik
     stats = {"wilayah": 0, "mux": 0, "channel": 0}
     chart_labels = []
     chart_data = []
@@ -130,7 +128,6 @@ def home():
             stats["wilayah"] += w_count
             chart_labels.append(provinsi)
             chart_data.append(w_count)
-            
             for wilayah, w_data in p_data.items():
                 if isinstance(w_data, dict):
                     stats["mux"] += len(w_data)
@@ -143,27 +140,24 @@ def home():
                            chart_labels=json.dumps(chart_labels),
                            chart_data=json.dumps(chart_data))
 
+@app.route('/cctv')
+def cctv_page():
+    return render_template('cctv.html')
+
 @app.route('/chatbot', methods=['POST'])
 def chatbot_api():
     data = request.get_json()
-    prompt = data.get("prompt")
-    
-    if not model:
-        # Return 503 agar frontend masuk mode Offline
-        return jsonify({"error": "Offline Mode"}), 503
-
+    if not model: return jsonify({"error": "Offline"}), 503
     try:
-        response = model.generate_content(prompt)
-        return jsonify({"response": response.text})
-    except Exception as e:
-        return jsonify({"error": "Quota Exceeded"}), 429
+        res = model.generate_content(data.get("prompt"))
+        return jsonify({"response": res.text})
+    except: return jsonify({"error": "Busy"}), 500
 
-# Fallback route lama
+# Legacy Route
 @app.route('/', methods=['POST'])
 def chatbot_legacy(): return chatbot_api()
 
-# --- ROUTES LAIN ---
-
+# --- ROUTES BAWAAN (TIDAK DIHAPUS) ---
 @app.route('/about')
 def about(): return render_template('about.html')
 
@@ -196,20 +190,19 @@ def get_siaran():
 @app.route('/berita')
 def berita():
     try:
-        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+        feed = feedparser.parse('https://www.cnnindonesia.com/teknologi/rss')
         articles = feed.entries
     except: articles = []
     page = request.args.get('page', 1, type=int)
-    start = (page-1)*5
-    return render_template('berita.html', articles=articles[start:start+5], page=page, total_pages=(len(articles)+4)//5)
+    start = (page-1)*6
+    return render_template('berita.html', articles=articles[start:start+6], page=page, total_pages=(len(articles)+5)//6)
 
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        u = request.form['username'].strip()
-        p = request.form['password'].strip()
+        u = request.form['username'].strip(); p = request.form['password'].strip()
         if ref:
             user = ref.child(f'users/{u}').get()
             if user and user.get('password') == hash_password(p):
@@ -255,8 +248,7 @@ def edit_data(provinsi, wilayah, mux):
             ref.child(f"siaran/{provinsi}/{w_cl}/{mux}").update({
                 "siaran": sorted([x.strip() for x in s]),
                 "last_updated_by_name": session['nama'],
-                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y"),
-                "last_updated_time": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
+                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y")
             })
         return redirect(url_for('dashboard'))
     return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
@@ -274,7 +266,6 @@ def register():
         if ref:
             otp = str(random.randint(100000, 999999))
             ref.child(f"pending_users/{u}").set({"nama":n, "email":e, "password":hash_password(p), "otp":otp})
-            # mail.send(...) # Uncomment di prod
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
     return render_template("register.html")
