@@ -33,7 +33,7 @@ ref = None
 try:
     cred = None
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Membersihkan format private key untuk Vercel
+        # Fix format key Vercel
         pk = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
         cred = credentials.Certificate({
             "type": "service_account",
@@ -84,15 +84,16 @@ try:
         system_instruction="Anda adalah Asisten Profesional KTVDI. Jawablah dengan singkat, padat, dan ramah.")
 except: pass
 
-# --- GLOBAL VARS (BERITA UMUM) ---
+# --- GLOBAL VARS (BERITA NASIONAL UNTUK TICKER) ---
 @app.context_processor
 def inject_global_vars():
+    """Mengirim berita ke Navbar Base.html secara otomatis"""
     news_list = []
     try:
-        # Menggunakan CNN Nasional agar berita lebih umum & update
+        # Menggunakan RSS CNN Nasional agar update
         rss_url = 'https://www.cnnindonesia.com/nasional/rss'
         feed = feedparser.parse(rss_url)
-        for entry in feed.entries[:8]:
+        for entry in feed.entries[:10]:
             news_list.append(entry.title)
     except: pass
     
@@ -110,10 +111,12 @@ def home():
         try: siaran_data = ref.child('siaran').get() or {}
         except: pass
     
+    # Statistik Default
     stats = {"wilayah": 0, "mux": 0, "channel": 0}
     chart_labels = []
     chart_data = []
 
+    # Hitung Statistik dari Firebase
     for provinsi, p_data in siaran_data.items():
         if isinstance(p_data, dict):
             w_count = len(p_data)
@@ -145,6 +148,7 @@ def chatbot_api():
         return jsonify({"response": res.text})
     except: return jsonify({"error": "Busy"}), 500
 
+# Legacy Route Chatbot
 @app.route('/', methods=['POST'])
 def chatbot_legacy(): return chatbot_api()
 
@@ -181,9 +185,11 @@ def get_siaran():
 @app.route('/berita')
 def berita():
     try:
+        # RSS Teknologi untuk halaman berita
         feed = feedparser.parse('https://www.cnnindonesia.com/teknologi/rss')
         articles = feed.entries
     except: articles = []
+    
     page = request.args.get('page', 1, type=int)
     start = (page-1)*6
     return render_template('berita.html', articles=articles[start:start+6], page=page, total_pages=(len(articles)+5)//6)
@@ -257,6 +263,7 @@ def register():
         if ref:
             otp = str(random.randint(100000, 999999))
             ref.child(f"pending_users/{u}").set({"nama":n, "email":e, "password":hash_password(p), "otp":otp})
+            # mail.send(...) # Email di-uncomment di production
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
     return render_template("register.html")
