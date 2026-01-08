@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="bg-black min-h-screen pt-24 pb-12">
+    <div class="max-w-7xl mx-auto px-4">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-white flex items-center gap-3">
+                <i class="fa-solid fa-video text-red-600 animate-pulse"></i> LIVE CCTV PEKALONGAN
+            </h1>
+            <span class="bg-gray-800 text-gray-300 px-3 py-1 rounded text-xs font-mono">HLS STREAM</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <div class="lg:col-span-2 space-y-4">
+                <div class="relative aspect-video bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-2xl group">
+                    <video id="main-video" class="w-full h-full object-contain" controls autoplay muted></video>
+                    <div class="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded shadow-lg animate-pulse">LIVE</div>
+                    <div class="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition">
+                        <select id="quality-select" class="bg-black/70 text-white text-xs p-1 rounded border border-gray-600">
+                            <option value="-1">Auto</option>
+                            <option value="0">High (720p)</option>
+                            <option value="1">Low (360p)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <h2 id="cam-title" class="text-xl font-bold text-white">Pilih Kamera...</h2>
+                    <p class="text-gray-400 text-sm mt-1">Sumber: Diskominfo Kota Pekalongan</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 rounded-xl border border-gray-800 h-[500px] overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-gray-800 bg-gray-800/50">
+                    <h3 class="font-bold text-white text-sm">DAFTAR KAMERA</h3>
+                </div>
+                <div class="flex-1 overflow-y-auto p-2 space-y-2 custom-scroll" id="cctv-list">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const streams = [
+        {name: "JALAN KURINCI", url: "https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8"},
+        {name: "KEC PEKALONGAN UTARA", url: "https://rtsp.pekalongankota.go.id/stream/097799c5-4130-48b8-8c94-869b1960d0c1/channel/0/hls/live/index.m3u8"},
+        {name: "ALUN ALUN SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8"},
+        {name: "PERTIGAAN SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"},
+        {name: "SOROGENEN", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
+        {name: "POSIS BARAT", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8"},
+        {name: "POSIS UTARA", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {name: "POSIS TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8"},
+        {name: "DEPAN KOMINFO", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8"},
+        {name: "MATAHARI", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
+        {name: "TERMINAL TENGAH", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"}
+    ];
+
+    const video = document.getElementById('main-video');
+    const listContainer = document.getElementById('cctv-list');
+    const title = document.getElementById('cam-title');
+    let hls;
+
+    function loadStream(url, name) {
+        title.innerText = name;
+        if (Hls.isSupported()) {
+            if(hls) hls.destroy();
+            hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = url;
+            video.addEventListener('loadedmetadata', () => video.play());
+        }
+    }
+
+    // Render List
+    streams.forEach((s, i) => {
+        const item = document.createElement('div');
+        item.className = "p-3 bg-black/40 hover:bg-brand-blue rounded cursor-pointer transition flex items-center gap-3 border border-gray-800";
+        item.innerHTML = `<i class="fa-solid fa-video text-gray-400"></i> <span class="text-sm text-white font-medium">${s.name}</span>`;
+        item.onclick = () => loadStream(s.url, s.name);
+        listContainer.appendChild(item);
+        if(i===0) loadStream(s.url, s.name); // Auto play first
+    });
+</script>
+
+<style>
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #111; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+</style>
+{% endblock %}
