@@ -9,7 +9,7 @@ import csv
 from datetime import datetime
 from collections import Counter
 
-# Import Library dengan Safety Check
+# Import Library dengan Error Handling
 try:
     import firebase_admin
     from firebase_admin import credentials, db
@@ -35,7 +35,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "b/g5n!o0?hs&dm!fn8md7")
 ref = None
 try:
     cred = None
-    # Cek Env Vercel
+    # Cek Env Vercel (Prioritas Utama)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         pk = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
         cred = credentials.Certificate({
@@ -51,7 +51,7 @@ try:
             "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
             "universe_domain": "googleapis.com"
         })
-    # Cek Localhost
+    # Cek Localhost (Prioritas Kedua)
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -67,7 +67,7 @@ try:
 except Exception as e:
     print(f"❌ Firebase Error: {e}")
 
-# --- 2. EMAIL ---
+# --- 2. EMAIL CONFIG ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -77,7 +77,7 @@ app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- 3. API SETUP ---
+# --- 3. API CONFIG ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
 
@@ -88,7 +88,7 @@ try:
         system_instruction="Anda adalah Asisten KTVDI. Jawab singkat seputar TV Digital, STB, dan Bola.")
 except: pass
 
-# --- GLOBAL CONTEXT (BERITA UNTUK SEMUA HALAMAN) ---
+# --- GLOBAL CONTEXT (WAJIB ADA AGAR TIDAK ERROR 500) ---
 @app.context_processor
 def inject_global_vars():
     news_list = []
@@ -105,7 +105,7 @@ def inject_global_vars():
     
     return dict(breaking_news=news_list)
 
-# --- ROUTES ---
+# --- ROUTES UTAMA ---
 
 @app.route("/")
 def home():
@@ -152,7 +152,7 @@ def chatbot_api():
 @app.route('/', methods=['POST'])
 def chatbot_legacy(): return chatbot_api()
 
-# --- AUTH & CRUD ---
+# --- ROUTES DATABASE & AUTH ---
 
 @app.route('/about')
 def about(): return render_template('about.html')
@@ -262,6 +262,7 @@ def register():
         if ref:
             otp = str(random.randint(100000, 999999))
             ref.child(f"pending_users/{u}").set({"nama":n, "email":e, "password":hash_password(p), "otp":otp})
+            # mail.send(...) # Uncomment di production
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
     return render_template("register.html")
