@@ -28,12 +28,15 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-app.secret_key = 'b/g5n!o0?hs&dm!fn8md7'
+# Secret Key (Gunakan env var di Vercel agar session aman)
+app.secret_key = os.environ.get("SECRET_KEY", 'b/g5n!o0?hs&dm!fn8md7')
 
-# --- INISIALISASI FIREBASE (SAFE MODE UNTUK VERCEL) ---
+# --- 1. KONEKSI FIREBASE (FIXED FOR VERCEL) ---
+# Menggunakan Environment Variable agar tidak crash mencari file json
+ref = None
 try:
     cred = None
-    # Cek Environment Variable (Vercel)
+    # Cek apakah ada private key di Environment Vercel
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred_dict = {
             "type": "service_account",
@@ -49,7 +52,7 @@ try:
             "universe_domain": "googleapis.com"
         }
         cred = credentials.Certificate(cred_dict)
-    # Cek File Lokal (Localhost)
+    # Jika di Localhost dan ada file json
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -61,45 +64,46 @@ try:
         ref = db.reference('/')
         print("✅ Firebase Connected!")
     else:
-        print("⚠️ Warning: Firebase Credentials Missing")
-        ref = None
+        print("⚠️ Warning: Firebase Credential Missing")
+
 except Exception as e:
     print(f"❌ Firebase Error: {e}")
-    ref = None
 
-# --- CONFIG EMAIL ---
+# --- 2. CONFIG EMAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
+app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg' 
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- CONFIG API LAIN ---
+# --- 3. CONFIG API ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
+newsapi = None
+if NEWS_API_KEY:
+    try: newsapi = NewsApiClient(api_key=NEWS_API_KEY)
+    except: pass
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 try:
     model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Anda adalah Asisten KTVDI. Jawab singkat seputar TV Digital.")
+        system_instruction="Anda adalah Asisten KTVDI. Jawab singkat dan ramah seputar TV Digital.")
 except:
     model = None
 
-# --- FITUR UTAMA: INJECT BERITA KE SEMUA HALAMAN (MENCEGAH CRASH) ---
+# --- PENTING: INJECT VARIABLE KE BASE.HTML ---
+# Ini mencegah error di base.html saat membuka halaman selain Home
 @app.context_processor
 def inject_global_vars():
-    """Fungsi ini otomatis mengirim berita ke Base.html di SETIAP halaman"""
     news_list = []
     try:
         rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo&hl=id&gl=ID&ceid=ID:id'
         feed = feedparser.parse(rss_url)
         for entry in feed.entries[:7]:
             news_list.append(entry.title)
-    except:
-        pass
+    except: pass
     
     if not news_list:
         news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat"]
@@ -110,7 +114,8 @@ def inject_global_vars():
 
 @app.route("/")
 def home():
-    siaran_data = ref.child('siaran').get() if ref else {} or {}
+    siaran_data = {}
+    if ref: siaran_data = ref.child('siaran').get() or {}
     
     # Statistik
     jumlah_wilayah_layanan = 0
@@ -165,8 +170,7 @@ def chatbot():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ROUTES LAIN (LOGIN, REGISTER, DLL - TETAP UTUH) ---
-# Saya persingkat penulisannya disini agar muat, tapi logikanya 100% SAMA.
+# --- ROUTES LAIN ---
 
 @app.route('/about')
 def about(): return render_template('about.html')
@@ -199,7 +203,6 @@ def get_siaran():
 
 @app.route('/berita')
 def berita():
-    # Logic berita (sama seperti sebelumnya)
     try:
         feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
         articles = feed.entries
@@ -242,8 +245,10 @@ def add_data():
         if ref:
             ref.child(f"siaran/{p}/{w_cl}/{m.strip()}").set({
                 "siaran": [x.strip() for x in s],
+                "last_updated_by_username": session['user'],
                 "last_updated_by_name": session['nama'],
-                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y")
+                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
             })
         return redirect(url_for('dashboard'))
     return render_template('add_data_form.html', provinsi_list=list((data or {}).values()))
@@ -258,7 +263,8 @@ def edit_data(provinsi, wilayah, mux):
             ref.child(f"siaran/{provinsi}/{w_cl}/{mux}").update({
                 "siaran": sorted([x.strip() for x in s]),
                 "last_updated_by_name": session['nama'],
-                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y")
+                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
             })
         return redirect(url_for('dashboard'))
     return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
@@ -269,7 +275,7 @@ def delete_data(provinsi, wilayah, mux):
     if ref: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
     return redirect(url_for('dashboard'))
 
-# Route Register & Forgot Pass (Disederhanakan tapi Logic Sama)
+# Route Register & Forgot Pass
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -299,6 +305,35 @@ def forgot_password(): return render_template("forgot-password.html")
 def verify_otp(): return render_template("verify-otp.html")
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password(): return render_template("reset-password.html")
+
+@app.route('/download-sql')
+def download_sql():
+    users_data = ref.child('users').get() if ref else {}
+    if not users_data: return "No data", 404
+    sql_queries = []
+    for uname, udata in users_data.items():
+        sql_queries.append(f"INSERT INTO users VALUES ('{uname}', '{udata['nama']}', '{udata['email']}', '{udata['password']}');")
+    return send_file(io.BytesIO("\n".join(sql_queries).encode()), as_attachment=True, download_name="export_users.sql", mimetype="text/plain")
+
+@app.route('/download-csv')
+def download_csv():
+    users_data = ref.child('users').get() if ref else {}
+    if not users_data: return "No data", 404
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['username', 'nama', 'email', 'password'])
+    for uname, udata in users_data.items():
+        writer.writerow([uname, udata['nama'], udata['email'], udata['password']])
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8')), as_attachment=True, download_name="export_users.csv", mimetype="text/csv")
+
+@app.route("/test-firebase")
+def test_firebase():
+    try:
+        data = ref.get() if ref else None
+        return f"Connected! Data: {str(data)[:100]}..." if data else "Empty"
+    except Exception as e:
+        return f"Error: {e}"
 
 @app.route('/sitemap.xml')
 def sitemap(): return send_file('static/sitemap.xml')
