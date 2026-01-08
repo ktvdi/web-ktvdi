@@ -28,8 +28,8 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Secret Key (Gunakan Env atau Fallback)
-app.secret_key = os.environ.get('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
+# Secret Key
+app.secret_key = os.environ.get("SECRET_KEY", "b/g5n!o0?hs&dm!fn8md7")
 
 # --- 1. KONEKSI FIREBASE (VERCEL SAFE) ---
 ref = None
@@ -37,9 +37,8 @@ try:
     cred = None
     # Cek Environment Variable (Vercel)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Membersihkan format private key yang sering rusak saat copy-paste di Vercel
+        # Membersihkan format private key
         private_key = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
-        
         cred_dict = {
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -54,8 +53,6 @@ try:
             "universe_domain": "googleapis.com"
         }
         cred = credentials.Certificate(cred_dict)
-    
-    # Cek File Lokal (Localhost)
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -67,10 +64,10 @@ try:
         ref = db.reference('/')
         print("✅ Firebase Connected!")
     else:
-        print("⚠️ Warning: Firebase Credentials belum diset di Vercel.")
+        print("⚠️ Warning: Firebase Credentials Not Found")
 
 except Exception as e:
-    print(f"❌ Firebase Error (App tetap jalan): {e}")
+    print(f"❌ Firebase Error: {e}")
 
 # --- 2. CONFIG EMAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -78,42 +75,27 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg' 
+app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- 3. CONFIG API (SAFE MODE) ---
-# NewsAPI
+# --- 3. CONFIG API ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = None
 if NEWS_API_KEY:
     try: newsapi = NewsApiClient(api_key=NEWS_API_KEY)
     except: pass
 
-# Gemini AI
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# Gemini AI (Cek 2 kemungkinan nama variabel)
+GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_APP_KEY")
+genai.configure(api_key=GOOGLE_API_KEY)
 model = None
 try:
+    # Model flash lebih cepat & murah resource
     model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Anda adalah Asisten KTVDI. Jawab singkat dan ramah.")
-except: pass
-
-# --- CONTEXT PROCESSOR (Global Variables) ---
-@app.context_processor
-def inject_global_vars():
-    # Fitur Ticker Berita (RSS)
-    news_list = []
-    try:
-        rss_url = 'https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo&hl=id&gl=ID&ceid=ID:id'
-        feed = feedparser.parse(rss_url)
-        for entry in feed.entries[:7]:
-            news_list.append(entry.title)
-    except: pass
-    
-    if not news_list:
-        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru"]
-        
-    return dict(breaking_news=news_list)
+        system_instruction="Kamu adalah Asisten KTVDI. Jawab singkat, padat, dan ramah tentang TV Digital.")
+except:
+    pass
 
 # --- ROUTES ---
 
@@ -124,57 +106,73 @@ def home():
         try: siaran_data = ref.child('siaran').get() or {}
         except: pass
     
-    jumlah_wilayah_layanan = 0
-    jumlah_siaran = 0
-    jumlah_penyelenggara_mux = 0 
-    siaran_counts = Counter()
-    last_updated_time = None 
-    chart_provinsi_labels = []
-    chart_provinsi_data = []
+    # Statistik Simple
+    stats = {"wilayah": 0, "mux": 0, "channel": 0}
+    
+    chart_labels = []
+    chart_data = []
 
-    for provinsi, provinsi_data in siaran_data.items():
-        if isinstance(provinsi_data, dict):
-            jumlah_wilayah_provinsi = len(provinsi_data)
-            chart_provinsi_labels.append(provinsi)
-            chart_provinsi_data.append(jumlah_wilayah_provinsi)
-            jumlah_wilayah_layanan += jumlah_wilayah_provinsi
-
-            for wilayah, wilayah_data in provinsi_data.items():
-                if isinstance(wilayah_data, dict):
-                    jumlah_penyelenggara_mux += len(wilayah_data)
-                    for penyelenggara, details in wilayah_data.items():
-                        if 'siaran' in details:
-                            jumlah_siaran += len(details['siaran'])
-                            for s in details['siaran']: siaran_counts[s.lower()] += 1
-                        if 'last_updated_date' in details:
-                            try:
-                                cur_time = datetime.strptime(details['last_updated_date'], '%d-%m-%Y')
-                                if not last_updated_time or cur_time > last_updated_time:
-                                    last_updated_time = cur_time
-                            except: pass
-
-    most_common = siaran_counts.most_common(1)[0] if siaran_counts else ("-", 0)
-    last_update_str = last_updated_time.strftime('%d-%m-%Y') if last_updated_time else "-"
+    for provinsi, p_data in siaran_data.items():
+        if isinstance(p_data, dict):
+            w_count = len(p_data)
+            stats["wilayah"] += w_count
+            chart_labels.append(provinsi)
+            chart_data.append(w_count)
+            
+            for wilayah, w_data in p_data.items():
+                if isinstance(w_data, dict):
+                    stats["mux"] += len(w_data)
+                    for mux, m_data in w_data.items():
+                        if 'siaran' in m_data:
+                            stats["channel"] += len(m_data['siaran'])
 
     return render_template('index.html', 
-                           most_common_siaran_name=most_common[0].upper(),
-                           most_common_siaran_count=most_common[1],
-                           jumlah_wilayah_layanan=jumlah_wilayah_layanan,
-                           jumlah_siaran=jumlah_siaran, 
-                           jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
-                           last_updated_time=last_update_str,
-                           chart_labels=json.dumps(chart_provinsi_labels),
-                           chart_data=json.dumps(chart_provinsi_data))
+                           stats=stats,
+                           chart_labels=json.dumps(chart_labels),
+                           chart_data=json.dumps(chart_data))
 
-@app.route('/', methods=['POST'])
-def chatbot():
-    data = request.get_json()
-    if not model: return jsonify({"error": "Offline Mode"}), 503
+# --- API KHUSUS BERITA (AGAR TIDAK BERAT DI HOME) ---
+@app.route('/api/news')
+def api_news():
+    """Endpoint khusus untuk mengambil berita via AJAX"""
+    news_list = []
     try:
-        res = model.generate_content(data.get("prompt"))
-        return jsonify({"response": res.text})
+        # Gunakan RSS Google News yang lebih umum agar pasti ada isi
+        rss_url = 'https://news.google.com/rss/search?q=indonesia+teknologi+digital&hl=id&gl=ID&ceid=ID:id'
+        feed = feedparser.parse(rss_url)
+        for entry in feed.entries[:10]:
+            news_list.append(entry.title)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"RSS Error: {e}")
+        
+    if not news_list:
+        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru", "Pastikan STB Bersertifikat Kominfo"]
+    
+    return jsonify(news_list)
+
+# --- CHATBOT API (FIXED) ---
+@app.route('/chatbot', methods=['POST'])
+def chatbot_api():
+    data = request.get_json()
+    prompt = data.get("prompt")
+    
+    if not model:
+        # Jika model belum siap/API key salah
+        return jsonify({"error": "Maaf, server AI sedang sibuk. Cek kembali nanti."}), 503
+
+    try:
+        response = model.generate_content(prompt)
+        return jsonify({"response": response.text})
+    except Exception as e:
+        # Menangani error kuota atau error lain
+        return jsonify({"error": "Maaf, saya sedang istirahat sebentar (Kuota Limit). Tanya lagi nanti ya!"}), 429
+
+# Fallback route chatbot lama
+@app.route('/', methods=['POST'])
+def chatbot_legacy():
+    return chatbot_api()
+
+# --- ROUTES LAIN ---
 
 @app.route('/about')
 def about(): return render_template('about.html')
@@ -183,6 +181,27 @@ def about(): return render_template('about.html')
 def daftar_siaran():
     data = ref.child("provinsi").get() if ref else {}
     return render_template("daftar-siaran.html", provinsi_list=list((data or {}).values()))
+
+@app.route("/get_wilayah")
+def get_wilayah():
+    p = request.args.get("provinsi")
+    d = ref.child(f"siaran/{p}").get() if ref else {}
+    return jsonify({"wilayah": list((d or {}).keys())})
+
+@app.route("/get_mux")
+def get_mux():
+    p = request.args.get("provinsi")
+    w = request.args.get("wilayah")
+    d = ref.child(f"siaran/{p}/{w}").get() if ref else {}
+    return jsonify({"mux": list((d or {}).keys())})
+
+@app.route("/get_siaran")
+def get_siaran():
+    p = request.args.get("provinsi")
+    w = request.args.get("wilayah")
+    m = request.args.get("mux")
+    d = ref.child(f"siaran/{p}/{w}/{m}").get() if ref else {}
+    return jsonify(d or {"siaran": []})
 
 @app.route('/berita')
 def berita():
@@ -230,8 +249,7 @@ def add_data():
                 "siaran": [x.strip() for x in s],
                 "last_updated_by_username": session['user'],
                 "last_updated_by_name": session['nama'],
-                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y"),
-                "last_updated_time": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%H:%M:%S WIB")
+                "last_updated_date": datetime.now(pytz.timezone('Asia/Jakarta')).strftime("%d-%m-%Y")
             })
         return redirect(url_for('dashboard'))
     return render_template('add_data_form.html', provinsi_list=list((data or {}).values()))
@@ -264,6 +282,7 @@ def register():
         if ref:
             otp = str(random.randint(100000, 999999))
             ref.child(f"pending_users/{u}").set({"nama":n, "email":e, "password":hash_password(p), "otp":otp})
+            # mail.send(...) # Uncomment di prod
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
     return render_template("register.html")
@@ -286,37 +305,14 @@ def verify_otp(): return render_template("verify-otp.html")
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password(): return render_template("reset-password.html")
 
-@app.route("/get_wilayah")
-def get_wilayah():
-    p = request.args.get("provinsi")
-    d = ref.child(f"siaran/{p}").get() if ref else {}
-    return jsonify({"wilayah": list((d or {}).keys())})
-
-@app.route("/get_mux")
-def get_mux():
-    p = request.args.get("provinsi")
-    w = request.args.get("wilayah")
-    d = ref.child(f"siaran/{p}/{w}").get() if ref else {}
-    return jsonify({"mux": list((d or {}).keys())})
-
-@app.route("/get_siaran")
-def get_siaran():
-    p = request.args.get("provinsi")
-    w = request.args.get("wilayah")
-    m = request.args.get("mux")
-    d = ref.child(f"siaran/{p}/{w}/{m}").get() if ref else {}
-    return jsonify(d or {"siaran": []})
-
-@app.route('/sitemap.xml')
-def sitemap(): return send_file('static/sitemap.xml')
-
-# Route Dummy untuk menghindari error di template jika link diklik
 @app.route('/download-sql')
 def download_sql(): return "SQL Download"
 @app.route('/download-csv')
 def download_csv(): return "CSV Download"
 @app.route("/test-firebase")
 def test_firebase(): return "Firebase Connected" if ref else "Error"
+@app.route('/sitemap.xml')
+def sitemap(): return send_file('static/sitemap.xml')
 
 if __name__ == "__main__":
     app.run(debug=True)
