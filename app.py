@@ -30,13 +30,11 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "b/g5n!o0?hs&dm!fn8md7")
 
-# --- KONEKSI FIREBASE (VERCEL COMPATIBLE) ---
-# Saya ubah sedikit agar tidak crash di Vercel (karena Vercel tidak bisa baca file json fisik)
+# --- KONEKSI FIREBASE ---
 ref = None
 try:
     cred = None
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Mode Vercel
         pk = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
         cred = credentials.Certificate({
             "type": "service_account",
@@ -52,7 +50,6 @@ try:
             "universe_domain": "googleapis.com"
         })
     elif os.path.exists('credentials.json'):
-        # Mode Lokal
         cred = credentials.Certificate('credentials.json')
 
     if cred:
@@ -63,7 +60,7 @@ try:
 except Exception as e:
     print(f"❌ Firebase Error: {e}")
 
-# --- EMAIL ---
+# --- CONFIG LAIN ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -73,19 +70,16 @@ app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- API ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_APP_KEY"))
 model = None
 try:
-    # Pakai 1.5-flash yang stabil. 2.5 belum tentu tersedia di semua region key.
     model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Anda adalah Asisten Profesional KTVDI. Jawab singkat dan solutif.")
+        system_instruction="Anda adalah Asisten Profesional KTVDI. Jawab singkat dan solutif seputar TV Digital.")
 except: pass
 
-# --- GLOBAL VARIABLES (PENTING UNTUK TICKER & BASE.HTML) ---
 @app.context_processor
 def inject_global_vars():
     news_list = []
@@ -94,7 +88,7 @@ def inject_global_vars():
         feed = feedparser.parse(rss_url)
         for entry in feed.entries[:8]: news_list.append(entry.title)
     except: pass
-    if not news_list: news_list = ["Selamat Datang di KTVDI", "Update TV Digital Terbaru"]
+    if not news_list: news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru"]
     return dict(breaking_news=news_list)
 
 # --- ROUTES ---
