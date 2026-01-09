@@ -1,230 +1,215 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-<div class="bg-[#0b0f19] h-screen w-full flex flex-col md:flex-row overflow-hidden font-['Inter'] text-slate-300 relative selection:bg-cyan-500/30">
+<div class="bg-[#0f172a] min-h-screen w-full flex flex-col font-['Inter'] text-slate-300 overflow-hidden">
 
-    <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div class="absolute top-[-20%] right-[-10%] w-[800px] h-[800px] bg-blue-600/5 rounded-full blur-[120px]"></div>
-        <div class="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-cyan-600/5 rounded-full blur-[100px]"></div>
-        <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]"></div>
-    </div>
-
-    <aside class="w-full md:w-80 lg:w-96 bg-[#0f1422]/80 backdrop-blur-xl border-r border-white/5 flex flex-col z-20 transition-all duration-300 absolute md:relative h-full transform -translate-x-full md:translate-x-0" id="sidebar">
-        
-        <div class="p-5 border-b border-white/5 flex flex-col gap-1">
-            <div class="flex items-center justify-between">
-                <h1 class="text-white font-bold text-lg tracking-tight flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                        <i class="fa-solid fa-eye text-white text-xs"></i>
-                    </div>
-                    PKL MONITOR
-                </h1>
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
-                    <i class="fa-solid fa-xmark text-xl"></i>
-                </button>
+    <nav class="bg-[#1e293b] border-b border-slate-700/50 h-16 flex items-center justify-between px-4 lg:px-6 shrink-0 z-30 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-9 bg-yellow-500/10 border border-yellow-500/30 rounded flex items-center justify-center">
+                <i class="fa-solid fa-building-columns text-yellow-500 text-sm"></i>
             </div>
-            <div class="mt-4 relative group">
-                <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-500 group-focus-within:text-cyan-400 transition-colors text-xs"></i>
-                <input type="text" id="search-cctv" onkeyup="filterCCTV()" 
-                    class="w-full bg-[#05080f] border border-white/10 rounded-lg py-2 pl-9 pr-3 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50 transition-all" 
-                    placeholder="Cari lokasi CCTV...">
+            <div class="flex flex-col">
+                <h1 class="text-white font-bold text-sm tracking-tight leading-tight">PEKALONGAN <span class="text-blue-400">SMART CITY</span></h1>
+                <span class="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Dinas Perhubungan Kota Pekalongan</span>
             </div>
         </div>
-
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1" id="cctv-list">
+        
+        <div class="hidden lg:flex items-center gap-6">
+            <div class="flex flex-col items-end">
+                <span id="clock" class="text-white font-['JetBrains_Mono'] font-bold text-sm">00:00:00</span>
+                <span id="date" class="text-[10px] text-slate-500 uppercase font-medium">...</span>
             </div>
-
-        <div class="p-3 border-t border-white/5 bg-[#0a0e17]">
-            <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono">
-                <span>SERVER: <span class="text-green-500">ONLINE</span></span>
-                <span>V.2.4.0</span>
+            <div class="h-8 w-[1px] bg-slate-700"></div>
+            <div class="flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-xs font-bold text-green-500 tracking-wider">SYSTEM ONLINE</span>
             </div>
         </div>
-    </aside>
+    </nav>
 
-    <main class="flex-1 flex flex-col relative z-10 h-full w-full">
-        
-        <header class="h-16 border-b border-white/5 bg-[#0b0f19]/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0">
-            <div class="flex items-center gap-4">
-                <button onclick="toggleSidebar()" class="md:hidden p-2 text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <div>
-                    <h2 id="cam-title" class="text-white font-semibold text-lg leading-tight">Memuat Kamera...</h2>
-                    <div class="flex items-center gap-2 text-xs text-slate-400">
-                        <i class="fa-solid fa-location-dot text-cyan-500"></i>
-                        <span id="cam-location">Pekalongan City Network</span>
-                    </div>
-                </div>
-            </div>
+    <div class="flex flex-col lg:flex-row flex-1 overflow-hidden relative">
 
-            <div class="flex items-center gap-4">
-                <div class="hidden sm:flex flex-col items-end mr-2">
-                    <span id="clock" class="text-white font-['JetBrains_Mono'] font-bold text-sm">00:00:00</span>
-                    <span id="date" class="text-[10px] text-slate-500 uppercase font-medium">...</span>
-                </div>
-                <div class="h-8 w-[1px] bg-white/10 hidden sm:block"></div>
-                <div class="flex items-center gap-2">
-                    <span class="relative flex h-2.5 w-2.5">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                    </span>
-                    <span class="text-xs font-bold text-red-500 tracking-wider">LIVE</span>
-                </div>
-            </div>
-        </header>
-
-        <div class="flex-1 bg-black relative flex items-center justify-center overflow-hidden group">
+        <main class="flex-1 bg-black relative flex flex-col order-1 lg:order-2 h-[40vh] lg:h-auto">
             
-            <video id="main-video" class="w-full h-full max-h-screen object-contain bg-black" autoplay muted playsinline></video>
+            <div class="relative w-full h-full flex items-center justify-center bg-black overflow-hidden group">
+                <video id="main-video" class="w-full h-full object-contain" autoplay muted playsinline></video>
 
-            <div id="loading-overlay" class="absolute inset-0 bg-[#0b0f19] flex flex-col items-center justify-center z-30">
-                <div class="relative w-16 h-16">
-                    <div class="absolute w-full h-full border-2 border-cyan-500/20 rounded-full"></div>
-                    <div class="absolute w-full h-full border-t-2 border-cyan-500 rounded-full animate-spin"></div>
+                <div class="absolute top-4 left-4 z-20 pointer-events-none drop-shadow-md">
+                    <h2 id="cam-title" class="text-white font-bold text-lg lg:text-xl bg-black/50 px-2 py-1 rounded inline-block">Memuat Kamera...</h2>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase">ASET PEMKOT</span>
+                        <span class="text-xs text-slate-200 bg-black/50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-red-500 text-[10px]"></i> <span id="cam-location">Pekalongan City</span>
+                        </span>
+                    </div>
                 </div>
-                <p class="mt-4 text-cyan-500 text-xs font-mono animate-pulse">ESTABLISHING CONNECTION...</p>
-            </div>
 
-            <div id="error-overlay" class="absolute inset-0 bg-[#0b0f19]/90 backdrop-blur-sm flex flex-col items-center justify-center z-30 hidden">
-                <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
-                    <i class="fa-solid fa-signal-slash text-red-500 text-xl"></i>
+                <div id="loading-overlay" class="absolute inset-0 bg-[#0f172a] flex flex-col items-center justify-center z-30">
+                    <div class="w-10 h-10 border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin mb-3"></div>
+                    <span class="text-slate-400 text-xs font-mono tracking-widest animate-pulse">CONNECTING...</span>
                 </div>
-                <h3 class="text-white font-medium">Sinyal Terputus</h3>
-                <p class="text-slate-400 text-sm mt-1 mb-6 max-w-xs text-center">Kamera sedang offline atau mengalami gangguan jaringan.</p>
-                <button onclick="reloadStream()" class="px-5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs text-white transition flex items-center gap-2">
-                    <i class="fa-solid fa-rotate-right"></i> Coba Hubungkan Ulang
-                </button>
-            </div>
 
-            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-[#0f1422]/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-4 group-hover:translate-y-0 z-20">
-                <button onclick="toggleMute()" class="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition relative tooltip" data-tip="Mute/Unmute">
-                    <i id="mute-icon" class="fa-solid fa-volume-xmark"></i>
-                </button>
-                <div class="w-[1px] h-4 bg-white/10 mx-1"></div>
-                <button onclick="takeSnapshot()" class="p-2 text-slate-300 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-full transition tooltip" data-tip="Ambil Foto">
-                    <i class="fa-solid fa-camera"></i>
-                </button>
-                <button onclick="togglePiP()" class="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tooltip" data-tip="Picture in Picture">
-                    <i class="fa-solid fa-images"></i>
-                </button>
-                <button onclick="toggleFullscreen()" class="p-2 text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition tooltip" data-tip="Fullscreen">
-                    <i class="fa-solid fa-expand"></i>
-                </button>
-            </div>
+                <div id="error-overlay" class="absolute inset-0 bg-[#0f172a] z-30 hidden flex flex-col items-center justify-center text-center px-4">
+                    <i class="fa-solid fa-video-slash text-slate-600 text-4xl mb-3"></i>
+                    <p class="text-slate-300 font-medium text-sm">Sinyal Kamera Terputus</p>
+                    <p class="text-slate-500 text-xs mt-1 mb-4">Perangkat offline atau gangguan jaringan dari sumber.</p>
+                    <button onclick="reloadStream()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-md transition font-medium">
+                        Coba Lagi
+                    </button>
+                </div>
 
-            <div class="absolute top-6 left-6 pointer-events-none hidden md:block opacity-50">
-                <div class="flex flex-col gap-1 text-[10px] font-mono text-cyan-500">
-                    <span>REC ● [AUTO]</span>
-                    <span>ISO: AUTO</span>
-                    <span>WDR: ON</span>
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+                    <button onclick="toggleMute()" class="text-white hover:text-blue-400 transition" title="Mute/Unmute"><i id="mute-icon" class="fa-solid fa-volume-xmark"></i></button>
+                    <button onclick="takeSnapshot()" class="text-white hover:text-blue-400 transition" title="Snapshot"><i class="fa-solid fa-camera"></i></button>
+                    <button onclick="toggleFullscreen()" class="text-white hover:text-blue-400 transition" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
                 </div>
             </div>
-            <div class="absolute bottom-6 right-6 pointer-events-none hidden md:block opacity-50">
-                <div class="text-[10px] font-mono text-cyan-500 text-right">
-                    <span>BITRATE: <span id="bitrate">0</span> kbps</span>
+
+            <div class="bg-blue-900/30 border-y border-blue-500/20 py-1 px-4 overflow-hidden shrink-0">
+                <p class="text-[10px] text-blue-200 font-mono whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-4">
+                    <span class="font-bold text-blue-400">INFO:</span>
+                    <span>Tampilan CCTV ini adalah aset resmi Pemerintah Kota Pekalongan. Dilarang menyalahgunakan rekaman.</span>
+                    <span class="opacity-50">|</span>
+                    <span>BITRATE: <span id="bitrate" class="text-white">0</span> kbps</span>
+                </p>
+            </div>
+        </main>
+
+        <aside class="w-full lg:w-[400px] bg-[#1e293b] border-r border-slate-700/50 flex flex-col order-2 lg:order-1 h-auto lg:h-full z-10 shadow-xl">
+            
+            <div class="p-4 border-b border-slate-700/50 bg-[#1e293b] sticky top-0 z-10">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-white font-semibold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul text-slate-400"></i> Daftar Kamera
+                    </h3>
+                    <span class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full" id="count-display">36 Unit</span>
+                </div>
+                <div class="relative">
+                    <input type="text" id="search-cctv" onkeyup="filterCCTV()" 
+                        class="w-full bg-[#0f172a] border border-slate-600 text-white text-sm rounded-md py-2.5 pl-9 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-slate-500"
+                        placeholder="Cari jalan, lokasi...">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
                 </div>
             </div>
-        </div>
-    </main>
+
+            <div class="flex-1 overflow-y-auto custom-scroll bg-[#161f2e]" id="cctv-list">
+                </div>
+
+            <div class="p-2 bg-[#0f172a] text-center border-t border-slate-700/50">
+                <p class="text-[10px] text-slate-500">
+                    &copy; 2026 Diskominfo & Dishub Kota Pekalongan
+                </p>
+            </div>
+        </aside>
+
+    </div>
 </div>
 
 <script>
-    // DATA STREAM (Sama seperti sebelumnya)
+    // --- DATA STREAMS ---
     const streams = [
-        {name: "Ponolawen", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
-        {name: "Alun-Alun Barat", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
-        {name: "Depan Taspen 2", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
-        {name: "Dr Cipto", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
-        {name: "Ruang Amarta", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
-        {name: "Grosir Setono", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
-        {name: "Grogolan PTZ", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
-        {name: "Depan Balaikota 1", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
-        {name: "Gambaran", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
-        {name: "Polsek Timur", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
-        {name: "Alun-Alun", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
-        {name: "THR", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
-        {name: "THR Selatan", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/4/hls/live/index.m3u8"},
-        {name: "Stasiun", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
-        {name: "Kec Pekalongan Selatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
-        {name: "Depan Taspen 1", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
-        {name: "Perempatan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
-        {name: "Perempatan Kominfo 2", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
-        {name: "Pusri Timur", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
-        {name: "Pusri Barat", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8"},
-        {name: "Ahmad Yani", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
-        {name: "Ponolawen Timur", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/1/hls/live/index.m3u8"},
-        {name: "Ponolawen Selatan", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/2/hls/live/index.m3u8"},
-        {name: "Pendopo Mataram", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
-        {name: "Tirto Timur", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
-        {name: "Tirto Selatan", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/2/hls/live/index.m3u8"},
-        {name: "Ahmad Yani Timur", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/3/hls/live/index.m3u8"},
-        {name: "Parkir Depan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8"},
-        {name: "Dharma Bakti Timur", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8"},
-        {name: "Dharma Bakti Barat", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/1/hls/live/index.m3u8"},
-        {name: "Dharma Bakti Selatan", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8"},
-        {name: "Pertigaan Podosugih Utara", url: "https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8"},
-        {name: "Muhammadiyah Barat", url: "https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8"},
-        {name: "Matahari", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
-        {name: "Terminal Tengah", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
-        {name: "Terminal Timur", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8"},
-        {name: "Pertigaan Podo Sugih Timur", url: "https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8"},
-        {name: "Grogolan Timur", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/1/hls/live/index.m3u8"},
-        {name: "Mataram Pojok Utara", url: "https://rtsp.pekalongankota.go.id/stream/4e2c3d4b-7cb1-40fa-9e56-3cfc9693412f/channel/0/hls/live/index.m3u8"},
-        {name: "Pertigaan Kel Klego", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8"},
-        {name: "Pertigaan Kel Klego 2", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8"},
-        {name: "Sorogenen", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
-        {name: "Stasiun Timur", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/1/hlsll/live/index.m3u8"},
-        {name: "Pusri Timur HLSLL", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hlsll/live/index.m3u8"},
-        {name: "Posis Barat", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8"},
-        {name: "Posis Utara", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
-        {name: "Posis Timur", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8"}
+        {name: "Ponolawen", loc: "KAMERA PTZ", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
+        {name: "Alun-Alun Barat", loc: "Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
+        {name: "Depan Taspen 2", loc: "Mataram", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
+        {name: "Dr Cipto", loc: "Kamera PTZ", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
+        {name: "Ruang Amarta", loc: "Setda", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
+        {name: "Grosir Setono", loc: "Exit Tol Kota Pekalongan", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
+        {name: "Grogolan PTZ", loc: "Persimpangan", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
+        {name: "Depan Balaikota 1", loc: "Mataram", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {name: "Gambaran", loc: "Panderasa", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
+        {name: "Polsek Timur", loc: "Kantor Polisi", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
+        {name: "Alun-Alun", loc: "Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
+        {name: "THR", loc: "Monumen Pekalongan", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
+        {name: "THR Selatan", loc: "THR WIDE", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/4/hls/live/index.m3u8"},
+        {name: "Stasiun", loc: "KAMERA PTZ Arah Stasiun", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
+        {name: "Kec Pekalongan Selatan", loc: "Kecamatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
+        {name: "Depan Taspen 1", loc: "Jalan Protokol", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
+        {name: "Perempatan Kominfo", loc: "MATARAM 1", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
+        {name: "Perempatan Kominfo 2", loc: "MATARAM 2", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
+        {name: "Pusri Timur", loc: "Pantura", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
+        {name: "Pusri Barat", loc: "Pantura", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8"},
+        {name: "Ahmad Yani", loc: "KAMERA PTZ", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
+        {name: "Ponolawen Timur", loc: "Persimpangan", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/1/hls/live/index.m3u8"},
+        {name: "Ponolawen Selatan", loc: "Arah Transmart", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/2/hls/live/index.m3u8"},
+        {name: "Pendopo Mataram", loc: "Pemerintahan", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {name: "Tirto Timur", loc: "Jalan Raya", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
+        {name: "Tirto Selatan", loc: "Ayam Gepuk", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/2/hls/live/index.m3u8"},
+        {name: "Ahmad Yani Timur", loc: "Bangjo Ahmad Yani", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/3/hls/live/index.m3u8"},
+        {name: "Parkir Depan Kominfo", loc: "Kantor Dinas", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8"},
+        {name: "Dharma Bakti Timur", loc: "Jensud", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8"},
+        {name: "Dharma Bakti Barat", loc: "Jensud", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/1/hls/live/index.m3u8"},
+        {name: "Dharma Bakti Selatan", loc: "Perumahan", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8"},
+        {name: "Pertigaan Podosugih Utara", loc: "Jalan Kurinci", url: "https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8"},
+        {name: "Muhammadiyah Barat", loc: "Jalan Mas Mansyur", url: "https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8"},
+        {name: "Matahari", loc: "Jalan Nusantara - Kompleks Alun Alun", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
+        {name: "Terminal Tengah", loc: "Pantura", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
+        {name: "Terminal Timur", loc: "Pantura", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8"},
+        {name: "Pertigaan Podo Sugih Timur", loc: "Kurinci", url: "https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8"},
+        {name: "Grogolan Timur", loc: "Persimpangan Grogolan", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/1/hls/live/index.m3u8"},
+        {name: "Mataram Pojok Utara", loc: "Lapangan Mataram", url: "https://rtsp.pekalongankota.go.id/stream/4e2c3d4b-7cb1-40fa-9e56-3cfc9693412f/channel/0/hls/live/index.m3u8"},
+        {name: "Pertigaan Kel Klego", loc: "Pemukiman", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8"},
+        {name: "Pertigaan Kel Klego 2", loc: "Pemukiman", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8"},
+        {name: "Sorogenen", loc: "Jalan Raya", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
+        {name: "Stasiun Timur", loc: "Depan Stasiun Pekalongan, arah KFC", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/1/hlsll/live/index.m3u8?_HLS_msn=30&_HLS_part=8"},
+        {name: "Pusri Timur HLSLL", loc: "Dekat Superindo", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hlsll/live/index.m3u8?_HLS_msn=34&_HLS_part=2"},
+        {name: "Posis Barat", loc: "Arah Grogolan", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8"},
+        {name: "Posis Utara", loc: "Arah Sop Buntut Bu Leman", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {name: "Posis Timur", loc: "Arah Ramayana atau Jakarta", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8"}
     ];
 
-    // State Variables
+    // --- VARIABLES ---
     let hls;
     let activeIndex = 0;
     const video = document.getElementById('main-video');
     const listContainer = document.getElementById('cctv-list');
     const titleEl = document.getElementById('cam-title');
+    const locEl = document.getElementById('cam-location');
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorOverlay = document.getElementById('error-overlay');
-    const sidebar = document.getElementById('sidebar');
+    const countDisplay = document.getElementById('count-display');
 
-    // Initialize System
+    // --- INITIALIZATION ---
     function init() {
+        countDisplay.innerText = `${streams.length} Unit`;
         renderList();
         loadStream(0);
         startClock();
         simulateBitrate();
     }
 
-    // Load Stream Logic
+    // --- STREAM LOGIC ---
     function loadStream(index) {
         activeIndex = index;
         const s = streams[index];
         titleEl.innerText = s.name;
-        
-        // Reset UI States
-        loadingOverlay.classList.remove('hidden'); 
+        locEl.innerText = s.loc || "Pekalongan City";
+
+        // Scroll list to active element (UX Improvement)
+        // setTimeout(() => {
+        //     const activeEl = document.getElementById(`cctv-item-${index}`);
+        //     if(activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // }, 100);
+
+        loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
+        
+        // Re-render list to show active state
         renderList(document.getElementById('search-cctv').value);
 
-        // HLS Configuration
         if (Hls.isSupported()) {
             if(hls) hls.destroy();
-            hls = new Hls({
-                manifestLoadingTimeOut: 15000,
-                levelLoadingTimeOut: 15000,
-                enableWorker: true
-            });
+            hls = new Hls({ enableWorker: true });
             hls.loadSource(s.url);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(e => console.log("Autoplay prevented"));
-                setTimeout(() => loadingOverlay.classList.add('hidden'), 800);
+                video.play().catch(e => {
+                    console.warn("Auto-play blocked by browser policy. Muting...");
+                    video.muted = true;
+                    video.play();
+                });
+                loadingOverlay.classList.add('hidden');
             });
             hls.on(Hls.Events.ERROR, (event, data) => {
                 if (data.fatal) {
@@ -244,42 +229,40 @@
                 errorOverlay.classList.remove('hidden');
             });
         }
-
-        // Close sidebar on mobile after selection
-        if (window.innerWidth < 768) {
-            sidebar.classList.add('-translate-x-full');
-        }
     }
 
-    // Render Sidebar List
     function renderList(filterText = "") {
         listContainer.innerHTML = "";
         streams.forEach((s, i) => {
             if (s.name.toLowerCase().includes(filterText.toLowerCase())) {
                 const isActive = i === activeIndex;
                 const item = document.createElement('div');
-                // Style yang modern dan "clickable"
+                item.id = `cctv-item-${i}`;
+                
+                // Professional List Design
                 item.className = `
-                    group p-3 rounded-lg cursor-pointer transition-all duration-200 flex items-center gap-3 border
+                    flex items-center gap-3 p-3 mx-2 my-1 rounded-md cursor-pointer transition-all border-l-4
                     ${isActive 
-                        ? 'bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border-cyan-500/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.15)]' 
-                        : 'bg-[#0b0f19] border-white/5 hover:bg-[#161b2c] hover:border-white/10'
+                        ? 'bg-[#1e293b] border-blue-500 shadow-sm' 
+                        : 'bg-transparent border-transparent hover:bg-[#1e293b]/50 hover:border-slate-600'
                     }
                 `;
                 
                 item.innerHTML = `
-                    <div class="relative w-10 h-8 rounded bg-black/40 flex items-center justify-center shrink-0 border border-white/5 overflow-hidden">
-                        <i class="fa-solid fa-video ${isActive ? 'text-cyan-400' : 'text-slate-600'} text-xs relative z-10"></i>
-                        ${isActive ? '<div class="absolute inset-0 bg-cyan-500/10 animate-pulse"></div>' : ''}
+                    <div class="relative w-12 h-9 bg-black rounded border border-slate-700 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-video ${isActive ? 'text-blue-400' : 'text-slate-600'} text-xs"></i>
+                        ${isActive ? '<div class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-black animate-pulse"></div>' : ''}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-xs font-semibold ${isActive ? 'text-cyan-100' : 'text-slate-400 group-hover:text-slate-200'} truncate transition">${s.name}</h4>
-                        <div class="flex items-center gap-1.5 mt-0.5">
-                            <span class="w-1 h-1 rounded-full ${isActive ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.8)]' : 'bg-slate-700'}"></span>
-                            <span class="text-[9px] text-slate-500 font-mono tracking-tight uppercase">ONLINE</span>
+                        <h4 class="text-xs font-semibold ${isActive ? 'text-blue-200' : 'text-slate-300'} truncate">${s.name}</h4>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-[10px] text-slate-500 truncate max-w-[120px]"><i class="fa-solid fa-map-pin text-[9px] mr-1"></i>${s.loc || 'Umum'}</span>
                         </div>
                     </div>
-                    ${isActive ? '<i class="fa-solid fa-chevron-right text-cyan-500 text-[10px]"></i>' : ''}
+                    ${isActive 
+                        ? '<span class="text-[9px] bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded border border-blue-600/30">VIEWING</span>' 
+                        : '<span class="text-[9px] text-slate-600">IDLE</span>'
+                    }
                 `;
                 item.onclick = () => loadStream(i);
                 listContainer.appendChild(item);
@@ -287,10 +270,9 @@
         });
     }
 
-    // Utility Functions
+    // --- TOOLS ---
     function reloadStream() { loadStream(activeIndex); }
     function filterCCTV() { renderList(document.getElementById('search-cctv').value); }
-    function toggleSidebar() { sidebar.classList.toggle('-translate-x-full'); }
     
     function toggleFullscreen() {
         if (!document.fullscreenElement) video.requestFullscreen().catch(err => {});
@@ -302,32 +284,25 @@
         document.getElementById('mute-icon').className = video.muted ? "fa-solid fa-volume-xmark" : "fa-solid fa-volume-high";
     }
 
-    function togglePiP() {
-        if (document.pictureInPictureElement) document.exitPictureInPicture();
-        else if (document.pictureInPictureEnabled) video.requestPictureInPicture();
-    }
-
     function takeSnapshot() {
         const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         canvas.getContext("2d").drawImage(video, 0, 0);
         const link = document.createElement("a");
-        link.download = `CCTV-${streams[activeIndex].name}-${Date.now()}.png`;
+        link.download = `CCTV-PEMKOT-${streams[activeIndex].name}.png`;
         link.href = canvas.toDataURL();
         link.click();
     }
 
-    // Dashboard Clock
     function startClock() {
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', {hour12: false});
-            document.getElementById('date').innerText = now.toLocaleDateString('id-ID', {weekday: 'short', day: 'numeric', month: 'short'});
+            document.getElementById('date').innerText = now.toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'});
         }, 1000);
     }
 
-    // Fake Bitrate Simulator for "Tech Feel"
     function simulateBitrate() {
         setInterval(() => {
             if(!video.paused) {
@@ -339,22 +314,14 @@
         }, 2000);
     }
 
-    // Start
     init();
-
 </script>
 
 <style>
-    /* Custom Scrollbar for sleek look */
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
-    
-    /* Animation Utilities */
-    @keyframes pulse-ring {
-        0% { transform: scale(0.33); }
-        80%, 100% { opacity: 0; }
-    }
+    /* Custom Scrollbar yang lebih tipis dan rapi */
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
 </style>
 {% endblock %}
