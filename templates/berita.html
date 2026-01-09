@@ -1,30 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}Komunitas TV Digital Indonesia{% endblock %}
+{% block title %}Berita Terkini - KTVDI{% endblock %}
 
 {% block content %}
-    <div id="articles">
-        {% for article in articles %}
-            <div class="article">
-                <h2>{{ article.title }}</h2>
-                {% if article.time_since_published %}
-                    <p>{{ article.time_since_published }}</p>
-                {% endif %}
-                <a href="{{ article.actual_link }}" class="read-more" target="_blank">Baca Selengkapnya</a>
+<section class="bg-slate-50 min-h-screen py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="text-center mb-16">
+            <span class="text-brand-blue font-bold tracking-wider uppercase text-xs md:text-sm bg-blue-100 px-3 py-1 rounded-full">Update Informasi</span>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-brand-navy mt-4 mb-4">Berita & Edukasi Digital</h1>
+            <p class="text-slate-500 max-w-2xl mx-auto text-sm md:text-base">
+                Dapatkan informasi terbaru seputar migrasi TV Digital, teknologi penyiaran, dan panduan teknis perangkat di Indonesia.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for article in articles %}
+            <article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col h-full group hover:-translate-y-1">
+                
+                <div class="h-1.5 bg-gradient-to-r from-brand-blue via-brand-sky to-brand-blue bg-[length:200%_auto] animate-[shine_3s_linear_infinite]"></div>
+                
+                <div class="p-6 flex-1 flex flex-col">
+                    <div class="flex items-center gap-2 text-xs text-slate-400 mb-4">
+                        <span class="bg-slate-100 px-2 py-1 rounded-md font-bold text-slate-500 uppercase tracking-wide">News</span>
+                        <span>•</span>
+                        <i class="fa-regular fa-clock"></i>
+                        <span>{{ article.time_since_published or 'Baru saja' }}</span>
+                    </div>
+                    
+                    <h3 class="text-lg md:text-xl font-bold text-brand-navy mb-3 line-clamp-3 group-hover:text-brand-blue transition leading-snug">
+                        {{ article.title }}
+                    </h3>
+                    
+                    <p class="text-slate-500 text-sm line-clamp-3 mb-6 flex-1 leading-relaxed">
+                        {% if article.summary %}
+                            {{ article.summary | striptags | truncate(100) }}
+                        {% else %}
+                            Klik tombol di bawah untuk membaca artikel lengkap mengenai topik ini langsung dari sumber terpercaya.
+                        {% endif %}
+                    </p>
+                    
+                    <a href="{{ article.actual_link }}" target="_blank" class="inline-flex items-center justify-center w-full px-4 py-3 bg-slate-50 text-slate-700 font-bold text-sm rounded-xl border border-slate-200 hover:bg-brand-blue hover:text-white hover:border-brand-blue transition group-hover:shadow-md">
+                        Baca Selengkapnya <i class="fa-solid fa-arrow-right-long ml-2 transition-transform group-hover:translate-x-1"></i>
+                    </a>
+                </div>
+            </article>
+            {% else %}
+            <div class="col-span-full text-center py-20">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400 text-2xl">
+                    <i class="fa-regular fa-newspaper"></i>
+                </div>
+                <h3 class="text-slate-600 font-bold">Belum ada berita terbaru</h3>
+                <p class="text-slate-400 text-sm mt-1">Silakan coba muat ulang halaman beberapa saat lagi.</p>
             </div>
-        {% endfor %}
-    </div>
+            {% endfor %}
+        </div>
 
-    <!-- Paginasi -->
-    <div class="paginasi">
-        {% if page > 1 %}
-            <a href="{{ url_for('berita', page=page-1) }}">Sebelumnya</a>
+        {% if total_pages > 1 %}
+        <div class="mt-20 flex flex-col md:flex-row justify-center items-center gap-6">
+            <div class="flex items-center gap-3">
+                {% if page > 1 %}
+                <a href="{{ url_for('berita', page=page-1) }}" class="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:border-brand-blue hover:text-brand-blue hover:shadow-lg transition">
+                    <i class="fa-solid fa-chevron-left"></i> Sebelumnya
+                </a>
+                {% else %}
+                <span class="flex items-center gap-2 px-6 py-3 bg-slate-100 border border-slate-100 text-slate-400 rounded-xl font-bold text-sm cursor-not-allowed">
+                    <i class="fa-solid fa-chevron-left"></i> Sebelumnya
+                </span>
+                {% endif %}
+
+                <span class="px-4 py-2 bg-brand-surface rounded-lg text-xs font-bold text-slate-500 border border-slate-200">
+                    Hal {{ page }} / {{ total_pages }}
+                </span>
+
+                {% if page < total_pages %}
+                <a href="{{ url_for('berita', page=page+1) }}" class="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:border-brand-blue hover:text-brand-blue hover:shadow-lg transition">
+                    Berikutnya <i class="fa-solid fa-chevron-right"></i>
+                </a>
+                {% else %}
+                <span class="flex items-center gap-2 px-6 py-3 bg-slate-100 border border-slate-100 text-slate-400 rounded-xl font-bold text-sm cursor-not-allowed">
+                    Berikutnya <i class="fa-solid fa-chevron-right"></i>
+                </span>
+                {% endif %}
+            </div>
+        </div>
         {% endif %}
 
-        <span>Halaman {{ page }} dari {{ total_pages }}</span>
-
-        {% if page < total_pages %}
-            <a href="{{ url_for('berita', page=page+1) }}">Berikutnya</a>
-        {% endif %}
     </div>
+</section>
 {% endblock %}
