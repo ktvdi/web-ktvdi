@@ -1,48 +1,49 @@
 import os
 import hashlib
+import firebase_admin
 import random
 import re
+import pytz
 import time
+import requests
+import feedparser
 import json
 import io
 import csv
+import google.generativeai as genai
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse, parse_qs
+from newsapi import NewsApiClient
+from firebase_admin import credentials, db
+from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_file
+from flask_cors import CORS
+from dotenv import load_dotenv
+from flask_mail import Mail, Message
 from datetime import datetime
 from collections import Counter
 
-# Import Library dengan Error Handling
-try:
-    import firebase_admin
-    from firebase_admin import credentials, db
-    from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_file
-    from flask_cors import CORS
-    from flask_mail import Mail, Message
-    from dotenv import load_dotenv
-    import requests
-    import feedparser
-    import google.generativeai as genai
-    from newsapi import NewsApiClient
-    import pytz
-except ImportError as e:
-    print(f"CRITICAL: Library Missing - {e}")
-
-# --- KONFIGURASI ---
+# --- KONFIGURASI AWAL ---
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "b/g5n!o0?hs&dm!fn8md7")
 
-# --- 1. FIREBASE CONNECTION ---
+# Secret Key (Gunakan Env di Vercel, fallback lokal)
+app.secret_key = os.environ.get('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
+
+# --- 1. KONEKSI FIREBASE (VERCEL COMPATIBLE) ---
 ref = None
 try:
     cred = None
-    # Cek Env Vercel (Prioritas Utama)
+    # Cek apakah ada Environment Variable (Vercel)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        pk = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
-        cred = credentials.Certificate({
+        # Fix format key yang sering error saat copy-paste di Vercel
+        private_key = os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n').replace('"', '')
+        
+        cred_dict = {
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
             "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": pk,
+            "private_key": private_key,
             "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
             "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
@@ -50,8 +51,10 @@ try:
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
             "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
             "universe_domain": "googleapis.com"
-        })
-    # Cek Localhost (Prioritas Kedua)
+        }
+        cred = credentials.Certificate(cred_dict)
+    
+    # Cek File JSON (Localhost)
     elif os.path.exists('credentials.json'):
         cred = credentials.Certificate('credentials.json')
 
@@ -63,11 +66,12 @@ try:
         ref = db.reference('/')
         print("✅ Firebase Connected!")
     else:
-        print("⚠️ Warning: Firebase Credentials Missing")
+        print("⚠️ Warning: Firebase Credentials Not Found. Login might fail.")
+
 except Exception as e:
     print(f"❌ Firebase Error: {e}")
 
-# --- 2. EMAIL CONFIG ---
+# --- 2. CONFIG EMAIL ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -77,23 +81,25 @@ app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 mail = Mail(app)
 
-# --- 3. API CONFIG ---
+# --- 3. CONFIG API (Gemini & News) ---
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_APP_KEY"))
 model = None
 try:
+    # Menggunakan model flash yang lebih ringan dan stabil
     model = genai.GenerativeModel("gemini-1.5-flash", 
-        system_instruction="Anda adalah Asisten KTVDI. Jawab singkat seputar TV Digital, STB, dan Bola.")
+        system_instruction="Anda adalah Asisten Profesional KTVDI. Jawablah dengan singkat, padat, dan ramah.")
 except: pass
 
 # --- GLOBAL CONTEXT (WAJIB ADA AGAR TIDAK ERROR 500) ---
 @app.context_processor
 def inject_global_vars():
+    """Mengirim data berita ke Base HTML agar Ticker selalu jalan"""
     news_list = []
     try:
-        # RSS CNN Nasional
+        # Menggunakan RSS CNN Nasional agar update dan stabil
         rss_url = 'https://www.cnnindonesia.com/nasional/rss'
         feed = feedparser.parse(rss_url)
         for entry in feed.entries[:8]:
@@ -105,7 +111,7 @@ def inject_global_vars():
     
     return dict(breaking_news=news_list)
 
-# --- ROUTES UTAMA ---
+# --- ROUTES ---
 
 @app.route("/")
 def home():
@@ -118,6 +124,7 @@ def home():
     chart_labels = []
     chart_data = []
 
+    # Hitung Statistik
     for provinsi, p_data in siaran_data.items():
         if isinstance(p_data, dict):
             w_count = len(p_data)
@@ -152,7 +159,7 @@ def chatbot_api():
 @app.route('/', methods=['POST'])
 def chatbot_legacy(): return chatbot_api()
 
-# --- ROUTES DATABASE & AUTH ---
+# --- ROUTES DEFAULT (CRUD & AUTH) ---
 
 @app.route('/about')
 def about(): return render_template('about.html')
