@@ -1,138 +1,304 @@
 {% extends "base.html" %}
 
-{% block title %}Daftar Siaran TV Digital Indonesia{% endblock %}
+{% block title %}Database Siaran Digital | Indonesia{% endblock %}
 
 {% block content %}
-  <div class="container">
-    <h1>Daftar Siaran TV Digital</h1>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Filter Provinsi -->
-    <label for="provinsi">Pilih Provinsi:</label>
-    <select id="provinsi">
-      <option value="">-- Pilih Provinsi --</option>
-      {% for p in provinsi_list %}
-        <option value="{{ p }}">{{ p }}</option>
-      {% endfor %}
-    </select>
-
-    <!-- Filter Wilayah -->
-    <label for="wilayah">Pilih Wilayah:</label>
-    <select id="wilayah">
-      <option value="">-- Pilih Wilayah --</option>
-    </select>
-
-    <!-- Filter MUX -->
-    <label for="mux">Pilih MUX:</label>
-    <select id="mux">
-      <option value="">-- Pilih MUX --</option>
-    </select>
-
-    <!-- Detail Siaran -->
-    <div id="detail"></div>
-  </div>
-
-  <!-- Script -->
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      // Saat pilih provinsi
-      document.getElementById("provinsi").addEventListener("change", function () {
-        var provinsi = this.value;
+<div class="min-h-screen bg-[#0f172a] text-slate-300 font-['Plus_Jakarta_Sans'] py-12 px-4 relative overflow-hidden">
     
-        if (provinsi) {
-          fetch("/get_wilayah?provinsi=" + provinsi)
-            .then((response) => response.json())
-            .then((data) => {
-              var wilayahSelect = document.getElementById("wilayah");
-              var muxSelect = document.getElementById("mux");
-              var detailDiv = document.getElementById("detail");
-    
-              if (!data.wilayah || data.wilayah.length === 0) {
-                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                detailDiv.innerHTML =
-                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
-              } else {
-                wilayahSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-                data.wilayah.forEach(function (w) {
-                  var option = document.createElement("option");
-                  option.value = w;
-                  option.textContent = w;
-                  wilayahSelect.appendChild(option);
-                });
-    
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                detailDiv.innerHTML = "";
-              }
-            });
-        } else {
-          document.getElementById("wilayah").innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-          document.getElementById("mux").innerHTML = '<option value="">-- Pilih MUX --</option>';
-          document.getElementById("detail").innerHTML = "";
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+    <div class="max-w-5xl mx-auto relative z-10">
+        
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center p-3 bg-cyan-500/10 rounded-2xl mb-4 ring-1 ring-cyan-500/20">
+                <i class="fa-solid fa-tower-broadcast text-3xl text-cyan-400"></i>
+            </div>
+            <h1 class="text-3xl md:text-4xl font-bold text-white tracking-tight mb-2">
+                Database Siaran <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">TV Digital</span>
+            </h1>
+            <p class="text-slate-400">Cari frekuensi dan daftar channel MUX di seluruh wilayah Indonesia.</p>
+        </div>
+
+        <div class="bg-[#1e293b]/50 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-2xl mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-cyan-400 uppercase tracking-wider ml-1">Lokasi Provinsi</label>
+                    <div class="relative group">
+                        <i class="fa-solid fa-map absolute left-4 top-3.5 text-slate-500 group-focus-within:text-cyan-400 transition-colors"></i>
+                        <select id="provinsi" class="w-full bg-[#0f172a] text-white border border-slate-700 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all appearance-none cursor-pointer hover:border-slate-500">
+                            <option value="">-- Pilih Provinsi --</option>
+                            {% for p in provinsi_list %}
+                                <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-xs text-slate-500 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Wilayah Layanan</label>
+                    <div class="relative group">
+                        <i class="fa-solid fa-location-crosshairs absolute left-4 top-3.5 text-slate-500 group-focus-within:text-cyan-400 transition-colors"></i>
+                        <select id="wilayah" disabled class="w-full bg-[#0f172a] text-white border border-slate-700 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all appearance-none cursor-not-allowed opacity-50 disabled:bg-slate-900">
+                            <option value="">-- Menunggu Provinsi --</option>
+                        </select>
+                        <div id="loader-wilayah" class="absolute right-4 top-3.5 hidden">
+                            <i class="fa-solid fa-circle-notch fa-spin text-cyan-500"></i>
+                        </div>
+                        <i id="arrow-wilayah" class="fa-solid fa-chevron-down absolute right-4 top-4 text-xs text-slate-500 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Penyedia MUX</label>
+                    <div class="relative group">
+                        <i class="fa-solid fa-satellite-dish absolute left-4 top-3.5 text-slate-500 group-focus-within:text-cyan-400 transition-colors"></i>
+                        <select id="mux" disabled class="w-full bg-[#0f172a] text-white border border-slate-700 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all appearance-none cursor-not-allowed opacity-50 disabled:bg-slate-900">
+                            <option value="">-- Menunggu Wilayah --</option>
+                        </select>
+                        <div id="loader-mux" class="absolute right-4 top-3.5 hidden">
+                            <i class="fa-solid fa-circle-notch fa-spin text-cyan-500"></i>
+                        </div>
+                        <i id="arrow-mux" class="fa-solid fa-chevron-down absolute right-4 top-4 text-xs text-slate-500 pointer-events-none"></i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="detail" class="transition-all duration-500 ease-in-out">
+            <div id="empty-state" class="text-center py-12 border border-dashed border-slate-700 rounded-2xl bg-slate-900/30">
+                <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-tv text-slate-600 text-2xl"></i>
+                </div>
+                <h3 class="text-slate-300 font-medium">Belum ada data dipilih</h3>
+                <p class="text-slate-500 text-sm mt-1">Silahkan pilih Provinsi, Wilayah, dan MUX terlebih dahulu.</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Utility: Elements
+    const els = {
+        provinsi: document.getElementById('provinsi'),
+        wilayah: document.getElementById('wilayah'),
+        mux: document.getElementById('mux'),
+        detail: document.getElementById('detail'),
+        emptyState: document.getElementById('empty-state'),
+        loaderWilayah: document.getElementById('loader-wilayah'),
+        loaderMux: document.getElementById('loader-mux'),
+        arrowWilayah: document.getElementById('arrow-wilayah'),
+        arrowMux: document.getElementById('arrow-mux')
+    };
+
+    // Helper: Reset Select
+    const resetSelect = (el, placeholder, disable = true) => {
+        el.innerHTML = `<option value="">${placeholder}</option>`;
+        el.disabled = disable;
+        el.classList.toggle('opacity-50', disable);
+        el.classList.toggle('cursor-not-allowed', disable);
+    };
+
+    // Helper: Toggle Loading
+    const setLoading = (type, isLoading) => {
+        if(type === 'wilayah') {
+            els.loaderWilayah.style.display = isLoading ? 'block' : 'none';
+            els.arrowWilayah.style.display = isLoading ? 'none' : 'block';
+        } else if(type === 'mux') {
+            els.loaderMux.style.display = isLoading ? 'block' : 'none';
+            els.arrowMux.style.display = isLoading ? 'none' : 'block';
         }
-      });
-    
-      // Saat pilih wilayah
-      document.getElementById("wilayah").addEventListener("change", function () {
-        var provinsi = document.getElementById("provinsi").value;
-        var wilayah = this.value;
-    
-        if (wilayah) {
-          fetch("/get_mux?provinsi=" + provinsi + "&wilayah=" + wilayah)
-            .then((response) => response.json())
-            .then((data) => {
-              var muxSelect = document.getElementById("mux");
-              var detailDiv = document.getElementById("detail");
-    
-              if (!data.mux || data.mux.length === 0) {
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                detailDiv.innerHTML =
-                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
-              } else {
-                muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-                data.mux.forEach(function (m) {
-                  var option = document.createElement("option");
-                  option.value = m;
-                  option.textContent = m;
-                  muxSelect.appendChild(option);
+    };
+
+    // Event: Pilih Provinsi
+    els.provinsi.addEventListener('change', async function() {
+        const prov = this.value;
+        
+        // Reset children
+        resetSelect(els.wilayah, '-- Pilih Wilayah --');
+        resetSelect(els.mux, '-- Menunggu Wilayah --');
+        els.detail.innerHTML = '';
+        els.detail.appendChild(els.emptyState);
+        els.emptyState.classList.remove('hidden');
+
+        if (!prov) return;
+
+        setLoading('wilayah', true);
+        resetSelect(els.wilayah, 'Memuat Data...', true);
+
+        try {
+            const req = await fetch(`/get_wilayah?provinsi=${encodeURIComponent(prov)}`);
+            const data = await req.json();
+            
+            resetSelect(els.wilayah, '-- Pilih Wilayah --', false);
+            
+            if (data.wilayah && data.wilayah.length > 0) {
+                data.wilayah.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w;
+                    opt.textContent = w;
+                    els.wilayah.appendChild(opt);
                 });
-                detailDiv.innerHTML = "";
-              }
-            });
+                els.wilayah.focus();
+            } else {
+                showEmptyAlert("Data wilayah belum tersedia untuk provinsi ini.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Gagal memuat data wilayah.");
+        } finally {
+            setLoading('wilayah', false);
         }
-      });
-    
-      // Saat pilih mux
-      document.getElementById("mux").addEventListener("change", function () {
-        var provinsi = document.getElementById("provinsi").value;
-        var wilayah = document.getElementById("wilayah").value;
-        var mux = this.value;
-    
-        if (mux) {
-          fetch("/get_siaran?provinsi=" + provinsi + "&wilayah=" + wilayah + "&mux=" + mux)
-            .then((response) => response.json())
-            .then((data) => {
-              var detailDiv = document.getElementById("detail");
-    
-              if (!data.siaran || data.siaran.length === 0) {
-                detailDiv.innerHTML =
-                  '<div class="alert-siaran">⚠️ Data siaran untuk provinsi ini belum ditambahkan. Silahkan <a href="/login">login</a> untuk menambahkan data siaran!</div>';
-              } else {
-                var html = '<div class="card">';
-                html += "<h3>📡 " + mux + "</h3>";
-                html += "<p><strong>Update:</strong> " + (data.last_updated_date || "-") + " " + (data.last_updated_time || "") + "</p>";
-                html += "<p><strong>Oleh:</strong> " + (data.last_updated_by_name || "-") + " (" + (data.last_updated_by_username || "-") + ")</p>";
-                html += "<h4>📺 Daftar Siaran:</h4><ul>";
-    
-                data.siaran.forEach(function (s) {
-                  html += "<li>" + s + "</li>";
-                });
-    
-                html += "</ul></div>";
-                detailDiv.innerHTML = html;
-              }
-            });
-        }
-      });
     });
-  </script>
+
+    // Event: Pilih Wilayah
+    els.wilayah.addEventListener('change', async function() {
+        const prov = els.provinsi.value;
+        const wil = this.value;
+
+        resetSelect(els.mux, '-- Pilih MUX --');
+        els.detail.innerHTML = '';
+        els.detail.appendChild(els.emptyState);
+        els.emptyState.classList.remove('hidden');
+
+        if (!wil) return;
+
+        setLoading('mux', true);
+        resetSelect(els.mux, 'Memuat Data...', true);
+
+        try {
+            const req = await fetch(`/get_mux?provinsi=${encodeURIComponent(prov)}&wilayah=${encodeURIComponent(wil)}`);
+            const data = await req.json();
+
+            resetSelect(els.mux, '-- Pilih MUX --', false);
+
+            if (data.mux && data.mux.length > 0) {
+                data.mux.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    els.mux.appendChild(opt);
+                });
+                els.mux.focus();
+            } else {
+                showEmptyAlert("Belum ada data MUX di wilayah ini.");
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading('mux', false);
+        }
+    });
+
+    // Event: Pilih MUX
+    els.mux.addEventListener('change', async function() {
+        const prov = els.provinsi.value;
+        const wil = els.wilayah.value;
+        const muxName = this.value;
+
+        if (!muxName) {
+            els.detail.innerHTML = '';
+            els.detail.appendChild(els.emptyState);
+            els.emptyState.classList.remove('hidden');
+            return;
+        }
+
+        // Show Skeleton Loading for Detail
+        els.detail.innerHTML = `
+            <div class="animate-pulse bg-[#1e293b] rounded-2xl p-6 h-64 border border-white/5"></div>
+        `;
+
+        try {
+            const req = await fetch(`/get_siaran?provinsi=${encodeURIComponent(prov)}&wilayah=${encodeURIComponent(wil)}&mux=${encodeURIComponent(muxName)}`);
+            const data = await req.json();
+
+            if (!data.siaran || data.siaran.length === 0) {
+                showEmptyAlert(`Data siaran untuk ${muxName} belum diinput.`);
+                return;
+            }
+
+            renderDetail(muxName, data);
+
+        } catch (err) {
+            console.error(err);
+            els.detail.innerHTML = `<div class="text-red-400 text-center p-4">Terjadi kesalahan memuat data.</div>`;
+        }
+    });
+
+    // Render Function (Membuat Card Hasil)
+    function renderDetail(muxName, data) {
+        // Generate Channel List HTML
+        const channelsHtml = data.siaran.map(channel => `
+            <div class="bg-[#0f172a] hover:bg-[#162032] border border-slate-700 hover:border-cyan-500/50 p-3 rounded-lg flex items-center gap-3 transition-all group">
+                <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 group-hover:bg-cyan-500/10 transition-colors">
+                    <i class="fa-solid fa-tv text-xs"></i>
+                </div>
+                <span class="text-slate-300 font-medium text-sm group-hover:text-white">${channel}</span>
+            </div>
+        `).join('');
+
+        // Metadata
+        const lastUpdate = data.last_updated_date ? `${data.last_updated_date} • ${data.last_updated_time}` : 'Belum ada data';
+        const updater = data.last_updated_by_name || 'System';
+
+        // Final HTML Structure
+        const html = `
+            <div class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-cyan-500/20 rounded-2xl overflow-hidden shadow-2xl relative">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-[50px] rounded-full pointer-events-none"></div>
+
+                <div class="p-6 md:p-8">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-white/5 pb-6">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/20">DIGITAL</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/20">ON AIR</span>
+                            </div>
+                            <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                                ${muxName}
+                            </h2>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-slate-500 mb-1">Terakhir Diupdate</div>
+                            <div class="text-xs font-mono text-cyan-400 bg-cyan-950/30 px-3 py-1.5 rounded-full border border-cyan-500/20 inline-block">
+                                <i class="fa-regular fa-clock mr-1"></i> ${lastUpdate}
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul"></i> Daftar Saluran (${data.siaran.length})
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                        ${channelsHtml}
+                    </div>
+
+                    <div class="mt-8 pt-4 border-t border-white/5 flex justify-between items-center text-xs text-slate-500">
+                        <span class="flex items-center gap-1"><i class="fa-solid fa-user-pen"></i> Updated by: <span class="text-slate-300 font-medium">${updater}</span></span>
+                        <span>ID: ${data.last_updated_by_username || '-'}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        els.detail.innerHTML = html;
+    }
+
+    function showEmptyAlert(msg) {
+        els.detail.innerHTML = `
+            <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6 text-center">
+                <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-2xl mb-2"></i>
+                <p class="text-yellow-200 font-medium">${msg}</p>
+                <a href="/login" class="inline-block mt-4 text-xs font-bold text-black bg-yellow-500 hover:bg-yellow-400 px-4 py-2 rounded-lg transition-colors">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> Login untuk Tambah Data
+                </a>
+            </div>
+        `;
+    }
+</script>
 {% endblock %}
