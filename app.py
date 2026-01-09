@@ -31,7 +31,7 @@ CORS(app)
 app.secret_key = os.environ.get('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
 
 # --- 1. KONEKSI FIREBASE (VERCEL COMPATIBLE) ---
-# Bagian ini saya perbaiki agar membaca Environment Variable, BUKAN file fisik.
+# Bagian ini diperbaiki agar membaca Environment Variable, BUKAN hanya file fisik.
 try:
     cred = None
     # Cek apakah ada Environment Variable (Settingan Vercel)
@@ -112,6 +112,24 @@ try:
 except:
     model = None
 
+# --- GLOBAL CONTEXT (WAJIB ADA AGAR TICKER BERJALAN) ---
+@app.context_processor
+def inject_global_vars():
+    """Mengirim data berita ke Base HTML agar Ticker selalu jalan"""
+    news_list = []
+    try:
+        # Menggunakan RSS CNN Nasional agar update dan stabil
+        rss_url = 'https://www.cnnindonesia.com/nasional/rss'
+        feed = feedparser.parse(rss_url)
+        for entry in feed.entries[:8]:
+            news_list.append(entry.title)
+    except: pass
+    
+    if not news_list:
+        news_list = ["Selamat Datang di KTVDI", "Update Frekuensi TV Digital Terbaru"]
+    
+    return dict(breaking_news=news_list)
+
 # --- ROUTE ---
 
 @app.route("/")
@@ -173,16 +191,12 @@ def home():
     else:
         last_updated_time = "-"
 
-    # Ambil Berita RSS (Logic Tambahan untuk Ticker)
-    breaking_news = []
-    try:
-        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
-        for entry in feed.entries[:8]:
-            breaking_news.append(entry.title)
-    except:
-        pass
-    if not breaking_news:
-        breaking_news = ["Selamat Datang di KTVDI", "Update Frekuensi Terbaru"]
+    # Statistik Sederhana untuk Template Baru (stats dictionary)
+    stats = {
+        "wilayah": jumlah_wilayah_layanan,
+        "mux": jumlah_penyelenggara_mux,
+        "channel": jumlah_siaran
+    }
 
     return render_template('index.html', 
                            most_common_siaran_name=most_common_siaran_name,
@@ -191,10 +205,9 @@ def home():
                            jumlah_siaran=jumlah_siaran, 
                            jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
                            last_updated_time=last_updated_time,
-                           # Tambahan Data Chart & Berita untuk Ticker
+                           stats=stats, # Menambahkan objek stats agar kompatibel dengan template baru
                            chart_labels=json.dumps(chart_provinsi_labels),
-                           chart_data=json.dumps(chart_provinsi_data),
-                           breaking_news=breaking_news)
+                           chart_data=json.dumps(chart_provinsi_data))
 
 @app.route('/', methods=['POST'])
 def chatbot():
@@ -212,6 +225,10 @@ def chatbot():
         if "429" in error_msg or "Quota" in error_msg:
             return jsonify({"error": "Quota Exceeded"}), 429
         return jsonify({"error": str(e)}), 500
+
+@app.route('/chatbot', methods=['POST']) # Menambahkan route /chatbot untuk kompatibilitas JS baru
+def chatbot_api():
+    return chatbot()
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
@@ -399,6 +416,7 @@ def get_actual_url_from_google_news(link):
 
 @app.route('/berita')
 def berita():
+    # URL RSS Feed Google News
     rss_url = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
     try:
         feed = feedparser.parse(rss_url)
