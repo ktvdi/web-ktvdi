@@ -1,88 +1,108 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="bg-[#0B1120] min-h-screen pt-24 pb-12 text-slate-200">
-    <div class="max-w-7xl mx-auto px-4">
+<div class="bg-[#0B1120] min-h-screen pt-24 pb-12 text-slate-200 relative overflow-hidden">
+    
+    <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" 
+         style="background-image: radial-gradient(#3b82f6 1px, transparent 1px); background-size: 32px 32px;">
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 relative z-10">
         
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 border-b border-slate-800 pb-6">
             <div>
-                <h1 class="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-3">
-                    <span class="relative flex h-4 w-4">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-4 w-4 bg-red-600"></span>
-                    </span>
-                    Live Traffic Monitor
-                </h1>
-                <p class="text-slate-400 text-sm mt-1">Pantauan lalu lintas real-time Kota Pekalongan.</p>
-            </div>
-            <div class="flex items-center gap-3 bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700/50 backdrop-blur-sm">
-                <div class="flex -space-x-2">
-                    <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-slate-900"></div>
-                    <div class="w-6 h-6 rounded-full bg-green-500 border-2 border-slate-900"></div>
-                    <div class="w-6 h-6 rounded-full bg-purple-500 border-2 border-slate-900"></div>
+                <div class="flex items-center gap-3 mb-1">
+                    <span class="bg-red-500/20 text-red-400 text-[10px] font-bold px-2 py-0.5 rounded border border-red-500/30 animate-pulse">LIVE FEED</span>
+                    <span class="text-slate-500 text-xs font-mono">SERVER: SVR-PKL-01</span>
                 </div>
-                <span class="text-xs font-bold text-slate-300"><span id="viewer-count">1.2k</span> Sedang Menonton</span>
+                <h1 class="text-3xl font-extrabold text-white flex items-center gap-3 tracking-tight">
+                    Traffic Intelligence Center
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Pemantauan visual real-time jaringan lalu lintas Kota Pekalongan.</p>
+            </div>
+            
+            <div class="flex gap-4">
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/50 backdrop-blur-sm min-w-[120px]">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Active Viewers</p>
+                    <div class="flex items-end gap-2">
+                        <span class="text-2xl font-mono font-bold text-white" id="viewer-count">1.2k</span>
+                        <span class="text-xs text-green-400 mb-1 flex items-center"><i class="fa-solid fa-arrow-up text-[8px] mr-1"></i> 12%</span>
+                    </div>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/50 backdrop-blur-sm min-w-[120px] hidden sm:block">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-1">Network Status</p>
+                    <div class="flex items-center gap-2 mt-1">
+                        <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span class="text-sm font-bold text-white">Stable</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-1">Latency: 24ms</p>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[650px]">
             
-            <div class="lg:col-span-2 flex flex-col gap-4">
-                <div class="relative group rounded-2xl overflow-hidden bg-black shadow-[0_0_40px_-10px_rgba(37,99,235,0.2)] border border-slate-800">
-                    <div class="relative aspect-video">
+            <div class="lg:col-span-8 flex flex-col gap-4 h-full">
+                <div class="relative group rounded-2xl overflow-hidden bg-black shadow-[0_0_50px_-15px_rgba(37,99,235,0.15)] border border-slate-800 flex-1 flex flex-col">
+                    
+                    <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-20 pointer-events-none">
+                        <div class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2">
+                            <i class="fa-solid fa-record-vinyl text-red-500 animate-pulse"></i>
+                            <span class="text-xs font-bold text-white tracking-wide">REC</span>
+                        </div>
+                        <div class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs font-mono text-slate-300">
+                            <span id="timestamp">00:00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="relative flex-1 bg-slate-950 flex items-center justify-center overflow-hidden">
                         <video id="main-video" class="w-full h-full object-contain" controls autoplay muted playsinline poster="https://source.unsplash.com/1280x720/?traffic,night"></video>
                         
-                        <div class="absolute top-4 left-4 flex items-center gap-2 z-10">
-                            <span class="bg-red-600/90 text-white text-[10px] font-bold px-3 py-1 rounded-md backdrop-blur-sm shadow-lg flex items-center gap-1">
-                                <i class="fa-solid fa-tower-broadcast"></i> LIVE FEED
-                            </span>
-                        </div>
-
-                        <div id="loading-overlay" class="absolute inset-0 bg-black/80 flex items-center justify-center z-20 hidden">
-                            <div class="flex flex-col items-center gap-2">
-                                <i class="fa-solid fa-circle-notch fa-spin text-brand-blue text-3xl"></i>
-                                <span class="text-xs font-bold text-slate-400">Menghubungkan...</span>
+                        <div id="loading-overlay" class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center z-30 hidden">
+                            <div class="relative w-16 h-16">
+                                <div class="absolute inset-0 border-4 border-slate-700 rounded-full"></div>
+                                <div class="absolute inset-0 border-4 border-brand-blue rounded-full border-t-transparent animate-spin"></div>
                             </div>
+                            <span class="text-sm font-bold text-brand-blue mt-4 tracking-widest uppercase animate-pulse">Establishing Link...</span>
                         </div>
                     </div>
 
-                    <div class="bg-slate-900/90 p-4 border-t border-slate-800 flex justify-between items-center">
+                    <div class="bg-slate-900 border-t border-slate-800 p-4 flex justify-between items-center shrink-0">
                         <div>
-                            <h2 id="cam-title" class="text-lg font-bold text-white leading-tight">Memuat Kamera...</h2>
-                            <div class="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                                <span class="bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded border border-green-500/20">Online</span>
-                                <span>•</span>
-                                <span>Diskominfo Source</span>
+                            <h2 id="cam-title" class="text-lg font-bold text-white leading-tight">Select Camera</h2>
+                            <div class="flex items-center gap-3 text-xs text-slate-400 mt-1">
+                                <span class="flex items-center gap-1"><i class="fa-solid fa-video"></i> IP-CAM-04</span>
+                                <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
+                                <span class="text-green-400">Signal: Excellent</span>
                             </div>
                         </div>
-                        <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white transition">
-                            <i class="fa-solid fa-expand text-xl"></i>
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="reloadStream()" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition" title="Refresh">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                            <button onclick="toggleFullscreen()" class="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition" title="Fullscreen">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
-
-                <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 flex items-start gap-3">
-                    <i class="fa-solid fa-circle-info text-blue-400 mt-1"></i>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        Jika video tidak muncul atau loading terus, kemungkinan server CCTV sedang offline atau penuh. Silakan coba pilih lokasi lain di daftar samping. Gunakan koneksi stabil untuk pengalaman terbaik.
-                    </p>
                 </div>
             </div>
 
-            <div class="h-[600px] lg:h-auto flex flex-col bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
-                <div class="p-4 border-b border-slate-800 bg-slate-900/95 backdrop-blur z-10">
-                    <h3 class="text-sm font-bold text-white mb-3 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-list-ul text-brand-blue"></i> Lokasi Pantauan
-                    </h3>
-                    <div class="relative">
-                        <i class="fa-solid fa-search absolute left-3 top-3 text-slate-500 text-xs"></i>
-                        <input type="text" id="search-cctv" onkeyup="filterCCTV()" placeholder="Cari nama jalan..." 
-                            class="w-full bg-slate-950 text-white text-sm pl-9 pr-4 py-2.5 rounded-lg border border-slate-800 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition placeholder-slate-600">
+            <div class="lg:col-span-4 flex flex-col bg-slate-900/50 backdrop-blur rounded-2xl border border-slate-800 overflow-hidden h-full">
+                <div class="p-4 border-b border-slate-800 bg-slate-900/80">
+                    <div class="relative group">
+                        <i class="fa-solid fa-search absolute left-3 top-3.5 text-slate-500 group-focus-within:text-brand-blue transition"></i>
+                        <input type="text" id="search-cctv" onkeyup="filterCCTV()" placeholder="Search location..." 
+                            class="w-full bg-slate-950 text-white text-sm pl-10 pr-4 py-3 rounded-xl border border-slate-800 focus:outline-none focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition placeholder-slate-600">
                     </div>
                 </div>
 
-                <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scroll" id="cctv-list">
+                <div class="flex-1 overflow-y-auto p-3 space-y-2 custom-scroll" id="cctv-list">
                     </div>
+                
+                <div class="p-3 bg-slate-950 border-t border-slate-800 text-center">
+                    <p class="text-[10px] text-slate-500">Data provided by Diskominfo Kota Pekalongan</p>
+                </div>
             </div>
         </div>
     </div>
@@ -91,15 +111,15 @@
 <script>
     // Data CCTV
     const streams = [
-        {name: "Alun-Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8", status: "Ramai"},
-        {name: "Terminal Tengah", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8", status: "Lancar"},
-        {name: "Matahari Depan", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8", status: "Padat"},
-        {name: "Jalan Kurinci", url: "https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8", status: "Lancar"},
+        {name: "Alun-Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8", status: "High Traffic"},
+        {name: "Terminal Tengah", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8", status: "Moderate"},
+        {name: "Matahari Depan", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8", status: "Congested"},
+        {name: "Jalan Kurinci", url: "https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8", status: "Clear"},
         {name: "Kali Bremi", url: "https://rtsp.pekalongankota.go.id/stream/a051a871-44ce-4a0e-9c30-6fc3455904b1/channel/0/hls/live/index.m3u8", status: "Normal"},
-        {name: "Simpang Sorogenen", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8", status: "Padat"},
-        {name: "Posis Utara", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8", status: "Lancar"},
+        {name: "Simpang Sorogenen", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8", status: "High Traffic"},
+        {name: "Posis Utara", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8", status: "Clear"},
         {name: "Posis Timur", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8", status: "Normal"},
-        {name: "Depan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8", status: "Lancar"},
+        {name: "Depan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8", status: "Clear"},
         {name: "Dharma Bakti Timur", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8", status: "Normal"}
     ];
 
@@ -115,7 +135,9 @@
         activeIndex = index;
         const s = streams[index];
         titleEl.innerText = s.name;
-        loadingOverlay.classList.remove('hidden'); // Show loading
+        
+        // Show Loading UI
+        loadingOverlay.classList.remove('hidden'); 
 
         if (Hls.isSupported()) {
             if(hls) hls.destroy();
@@ -123,20 +145,24 @@
             hls.loadSource(s.url);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play();
-                loadingOverlay.classList.add('hidden');
+                video.play().catch(()=>{});
+                setTimeout(() => loadingOverlay.classList.add('hidden'), 500); // Smooth delay
             });
             hls.on(Hls.Events.ERROR, () => {
-                // Keep loading if error, or show error msg
+                // Keep loading or handle error
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = s.url;
             video.addEventListener('loadedmetadata', () => {
-                video.play();
+                video.play().catch(()=>{});
                 loadingOverlay.classList.add('hidden');
             });
         }
-        renderList(); // Re-render to update active state
+        renderList(); 
+    }
+
+    function reloadStream() {
+        loadStream(activeIndex);
     }
 
     // Render Playlist
@@ -146,23 +172,26 @@
             if (s.name.toLowerCase().includes(filterText.toLowerCase())) {
                 const isActive = i === activeIndex;
                 const item = document.createElement('div');
-                item.className = `p-3 rounded-xl cursor-pointer transition flex items-center gap-4 border ${isActive ? 'bg-brand-blue/20 border-brand-blue shadow-[0_0_15px_-5px_rgba(37,99,235,0.5)]' : 'bg-slate-950/50 border-slate-800 hover:bg-slate-800 hover:border-slate-700'}`;
+                item.className = `p-3 rounded-xl cursor-pointer transition flex items-center gap-3 border group ${isActive ? 'bg-gradient-to-r from-blue-900/40 to-slate-900/40 border-blue-500/50' : 'bg-slate-950/40 border-slate-800/50 hover:bg-slate-800/60 hover:border-slate-700'}`;
                 
+                // Status Color Logic
+                let statusColor = "bg-green-500";
+                if(s.status.includes("High") || s.status.includes("Congested")) statusColor = "bg-red-500";
+                else if(s.status.includes("Moderate")) statusColor = "bg-yellow-500";
+
                 item.innerHTML = `
-                    <div class="relative w-16 h-10 bg-slate-900 rounded overflow-hidden shrink-0 border ${isActive ? 'border-brand-blue' : 'border-slate-700'}">
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <i class="fa-solid fa-video ${isActive ? 'text-brand-blue' : 'text-slate-600'} text-lg"></i>
-                        </div>
-                        ${isActive ? '<div class="absolute inset-0 bg-brand-blue/20 animate-pulse"></div>' : ''}
+                    <div class="relative w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center shrink-0 border border-slate-800 ${isActive ? 'ring-2 ring-blue-500/30' : ''}">
+                        <i class="fa-solid fa-video ${isActive ? 'text-blue-400' : 'text-slate-600 group-hover:text-slate-400'} text-lg"></i>
+                        ${isActive ? '<span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>' : ''}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h4 class="text-sm font-bold ${isActive ? 'text-white' : 'text-slate-300'} truncate">${s.name}</h4>
-                        <p class="text-[10px] ${isActive ? 'text-blue-300' : 'text-slate-500'} flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500' : 'bg-slate-600'}"></span>
-                            ${isActive ? 'Sedang Memutar' : s.status}
-                        </p>
+                        <h4 class="text-sm font-bold ${isActive ? 'text-white' : 'text-slate-300 group-hover:text-white'} truncate transition">${s.name}</h4>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-blue-400 animate-pulse' : statusColor}"></span>
+                            <span class="text-[10px] ${isActive ? 'text-blue-300' : 'text-slate-500'} uppercase font-bold tracking-wider">${isActive ? 'MONITORING' : s.status}</span>
+                        </div>
                     </div>
-                    ${isActive ? '<i class="fa-solid fa-chart-simple text-brand-blue animate-pulse"></i>' : ''}
+                    ${isActive ? '<i class="fa-solid fa-chevron-right text-blue-500 text-xs"></i>' : ''}
                 `;
                 item.onclick = () => loadStream(i);
                 listContainer.appendChild(item);
@@ -176,7 +205,7 @@
         renderList(txt);
     }
 
-    // Fullscreen Toggle
+    // Fullscreen
     function toggleFullscreen() {
         if (!document.fullscreenElement) {
             video.requestFullscreen().catch(err => {});
@@ -185,12 +214,18 @@
         }
     }
 
+    // Clock
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('timestamp').innerText = now.toLocaleTimeString('en-GB');
+    }, 1000);
+
     // Randomize Viewers
     setInterval(() => {
         const base = 1200;
-        const random = Math.floor(Math.random() * 50);
-        document.getElementById('viewer-count').innerText = (base + random) / 1000 + 'k';
-    }, 5000);
+        const random = Math.floor(Math.random() * 150 - 75);
+        document.getElementById('viewer-count').innerText = ((base + random) / 1000).toFixed(1) + 'k';
+    }, 3000);
 
     // Initial Load
     renderList();
@@ -198,10 +233,9 @@
 </script>
 
 <style>
-    /* Custom Scrollbar for Playlist */
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-track { background: #0f172a; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    .custom-scroll::-webkit-scrollbar { width: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     .custom-scroll::-webkit-scrollbar-thumb:hover { background: #475569; }
 </style>
 {% endblock %}
