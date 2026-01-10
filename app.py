@@ -30,23 +30,21 @@ CORS(app)
 
 app.secret_key = os.getenv('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
 
-# --- PERBAIKAN FATAL ERROR VERCEL ---
-# Kita cari lokasi folder tempat app.py berada secara absolut
+# --- KONFIGURASI FIREBASE (SAFE & HYBRID) ---
+# Trik agar jalan di Vercel maupun Local
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 
-# Inisialisasi Firebase
 try:
     if not firebase_admin._apps:
-        # Cek apakah file ada
+        # Cek File Fisik (Prioritas 1)
         if os.path.exists(CREDENTIALS_PATH):
             cred = credentials.Certificate(CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
             })
+        # Cek Env Var (Prioritas 2 - untuk Vercel jika file gagal)
         else:
-            # Jika file tidak ada, cek Environment Variable (Backup)
-            print(f"WARNING: File credentials.json tidak ditemukan di {CREDENTIALS_PATH}")
             env_creds = os.getenv('FIREBASE_CREDENTIALS')
             if env_creds:
                 cred_dict = json.loads(env_creds)
@@ -54,10 +52,17 @@ try:
                 firebase_admin.initialize_app(cred, {
                     'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
                 })
+            else:
+                print("WARNING: Database Credentials tidak ditemukan. Aplikasi berjalan mode Offline.")
     
-    ref = db.reference('/')
+    # Coba buat referensi, jika gagal set None
+    try:
+        ref = db.reference('/')
+    except:
+        ref = None
+
 except Exception as e:
-    print(f"Firebase Critical Error: {e}")
+    print(f"Firebase Init Error: {e}")
     ref = None
 
 # --- KONFIGURASI EMAIL ---
@@ -76,7 +81,8 @@ NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemini-2.5-flash", 
+    system_instruction="Anda adalah Chatbot AI KTVDI. Jawab singkat, padat, dan ramah seputar TV Digital.")
 
 # --- FUNGSI HELPER ---
 def hash_password(password):
@@ -108,30 +114,57 @@ def get_actual_url_from_google_news(link):
 
 @app.route("/")
 def home():
-    if not ref:
-        # Jika error kredensial, jangan crash 500, tapi tampilkan info
-        return "<h1>Error: Database Credentials Missing</h1><p>Pastikan file credentials.json sudah di-upload ke GitHub atau set Environment Variable.</p>", 500
-    
-    try:
-        siaran_data = ref.child('siaran').get() or {}
-    except:
-        siaran_data = {}
-    
+    # Inisialisasi variabel kosong jika DB mati
     wilayah_count = 0
     mux_count = 0
     siaran_count = 0
-    
-    for prov_data in siaran_data.values():
-        if isinstance(prov_data, dict):
-            wilayah_count += len(prov_data)
-            for wil_data in prov_data.values():
-                if isinstance(wil_data, dict):
-                    mux_count += len(wil_data)
-                    for mux_data in wil_data.values():
-                        if 'siaran' in mux_data:
-                            siaran_count += len(mux_data['siaran'])
+    last_updated_time = None
+    most_common_siaran_name = None
+    most_common_siaran_count = 0
 
-    return render_template('index.html', stats={'wilayah': wilayah_count, 'mux': mux_count, 'channel': siaran_count})
+    if ref:
+        try:
+            siaran_data = ref.child('siaran').get() or {}
+            siaran_counts = Counter()
+            
+            for prov_data in siaran_data.values():
+                if isinstance(prov_data, dict):
+                    wilayah_count += len(prov_data)
+                    for wil_data in prov_data.values():
+                        if isinstance(wil_data, dict):
+                            mux_count += len(wil_data)
+                            for mux_data in wil_data.values():
+                                if 'siaran' in mux_data:
+                                    siaran_count += len(mux_data['siaran'])
+                                    for s in mux_data['siaran']:
+                                        siaran_counts[s.lower()] += 1
+                                
+                                # Cek Last Update
+                                if 'last_updated_date' in mux_data:
+                                    try:
+                                        curr_time = datetime.strptime(mux_data['last_updated_date'], '%d-%m-%Y')
+                                        if not last_updated_time or curr_time > last_updated_time:
+                                            last_updated_time = curr_time
+                                    except: pass
+            
+            if siaran_counts:
+                top = siaran_counts.most_common(1)[0]
+                most_common_siaran_name = top[0].upper()
+                most_common_siaran_count = top[1]
+            
+            if last_updated_time:
+                last_updated_time = last_updated_time.strftime('%d-%m-%Y')
+
+        except Exception as e:
+            print(f"Error reading DB: {e}")
+
+    return render_template('index.html', 
+                           most_common_siaran_name=most_common_siaran_name,
+                           most_common_siaran_count=most_common_siaran_count,
+                           jumlah_wilayah_layanan=wilayah_count,
+                           jumlah_siaran=siaran_count, 
+                           jumlah_penyelenggara_mux=mux_count, 
+                           last_updated_time=last_updated_time)
 
 @app.route('/', methods=['POST'])
 def chatbot():
@@ -153,21 +186,25 @@ def cctv_page():
 def login():
     error_message = None
     if request.method == 'POST':
-        if not ref: return "Database Error", 500
+        if not ref: 
+            return render_template('login.html', error="Database Offline.")
+        
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         hashed_pw = hash_password(password)
         
         try:
             user_data = ref.child(f'users/{username}').get()
-            if user_data and user_data.get('password') == hashed_pw:
+            if not user_data:
+                error_message = "Username tidak ditemukan."
+            elif user_data.get('password') == hashed_pw:
                 session['user'] = username
                 session['nama'] = user_data.get('nama', 'Pengguna')
                 return redirect(url_for('dashboard'))
             else:
-                error_message = "Username atau Password salah."
+                error_message = "Password salah."
         except Exception as e:
-            error_message = "Terjadi kesalahan koneksi database."
+            error_message = f"Error: {e}"
             
     return render_template('login.html', error=error_message)
 
@@ -179,7 +216,10 @@ def logout():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        if not ref: return "Database Error", 500
+        if not ref: 
+            flash("Database Offline.", "error")
+            return render_template("register.html")
+
         nama = request.form.get("nama")
         email = request.form.get("email")
         username = request.form.get("username")
@@ -189,31 +229,41 @@ def register():
             flash("Password minimal 8 karakter.", "error")
             return render_template("register.html")
 
-        users = ref.child('users').get() or {}
-        for uid, u in users.items():
-            if u.get('email') == email:
-                flash("Email sudah terdaftar.", "error")
-                return render_template("register.html")
-        
-        if username in users:
-            flash("Username sudah digunakan.", "error")
+        if not re.match(r"^[a-z0-9]+$", username):
+            flash("Username hanya huruf kecil & angka.", "error")
             return render_template("register.html")
 
-        otp = str(random.randint(100000, 999999))
-        hashed_pw = hash_password(password)
-
-        ref.child(f'pending_users/{username}').set({
-            "nama": nama, "email": email, "password": hashed_pw, "otp": otp
-        })
-
+        # Cek Duplikasi
         try:
-            msg = Message("KTVDI - Kode Verifikasi", recipients=[email])
-            msg.body = f"Halo {nama},\nKode OTP Anda adalah: {otp}"
+            users = ref.child('users').get() or {}
+            for u in users.values():
+                if u.get('email') == email:
+                    flash("Email sudah terdaftar.", "error")
+                    return render_template("register.html")
+            
+            if username in users:
+                flash("Username sudah digunakan.", "error")
+                return render_template("register.html")
+
+            # Buat OTP & Simpan Sementara
+            otp = str(random.randint(100000, 999999))
+            hashed_pw = hash_password(password)
+
+            ref.child(f'pending_users/{username}').set({
+                "nama": nama, "email": email, "password": hashed_pw, "otp": otp
+            })
+
+            # Kirim Email
+            msg = Message("Kode Verifikasi KTVDI", recipients=[email])
+            msg.body = f"Halo {nama},\nKode OTP Anda: {otp}"
             mail.send(msg)
+
             session['pending_username'] = username
+            flash("Kode OTP telah dikirim ke email.", "success")
             return redirect(url_for('verify_register'))
+
         except Exception as e:
-            flash(f"Gagal kirim email: {e}", "error")
+            flash(f"Gagal memproses: {e}", "error")
 
     return render_template("register.html")
 
@@ -223,10 +273,15 @@ def verify_register():
     if not username: return redirect(url_for('register'))
 
     if request.method == "POST":
+        if not ref:
+            flash("Database Offline.", "error")
+            return render_template("verify-register.html", username=username)
+
         otp_input = request.form.get("otp")
         pending_data = ref.child(f'pending_users/{username}').get()
         
         if pending_data and str(pending_data['otp']) == str(otp_input):
+            # Pindahkan ke Users Utama
             ref.child(f'users/{username}').set({
                 "nama": pending_data['nama'],
                 "email": pending_data['email'],
@@ -242,10 +297,15 @@ def verify_register():
 
     return render_template("verify-register.html", username=username)
 
+# --- FORGOT PASSWORD ---
+
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        if not ref: return "Database Error", 500
+        if not ref:
+            flash("Database Offline.", "error")
+            return render_template("forgot-password.html")
+
         email = request.form.get("identifier")
         users = ref.child('users').get() or {}
         found_uid = None
@@ -260,8 +320,8 @@ def forgot_password():
             ref.child(f'otp/{found_uid}').set({"email": email, "otp": otp})
             
             try:
-                msg = Message("KTVDI - Reset Password", recipients=[email])
-                msg.body = f"Kode OTP Reset Password: {otp}"
+                msg = Message("Reset Password KTVDI", recipients=[email])
+                msg.body = f"Kode OTP Reset: {otp}"
                 mail.send(msg)
                 session['reset_uid'] = found_uid
                 flash(f"OTP dikirim ke {email}", "success")
@@ -296,44 +356,42 @@ def reset_password():
     
     if request.method == "POST":
         pw = request.form.get("password")
-        ref.child(f'users/{uid}').update({"password": hash_password(pw)})
-        ref.child(f'otp/{uid}').delete()
-        session.pop('reset_uid', None)
-        flash("Password berhasil diubah.", "success")
-        return redirect(url_for('login'))
+        if len(pw) < 8:
+            flash("Password minimal 8 karakter.", "error")
+            return render_template("reset-password.html")
+
+        if ref:
+            ref.child(f'users/{uid}').update({"password": hash_password(pw)})
+            ref.child(f'otp/{uid}').delete()
+            session.pop('reset_uid', None)
+            flash("Password berhasil diubah.", "success")
+            return redirect(url_for('login'))
         
     return render_template("reset-password.html")
 
-# --- DASHBOARD & CRUD ---
+# --- DASHBOARD & CRUD DATA ---
 
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
-    if not ref: return "Database Error", 500
-    prov_data = ref.child('provinsi').get() or {}
+    prov_data = {}
+    if ref: prov_data = ref.child('provinsi').get() or {}
     return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list(prov_data.values()))
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
-    if not ref: return "Database Error", 500
-    prov_data = ref.child('provinsi').get() or {}
+    prov_data = {}
+    if ref: prov_data = ref.child('provinsi').get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(prov_data.values()))
-
-@app.route('/berita')
-def berita():
-    try:
-        rss_url = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
-        feed = feedparser.parse(rss_url)
-        return render_template('berita.html', articles=feed.entries[:10], page=1, total_pages=1)
-    except:
-        return render_template('berita.html', articles=[], page=1, total_pages=1)
 
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data():
     if 'user' not in session: return redirect(url_for('login'))
-    prov_list = list((ref.child('provinsi').get() or {}).values())
+    prov_list = []
+    if ref: prov_list = list((ref.child('provinsi').get() or {}).values())
     
     if request.method == 'POST':
+        if not ref: return "Database Error", 500
         prov = request.form['provinsi']
         wil = request.form['wilayah']
         mux = request.form['mux']
@@ -347,8 +405,10 @@ def add_data():
             
         data = {
             "siaran": sorted(siaran),
-            "last_updated_by": session.get('user'),
-            "last_updated_date": datetime.now().strftime("%d-%m-%Y")
+            "last_updated_by_username": session.get('user'),
+            "last_updated_by_name": session.get('nama'),
+            "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+            "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
         }
         ref.child(f'siaran/{prov}/{wil_clean}/{mux_clean}').set(data)
         return redirect(url_for('dashboard'))
@@ -358,23 +418,21 @@ def add_data():
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux):
     if 'user' not in session: return redirect(url_for('login'))
+    if not ref: return "Database Error", 500
+
     provinsi = provinsi.replace('%20',' ')
     wilayah = wilayah.replace('%20', ' ')
     mux = mux.replace('%20', ' ')
 
     if request.method == 'POST':
-        siaran_input = request.form['siaran']
-        siaran_list = [s.strip() for s in siaran_input.split(',') if s.strip()]
-        
+        siaran_list = [s.strip() for s in request.form['siaran'].split(',') if s.strip()]
         try:
-            tz = pytz.timezone('Asia/Jakarta')
-            now = datetime.now(tz)
             db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").update({
                 "siaran": sorted(siaran_list),
                 "last_updated_by_username": session.get('user'),
                 "last_updated_by_name": session.get('nama'),
-                "last_updated_date": now.strftime("%d-%m-%Y"),
-                "last_updated_time": now.strftime("%H:%M:%S WIB")
+                "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
             })
             return redirect(url_for('dashboard'))
         except Exception as e:
@@ -384,20 +442,38 @@ def edit_data(provinsi, wilayah, mux):
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
 def delete_data(provinsi, wilayah, mux):
     if 'user' not in session: return redirect(url_for('login'))
+    if not ref: return "Database Error", 500
     try:
         db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
         return redirect(url_for('dashboard'))
     except Exception as e:
         return f"Gagal hapus: {e}"
 
+@app.route('/berita')
+def berita():
+    try:
+        rss_url = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
+        feed = feedparser.parse(rss_url)
+        return render_template('berita.html', articles=feed.entries[:10], page=1, total_pages=1)
+    except:
+        return render_template('berita.html', articles=[], page=1, total_pages=1)
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+# --- API HELPERS & DOWNLOAD ---
+
 @app.route("/get_wilayah")
 def get_wilayah():
+    if not ref: return jsonify({"wilayah": []})
     p = request.args.get("provinsi")
     d = ref.child(f'siaran/{p}').get() or {}
     return jsonify({"wilayah": list(d.keys())})
 
 @app.route("/get_mux")
 def get_mux():
+    if not ref: return jsonify({"mux": []})
     p = request.args.get("provinsi")
     w = request.args.get("wilayah")
     d = ref.child(f'siaran/{p}/{w}').get() or {}
@@ -405,6 +481,7 @@ def get_mux():
 
 @app.route("/get_siaran")
 def get_siaran():
+    if not ref: return jsonify({})
     p = request.args.get("provinsi")
     w = request.args.get("wilayah")
     m = request.args.get("mux")
@@ -413,6 +490,7 @@ def get_siaran():
 
 @app.route('/download-sql')
 def download_sql():
+    if not ref: return "DB Error", 500
     users_data = db.reference('users').get()
     if not users_data: return "No data", 404
     sql = "\n".join([f"INSERT INTO users VALUES ('{u}', '{d['nama']}', '{d['email']}', '{d['password']}');" for u, d in users_data.items()])
@@ -420,6 +498,7 @@ def download_sql():
 
 @app.route('/download-csv')
 def download_csv():
+    if not ref: return "DB Error", 500
     users_data = db.reference('users').get()
     if not users_data: return "No data", 404
     output = io.StringIO()
@@ -431,8 +510,8 @@ def download_csv():
 
 @app.route("/test-firebase")
 def test_firebase():
-    if ref: return "✅ Firebase OK"
-    return "❌ Firebase Error"
+    if ref: return "✅ Firebase Connected (Safe Mode)"
+    return "❌ Firebase Connection Failed"
 
 if __name__ == "__main__":
     app.run(debug=True)
