@@ -22,7 +22,7 @@ from flask_mail import Mail, Message
 from datetime import datetime
 from collections import Counter
 
-# Load environment variables
+# Muat variabel lingkungan
 load_dotenv()
 
 app = Flask(__name__)
@@ -30,795 +30,483 @@ CORS(app)
 
 app.secret_key = os.environ.get('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
 
-# --- Firebase Initialization (Updated for Vercel) ---
-# Try to get credentials from environment variable first
-firebase_creds_json = os.environ.get('FIREBASE_CREDENTIALS')
-
-if not firebase_admin._apps:
-    try:
-        if firebase_creds_json:
-            # If running on Vercel with env var
-            cred_dict = json.loads(firebase_creds_json)
-            cred = credentials.Certificate(cred_dict)
-        elif os.path.exists('credentials.json'):
-            # If running locally with file
-            cred = credentials.Certificate('credentials.json')
-        else:
-            raise FileNotFoundError("Firebase credentials not found in env var or file.")
-
-        firebase_admin.initialize_app(cred, {
-            'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/' 
-        })
-    except Exception as e:
-        print(f"Error initializing Firebase: {e}")
-        # In production, you might want to log this or handle it more gracefully
-        # For now, we'll let it pass but database operations will fail
-
-# Reference to Realtime Database
+# --- PERBAIKAN FATAL ERROR VERCEL (JANGAN DIHAPUS) ---
+# Kode ini otomatis memilih cara koneksi terbaik (Env Var atau File)
+ref = None
 try:
-    ref = db.reference('/')
-except:
+    if not firebase_admin._apps:
+        # Cek 1: Apakah ada Environment Variable di Vercel?
+        firebase_creds_env = os.environ.get('FIREBASE_CREDENTIALS')
+        
+        if firebase_creds_env:
+            # Jika ada, pakai ini (Cara Vercel)
+            cred_dict = json.loads(firebase_creds_env)
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred, {
+                'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
+            })
+            print("✅ Firebase Connected via ENV")
+        else:
+            # Cek 2: Cari file credentials.json (Cara Local)
+            # Pakai path absolut biar tidak error 500
+            BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+            CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
+            
+            if os.path.exists(CREDENTIALS_PATH):
+                cred = credentials.Certificate(CREDENTIALS_PATH)
+                firebase_admin.initialize_app(cred, {
+                    'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
+                })
+                print("✅ Firebase Connected via File")
+            else:
+                print("⚠️ Warning: Tidak ada ENV maupun File Credentials. Masuk mode Offline.")
+
+    # Cek koneksi db
+    try:
+        ref = db.reference('/')
+    except:
+        ref = None
+
+except Exception as e:
+    print(f"❌ Firebase Init Error: {e}")
     ref = None
 
-# --- Email Initialization ---
+# Inisialisasi Email
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg' 
+app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 
-mail = Mail(app)
+try:
+    mail = Mail(app)
+except:
+    mail = None
 
-# Load API keys
+# API Keys (Pakai Error Handling biar gak Crash)
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-newsapi = NewsApiClient(api_key=NEWS_API_KEY)
+try:
+    newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
+except:
+    newsapi = None
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+try:
+    model = genai.GenerativeModel("gemini-2.5-flash", 
+        system_instruction="Anda adalah Chatbot AI KTVDI. Jawab singkat dan ramah.")
+except:
+    model = None
 
-# Initialize Gemini model
-model = genai.GenerativeModel(
-    "gemini-2.5-flash", 
-    system_instruction=
-    "Anda adalah Chatbot AI KTVDI untuk website Komunitas TV Digital Indonesia (KTVDI). "
-    "Tugas Anda adalah menjawab pertanyaan pengguna seputar aplikasi KTVDI, "
-    "fungsi-fungsinya (login, daftar, tambah data, edit data, hapus data, poin, leaderboard, profil, komentar), "
-    "serta pertanyaan umum tentang TV Digital di Indonesia (DVB-T2, MUX, mencari siaran, antena, STB, merk TV). "
-    "Jawab dengan ramah, informatif, dan ringkas. "
-    "Gunakan bahasa Indonesia formal. "
-    "Jika pertanyaan di luar cakupan Anda atau memerlukan informasi real-time yang tidak Anda miliki, "
-    "arahkan pengguna untuk mencari informasi lebih lanjut di sumber resmi atau bertanya di forum/komunitas terkait TV Digital."
-    "\n\nBerikut adalah beberapa contoh FAQ yang bisa Anda jawab dan informasi yang harus Anda pertimbangkan:"
-    "\n- **Apa itu KTVDI?** KTVDI adalah platform komunitas online tempat pengguna dapat berbagi, menambahkan, memperbarui, dan melihat data siaran TV Digital (DVB-T2) di berbagai provinsi dan wilayah di Indonesia."
-    "\n- **Bagaimana cara menambahkan data siaran?** Anda perlu login ke akun KTVDI Anda. Setelah login, Anda akan melihat bagian 'Tambahkan Data Siaran Baru' di halaman utama. Isi detail provinsi, wilayah, penyelenggara MUX, dan daftar siaran yang tersedia."
-    "\n- **Bagaimana cara mendapatkan poin?** Anda mendapatkan 10 poin setiap kali Anda berhasil menambahkan data siaran baru. Anda mendapatkan 5 poin saat memperbarui data siaran yang sudah ada. Anda juga mendapatkan 1 poin setiap kali Anda mengirimkan komentar pada data MUX tertentu."
-    "\n- **Apa itu MUX?** MUX adalah singkatan dari Multiplex. Dalam konteks TV Digital, MUX adalah teknologi yang memungkinkan beberapa saluran televisi digital disiarkan secara bersamaan melalui satu frekuensi atau kanal UHF. Setiap MUX biasanya dikelola oleh satu penyelenggara (misalnya, Metro TV, SCTV, Trans TV, TVRI)."
-    "\n- **Bagaimana cara mencari siaran TV digital?** Anda dapat mencari siaran TV digital dengan melakukan pemindaian otomatis (auto scan) pada televisi digital Anda atau Set Top Box (STB) DVB-T2. Pastikan antena Anda terpasang dengan benar dan mengarah ke pemancar terdekat."
-    "\n- **Apa itu DVB-T2?** DVB-T2 adalah standar penyiaran televisi digital terestrial generasi kedua yang digunakan di Indonesia. Standar ini memungkinkan kualitas gambar dan suara yang lebih baik serta efisiensi frekuensi yang lebih tinggi dibandingkan siaran analog."
-    "\n- **Apakah saya bisa mengedit data yang diinput orang lain?** Tidak, Anda hanya bisa mengedit data siaran yang Anda tambahkan sendiri. Jika ada data yang salah atau perlu diperbarui yang diinput oleh pengguna lain, Anda dapat melaporkan atau menunggu kontributor yang bersangkutan untuk memperbaruinya."
-    "\n- **Bagaimana cara melihat profil pengguna lain?** Di sidebar aplikasi, terdapat tombol 'Lihat Profil Pengguna Lain'. Anda bisa memilih username dari daftar untuk melihat informasi profil publik mereka seperti nama, poin, provinsi, wilayah, dan merk perangkat TV digital mereka."
-    "\n- **Bagaimana cara reset password?** Jika Anda lupa password, di halaman login, klik tombol 'Lupa Password?'. Masukkan email yang terdaftar, dan Anda akan menerima kode OTP untuk mereset password Anda."
-    "\n- **Bisakah saya menghapus komentar saya?** Saat ini, tidak ada fitur langsung untuk menghapus komentar setelah dikirim. Harap berhati-hati dalam menulis komentar Anda."
-    "\n- **Poin untuk apa?** Poin adalah bentuk apresiasi atas kontribusi Anda dalam berbagi dan memperbarui data siaran. Pengguna dengan poin tertinggi akan ditampilkan di halaman Leaderboard."
-    "\n- **Apakah harus login untuk melihat data siaran?** Tidak, Anda dapat melihat data siaran tanpa login. Login hanya diperlukan untuk menambahkan, mengedit, menghapus data, memberi komentar, melihat profil Anda, dan mengakses leaderboard."
-    "\n- **Format apa untuk Wilayah Layanan?** Formatnya adalah 'Nama Provinsi-Angka'. Contoh: 'Jawa Timur-1', 'DKI Jakarta-2'."
-    "\n- **Format apa untuk Penyelenggara MUX?** Formatnya adalah 'UHF XX - Nama MUX'. Contoh: 'UHF 27 - Metro TV'."
-    "\n- **Bagaimana cara kerja poin?** Poin diberikan secara otomatis setiap kali Anda berkontribusi. Tambah data (10 poin), edit data (5 poin), komentar (1 poin)."
-    "\n- **Apa yang harus saya lakukan jika siaran tidak muncul?** Pastikan TV/STB Anda mendukung DVB-T2, antena terpasang benar dan mengarah ke pemancar, serta lakukan scan ulang saluran."
-)
+# --- FUNGSI HELPER ---
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def time_since_published(published_time):
+    now = datetime.now()
+    try:
+        publish_time = datetime(*published_time[:6])
+        delta = now - publish_time
+        if delta.days >= 1: return f"{delta.days} hari lalu"
+        if delta.seconds >= 3600: return f"{delta.seconds // 3600} jam lalu"
+        return "Baru saja"
+    except:
+        return "Baru saja"
+
+def get_actual_url_from_google_news(link):
+    try:
+        response = requests.get(link, timeout=3)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            article_link = soup.find('a', {'class': 'DY5T1d'})
+            return article_link['href'] if article_link else link
+    except:
+        pass
+    return link
+
+# --- ROUTES ---
 
 @app.route("/")
 def home():
-    # Ambil data dari seluruh node "siaran" untuk semua provinsi
+    # Render halaman meskipun DB mati (data kosong)
+    wilayah_count = 0
+    mux_count = 0
+    siaran_count = 0
+    last_updated_time = None
+    most_common_siaran_name = None
+    most_common_siaran_count = 0
+    
     if ref:
-        siaran_data = ref.child('siaran').get() or {}
-    else:
-        siaran_data = {}
+        try:
+            siaran_data = ref.child('siaran').get() or {}
+            siaran_counts = Counter()
+            
+            for prov_data in siaran_data.values():
+                if isinstance(prov_data, dict):
+                    wilayah_count += len(prov_data)
+                    for wil_data in prov_data.values():
+                        if isinstance(wil_data, dict):
+                            mux_count += len(wil_data)
+                            for mux_data in wil_data.values():
+                                if 'siaran' in mux_data:
+                                    siaran_count += len(mux_data['siaran'])
+                                    for s in mux_data['siaran']:
+                                        siaran_counts[s.lower()] += 1
+                                
+                                if 'last_updated_date' in mux_data:
+                                    try:
+                                        curr = datetime.strptime(mux_data['last_updated_date'], '%d-%m-%Y')
+                                        if not last_updated_time or curr > last_updated_time:
+                                            last_updated_time = curr
+                                    except: pass
+            
+            if siaran_counts:
+                top = siaran_counts.most_common(1)[0]
+                most_common_siaran_name = top[0].upper()
+                most_common_siaran_count = top[1]
 
-    # Variabel Statistik
-    jumlah_wilayah_layanan = 0
-    jumlah_siaran = 0
-    jumlah_penyelenggara_mux = 0  # Variabel untuk menghitung jumlah penyelenggara mux
-    siaran_counts = Counter()
-    last_updated_time = None  # Variabel untuk menyimpan waktu terakhir pembaruan
+            if last_updated_time:
+                last_updated_time = last_updated_time.strftime('%d-%m-%Y')
+        except:
+            pass
     
-    # Iterasi melalui provinsi, wilayah layanan, dan penyelenggara mux
-    for provinsi, provinsi_data in siaran_data.items():  # Iterasi pada setiap provinsi
-        if isinstance(provinsi_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
-            jumlah_wilayah_layanan += len(provinsi_data)
-            for wilayah, wilayah_data in provinsi_data.items():  # Iterasi pada setiap wilayah
-                if isinstance(wilayah_data, dict):  # Memeriksa apakah data wilayah adalah dict (berarti ada penyelenggara mux)
-                    jumlah_penyelenggara_mux += len(wilayah_data)  # Menghitung jumlah penyelenggara mux
-                    
-                    # Menghitung jumlah siaran dari penyelenggara mux
-                    for penyelenggara, penyelenggara_details in wilayah_data.items():
-                        if 'siaran' in penyelenggara_details:
-                            jumlah_siaran += len(penyelenggara_details['siaran'])  # Menambahkan jumlah siaran dari penyelenggara mux
-                            for siaran in penyelenggara_details['siaran']:
-                                siaran_counts[siaran.lower()] += 1
-                # Mengambil waktu terakhir pembaruan jika ada
-                if 'last_updated_date' in penyelenggara_details:
-                    current_updated_time_str = penyelenggara_details['last_updated_date']
-                    try:
-                        current_updated_time = datetime.strptime(current_updated_time_str, '%d-%m-%Y')
-                    except ValueError:
-                        current_updated_time = None
-                    if current_updated_time and (last_updated_time is None or current_updated_time > last_updated_time):
-                        last_updated_time = current_updated_time
-
-    # Menentukan siaran TV terbanyak berdasarkan hitungan
-    if siaran_counts:
-        most_common_siaran = siaran_counts.most_common(1)[0]  # Ambil siaran dengan frekuensi tertinggi
-        most_common_siaran_name = most_common_siaran[0].upper()
-        most_common_siaran_count = most_common_siaran[1]
-    else:
-        most_common_siaran_name = None
-        most_common_siaran_count = 0
-
-    if last_updated_time:
-        last_updated_time = last_updated_time.strftime('%d-%m-%Y')
-    
-    # Kirim jumlah siaran, jumlah penyelenggara mux, dan waktu pembaruan ke template
-    return render_template('index.html', most_common_siaran_name=most_common_siaran_name,
-                                        most_common_siaran_count=most_common_siaran_count,
-                                        jumlah_wilayah_layanan=jumlah_wilayah_layanan,
-                                        jumlah_siaran=jumlah_siaran, 
-                                        jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
-                                        last_updated_time=last_updated_time)
+    return render_template('index.html', 
+                           most_common_siaran_name=most_common_siaran_name,
+                           most_common_siaran_count=most_common_siaran_count,
+                           jumlah_wilayah_layanan=wilayah_count,
+                           jumlah_siaran=siaran_count, 
+                           jumlah_penyelenggara_mux=mux_count, 
+                           last_updated_time=last_updated_time)
 
 @app.route('/', methods=['POST'])
 def chatbot():
     data = request.get_json()
     prompt = data.get("prompt")
-
     try:
+        if not model: return jsonify({"response": "Maaf, AI sedang istirahat."})
         response = model.generate_content(prompt)
         return jsonify({"response": response.text})
     except Exception as e:
         return jsonify({"error": str(e)})
 
-@app.route("/forgot-password", methods=["GET", "POST"])
-def forgot_password():
-    if request.method == "POST":
-        email = request.form.get("identifier")
+@app.route("/cctv")
+def cctv_page():
+    return render_template("cctv.html")
 
-        users_ref = db.reference("users")
-        users = users_ref.get() or {}
+# --- AUTH ROUTES ---
 
-        found_uid, found_user = None, None
-        for uid, user in users.items():
-            if "email" in user and user["email"].lower() == email.lower():
-                found_uid, found_user = uid, user
-                break
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error_message = None
+    if request.method == 'POST':
+        if not ref: return render_template('login.html', error="Database Offline (Cek Config)")
+        
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        hashed_pw = hash_password(password)
+        
+        try:
+            user_data = ref.child(f'users/{username}').get()
+            if not user_data:
+                error_message = "Username tidak ditemukan."
+            elif user_data.get('password') == hashed_pw:
+                session['user'] = username
+                session['nama'] = user_data.get('nama', 'Pengguna')
+                return redirect(url_for('dashboard'))
+            else:
+                error_message = "Password salah."
+        except Exception as e:
+            error_message = f"Error: {e}"
+            
+    return render_template('login.html', error=error_message)
 
-        if found_uid:
-            otp = str(random.randint(100000, 999999))
-            db.reference(f"otp/{found_uid}").set({
-                "email": email,
-                "otp": otp
-            })
-
-            try:
-                # username = uid, nama = field di dalam
-                username = found_uid
-                nama = found_user.get("nama", "")
-
-                msg = Message("Kode OTP Reset Password", recipients=[email])
-                msg.body = f"""
-Halo {nama} ({username}),
-
-Anda meminta reset password.
-Kode OTP Anda adalah: {otp}
-
-Jika Anda tidak meminta reset, abaikan email ini.
-"""
-                mail.send(msg)
-
-                flash(f"Kode OTP telah dikirim ke email Anda. Username: {username}, Nama: {nama}", "success")
-
-                session["reset_uid"] = found_uid
-                return redirect(url_for("verify_otp"))
-
-            except Exception as e:
-                flash(f"Gagal mengirim email: {str(e)}", "error")
-
-        else:
-            flash("Email tidak ditemukan di database!", "error")
-
-    return render_template("forgot-password.html")
-
-# --- Halaman verifikasi OTP ---
-@app.route("/verify-otp", methods=["GET", "POST"])
-def verify_otp():
-    uid = session.get("reset_uid")
-    if not uid:
-        return redirect(url_for("forgot_password"))
-
-    if request.method == "POST":
-        otp_input = request.form.get("otp")
-
-        # ambil OTP dari Firebase
-        otp_data = db.reference(f"otp/{uid}").get()
-        if otp_data and otp_data["otp"] == otp_input:
-            flash("OTP benar, silakan ganti password Anda.", "success")
-            return redirect(url_for("reset_password"))
-        else:
-            flash("OTP salah atau kadaluarsa.", "error")
-
-    return render_template("verify-otp.html")
-
-# --- Halaman reset password ---
-@app.route("/reset-password", methods=["GET", "POST"])
-def reset_password():
-    uid = session.get("reset_uid")
-    if not uid:
-        flash("Sesi reset password tidak ditemukan!", "error")
-        return redirect(url_for("forgot_password"))
-
-    if request.method == "POST":
-        new_password = request.form.get("password")
-
-        if len(new_password) < 8:
-            flash("Password harus minimal 8 karakter.", "error")
-            return render_template("reset-password.html")
-
-        # hash password (pakai sha256 agar sama kayak login-mu sebelumnya)
-        hashed_pw = hashlib.sha256(new_password.encode()).hexdigest()
-
-        user_ref = db.reference(f"users/{uid}")
-        user_ref.update({"password": hashed_pw})
-
-        # hapus OTP setelah reset
-        db.reference(f"otp/{uid}").delete()
-        session.pop("reset_uid", None)
-
-        flash("Password berhasil direset, silakan login kembali.", "success")
-
-    return render_template("reset-password.html")
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+        if not ref: 
+            flash("Database Offline.", "error")
+            return render_template("register.html")
+
         nama = request.form.get("nama")
         email = request.form.get("email")
         username = request.form.get("username")
         password = request.form.get("password")
 
-        # --- Validasi ---
+        # Basic validation
         if len(password) < 8:
-            flash("Password harus minimal 8 karakter.", "error")
+            flash("Password minimal 8 karakter.", "error")
             return render_template("register.html")
 
-        if not re.match(r"^[a-z0-9]+$", username):
-            flash("Username hanya boleh huruf kecil dan angka.", "error")
-            return render_template("register.html")
-
-        users_ref = db.reference("users")
-        users = users_ref.get() or {}
-
-        # cek email sudah terdaftar
-        for uid, user in users.items():
-            if user.get("email", "").lower() == email.lower():
-                flash("Email sudah terdaftar!", "error")
-                return render_template("register.html")
-
-        # cek username sudah dipakai
-        if username in users:
-            flash("Username sudah dipakai!", "error")
-            return render_template("register.html")
-
-        # hash password
-        hashed_pw = hashlib.sha256(password.encode()).hexdigest()
-
-        # generate OTP
-        otp = str(random.randint(100000, 999999))
-
-        # simpan ke pending_users di Firebase
-        db.reference(f"pending_users/{username}").set({
-            "nama": nama,
-            "email": email,
-            "password": hashed_pw,
-            "otp": otp
-        })
-
-        # kirim OTP ke email
         try:
-            msg = Message("Kode OTP Verifikasi Akun", recipients=[email])
-            msg.body = f"""
-Halo {nama},
+            users = ref.child('users').get() or {}
+            if username in users:
+                flash("Username sudah digunakan.", "error")
+                return render_template("register.html")
+            
+            for u in users.values():
+                if u.get('email') == email:
+                    flash("Email sudah terdaftar.", "error")
+                    return render_template("register.html")
 
-Terima kasih sudah mendaftar.
-Kode OTP Anda: {otp}
+            hashed_pw = hash_password(password)
+            otp = str(random.randint(100000, 999999))
+            
+            ref.child(f'pending_users/{username}').set({
+                "nama": nama, "email": email, "password": hashed_pw, "otp": otp
+            })
 
-Gunakan kode ini untuk mengaktifkan akun Anda.
-"""
-            mail.send(msg)
-
-            session["pending_username"] = username
-            flash("Kode OTP telah dikirim ke email Anda. Silakan verifikasi.", "success")
-            return redirect(url_for("verify_register"))
+            if mail:
+                msg = Message("Kode Verifikasi KTVDI", recipients=[email])
+                msg.body = f"Halo {nama},\nKode OTP Anda: {otp}"
+                mail.send(msg)
+                flash("Kode OTP telah dikirim ke email.", "success")
+                session['pending_username'] = username
+                return redirect(url_for('verify_register'))
+            else:
+                flash("Gagal inisialisasi Email Server.", "error")
 
         except Exception as e:
-            flash(f"Gagal mengirim email OTP: {str(e)}", "error")
+            flash(f"Error: {e}", "error")
 
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
-    username = session.get("pending_username")
-    if not username:
-        flash("Sesi pendaftaran tidak ditemukan.", "error")
-        return redirect(url_for("register"))
-
-    pending_ref = db.reference(f"pending_users/{username}")
-    pending_data = pending_ref.get()
-
-    if not pending_data:
-        flash("Data pendaftaran tidak ditemukan.", "error")
-        return redirect(url_for("register"))
+    username = session.get('pending_username')
+    if not username: return redirect(url_for('register'))
 
     if request.method == "POST":
-        otp_input = request.form.get("otp")
+        if not ref: 
+            flash("Database Error", "error")
+            return render_template("verify-register.html", username=username)
 
-        if pending_data.get("otp") == otp_input:
-            # pindahkan ke users
-            db.reference(f"users/{username}").set({
-                "nama": pending_data["nama"],
-                "email": pending_data["email"],
-                "password": pending_data["password"],
+        otp_input = request.form.get("otp")
+        pending_data = ref.child(f'pending_users/{username}').get()
+        
+        if pending_data and str(pending_data['otp']) == str(otp_input):
+            ref.child(f'users/{username}').set({
+                "nama": pending_data['nama'],
+                "email": pending_data['email'],
+                "password": pending_data['password'],
                 "points": 0
             })
-
-            # hapus dari pending
-            pending_ref.delete()
-            session.pop("pending_username", None)
-
-            flash("Akun berhasil diverifikasi! Silakan login.", "success")
+            ref.child(f'pending_users/{username}').delete()
+            session.pop('pending_username', None)
+            flash("Pendaftaran berhasil! Silakan login.", "success")
+            return redirect(url_for('login'))
         else:
-            flash("Kode OTP salah!", "error")
+            flash("Kode OTP salah.", "error")
 
     return render_template("verify-register.html", username=username)
 
-@app.route("/daftar-siaran")
-def daftar_siaran():
-    # Ambil daftar provinsi dari Firebase
-    ref = db.reference("provinsi")
-    data = ref.get() or {}
-    provinsi_list = list(data.values())  # misalnya: {"bengkulu": "Bengkulu"} → ambil value
-    return render_template("daftar-siaran.html", provinsi_list=provinsi_list)
+# --- FORGOT PASSWORD ---
 
-# 🔹 API ambil daftar wilayah
-@app.route("/get_wilayah")
-def get_wilayah():
-    provinsi = request.args.get("provinsi")
-    ref = db.reference(f"siaran/{provinsi}")
-    data = ref.get() or {}
-    wilayah_list = list(data.keys())
-    return jsonify({"wilayah": wilayah_list})
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        if not ref: 
+            flash("Database Error", "error")
+            return render_template("forgot-password.html")
 
-# 🔹 API ambil daftar MUX
-@app.route("/get_mux")
-def get_mux():
-    provinsi = request.args.get("provinsi")
-    wilayah = request.args.get("wilayah")
-    ref = db.reference(f"siaran/{provinsi}/{wilayah}")
-    data = ref.get() or {}
-    mux_list = list(data.keys())
-    return jsonify({"mux": mux_list})
-
-# 🔹 API ambil detail siaran
-@app.route("/get_siaran")
-def get_siaran():
-    provinsi = request.args.get("provinsi")
-    wilayah = request.args.get("wilayah")
-    mux = request.args.get("mux")
-    ref = db.reference(f"siaran/{provinsi}/{wilayah}/{mux}")
-    data = ref.get() or {}
-
-    return jsonify({
-        "last_updated_by_name": data.get("last_updated_by_name", "-"),
-        "last_updated_by_username": data.get("last_updated_by_username", "-"),
-        "last_updated_date": data.get("last_updated_date", "-"),
-        "last_updated_time": data.get("last_updated_time", "-"),
-        "siaran": data.get("siaran", [])
-    })
-
-def time_since_published(published_time):
-    # Menghitung waktu sekarang
-    now = datetime.now()
-    
-    # Mengonversi waktu penerbitan ke datetime
-    publish_time = datetime(*published_time[:6])
-    
-    # Menghitung selisih waktu
-    delta = now - publish_time
-    
-    # Menyusun hasil dalam format yang lebih ramah pengguna
-    if delta.days >= 1:
-        if delta.days == 1:
-            return "1 hari yang lalu"
-        return f"{delta.days} hari yang lalu"
-    
-    if delta.seconds >= 3600:
-        hours = delta.seconds // 3600
-        return f"{hours} jam yang lalu"
-    
-    if delta.seconds >= 60:
-        minutes = delta.seconds // 60
-        return f"{minutes} menit yang lalu"
-    
-    return "Beberapa detik yang lalu"
-
-def get_actual_url_from_google_news(link):
-    # Mengambil halaman dari URL Google News
-    response = requests.get(link)
-    
-    # Mengecek apakah permintaan berhasil
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html.parser')
+        email = request.form.get("identifier")
+        users = ref.child('users').get() or {}
+        found_uid = None
         
-        # Google News menyertakan URL asli artikel di dalam tag 'a' dengan atribut 'href'
-        # Biasanya akan ada di dalam elemen tertentu, kita cari URL asli
-        article_link = soup.find('a', {'class': 'DY5T1d'})  # Class ini berdasarkan struktur halaman Google News
-        if article_link:
-            return article_link['href']
-    return link  # Jika tidak ditemukan, kembalikan link aslinya
+        for uid, u in users.items():
+            if u.get('email') == email:
+                found_uid = uid
+                break
+        
+        if found_uid:
+            otp = str(random.randint(100000, 999999))
+            ref.child(f'otp/{found_uid}').set({"email": email, "otp": otp})
+            
+            if mail:
+                try:
+                    msg = Message("Reset Password KTVDI", recipients=[email])
+                    msg.body = f"Kode OTP Reset: {otp}"
+                    mail.send(msg)
+                    session['reset_uid'] = found_uid
+                    flash(f"OTP dikirim ke {email}", "success")
+                    return redirect(url_for('verify_otp'))
+                except Exception as e:
+                    flash(f"Gagal kirim email: {e}", "error")
+            else:
+                flash("Email service error", "error")
+        else:
+            flash("Email tidak ditemukan.", "error")
+            
+    return render_template("forgot-password.html")
 
-@app.route('/berita')
-def berita():
-    # URL RSS Feed Google News (misalnya kategori teknologi)
-    rss_url = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    uid = session.get('reset_uid')
+    if not uid: return redirect(url_for('forgot_password'))
     
-    # Mengambil dan mem-parsing RSS Feed
-    feed = feedparser.parse(rss_url)
+    if request.method == "POST":
+        if not ref: return "DB Error", 500
+        otp_input = request.form.get("otp")
+        stored_otp = ref.child(f'otp/{uid}').get()
+        
+        if stored_otp and str(stored_otp['otp']) == str(otp_input):
+            return redirect(url_for('reset_password'))
+        else:
+            flash("OTP Salah.", "error")
+            
+    return render_template("verify-otp.html")
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    uid = session.get('reset_uid')
+    if not uid: return redirect(url_for('forgot_password'))
     
-    # Mengambil artikel-artikel dari feed
-    articles = feed.entries
-    
-    # Menentukan jumlah artikel per halaman (misalnya 5 artikel per halaman)
-    articles_per_page = 5
-    
-    # Mendapatkan halaman yang diminta oleh pengguna (default halaman 1)
-    page = request.args.get('page', 1, type=int)
-    
-    # Menghitung total jumlah artikel
-    total_articles = len(articles)
-    
-    # Menentukan batas artikel yang akan ditampilkan di halaman saat ini
-    start = (page - 1) * articles_per_page
-    end = start + articles_per_page
-    
-    # Mengambil artikel yang akan ditampilkan di halaman saat ini
-    articles_on_page = articles[start:end]
-    
-    # Menghitung jumlah halaman yang ada
-    total_pages = (total_articles + articles_per_page - 1) // articles_per_page
+    if request.method == "POST":
+        if not ref: return "DB Error", 500
+        pw = request.form.get("password")
+        if len(pw) < 8:
+            flash("Password minimal 8 karakter.", "error")
+            return render_template("reset-password.html")
 
-    # Menambahkan waktu yang telah berlalu sejak diterbitkan ke setiap artikel
-    for article in articles_on_page:
-        if 'published_parsed' in article:
-            # Menghitung waktu yang telah berlalu sejak penerbitan
-            article.time_since_published = time_since_published(article.published_parsed)
-    
-    # Memperbarui link ke artikel asli (menggunakan scraping)
-    for article in articles_on_page:
-        actual_link = get_actual_url_from_google_news(article.link)
-        article.actual_link = actual_link  # Menyimpan URL asli
+        ref.child(f'users/{uid}').update({"password": hash_password(pw)})
+        ref.child(f'otp/{uid}').delete()
+        session.pop('reset_uid', None)
+        flash("Password berhasil diubah.", "success")
+        return redirect(url_for('login'))
+        
+    return render_template("reset-password.html")
 
-    # Menampilkan halaman dengan artikel dan navigasi paginasi
-    return render_template(
-        'berita.html', 
-        articles=articles_on_page, 
-        page=page,
-        total_pages=total_pages
-    )
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-# Fungsi untuk melakukan hashing password
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-# Route untuk halaman login
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error_message = None
-
-    if request.method == 'POST':
-        username = request.form['username'].strip()  # Hapus spasi di awal/akhir
-        password = request.form['password'].strip()  # Hapus spasi di awal/akhir
-
-        # Hash password yang dimasukkan oleh pengguna
-        hashed_password = hash_password(password)
-        print(f"Hashed entered password: {hashed_password}")  # Debugging hash
-
-        # Mengambil referensi ke data pengguna di Firebase
-        ref = db.reference('users')
-
-        try:
-            # Ambil data pengguna berdasarkan username
-            user_data = ref.child(username).get()
-            print(f"User data fetched: {user_data}")  # Debugging data pengguna
-
-            if not user_data:
-                error_message = "Username tidak ditemukan."
-                return render_template('login.html', error=error_message)
-
-            # Bandingkan password yang di-hash dengan password yang ada di database
-            if user_data.get('password') == hashed_password:
-                # Simpan informasi pengguna di session
-                session['user'] = username
-                session['nama'] = user_data.get("nama", "Pengguna")
-                print(f"Login successful. Session user: {session['user']}")  # Debugging session
-                return redirect(url_for('dashboard', name=user_data['nama']))
-
-            # Jika password tidak cocok
-            error_message = "Password salah."
-            print("Password mismatch")  # Debugging password mismatch
-
-        except Exception as e:
-            error_message = f"Error fetching data from Firebase: {str(e)}"
-            print(f"Error: {str(e)}")
-
-    return render_template('login.html', error=error_message)
+# --- DASHBOARD & CRUD ---
 
 @app.route("/dashboard")
 def dashboard():
-    # Check if the user is logged in
-    if 'user' not in session:
-        return redirect(url_for('login'))
+    if 'user' not in session: return redirect(url_for('login'))
+    prov_data = {}
+    if ref: prov_data = ref.child('provinsi').get() or {}
+    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list(prov_data.values()))
 
-    # Ambil nama lengkap dari session
-    nama_lengkap = session.get('nama', 'Pengguna')
+@app.route("/daftar-siaran")
+def daftar_siaran():
+    prov_data = {}
+    if ref: prov_data = ref.child('provinsi').get() or {}
+    return render_template("daftar-siaran.html", provinsi_list=list(prov_data.values()))
 
-    # Mengganti '%20' dengan spasi jika ada dalam nama lengkap
-    nama_lengkap = nama_lengkap.replace('%20', ' ')
-
-    # Ambil daftar provinsi dari Firebase
-    ref = db.reference("provinsi")
-    data = ref.get() or {}
-    provinsi_list = list(data.values())
-
-    return render_template("dashboard.html", name=nama_lengkap, provinsi_list=provinsi_list)
-
-# 🔹 Route untuk menambahkan data siaran
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
-    # Ambil data provinsi dari Firebase
-    ref = db.reference("provinsi")
-    provinsi_data = ref.get() or {}
-
-    # Pastikan data provinsi tersedia
-    provinsi_list = list(provinsi_data.values())
-
+    if 'user' not in session: return redirect(url_for('login'))
+    prov_list = []
+    if ref: prov_list = list((ref.child('provinsi').get() or {}).values())
+    
     if request.method == 'POST':
-        provinsi = request.form['provinsi']
-        wilayah = request.form['wilayah']
+        if not ref: return "Database Error", 500
+        prov = request.form['provinsi']
+        wil = request.form['wilayah']
         mux = request.form['mux']
-        siaran_input = request.form['siaran']
-
-        siaran_list = [s.strip() for s in siaran_input.split(',') if s.strip()]
-        wilayah_clean = re.sub(r'\s*-\s*', '-', wilayah.strip())
+        siaran = [s.strip() for s in request.form['siaran'].split(',') if s.strip()]
+        
+        wil_clean = re.sub(r'\s*-\s*', '-', wil.strip())
         mux_clean = mux.strip()
-
-        # Validations
-        is_valid = True
-        if not all([provinsi, wilayah_clean, mux_clean, siaran_list]):
-            is_valid = False
-            error_message = "Harap isi semua kolom."
-        else:
-            # Validate format for wilayah
-            wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
-            if not re.fullmatch(wilayah_pattern, wilayah_clean):
-                is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
-
-            # Validasi kecocokan provinsi
-            wilayah_parts = wilayah_clean.split('-')
-            if len(wilayah_parts) > 1:
-                provinsi_from_wilayah = '-'.join(wilayah_parts[:-1]).strip()
-                if provinsi_from_wilayah.lower() != provinsi.lower():
-                    is_valid = False
-                    error_message = f"Nama provinsi '{provinsi_from_wilayah}' dalam **Wilayah Layanan** tidak cocok dengan **Provinsi** yang dipilih ('{provinsi}')."
-            else:
-                is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak lengkap (tidak ada tanda hubung dan angka)."
+        
+        if not all([prov, wil_clean, mux_clean, siaran]):
+            return render_template('add_data_form.html', error_message="Isi semua data", provinsi_list=prov_list)
             
-            # Validate mux format
-            mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
-            if not re.fullmatch(mux_pattern, mux_clean):
-                is_valid = False
-                error_message = "Format **Penyelenggara MUX** tidak valid. Harap gunakan format 'UHF XX - Nama MUX'."
+        data = {
+            "siaran": sorted(siaran),
+            "last_updated_by": session.get('user'),
+            "last_updated_by_name": session.get('nama'),
+            "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+            "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
+        }
+        ref.child(f'siaran/{prov}/{wil_clean}/{mux_clean}').set(data)
+        return redirect(url_for('dashboard'))
+        
+    return render_template('add_data_form.html', provinsi_list=prov_list)
 
-        if is_valid:
-            try:
-                # Save data to Firebase
-                tz = pytz.timezone('Asia/Jakarta')
-                now_wib = datetime.now(tz)
-                updated_date = now_wib.strftime("%d-%m-%Y")
-                updated_time = now_wib.strftime("%H:%M:%S WIB")
-
-                data_to_save = {
-                    "siaran": sorted(siaran_list),
-                    "last_updated_by_username": session.get('user'),
-                    "last_updated_by_name": session.get('nama', 'Pengguna'),
-                    "last_updated_date": updated_date,
-                    "last_updated_time": updated_time
-                }
-
-                db.reference(f"siaran/{provinsi}/{wilayah_clean}/{mux_clean}").set(data_to_save)
-                return redirect(url_for('dashboard'))
-            except Exception as e:
-                return f"Gagal menyimpan data: {e}"
-
-        return render_template('add_data_form.html', error_message=error_message, provinsi_list=provinsi_list)
-
-    # Display form to add data
-    return render_template('add_data_form.html', provinsi_list=provinsi_list)
-
-# 🔹 Route untuk mengedit data siaran
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux):
-    if 'user' not in session:
-        return redirect(url_for('login'))
+    if 'user' not in session: return redirect(url_for('login'))
+    if not ref: return "Database Error", 500
 
-    # Replace %20 with space for better display in form
     provinsi = provinsi.replace('%20',' ')
-    wilayah = wilayah.replace('%20', ' ')  # Mengganti '%20' dengan spasi
-    mux = mux.replace('%20', ' ')  # Mengganti '%20' dengan spasi
+    wilayah = wilayah.replace('%20', ' ')
+    mux = mux.replace('%20', ' ')
 
     if request.method == 'POST':
-        siaran_input = request.form['siaran']
-        
-        siaran_list = [s.strip() for s in siaran_input.split(',') if s.strip()]
-        wilayah_clean = re.sub(r'\s*-\s*', '-', wilayah.strip())
-        mux_clean = mux.strip()
-
-        # Validations
-        is_valid = True
-        if not all([provinsi, wilayah_clean, mux_clean, siaran_list]):
-            is_valid = False
-            error_message = "Harap isi semua kolom."
-        else:
-            # Validate format for wilayah
-            wilayah_pattern = r"^[a-zA-Z\s]+-\d+$"
-            if not re.fullmatch(wilayah_pattern, wilayah_clean):
-                is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak valid. Harap gunakan format 'Nama Provinsi-Angka'."
-
-            # Validasi kecocokan provinsi
-            wilayah_parts = wilayah_clean.split('-')
-            if len(wilayah_parts) > 1:
-                provinsi_from_wilayah = '-'.join(wilayah_parts[:-1]).strip()
-                if provinsi_from_wilayah.lower() != provinsi.lower():
-                    is_valid = False
-                    error_message = f"Nama provinsi '{provinsi_from_wilayah}' dalam **Wilayah Layanan** tidak cocok dengan **Provinsi** yang dipilih ('{provinsi}')."
-            else:
-                is_valid = False
-                error_message = "Format **Wilayah Layanan** tidak lengkap (tidak ada tanda hubung dan angka)."
-            
-            # Validate mux format
-            mux_pattern = r"^UHF\s+\d{1,3}\s*-\s*.+$"
-            if not re.fullmatch(mux_pattern, mux_clean):
-                is_valid = False
-                error_message = "Format **Penyelenggara MUX** tidak valid. Harap gunakan format 'UHF XX - Nama MUX'."
-
-        if is_valid:
-            try:
-                # Update data to Firebase
-                tz = pytz.timezone('Asia/Jakarta')
-                now_wib = datetime.now(tz)
-                updated_date = now_wib.strftime("%d-%m-%Y")
-                updated_time = now_wib.strftime("%H:%M:%S WIB")
-                
-                data_to_update = {
-                    "siaran": sorted(siaran_list),
-                    "last_updated_by_username": session.get('user'),
-                    "last_updated_by_name": session.get('nama', 'Pengguna'),
-                    "last_updated_date": updated_date,
-                    "last_updated_time": updated_time
-                }
-
-                db.reference(f"siaran/{provinsi}/{wilayah_clean}/{mux_clean}").update(data_to_update)
-                return redirect(url_for('dashboard'))
-
-            except Exception as e:
-                return f"Gagal memperbarui data: {e}"
-
-        return render_template('edit_data_form.html', error_message=error_message)
-
-    # Display form to edit data
+        siaran_list = [s.strip() for s in request.form['siaran'].split(',') if s.strip()]
+        try:
+            db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").update({
+                "siaran": sorted(siaran_list),
+                "last_updated_by_username": session.get('user'),
+                "last_updated_by_name": session.get('nama'),
+                "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
+            })
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            return f"Gagal: {e}"
     return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
 
-# 🔹 Route untuk menghapus data siaran
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
 def delete_data(provinsi, wilayah, mux):
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
+    if 'user' not in session: return redirect(url_for('login'))
+    if not ref: return "Database Error", 500
     try:
         db.reference(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
         return redirect(url_for('dashboard'))
     except Exception as e:
-        return f"Gagal menghapus data: {e}"
-
-# Route untuk logout
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    print("User logged out.")  # Debugging logout
-    return redirect(url_for('login'))
+        return f"Gagal hapus: {e}"
 
 @app.route('/download-sql')
 def download_sql():
-    # Ambil data dari Firebase
-    ref = db.reference('users')
-    users_data = ref.get()
-
-    if not users_data:
-        return "No data found in Firebase.", 404
-
-    # Siapkan data dalam format SQL
-    sql_queries = []
-    for username, user_data in users_data.items():
-        query = f"""
-        INSERT INTO users (username, nama, email, password)
-        VALUES ('{username}', '{user_data['nama']}', '{user_data['email']}', '{user_data['password']}');
-        """
-        sql_queries.append(query)
-
-    # Gabungkan semua query menjadi satu string
-    sql_content = "\n".join(sql_queries)
-
-    # Membuat file SQL untuk diunduh
-    return send_file(io.BytesIO(sql_content.encode()), as_attachment=True, download_name="export_users.sql", mimetype="text/plain")
+    if not ref: return "DB Error", 500
+    users_data = db.reference('users').get() or {}
+    sql = "\n".join([f"INSERT INTO users VALUES ('{u}', '{d['nama']}', '{d['email']}', '{d['password']}');" for u, d in users.items()])
+    return send_file(io.BytesIO(sql.encode()), as_attachment=True, download_name="users.sql", mimetype="text/plain")
 
 @app.route('/download-csv')
 def download_csv():
-    # Ambil data dari Firebase
-    ref = db.reference('users')
-    users_data = ref.get()
-
-    if not users_data:
-        return "No data found in Firebase.", 404
-
-    # Siapkan data dalam format CSV
+    if not ref: return "DB Error", 500
+    users_data = db.reference('users').get() or {}
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['username', 'nama', 'email', 'password'])  # Header CSV
-
-    for username, user_data in users_data.items():
-        writer.writerow([username, user_data['nama'], user_data['email'], user_data['password']])
-
-    output.seek(0)
-
-    # Menggunakan BytesIO untuk menyimpan data CSV dalam bentuk byte
-    csv_bytes = io.BytesIO(output.getvalue().encode('utf-8'))
-    csv_bytes.seek(0)
-
-    # Mengirimkan file CSV untuk diunduh
-    return send_file(csv_bytes, as_attachment=True, download_name="export_users.csv", mimetype="text/csv")
+    writer.writerow(['username', 'nama', 'email', 'password'])
+    for u, d in users_data.items(): writer.writerow([u, d['nama'], d['email'], d['password']])
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8')), as_attachment=True, download_name="users.csv", mimetype="text/csv")
 
 @app.route("/test-firebase")
 def test_firebase():
-    try:
-        if ref is None:
-            return "❌ Firebase belum terhubung"
+    if ref: return "✅ Firebase Connected (Vercel Mode)"
+    return "❌ Firebase Error"
 
-        # Ambil semua data root
-        data = ref.get()
+# API Helpers
+@app.route("/get_wilayah")
+def get_wilayah():
+    if not ref: return jsonify({"wilayah": []})
+    p = request.args.get("provinsi")
+    d = ref.child(f'siaran/{p}').get() or {}
+    return jsonify({"wilayah": list(d.keys())})
 
-        if not data:
-            return "✅ Firebase terhubung, tapi data kosong."
-        return f"✅ Firebase terhubung! Data root:<br><pre>{data}</pre>"
-    except Exception as e:
-        return f"❌ Error akses Firebase: {e}"
+@app.route("/get_mux")
+def get_mux():
+    if not ref: return jsonify({"mux": []})
+    p = request.args.get("provinsi")
+    w = request.args.get("wilayah")
+    d = ref.child(f'siaran/{p}/{w}').get() or {}
+    return jsonify({"mux": list(d.keys())})
+
+@app.route("/get_siaran")
+def get_siaran():
+    if not ref: return jsonify({})
+    p = request.args.get("provinsi")
+    w = request.args.get("wilayah")
+    m = request.args.get("mux")
+    d = ref.child(f'siaran/{p}/{w}/{m}').get() or {}
+    return jsonify(d)
 
 if __name__ == "__main__":
     app.run(debug=True)
