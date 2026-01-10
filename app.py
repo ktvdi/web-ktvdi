@@ -30,23 +30,23 @@ CORS(app)
 
 app.secret_key = os.getenv('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
 
-# --- PERBAIKAN UTAMA (FIX VERCEL PATH) ---
-# Kita cari tahu di mana folder project ini berada di server Vercel
+# --- PERBAIKAN FATAL ERROR VERCEL ---
+# Kita cari lokasi folder tempat app.py berada secara absolut
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 
 # Inisialisasi Firebase
 try:
     if not firebase_admin._apps:
-        # Cek apakah file ada di jalur yang benar
+        # Cek apakah file ada
         if os.path.exists(CREDENTIALS_PATH):
             cred = credentials.Certificate(CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
             })
         else:
-            # Fallback: Cek Environment Variable jika file gagal dibaca
-            print(f"File tidak ditemukan di: {CREDENTIALS_PATH}")
+            # Jika file tidak ada, cek Environment Variable (Backup)
+            print(f"WARNING: File credentials.json tidak ditemukan di {CREDENTIALS_PATH}")
             env_creds = os.getenv('FIREBASE_CREDENTIALS')
             if env_creds:
                 cred_dict = json.loads(env_creds)
@@ -57,7 +57,7 @@ try:
     
     ref = db.reference('/')
 except Exception as e:
-    print(f"Firebase Error: {e}")
+    print(f"Firebase Critical Error: {e}")
     ref = None
 
 # --- KONFIGURASI EMAIL ---
@@ -109,7 +109,8 @@ def get_actual_url_from_google_news(link):
 @app.route("/")
 def home():
     if not ref:
-        return "Error: Database Credentials Missing. Cek Logs Vercel.", 500
+        # Jika error kredensial, jangan crash 500, tapi tampilkan info
+        return "<h1>Error: Database Credentials Missing</h1><p>Pastikan file credentials.json sudah di-upload ke GitHub atau set Environment Variable.</p>", 500
     
     try:
         siaran_data = ref.child('siaran').get() or {}
@@ -188,7 +189,6 @@ def register():
             flash("Password minimal 8 karakter.", "error")
             return render_template("register.html")
 
-        # Cek User
         users = ref.child('users').get() or {}
         for uid, u in users.items():
             if u.get('email') == email:
@@ -242,7 +242,6 @@ def verify_register():
 
     return render_template("verify-register.html", username=username)
 
-# --- FORGOT PASSWORD ---
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
