@@ -30,37 +30,34 @@ CORS(app)
 
 app.secret_key = os.getenv('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
 
-# --- KONFIGURASI FIREBASE (VERSI FINAL: ABSOLUTE PATH) ---
-# Mengambil lokasi folder tempat app.py berada
+# --- PERBAIKAN UTAMA (FIX VERCEL PATH) ---
+# Kita cari tahu di mana folder project ini berada di server Vercel
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 
+# Inisialisasi Firebase
 try:
     if not firebase_admin._apps:
-        # Cek apakah file ada (Untuk Debugging di Logs Vercel)
+        # Cek apakah file ada di jalur yang benar
         if os.path.exists(CREDENTIALS_PATH):
-            print(f"✅ File ditemukan di: {CREDENTIALS_PATH}")
             cred = credentials.Certificate(CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
             })
         else:
-            # Jika file tidak ada, coba baca dari Env Variable (Backup Plan)
-            print(f"❌ File TIDAK ditemukan di: {CREDENTIALS_PATH}")
-            print("Mencoba menggunakan Environment Variable...")
-            firebase_creds_str = os.getenv('FIREBASE_CREDENTIALS')
-            if firebase_creds_str:
-                cred_dict = json.loads(firebase_creds_str)
+            # Fallback: Cek Environment Variable jika file gagal dibaca
+            print(f"File tidak ditemukan di: {CREDENTIALS_PATH}")
+            env_creds = os.getenv('FIREBASE_CREDENTIALS')
+            if env_creds:
+                cred_dict = json.loads(env_creds)
                 cred = credentials.Certificate(cred_dict)
                 firebase_admin.initialize_app(cred, {
                     'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
                 })
-            else:
-                print("❌ Environment Variable juga kosong. Database Gagal Init.")
-                
+    
     ref = db.reference('/')
 except Exception as e:
-    print(f"🔥 Firebase Error: {e}")
+    print(f"Firebase Error: {e}")
     ref = None
 
 # --- KONFIGURASI EMAIL ---
@@ -112,9 +109,8 @@ def get_actual_url_from_google_news(link):
 @app.route("/")
 def home():
     if not ref:
-        return render_template('index.html', stats={'wilayah': 0, 'mux': 0, 'channel': 0})
+        return "Error: Database Credentials Missing. Cek Logs Vercel.", 500
     
-    # Mengambil data dengan aman
     try:
         siaran_data = ref.child('siaran').get() or {}
     except:
@@ -156,8 +152,7 @@ def cctv_page():
 def login():
     error_message = None
     if request.method == 'POST':
-        if not ref: return render_template('login.html', error="Server Database Error")
-        
+        if not ref: return "Database Error", 500
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         hashed_pw = hash_password(password)
@@ -171,7 +166,7 @@ def login():
             else:
                 error_message = "Username atau Password salah."
         except Exception as e:
-            error_message = f"Error: {e}"
+            error_message = "Terjadi kesalahan koneksi database."
             
     return render_template('login.html', error=error_message)
 
@@ -184,7 +179,6 @@ def logout():
 def register():
     if request.method == "POST":
         if not ref: return "Database Error", 500
-        
         nama = request.form.get("nama")
         email = request.form.get("email")
         username = request.form.get("username")
@@ -248,6 +242,7 @@ def verify_register():
 
     return render_template("verify-register.html", username=username)
 
+# --- FORGOT PASSWORD ---
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
