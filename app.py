@@ -30,39 +30,29 @@ CORS(app)
 
 app.secret_key = 'b/g5n!o0?hs&dm!fn8md7'
 
-# --- PERBAIKAN FATAL ERROR VERCEL (JANGAN DIHAPUS) ---
-# Vercel tidak bisa membaca 'credentials.json' secara langsung.
-# Kita harus memberitahu Python lokasi folder absolutnya.
+# --- PERBAIKAN KHUSUS VERCEL (JANGAN DIUBAH LAGI) ---
+# Kita harus mencari letak file ini secara absolut agar terbaca oleh Vercel
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 
 # Inisialisasi Firebase
+if not firebase_admin._apps:
+    try:
+        # Gunakan path absolut yang sudah kita buat di atas
+        cred = credentials.Certificate(CREDENTIALS_PATH)
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
+        })
+    except FileNotFoundError:
+        print(f"CRITICAL ERROR: File tidak ditemukan di {CREDENTIALS_PATH}")
+        # Jangan crash, biar log errornya kelihatan di Vercel
+    except Exception as e:
+        print(f"Firebase Error: {e}")
+
+# Referensi ke Realtime Database
 try:
-    if not firebase_admin._apps:
-        # Cek apakah file ada di jalur yang benar
-        if os.path.exists(CREDENTIALS_PATH):
-            cred = credentials.Certificate(CREDENTIALS_PATH)
-            firebase_admin.initialize_app(cred, {
-                'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
-            })
-            print("✅ Firebase Connected via File.")
-        else:
-            # Fallback: Cek Environment Variable (Jika file gagal terupload)
-            print(f"⚠️ File tidak ditemukan di: {CREDENTIALS_PATH}. Mencoba Env Var...")
-            env_creds = os.getenv('FIREBASE_CREDENTIALS')
-            if env_creds:
-                cred_dict = json.loads(env_creds)
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred, {
-                    'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
-                })
-            else:
-                print("❌ CRITICAL: Database Credentials tidak ditemukan sama sekali.")
-    
-    # Buat referensi database
     ref = db.reference('/')
-except Exception as e:
-    print(f"❌ Firebase Init Error: {e}")
+except:
     ref = None
 
 # Inisialisasi Email
@@ -74,22 +64,26 @@ app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
 app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = 'kom.tvdigitalid@gmail.com'
 
-try:
-    mail = Mail(app)
-except:
-    mail = None
+mail = Mail(app)
 
-# API Keys
+# Memuat API key dari variabel lingkungan
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
+
+# Menginisialisasi NewsApiClient dengan API key
 try:
-    newsapi = NewsApiClient(api_key=NEWS_API_KEY) if NEWS_API_KEY else None
+    newsapi = NewsApiClient(api_key=NEWS_API_KEY)
 except:
     newsapi = None
 
+# Konfigurasi Gemini API Key
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Inisialisasi model Gemini
 try:
-    model = genai.GenerativeModel("gemini-2.5-flash", 
-        system_instruction="Anda adalah Chatbot AI KTVDI. Jawab singkat dan ramah.")
+    model = genai.GenerativeModel(
+        "gemini-2.5-flash", 
+        system_instruction="Anda adalah Chatbot AI KTVDI. Jawab singkat dan ramah seputar TV Digital."
+    )
 except:
     model = None
 
@@ -124,7 +118,7 @@ def get_actual_url_from_google_news(link):
 @app.route("/")
 def home():
     if not ref:
-        return "<h1>Error: Database Tidak Terhubung.</h1><p>Pastikan file credentials.json sudah di-upload ke GitHub (gunakan git add -f).</p>", 500
+        return "<h1>Error: Database Tidak Terhubung</h1><p>Pastikan file <b>credentials.json</b> sudah di-upload ke GitHub dengan perintah <code>git add -f credentials.json</code>.</p>", 500
 
     try:
         siaran_data = ref.child('siaran').get() or {}
@@ -188,89 +182,6 @@ def chatbot():
 def cctv_page():
     return render_template("cctv.html")
 
-# --- AUTH ROUTES ---
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        if not ref: return "Database Error", 500
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        hashed_pw = hash_password(password)
-        
-        try:
-            user_data = ref.child(f'users/{username}').get()
-            if not user_data:
-                return render_template('login.html', error="Username tidak ditemukan.")
-            if user_data.get('password') == hashed_pw:
-                session['user'] = username
-                session['nama'] = user_data.get('nama', 'Pengguna')
-                return redirect(url_for('dashboard'))
-            else:
-                return render_template('login.html', error="Password salah.")
-        except Exception as e:
-            return render_template('login.html', error=f"Error: {e}")
-            
-    return render_template('login.html')
-
-@app.route('/logout')
-def logout():
-    session.pop('user', None)
-    return redirect(url_for('login'))
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        if not ref: return "Database Error", 500
-        nama = request.form.get("nama")
-        email = request.form.get("email")
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        users = ref.child('users').get() or {}
-        if username in users:
-            flash("Username sudah digunakan", "error")
-            return render_template("register.html")
-
-        hashed_pw = hash_password(password)
-        otp = str(random.randint(100000, 999999))
-        
-        ref.child(f"pending_users/{username}").set({
-            "nama": nama, "email": email, "password": hashed_pw, "otp": otp
-        })
-
-        try:
-            msg = Message("Kode Verifikasi KTVDI", recipients=[email])
-            msg.body = f"Kode OTP: {otp}"
-            mail.send(msg)
-            session["pending_username"] = username
-            return redirect(url_for("verify_register"))
-        except:
-            flash("Gagal kirim email", "error")
-
-    return render_template("register.html")
-
-@app.route("/verify-register", methods=["GET", "POST"])
-def verify_register():
-    username = session.get("pending_username")
-    if not username: return redirect(url_for("register"))
-    if request.method == "POST":
-        otp = request.form.get("otp")
-        pending = ref.child(f"pending_users/{username}").get()
-        if pending and str(pending['otp']) == str(otp):
-            ref.child(f"users/{username}").set({
-                "nama": pending['nama'], "email": pending['email'],
-                "password": pending['password'], "points": 0
-            })
-            ref.child(f"pending_users/{username}").delete()
-            session.pop("pending_username", None)
-            flash("Berhasil! Silakan Login", "success")
-            return redirect(url_for("login"))
-        flash("OTP Salah", "error")
-    return render_template("verify-register.html", username=username)
-
-# --- FORGOT PASSWORD ---
-
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -323,13 +234,56 @@ def reset_password():
         return redirect(url_for("login"))
     return render_template("reset-password.html")
 
-# --- DASHBOARD & DATA ---
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        if not ref: return "Database Error", 500
+        nama = request.form.get("nama")
+        email = request.form.get("email")
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-@app.route("/dashboard")
-def dashboard():
-    if 'user' not in session: return redirect(url_for('login'))
-    prov = ref.child('provinsi').get() or {}
-    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list(prov.values()))
+        users = ref.child('users').get() or {}
+        if username in users:
+            flash("Username sudah dipakai", "error")
+            return render_template("register.html")
+
+        hashed_pw = hash_password(password)
+        otp = str(random.randint(100000, 999999))
+        
+        ref.child(f"pending_users/{username}").set({
+            "nama": nama, "email": email, "password": hashed_pw, "otp": otp
+        })
+
+        try:
+            msg = Message("Kode Verifikasi KTVDI", recipients=[email])
+            msg.body = f"Kode OTP: {otp}"
+            mail.send(msg)
+            session["pending_username"] = username
+            return redirect(url_for("verify_register"))
+        except:
+            flash("Gagal kirim email", "error")
+
+    return render_template("register.html")
+
+@app.route("/verify-register", methods=["GET", "POST"])
+def verify_register():
+    username = session.get("pending_username")
+    if not username: return redirect(url_for("register"))
+    if request.method == "POST":
+        otp = request.form.get("otp")
+        pending = ref.child(f"pending_users/{username}").get()
+        if pending and str(pending['otp']) == str(otp):
+            ref.child(f"users/{username}").set({
+                "nama": pending['nama'], "email": pending['email'],
+                "password": pending['password'], "points": 0
+            })
+            ref.child(f"pending_users/{username}").delete()
+            session.pop("pending_username", None)
+            flash("Berhasil! Silakan Login", "success")
+            return redirect(url_for("login"))
+        flash("OTP Salah", "error")
+    return render_template("verify-register.html", username=username)
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
@@ -337,70 +291,6 @@ def daftar_siaran():
     data = ref_prov.get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
 
-@app.route("/add_data", methods=["GET", "POST"])
-def add_data():
-    if 'user' not in session: return redirect(url_for('login'))
-    provs = list((ref.child('provinsi').get() or {}).values())
-    if request.method == 'POST':
-        prov = request.form['provinsi']
-        wil = request.form['wilayah']
-        mux = request.form['mux']
-        siaran = [s.strip() for s in request.form['siaran'].split(',') if s.strip()]
-        
-        wil_clean = re.sub(r'\s*-\s*', '-', wil.strip())
-        mux_clean = mux.strip()
-        
-        if all([prov, wil_clean, mux_clean, siaran]):
-            data = {
-                "siaran": sorted(siaran),
-                "last_updated_by": session.get('user'),
-                "last_updated_by_name": session.get('nama'),
-                "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
-                "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
-            }
-            ref.child(f'siaran/{prov}/{wil_clean}/{mux_clean}').set(data)
-            return redirect(url_for('dashboard'))
-    return render_template('add_data_form.html', provinsi_list=provs)
-
-@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
-def edit_data(provinsi, wilayah, mux):
-    if 'user' not in session: return redirect(url_for('login'))
-    prov = provinsi.replace('%20',' ')
-    wil = wilayah.replace('%20',' ')
-    mx = mux.replace('%20',' ')
-    
-    if request.method == 'POST':
-        siaran = [s.strip() for s in request.form['siaran'].split(',') if s.strip()]
-        ref.child(f'siaran/{prov}/{wil}/{mx}').update({
-            "siaran": sorted(siaran),
-            "last_updated_by": session.get('user'),
-            "last_updated_by_name": session.get('nama'),
-            "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
-            "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
-        })
-        return redirect(url_for('dashboard'))
-    return render_template('edit_data_form.html', provinsi=prov, wilayah=wil, mux=mx)
-
-@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
-def delete_data(provinsi, wilayah, mux):
-    if 'user' not in session: return redirect(url_for('login'))
-    ref.child(f'siaran/{provinsi}/{wilayah}/{mux}').delete()
-    return redirect(url_for('dashboard'))
-
-@app.route('/berita')
-def berita():
-    try:
-        rss = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
-        feed = feedparser.parse(rss)
-        return render_template('berita.html', articles=feed.entries[:10], page=1, total_pages=1)
-    except:
-        return render_template('berita.html', articles=[], page=1, total_pages=1)
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-# API Helper
 @app.route("/get_wilayah")
 def get_wilayah():
     p = request.args.get("provinsi")
@@ -422,6 +312,91 @@ def get_siaran():
     d = ref.child(f"siaran/{p}/{w}/{m}").get() or {}
     return jsonify(d)
 
+@app.route('/berita')
+def berita():
+    try:
+        rss = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
+        feed = feedparser.parse(rss)
+        return render_template('berita.html', articles=feed.entries[:10], page=1, total_pages=1)
+    except:
+        return render_template('berita.html', articles=[], page=1, total_pages=1)
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if not ref: return "Database Error", 500
+        username = request.form.get('username')
+        password = request.form.get('password')
+        hashed = hash_password(password)
+        user = ref.child(f'users/{username}').get()
+        if user and user.get('password') == hashed:
+            session['user'] = username
+            session['nama'] = user.get('nama')
+            return redirect(url_for('dashboard'))
+        return render_template('login.html', error="Login Gagal")
+    return render_template('login.html')
+
+@app.route("/dashboard")
+def dashboard():
+    if 'user' not in session: return redirect(url_for('login'))
+    prov = ref.child('provinsi').get() or {}
+    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list(prov.values()))
+
+@app.route("/add_data", methods=["GET", "POST"])
+def add_data():
+    if 'user' not in session: return redirect(url_for('login'))
+    provs = list((ref.child('provinsi').get() or {}).values())
+    if request.method == 'POST':
+        prov = request.form['provinsi']
+        wil = request.form['wilayah']
+        mux = request.form['mux']
+        siaran = [s.strip() for s in request.form['siaran'].split(',') if s.strip()]
+        
+        wil_clean = re.sub(r'\s*-\s*', '-', wil.strip())
+        mux_clean = mux.strip()
+        
+        if all([prov, wil_clean, mux_clean, siaran]):
+            data = {
+                "siaran": sorted(siaran),
+                "last_updated_by": session.get('user'),
+                "last_updated_date": datetime.now().strftime("%d-%m-%Y")
+            }
+            ref.child(f'siaran/{prov}/{wil_clean}/{mux_clean}').set(data)
+            return redirect(url_for('dashboard'))
+    return render_template('add_data_form.html', provinsi_list=provs)
+
+@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
+def edit_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    prov = provinsi.replace('%20',' ')
+    wil = wilayah.replace('%20',' ')
+    mx = mux.replace('%20',' ')
+    
+    if request.method == 'POST':
+        siaran = [s.strip() for s in request.form['siaran'].split(',') if s.strip()]
+        ref.child(f'siaran/{prov}/{wil}/{mx}').update({
+            "siaran": sorted(siaran),
+            "last_updated_by": session.get('user'),
+            "last_updated_date": datetime.now().strftime("%d-%m-%Y")
+        })
+        return redirect(url_for('dashboard'))
+    return render_template('edit_data_form.html', provinsi=prov, wilayah=wil, mux=mx)
+
+@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
+def delete_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    ref.child(f'siaran/{provinsi}/{wilayah}/{mux}').delete()
+    return redirect(url_for('dashboard'))
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
+
 @app.route('/download-sql')
 def download_sql():
     users = ref.child('users').get() or {}
@@ -439,7 +414,7 @@ def download_csv():
 
 @app.route("/test-firebase")
 def test_firebase():
-    if ref: return "✅ Firebase Connected"
+    if ref: return "✅ Firebase Connected (Vercel Mode)"
     return "❌ Firebase Error"
 
 if __name__ == "__main__":
