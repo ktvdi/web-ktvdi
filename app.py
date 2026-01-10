@@ -1,5 +1,4 @@
 import os
-import json
 import hashlib
 import firebase_admin
 import random
@@ -22,37 +21,31 @@ from flask_mail import Mail, Message
 from datetime import datetime
 from collections import Counter
 
-# Muat variabel lingkungan
+# Muat variabel lingkungan (opsional di Vercel jika pakai file fisik)
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-app.secret_key = os.getenv('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
+# Secret Key
+app.secret_key = 'b/g5n!o0?hs&dm!fn8md7'
 
-# --- KONFIGURASI FIREBASE (FIX UNTUK VERCEL) ---
-firebase_creds_str = os.getenv('FIREBASE_CREDENTIALS')
-
-try:
-    if firebase_creds_str:
-        # Jika di Vercel, baca dari Environment Variable
-        cred_dict = json.loads(firebase_creds_str)
-        cred = credentials.Certificate(cred_dict)
-    elif os.path.exists('credentials.json'):
-        # Jika di Localhost, baca dari file
+# --- KONFIGURASI FIREBASE (METODE FILE DEFAULT) ---
+# PENTING: Pastikan file 'credentials.json' ada di folder yang sama dan ikut ter-upload ke GitHub
+if not firebase_admin._apps:
+    try:
         cred = credentials.Certificate('credentials.json')
-    else:
-        raise ValueError("Firebase Credentials tidak ditemukan (Env Var atau File).")
-
-    # Inisialisasi App (Cek agar tidak init ganda)
-    if not firebase_admin._apps:
         firebase_admin.initialize_app(cred, {
             'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
         })
+        print("Firebase initialized successfully.")
+    except Exception as e:
+        print(f"Error initializing Firebase: {e}")
+
+# Referensi Database
+try:
     ref = db.reference('/')
-except Exception as e:
-    print(f"Firebase Init Error: {e}")
-    # Jangan crash app, tapi fitur DB akan mati
+except:
     ref = None
 
 # --- KONFIGURASI EMAIL ---
@@ -61,13 +54,12 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
-# Pastikan menggunakan App Password
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg' 
+app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'  # App Password
 app.config['MAIL_DEFAULT_SENDER'] = ('KTVDI Security', 'kom.tvdigitalid@gmail.com')
 
 mail = Mail(app)
 
-# API Keys
+# API Keys (Pastikan ini ada di .env atau langsung string jika testing)
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -104,15 +96,15 @@ def get_actual_url_from_google_news(link):
         pass
     return link
 
-# --- ROUTES ---
+# --- ROUTES UTAMA ---
 
 @app.route("/")
 def home():
-    if not ref: return "Database Error: Credentials Missing", 500
-    
+    if not ref:
+        return "Error: Database tidak terhubung. Pastikan credentials.json ada.", 500
+        
     siaran_data = ref.child('siaran').get() or {}
     
-    # Statistik Sederhana
     wilayah_count = 0
     mux_count = 0
     siaran_count = 0
@@ -127,7 +119,10 @@ def home():
                         if 'siaran' in mux_data:
                             siaran_count += len(mux_data['siaran'])
 
-    return render_template('index.html', stats={'wilayah': wilayah_count, 'mux': mux_count, 'channel': siaran_count})
+    # Ambil berita untuk ticker (simulasi breaking news)
+    breaking_news = ["Selamat Datang di KTVDI", "Segera Migrasi ke TV Digital", "TVRI Tayangkan Piala Dunia 2026"]
+    
+    return render_template('index.html', stats={'wilayah': wilayah_count, 'mux': mux_count, 'channel': siaran_count}, breaking_news=breaking_news)
 
 @app.route('/', methods=['POST'])
 def chatbot():
@@ -141,9 +136,9 @@ def chatbot():
 
 @app.route("/cctv")
 def cctv_page():
-    return render_template("cctv.html") # Pastikan Anda punya cctv.html
+    return render_template("cctv.html")
 
-# --- AUTHENTICATION ROUTES ---
+# --- AUTH ROUTES ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -162,7 +157,7 @@ def login():
             else:
                 error_message = "Username atau Password salah."
         except Exception as e:
-            error_message = "Terjadi kesalahan koneksi database."
+            error_message = f"Database Error: {e}"
             
     return render_template('login.html', error=error_message)
 
@@ -183,7 +178,7 @@ def register():
             flash("Password minimal 8 karakter.", "error")
             return render_template("register.html")
 
-        # Cek Username & Email
+        # Cek User
         users = ref.child('users').get() or {}
         for uid, u in users.items():
             if u.get('email') == email:
@@ -194,16 +189,13 @@ def register():
             flash("Username sudah digunakan.", "error")
             return render_template("register.html")
 
-        # Buat OTP
         otp = str(random.randint(100000, 999999))
         hashed_pw = hash_password(password)
 
-        # Simpan sementara
         ref.child(f'pending_users/{username}').set({
             "nama": nama, "email": email, "password": hashed_pw, "otp": otp
         })
 
-        # Kirim Email
         try:
             msg = Message("KTVDI - Kode Verifikasi", recipients=[email])
             msg.body = f"Halo {nama},\nKode OTP Anda adalah: {otp}"
@@ -225,7 +217,6 @@ def verify_register():
         pending_data = ref.child(f'pending_users/{username}').get()
         
         if pending_data and str(pending_data['otp']) == str(otp_input):
-            # Pindahkan ke Users
             ref.child(f'users/{username}').set({
                 "nama": pending_data['nama'],
                 "email": pending_data['email'],
@@ -260,9 +251,10 @@ def forgot_password():
             
             try:
                 msg = Message("KTVDI - Reset Password", recipients=[email])
-                msg.body = f"Kode Reset Password Anda: {otp}"
+                msg.html = f"<h3>Reset Password KTVDI</h3><p>Kode OTP Anda: <b>{otp}</b></p>"
                 mail.send(msg)
                 session['reset_uid'] = found_uid
+                flash(f"OTP terkirim ke {email}", "success")
                 return redirect(url_for('verify_otp'))
             except:
                 flash("Gagal mengirim email.", "error")
@@ -316,7 +308,6 @@ def daftar_siaran():
 
 @app.route('/berita')
 def berita():
-    # Simple RSS Fetch
     try:
         rss_url = 'https://news.google.com/rss/search?q=tv+digital&hl=id&gl=ID&ceid=ID:id'
         feed = feedparser.parse(rss_url)
@@ -338,7 +329,6 @@ def add_data():
         wil_clean = re.sub(r'\s*-\s*', '-', wil.strip())
         mux_clean = mux.strip()
         
-        # Validasi
         if not all([prov, wil_clean, mux_clean, siaran]):
             return render_template('add_data_form.html', error_message="Isi semua data", provinsi_list=prov_list)
             
@@ -352,7 +342,6 @@ def add_data():
         
     return render_template('add_data_form.html', provinsi_list=prov_list)
 
-# API Helper untuk Frontend
 @app.route("/get_wilayah")
 def get_wilayah():
     p = request.args.get("provinsi")
@@ -374,10 +363,28 @@ def get_siaran():
     d = ref.child(f'siaran/{p}/{w}/{m}').get() or {}
     return jsonify(d)
 
+@app.route('/download-sql')
+def download_sql():
+    users_data = db.reference('users').get()
+    if not users_data: return "No data", 404
+    sql = "\n".join([f"INSERT INTO users VALUES ('{u}', '{d['nama']}', '{d['email']}', '{d['password']}');" for u, d in users_data.items()])
+    return send_file(io.BytesIO(sql.encode()), as_attachment=True, download_name="users.sql", mimetype="text/plain")
+
+@app.route('/download-csv')
+def download_csv():
+    users_data = db.reference('users').get()
+    if not users_data: return "No data", 404
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['username', 'nama', 'email', 'password'])
+    for u, d in users_data.items(): writer.writerow([u, d['nama'], d['email'], d['password']])
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8')), as_attachment=True, download_name="users.csv", mimetype="text/csv")
+
 @app.route("/test-firebase")
 def test_firebase():
     if ref:
-        return "✅ Firebase Connected (Vercel Mode)"
+        return "✅ Firebase Connected"
     return "❌ Firebase Connection Failed"
 
 if __name__ == "__main__":
