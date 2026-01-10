@@ -30,36 +30,37 @@ CORS(app)
 
 app.secret_key = os.getenv('SECRET_KEY', 'b/g5n!o0?hs&dm!fn8md7')
 
-# --- KONFIGURASI FIREBASE (HYBRID: FILE / ENV) ---
-# Ini solusi paling aman agar tidak error di Vercel maupun Local
-firebase_creds_str = os.getenv('FIREBASE_CREDENTIALS')
+# --- KONFIGURASI FIREBASE (VERSI FINAL: ABSOLUTE PATH) ---
+# Mengambil lokasi folder tempat app.py berada
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credentials.json')
 
 try:
-    if firebase_creds_str:
-        # Prioritas 1: Baca dari Environment Variable (Settingan Vercel)
-        print("Menggunakan Firebase dari Environment Variable...")
-        cred_dict = json.loads(firebase_creds_str)
-        cred = credentials.Certificate(cred_dict)
-    elif os.path.exists('credentials.json'):
-        # Prioritas 2: Baca dari File credentials.json (Settingan Local / GitHub Upload)
-        print("Menggunakan Firebase dari File credentials.json...")
-        cred = credentials.Certificate('credentials.json')
-    else:
-        # Jika dua-duanya tidak ada, jangan crash, tapi set ref None
-        print("PERINGATAN: credentials.json tidak ditemukan!")
-        cred = None
-
-    if cred:
-        if not firebase_admin._apps:
+    if not firebase_admin._apps:
+        # Cek apakah file ada (Untuk Debugging di Logs Vercel)
+        if os.path.exists(CREDENTIALS_PATH):
+            print(f"✅ File ditemukan di: {CREDENTIALS_PATH}")
+            cred = credentials.Certificate(CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred, {
                 'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
             })
-        ref = db.reference('/')
-    else:
-        ref = None
-
+        else:
+            # Jika file tidak ada, coba baca dari Env Variable (Backup Plan)
+            print(f"❌ File TIDAK ditemukan di: {CREDENTIALS_PATH}")
+            print("Mencoba menggunakan Environment Variable...")
+            firebase_creds_str = os.getenv('FIREBASE_CREDENTIALS')
+            if firebase_creds_str:
+                cred_dict = json.loads(firebase_creds_str)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred, {
+                    'databaseURL': 'https://website-ktvdi-default-rtdb.firebaseio.com/'
+                })
+            else:
+                print("❌ Environment Variable juga kosong. Database Gagal Init.")
+                
+    ref = db.reference('/')
 except Exception as e:
-    print(f"Firebase Init Error: {e}")
+    print(f"🔥 Firebase Error: {e}")
     ref = None
 
 # --- KONFIGURASI EMAIL ---
@@ -68,7 +69,7 @@ app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 app.config['MAIL_USERNAME'] = 'kom.tvdigitalid@gmail.com'
-app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'  # App Password
+app.config['MAIL_PASSWORD'] = 'lvjo uwrj sbiy ggkg'
 app.config['MAIL_DEFAULT_SENDER'] = ('KTVDI Security', 'kom.tvdigitalid@gmail.com')
 
 mail = Mail(app)
@@ -78,11 +79,7 @@ NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 newsapi = NewsApiClient(api_key=NEWS_API_KEY)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# Model Gemini (Chatbot)
-model = genai.GenerativeModel(
-    "gemini-2.5-flash", 
-    system_instruction="Anda adalah Chatbot AI KTVDI. Jawab singkat, padat, dan ramah seputar TV Digital, STB, dan Sinyal."
-)
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 # --- FUNGSI HELPER ---
 def hash_password(password):
@@ -115,10 +112,13 @@ def get_actual_url_from_google_news(link):
 @app.route("/")
 def home():
     if not ref:
-        # Fallback jika DB error
         return render_template('index.html', stats={'wilayah': 0, 'mux': 0, 'channel': 0})
     
-    siaran_data = ref.child('siaran').get() or {}
+    # Mengambil data dengan aman
+    try:
+        siaran_data = ref.child('siaran').get() or {}
+    except:
+        siaran_data = {}
     
     wilayah_count = 0
     mux_count = 0
@@ -150,13 +150,14 @@ def chatbot():
 def cctv_page():
     return render_template("cctv.html")
 
-# --- AUTH ROUTES (LOGIN, REGISTER, LOGOUT) ---
+# --- AUTH ROUTES ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error_message = None
     if request.method == 'POST':
-        if not ref: return "Database Error", 500
+        if not ref: return render_template('login.html', error="Server Database Error")
+        
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
         hashed_pw = hash_password(password)
@@ -170,7 +171,7 @@ def login():
             else:
                 error_message = "Username atau Password salah."
         except Exception as e:
-            error_message = "Terjadi kesalahan koneksi database."
+            error_message = f"Error: {e}"
             
     return render_template('login.html', error=error_message)
 
@@ -183,6 +184,7 @@ def logout():
 def register():
     if request.method == "POST":
         if not ref: return "Database Error", 500
+        
         nama = request.form.get("nama")
         email = request.form.get("email")
         username = request.form.get("username")
@@ -192,7 +194,7 @@ def register():
             flash("Password minimal 8 karakter.", "error")
             return render_template("register.html")
 
-        # Cek duplikasi
+        # Cek User
         users = ref.child('users').get() or {}
         for uid, u in users.items():
             if u.get('email') == email:
@@ -203,19 +205,16 @@ def register():
             flash("Username sudah digunakan.", "error")
             return render_template("register.html")
 
-        # Buat OTP
         otp = str(random.randint(100000, 999999))
         hashed_pw = hash_password(password)
 
-        # Simpan sementara
         ref.child(f'pending_users/{username}').set({
             "nama": nama, "email": email, "password": hashed_pw, "otp": otp
         })
 
-        # Kirim Email OTP
         try:
             msg = Message("KTVDI - Kode Verifikasi", recipients=[email])
-            msg.body = f"Halo {nama},\nKode OTP pendaftaran Anda: {otp}"
+            msg.body = f"Halo {nama},\nKode OTP Anda adalah: {otp}"
             mail.send(msg)
             session['pending_username'] = username
             return redirect(url_for('verify_register'))
@@ -234,7 +233,6 @@ def verify_register():
         pending_data = ref.child(f'pending_users/{username}').get()
         
         if pending_data and str(pending_data['otp']) == str(otp_input):
-            # Pindah ke Users
             ref.child(f'users/{username}').set({
                 "nama": pending_data['nama'],
                 "email": pending_data['email'],
@@ -249,8 +247,6 @@ def verify_register():
             flash("Kode OTP salah.", "error")
 
     return render_template("verify-register.html", username=username)
-
-# --- RESET PASSWORD (Lupa Password) ---
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
@@ -271,10 +267,10 @@ def forgot_password():
             
             try:
                 msg = Message("KTVDI - Reset Password", recipients=[email])
-                msg.html = f"<h3>Reset Password KTVDI</h3><p>Kode OTP Anda: <b>{otp}</b></p>"
+                msg.body = f"Kode OTP Reset Password: {otp}"
                 mail.send(msg)
                 session['reset_uid'] = found_uid
-                flash(f"OTP terkirim ke {email}", "success")
+                flash(f"OTP dikirim ke {email}", "success")
                 return redirect(url_for('verify_otp'))
             except:
                 flash("Gagal mengirim email.", "error")
@@ -314,16 +310,18 @@ def reset_password():
         
     return render_template("reset-password.html")
 
-# --- DASHBOARD & FITUR DATA ---
+# --- DASHBOARD & CRUD ---
 
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
+    if not ref: return "Database Error", 500
     prov_data = ref.child('provinsi').get() or {}
     return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list(prov_data.values()))
 
 @app.route("/daftar-siaran")
 def daftar_siaran():
+    if not ref: return "Database Error", 500
     prov_data = ref.child('provinsi').get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(prov_data.values()))
 
@@ -398,7 +396,6 @@ def delete_data(provinsi, wilayah, mux):
     except Exception as e:
         return f"Gagal hapus: {e}"
 
-# API Helper
 @app.route("/get_wilayah")
 def get_wilayah():
     p = request.args.get("provinsi")
