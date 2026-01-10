@@ -3,37 +3,48 @@
 {% block content %}
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<div class="bg-slate-50 min-h-screen w-full flex flex-col font-['Plus_Jakarta_Sans'] text-slate-800 overflow-x-hidden select-none" oncontextmenu="return false;">
+<div class="bg-slate-100 min-h-screen w-full flex flex-col font-['Plus_Jakarta_Sans'] text-slate-800 overflow-x-hidden select-none" oncontextmenu="return false;">
 
     <nav class="bg-white border-b border-slate-200 py-3 px-4 lg:px-8 shrink-0 z-40 sticky top-0 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3 w-full md:w-auto">
-            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-blue-200 shadow-lg shrink-0">
+            <div class="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center text-white shadow-blue-200 shadow-lg shrink-0">
                 <i class="fa-solid fa-city text-lg"></i>
             </div>
             <div class="leading-tight flex-1">
                 <h1 class="text-slate-900 font-extrabold text-lg tracking-tight">KTVDI <span class="text-blue-600">SMART CITY</span></h1>
-                <p class="text-[11px] text-slate-500 font-medium hidden md:block leading-snug">
+                <p class="text-[10px] md:text-[11px] text-slate-500 font-medium leading-snug whitespace-normal max-w-xs md:max-w-md">
                     Portal LIVE CCTV terkini yang dapat memudahkan sobat KTVDI dalam memantau arus lalu lintas.
-                </p>
-                <p class="text-[10px] text-slate-500 font-medium md:hidden leading-snug">
-                    Portal pemantau arus lalu lintas terkini.
                 </p>
             </div>
         </div>
         
         <div class="relative w-full md:w-80">
             <input type="text" id="search-cctv" onkeyup="filterCCTV()" 
-                class="w-full bg-slate-100 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner"
+                class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner placeholder:text-slate-400"
                 placeholder="Cari lokasi kamera...">
             <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-400 text-xs"></i>
         </div>
     </nav>
 
-    <div class="max-w-[1920px] mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-0 lg:gap-6 items-start">
+    <div class="max-w-[1920px] mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 items-start">
 
-        <main class="lg:col-span-9 flex flex-col gap-0 md:gap-4 order-1 sticky top-0 z-30 lg:static">
+        <main class="lg:col-span-9 flex flex-col gap-0 md:gap-3 order-1 sticky top-0 z-30 lg:static">
             
-            <div class="w-full bg-black md:rounded-2xl overflow-hidden shadow-2xl relative aspect-video group ring-1 ring-slate-900/5">
+            <div class="bg-blue-600 text-white px-4 py-2 md:rounded-t-xl flex justify-between items-center text-xs font-medium shadow-md z-10 relative">
+                <div class="flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
+                    </span>
+                    <span id="playing-status">Memuat Kamera...</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="opacity-80">Status:</span>
+                    <span class="bg-white/20 px-2 py-0.5 rounded text-[10px] font-bold">ONLINE</span>
+                </div>
+            </div>
+
+            <div class="w-full bg-black shadow-2xl relative aspect-video group ring-1 ring-slate-900/5 md:rounded-b-xl overflow-hidden">
                 
                 <div class="absolute inset-0 z-10 w-full h-full"></div>
 
@@ -45,87 +56,74 @@
                     </div>
                 </div>
 
-                <div class="absolute top-0 left-0 w-full p-4 md:p-6 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-20 flex justify-between items-start pointer-events-none">
-                    
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_8px_rgba(220,38,38,0.8)]"></span>
-                            <span class="text-white text-[10px] font-bold tracking-widest uppercase">LIVE STREAM</span>
-                        </div>
-                        <h2 id="cam-title" class="text-white font-bold text-sm md:text-xl drop-shadow-md tracking-wide">Memuat Kamera...</h2>
-                        <div class="flex items-center gap-1.5 text-[10px] md:text-xs text-slate-300 font-medium mt-0.5">
-                            <i class="fa-solid fa-location-dot text-blue-400"></i>
-                            <span>Kota Pekalongan</span>
-                        </div>
-                    </div>
-
-                    <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-lg px-3 py-1.5 text-right shadow-lg">
-                        <div id="clock" class="text-white font-mono text-sm md:text-base font-bold tracking-wider leading-none">00:00:00</div>
-                        <div id="date" class="text-[9px] md:text-[10px] text-slate-400 font-medium uppercase mt-0.5 leading-none">...</div>
-                    </div>
-                </div>
-
                 <div id="loading-overlay" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center">
-                    <div class="relative mb-3">
-                        <div class="w-10 h-10 border-4 border-slate-700 rounded-full"></div>
-                        <div class="w-10 h-10 border-4 border-t-blue-500 rounded-full animate-spin absolute top-0 left-0"></div>
+                    <div class="animate-pulse flex flex-col items-center">
+                        <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg mb-4">
+                            <i class="fa-solid fa-city text-white text-3xl"></i>
+                        </div>
+                        <h3 class="text-white font-extrabold text-lg tracking-widest">KTVDI</h3>
+                        <p class="text-blue-400 text-xs font-medium mt-1">Menghubungkan...</p>
                     </div>
-                    <span class="text-slate-400 text-[10px] md:text-xs font-medium tracking-widest uppercase">Menghubungkan...</span>
                 </div>
 
                 <div id="error-overlay" class="absolute inset-0 bg-slate-900 z-30 hidden flex flex-col items-center justify-center text-center px-4">
-                    <i class="fa-solid fa-video-slash text-red-500 text-3xl mb-3"></i>
-                    <p class="text-white text-xs md:text-sm font-semibold">Sinyal Terputus</p>
-                    <button onclick="reloadStream()" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-lg">
-                        Muat Ulang
+                    <i class="fa-solid fa-video-slash text-slate-600 text-4xl mb-3"></i>
+                    <p class="text-white text-sm font-semibold">Sinyal Kamera Terputus</p>
+                    <button onclick="reloadStream()" class="mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-lg">
+                        Coba Lagi
                     </button>
                 </div>
+            </div>
 
-                <div class="absolute bottom-0 left-0 w-full h-8 bg-black/80 backdrop-blur-sm border-t border-white/10 z-20 overflow-hidden flex items-center">
-                    <div class="w-10 h-full bg-blue-600 flex items-center justify-center shrink-0 z-30 shadow-lg relative">
+            <div class="bg-white border-b md:border border-slate-200 p-3 md:p-4 md:rounded-xl shadow-sm flex flex-col gap-3">
+                
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <div class="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+                        <div class="text-center">
+                            <div id="clock" class="text-slate-800 font-mono text-sm md:text-base font-bold leading-none">00:00:00</div>
+                            <div id="date" class="text-[9px] text-slate-500 font-medium uppercase leading-none mt-0.5">...</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleFullscreen()" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition flex items-center gap-2">
+                            <i class="fa-solid fa-expand"></i> <span class="hidden sm:inline">Fullscreen</span>
+                        </button>
+                        <div class="px-3 py-2 bg-slate-50 text-slate-500 border border-slate-200 rounded-lg text-xs font-medium flex items-center gap-2 cursor-help select-none">
+                            <i class="fa-solid fa-shield-halved text-green-500"></i> System Enkripsi
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-8 flex items-center overflow-hidden">
+                    <div class="bg-blue-600 h-full px-3 flex items-center justify-center shrink-0 z-10 shadow-md">
                         <i class="fa-solid fa-bullhorn text-white text-xs"></i>
                     </div>
-                    <div class="marquee-wrapper w-full overflow-hidden relative h-full flex items-center">
-                        <div class="marquee-content text-[11px] md:text-xs text-slate-200 font-medium whitespace-nowrap">
-                            Selamat datang di Portal CCTV KTVDI Smart City. Pantau kondisi lalu lintas Kota Pekalongan secara Real-Time. Tetap patuhi rambu-rambu lalu lintas dan utamakan keselamatan.
+                    <div class="marquee-wrapper w-full overflow-hidden flex items-center h-full">
+                        <div class="marquee-content text-xs text-slate-600 font-medium whitespace-nowrap">
+                            Kamera ini adalah aset milik <strong class="text-blue-700">Pemerintah Kota Pekalongan</strong>. Mohon gunakan fasilitas ini dengan bijak. Tayangan dilindungi hak cipta KTVDI Smart City.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="flex flex-row justify-between items-center bg-white p-3 md:p-4 md:rounded-xl border-b md:border border-slate-200 shadow-sm gap-2">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span class="text-[10px] md:text-xs font-semibold text-slate-600">System: <span class="text-green-600">Online</span></span>
-                </div>
-                <div class="flex gap-2">
-                    <button onclick="toggleFullscreen()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] md:text-xs font-bold transition flex items-center gap-2">
-                        <i class="fa-solid fa-expand"></i> <span class="hidden md:inline">Fullscreen</span>
-                    </button>
-                    <div class="px-3 py-1.5 bg-slate-50 text-slate-400 border border-slate-200 rounded-lg text-[10px] md:text-xs font-medium flex items-center gap-1.5 opacity-80 cursor-help" title="Konten dilindungi">
-                        <i class="fa-solid fa-lock text-[10px]"></i> Secure Feed
-                    </div>
-                </div>
-            </div>
         </main>
 
         <aside class="lg:col-span-3 flex flex-col h-[60vh] lg:h-[calc(100vh-140px)] bg-white lg:rounded-2xl border-t lg:border border-slate-200 shadow-lg overflow-hidden order-2 mt-0 lg:mt-0 relative">
             
-            <div class="p-3 md:p-4 border-b border-slate-100 bg-slate-50/80 backdrop-blur-sm flex justify-between items-center sticky top-0 z-10">
+            <div class="p-3 md:p-4 border-b border-slate-100 bg-white flex justify-between items-center sticky top-0 z-10">
                 <h3 class="font-extrabold text-slate-800 text-xs md:text-sm flex items-center gap-2">
-                    <div class="w-6 h-6 bg-blue-100 text-blue-600 rounded flex items-center justify-center">
-                        <i class="fa-solid fa-video text-xs"></i>
-                    </div>
+                    <i class="fa-solid fa-video text-blue-600"></i>
                     Daftar Kamera
                 </h3>
-                <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-md font-bold" id="cam-count">0</span>
+                <span class="text-[10px] bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full font-bold" id="cam-count">0</span>
             </div>
 
             <div class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1" id="cctv-list">
                 </div>
             
-            <div class="p-2 bg-slate-100 border-t border-slate-200 text-center">
-                <p class="text-[9px] text-slate-400 font-mono">© 2026 KTVDI Network</p>
+            <div class="p-2 bg-slate-50 border-t border-slate-200 text-center">
+                <p class="text-[9px] text-slate-400 font-mono">© 2026 TIM IT KTVDI Network</p>
             </div>
         </aside>
 
@@ -133,7 +131,7 @@
 </div>
 
 <script>
-    // DATASET LENGKAP (54 KAMERA)
+    // DATASET LENGKAP
     const streams = [
         {name: "PONOLAWEN", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
         {name: "ALUN ALUN BARAT", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
@@ -198,7 +196,7 @@
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorOverlay = document.getElementById('error-overlay');
     
-    // --- HELPER UNTUK TITLE CASE (Huruf Awal Besar) ---
+    // Helper Title Case
     function toTitleCase(str) {
         return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
     }
@@ -217,8 +215,10 @@
     function loadStream(index) {
         activeIndex = index;
         const s = streams[index];
+        const displayName = toTitleCase(s.name);
         
-        document.getElementById('cam-title').innerText = toTitleCase(s.name);
+        // Update teks "Sedang Memutar..." di atas video
+        document.getElementById('playing-status').innerHTML = `Sedang memutar: <strong>${displayName}</strong>`;
         
         // Reset States
         loadingOverlay.classList.remove('hidden');
@@ -227,7 +227,7 @@
         
         renderList(document.getElementById('search-cctv').value);
 
-        // Scroll to active item automatically
+        // Auto Scroll ke item yang aktif
         setTimeout(() => {
             const activeItem = document.getElementById(`cctv-item-${index}`);
             if (activeItem) {
@@ -289,7 +289,7 @@
                 const item = document.createElement('div');
                 const displayName = toTitleCase(s.name);
                 
-                item.id = `cctv-item-${i}`; // ID untuk fitur auto-scroll
+                item.id = `cctv-item-${i}`;
                 
                 item.className = `
                     flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 border
@@ -339,7 +339,7 @@
         }, 1000);
     }
 
-    // --- SECURITY FEATURES ---
+    // --- SECURITY & UX FEATURES ---
     window.addEventListener('blur', () => { document.body.style.filter = 'blur(15px)'; });
     window.addEventListener('focus', () => { document.body.style.filter = 'none'; });
     document.addEventListener('keydown', (e) => {
