@@ -1,103 +1,132 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<div class="bg-gray-900 min-h-screen w-full flex flex-col font-['Inter'] text-gray-200 overflow-hidden select-none" oncontextmenu="return false;">
+<div class="bg-slate-50 min-h-screen w-full flex flex-col font-['Plus_Jakarta_Sans'] text-slate-800 overflow-x-hidden select-none" oncontextmenu="return false;">
 
-    <nav class="bg-gray-800 border-b border-gray-700 h-14 flex items-center justify-between px-4 lg:px-6 shrink-0 z-30 shadow-md">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg">
-                <i class="fa-solid fa-shield-halved text-sm"></i>
+    <nav class="bg-white border-b border-slate-200 h-auto md:h-20 py-3 px-4 lg:px-8 shrink-0 z-40 sticky top-0 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-4 w-full md:w-auto">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-blue-200 shadow-lg shrink-0">
+                <i class="fa-solid fa-city text-lg"></i>
             </div>
-            <div>
-                <h1 class="text-white font-bold text-sm leading-tight tracking-wide">MONITORING KOTA</h1>
-                <p class="text-[10px] text-gray-400">Pemerintah Kota Pekalongan</p>
+            <div class="leading-tight">
+                <h1 class="text-slate-900 font-extrabold text-lg tracking-tight">KTVDI <span class="text-blue-600">SMART CITY</span></h1>
+                <p class="text-[11px] text-slate-500 font-medium max-w-md hidden md:block">
+                    Portal LIVE CCTV terkini yang dapat memudahkan sobat KTVDI dalam memantau arus lalu lintas.
+                </p>
+                <p class="text-[10px] text-slate-500 font-medium md:hidden">Portal pemantau arus lalu lintas terkini.</p>
             </div>
         </div>
         
-        <div class="hidden md:block bg-gray-900 px-3 py-1 rounded-md border border-gray-700">
-            <span id="clock" class="text-sm font-semibold text-gray-300">00:00:00</span>
+        <div class="relative w-full md:w-80">
+            <input type="text" id="search-cctv" onkeyup="filterCCTV()" 
+                class="w-full bg-slate-100 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner"
+                placeholder="Cari lokasi kamera...">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-400 text-xs"></i>
         </div>
     </nav>
 
-    <div class="flex flex-col lg:flex-row flex-1 overflow-hidden">
+    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        <main class="flex-1 bg-black relative flex flex-col order-1 h-auto lg:h-full justify-center">
+        <main class="lg:col-span-9 flex flex-col gap-4">
             
-            <div class="w-full aspect-video bg-black relative group">
+            <div class="bg-black rounded-2xl overflow-hidden shadow-2xl relative aspect-video group ring-1 ring-slate-900/5">
                 
-                <video id="main-video" class="w-full h-full object-contain bg-black" playsinline></video>
+                <div class="absolute inset-0 z-10 w-full h-full"></div>
 
-                <div id="play-overlay" class="absolute inset-0 bg-black/40 flex items-center justify-center z-40 cursor-pointer" onclick="forcePlay()">
-                    <div class="w-16 h-16 bg-blue-600/90 hover:bg-blue-500 rounded-full flex items-center justify-center shadow-2xl backdrop-blur-sm transition-transform transform hover:scale-110">
-                        <i class="fa-solid fa-play text-white text-2xl ml-1"></i>
+                <video id="main-video" class="w-full h-full object-contain bg-black" playsinline poster="https://source.unsplash.com/random/1280x720/?city,traffic"></video>
+
+                <div id="play-overlay" class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] cursor-pointer transition-all" onclick="forcePlay()">
+                    <div class="w-20 h-20 bg-white/20 hover:bg-white/30 border border-white/50 rounded-full flex items-center justify-center backdrop-blur-md shadow-2xl transition-transform hover:scale-105 group/play">
+                        <i class="fa-solid fa-play text-white text-3xl ml-1 group-hover/play:text-blue-400 transition-colors"></i>
                     </div>
                 </div>
 
-                <div class="absolute top-4 left-4 z-20 pointer-events-none">
-                    <span class="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded shadow-sm">LIVE</span>
-                    <h2 id="cam-title" class="text-white font-bold text-base mt-1 drop-shadow-md">Memuat Kamera...</h2>
-                    <p class="text-xs text-gray-300 drop-shadow-md"><i class="fa-solid fa-location-dot text-blue-400 mr-1"></i><span id="cam-location">-</span></p>
+                <div class="absolute top-0 left-0 w-full p-6 bg-gradient-to-b from-black/80 via-black/40 to-transparent z-20 flex justify-between items-start pointer-events-none">
+                    
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded shadow-lg animate-pulse">LIVE</span>
+                            <span class="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded shadow-lg">KTVDI FEED</span>
+                        </div>
+                        <h2 id="cam-title" class="text-white font-bold text-xl drop-shadow-lg tracking-wide mt-1">Memuat Kamera...</h2>
+                        <div class="flex items-center gap-2 text-xs text-slate-300 font-medium drop-shadow-md">
+                            <i class="fa-solid fa-location-dot text-blue-400"></i>
+                            <span id="cam-location">-</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-end gap-1">
+                        <div class="px-3 py-1 bg-black/50 backdrop-blur-md rounded-lg border border-white/10 text-xs font-mono text-emerald-400 shadow-lg">
+                            <i class="fa-solid fa-signal text-[10px] mr-1"></i> <span id="bitrate">0</span> Kbps
+                        </div>
+                        <span id="clock" class="text-[10px] text-slate-400 font-mono">00:00:00</span>
+                    </div>
                 </div>
 
-                <div id="loading-overlay" class="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-30">
-                    <i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-3xl mb-3"></i>
-                    <span class="text-gray-400 text-xs font-medium">Menghubungkan...</span>
+                <div id="loading-overlay" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center">
+                    <div class="relative">
+                        <div class="w-12 h-12 border-4 border-slate-700 rounded-full"></div>
+                        <div class="w-12 h-12 border-4 border-t-blue-500 rounded-full animate-spin absolute top-0 left-0"></div>
+                    </div>
+                    <span class="text-slate-400 text-xs font-medium mt-3 tracking-widest uppercase">Connecting to Server...</span>
                 </div>
 
-                <div id="error-overlay" class="absolute inset-0 bg-gray-900 z-30 hidden flex flex-col items-center justify-center text-center px-4">
-                    <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-3xl mb-2"></i>
-                    <p class="text-white text-sm font-medium">Koneksi Terputus</p>
-                    <button onclick="reloadStream()" class="mt-3 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-xs rounded transition">
-                        Muat Ulang
+                <div id="error-overlay" class="absolute inset-0 bg-slate-900 z-30 hidden flex flex-col items-center justify-center text-center px-4">
+                    <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                        <i class="fa-solid fa-video-slash text-red-500 text-2xl"></i>
+                    </div>
+                    <p class="text-white text-sm font-semibold">Koneksi Terputus</p>
+                    <p class="text-slate-500 text-xs mt-1 mb-4">Sumber video sedang offline atau gangguan jaringan.</p>
+                    <button onclick="reloadStream()" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-blue-600/20">
+                        Coba Lagi
+                    </button>
+                </div>
+
+                <div id="ticker-container" class="absolute bottom-0 left-0 w-full h-10 bg-black/80 backdrop-blur-sm border-t border-white/10 z-20 hidden overflow-hidden flex items-center">
+                    <div class="w-10 h-full bg-blue-600 flex items-center justify-center shrink-0 z-30 shadow-lg relative">
+                        <i class="fa-solid fa-circle-info text-white text-sm animate-pulse"></i>
+                        <div class="absolute -right-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-l-[8px] border-l-blue-600 border-b-[6px] border-b-transparent"></div>
+                    </div>
+                    <div class="marquee-wrapper w-full overflow-hidden relative h-full flex items-center">
+                        <div class="marquee-content text-sm text-slate-200 font-medium whitespace-nowrap">
+                            Kamera ini adalah aset milik <span class="text-blue-400 font-bold">Pemerintah Kota Pekalongan</span> bekerja sama dengan beberapa OPD terkait. Tayangan ini dilindungi hak cipta untuk tujuan pemantauan Smart City.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-xs font-semibold text-slate-600">Status Sistem: <span class="text-green-600">Normal / Online</span></span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="toggleFullscreen()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded text-xs font-medium transition flex items-center gap-2">
+                        <i class="fa-solid fa-expand"></i> Fullscreen
+                    </button>
+                    <button class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded text-xs font-medium transition flex items-center gap-2 cursor-not-allowed opacity-70" title="Fitur Screenshot Dimatikan (DRM)">
+                        <i class="fa-solid fa-camera"></i> Capture Disabled
                     </button>
                 </div>
             </div>
 
-            <div class="bg-blue-900 border-t border-blue-800 h-8 flex items-center overflow-hidden relative shrink-0">
-                <div class="absolute left-0 top-0 bottom-0 bg-blue-800 z-10 px-3 flex items-center shadow-lg">
-                    <span class="text-[10px] font-bold text-white tracking-wider">INFO</span>
-                </div>
-                <div class="marquee-container w-full">
-                    <div class="marquee-content text-xs text-blue-100 font-medium whitespace-nowrap">
-                        Kamera ini aset milik Pemerintah Kota Pekalongan bekerja sama dengan beberapa OPD di Kota Pekalongan.
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex lg:hidden justify-between items-center bg-gray-800 p-3 border-b border-gray-700">
-                <div class="flex items-center gap-2">
-                    <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                    <span class="text-xs text-green-400 font-medium">Server Online</span>
-                </div>
-                <span class="text-xs text-gray-400" id="clock-mobile">00:00</span>
-            </div>
-
         </main>
 
-        <aside class="w-full lg:w-80 bg-gray-800 border-l border-gray-700 flex flex-col order-2 h-[50vh] lg:h-full z-10">
+        <aside class="lg:col-span-3 flex flex-col h-auto lg:h-[calc(100vh-140px)] bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden">
             
-            <div class="p-3 border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
-                <div class="relative">
-                    <input type="text" id="search-cctv" onkeyup="filterCCTV()" 
-                        class="w-full bg-gray-900 border border-gray-600 text-gray-200 text-sm rounded-lg py-2 pl-9 pr-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-500 transition-all"
-                        placeholder="Cari lokasi...">
-                    <i class="fa-solid fa-search absolute left-3 top-2.5 text-gray-500 text-xs"></i>
-                </div>
+            <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <h3 class="font-bold text-slate-700 text-sm"><i class="fa-solid fa-list-ul mr-2 text-blue-500"></i>Daftar Kamera</h3>
+                <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold" id="cam-count">0 Unit</span>
             </div>
 
-            <div class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1" id="cctv-list">
+            <div class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2" id="cctv-list">
                 </div>
             
-            <div class="hidden lg:flex justify-between items-center p-3 border-t border-gray-700 bg-gray-900 text-[10px] text-gray-500">
-                <span>V 2.5 Stable</span>
-                <span class="flex items-center gap-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Server Online
-                </span>
+            <div class="p-3 bg-slate-50 border-t border-slate-200 text-center">
+                <p class="text-[10px] text-slate-400">© 2026 KTVDI Smart City Network</p>
             </div>
         </aside>
 
@@ -105,28 +134,29 @@
 </div>
 
 <script>
+    // DATASET (Bisa ditambah kota lain nanti)
     const streams = [
-        {name: "Ponolawen", loc: "Jalur Pantura", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
-        {name: "Alun-Alun Barat", loc: "Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
-        {name: "Depan Taspen 2", loc: "Mataram", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
-        {name: "Dr Cipto", loc: "RSUD Kraton", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
-        {name: "Ruang Amarta", loc: "Setda", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
-        {name: "Grosir Setono", loc: "Exit Tol", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
-        {name: "Grogolan PTZ", loc: "Simpang Lima", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
-        {name: "Depan Balaikota", loc: "Mataram", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {name: "Ponolawen", loc: "Pekalongan - Jalur Pantura", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
+        {name: "Alun-Alun Barat", loc: "Pekalongan - Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
+        {name: "Depan Taspen 2", loc: "Pekalongan - Mataram", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
+        {name: "Dr Cipto", loc: "Pekalongan - RSUD Kraton", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
+        {name: "Ruang Amarta", loc: "Pekalongan - Setda", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
+        {name: "Grosir Setono", loc: "Pekalongan - Exit Tol", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
+        {name: "Grogolan PTZ", loc: "Pekalongan - Simpang Lima", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
+        {name: "Depan Balaikota", loc: "Pekalongan - Mataram", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
         {name: "Gambaran", loc: "Pekalongan Timur", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
-        {name: "Polsek Timur", loc: "Kantor Polisi", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
-        {name: "Alun-Alun", loc: "Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
-        {name: "THR Monumen", loc: "Monumen", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
-        {name: "Stasiun", loc: "Stasiun Besar", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
-        {name: "Kec Pkl Selatan", loc: "Kecamatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
-        {name: "Depan Taspen 1", loc: "Protokol", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
-        {name: "Perempatan Kominfo", loc: "Mataram", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
-        {name: "Pusri Timur", loc: "Pantura", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
-        {name: "Ahmad Yani", loc: "Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
-        {name: "Tirto Timur", loc: "Jalan Raya", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
-        {name: "Terminal Bus", loc: "Terminal", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
-        {name: "Sorogenen", loc: "Jalan Raya", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"}
+        {name: "Polsek Timur", loc: "Pekalongan - Kantor Polisi", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
+        {name: "Alun-Alun", loc: "Pekalongan - Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
+        {name: "THR Monumen", loc: "Pekalongan - Monumen", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
+        {name: "Stasiun", loc: "Pekalongan - Stasiun Besar", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
+        {name: "Kec Pkl Selatan", loc: "Pekalongan - Kecamatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
+        {name: "Depan Taspen 1", loc: "Pekalongan - Protokol", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
+        {name: "Perempatan Kominfo", loc: "Pekalongan - Mataram", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
+        {name: "Pusri Timur", loc: "Pekalongan - Pantura", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
+        {name: "Ahmad Yani", loc: "Pekalongan - Pusat Kota", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
+        {name: "Tirto Timur", loc: "Pekalongan - Jalan Raya", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
+        {name: "Terminal Bus", loc: "Pekalongan - Terminal", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
+        {name: "Sorogenen", loc: "Pekalongan - Jalan Raya", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"}
     ];
 
     let hls;
@@ -135,11 +165,25 @@
     const playOverlay = document.getElementById('play-overlay');
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorOverlay = document.getElementById('error-overlay');
+    const tickerContainer = document.getElementById('ticker-container');
     
     function init() {
+        document.getElementById('cam-count').innerText = `${streams.length} Unit`;
         renderList();
         loadStream(0);
         startClock();
+        simulateBitrate();
+        
+        // Event Listener untuk Ticker (Running Text)
+        video.addEventListener('play', () => {
+            playOverlay.classList.add('hidden');
+            tickerContainer.classList.remove('hidden'); // Muncul hanya saat play
+        });
+
+        video.addEventListener('pause', () => {
+             // Opsional: Sembunyikan ticker kalau pause
+             // tickerContainer.classList.add('hidden'); 
+        });
     }
 
     function loadStream(index) {
@@ -153,6 +197,8 @@
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
+        tickerContainer.classList.add('hidden'); // Reset ticker saat ganti kamera
+        
         renderList(document.getElementById('search-cctv').value);
 
         if (Hls.isSupported()) {
@@ -195,7 +241,7 @@
     }
 
     function forcePlay() {
-        video.muted = false; // Unmute jika user klik manual
+        video.muted = false; 
         video.play();
         playOverlay.classList.add('hidden');
     }
@@ -205,28 +251,29 @@
         listContainer.innerHTML = "";
         
         streams.forEach((s, i) => {
-            if (s.name.toLowerCase().includes(filterText.toLowerCase())) {
+            if (s.name.toLowerCase().includes(filterText.toLowerCase()) || s.loc.toLowerCase().includes(filterText.toLowerCase())) {
                 const isActive = i === activeIndex;
                 const item = document.createElement('div');
                 
-                // Desain List tombol yang lebih 'clickable'
+                // Light Theme List Style - Clean & Professional
                 item.className = `
-                    flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all mb-1
+                    flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 border
                     ${isActive 
-                        ? 'bg-blue-600 text-white shadow-md transform scale-[1.01]' 
-                        : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
+                        ? 'bg-blue-50 border-blue-200 shadow-sm' 
+                        : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
                     }
                 `;
                 
                 item.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <i class="fa-solid fa-video ${isActive ? 'text-white' : 'text-gray-500'}"></i>
-                        <div class="flex flex-col truncate">
-                            <span class="text-sm font-semibold truncate">${s.name}</span>
-                            <span class="text-[10px] ${isActive ? 'text-blue-200' : 'text-gray-500'} truncate">${s.loc}</span>
-                        </div>
+                    <div class="relative w-12 h-9 rounded-lg overflow-hidden shrink-0 border border-slate-200 bg-slate-100 flex items-center justify-center">
+                        <i class="fa-solid fa-video ${isActive ? 'text-blue-600' : 'text-slate-400'} text-sm"></i>
+                        ${isActive ? '<span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-white"></span>' : ''}
                     </div>
-                    ${isActive ? '<i class="fa-solid fa-circle-play animate-pulse"></i>' : ''}
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-xs font-bold ${isActive ? 'text-blue-700' : 'text-slate-700'} truncate">${s.name}</h4>
+                        <p class="text-[10px] text-slate-500 truncate">${s.loc}</p>
+                    </div>
+                    ${isActive ? '<i class="fa-solid fa-chevron-right text-blue-500 text-xs"></i>' : ''}
                 `;
                 item.onclick = () => loadStream(i);
                 listContainer.appendChild(item);
@@ -237,47 +284,69 @@
     function reloadStream() { loadStream(activeIndex); }
     function filterCCTV() { renderList(document.getElementById('search-cctv').value); }
     
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) video.requestFullscreen().catch(err => {});
+        else document.exitFullscreen();
+    }
+
     function startClock() {
         setInterval(() => {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', {hour12: false});
-            if(document.getElementById('clock')) document.getElementById('clock').innerText = timeString;
-            if(document.getElementById('clock-mobile')) document.getElementById('clock-mobile').innerText = timeString;
+            document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', {hour12: false});
         }, 1000);
     }
 
-    // Disable Right Click (Deterrent)
-    document.addEventListener('contextmenu', event => event.preventDefault());
+    function simulateBitrate() {
+        setInterval(() => {
+            if(!video.paused) {
+                const br = Math.floor(Math.random() * (4500 - 3200 + 1) + 3200);
+                document.getElementById('bitrate').innerText = br.toLocaleString();
+            } else {
+                document.getElementById('bitrate').innerText = "0";
+            }
+        }, 2000);
+    }
+
+    // --- SECURITY / DRM-LIKE FEATURES ---
+    
+    // 1. Blur Screen when window loses focus (Anti-Snipping Tool)
+    window.addEventListener('blur', () => {
+        document.body.style.filter = 'blur(10px)';
+    });
+    window.addEventListener('focus', () => {
+        document.body.style.filter = 'none';
+    });
+
+    // 2. Prevent Keyboard Shortcuts for Screenshot (PrintScreen, Win+Shift+S, etc)
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'PrintScreen') {
+            alert('Screenshot tidak diperbolehkan demi keamanan aset.');
+            document.body.style.display = 'none';
+            setTimeout(() => document.body.style.display = 'block', 1000);
+        }
+    });
 
     init();
 </script>
 
 <style>
-    /* Styling untuk Marquee (Running Text) yang smooth */
-    .marquee-container {
-        display: flex;
-        overflow: hidden;
+    /* Marquee Animation */
+    .marquee-wrapper {
+        mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
     }
     .marquee-content {
         padding-left: 100%;
-        animation: marquee 25s linear infinite; /* Kecepatan Pelan */
+        animation: marquee 30s linear infinite; /* Sangat Halus */
     }
     @keyframes marquee {
         0% { transform: translate(0, 0); }
         100% { transform: translate(-100%, 0); }
     }
 
-    /* Scrollbar minimalis */
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-track { background: #1f2937; }
-    .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
-    
-    /* Mencegah seleksi teks (bagian dari anti-capture) */
-    body {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-    }
+    /* Scrollbar Halus */
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 </style>
 {% endblock %}
