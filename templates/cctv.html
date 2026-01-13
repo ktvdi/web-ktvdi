@@ -5,31 +5,19 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
 
 <style>
-    /* Custom Scrollbar untuk Daftar CCTV */
-    .custom-scroll::-webkit-scrollbar {
-        width: 6px;
-    }
-    .custom-scroll::-webkit-scrollbar-track {
-        background: #f1f5f9;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-        background-color: #cbd5e1;
-        border-radius: 20px;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb:hover {
-        background-color: #94a3b8;
-    }
+    /* Custom Scrollbar */
+    .custom-scroll::-webkit-scrollbar { width: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
 
-    /* Animasi Teks Berjalan (Marquee) */
-    .marquee-wrapper {
-        position: relative;
-        overflow: hidden;
-    }
+    /* Animasi Marquee (DIPERLAMBAT 30s) */
+    .marquee-wrapper { position: relative; overflow: hidden; }
     .marquee-content {
         display: inline-block;
         white-space: nowrap;
-        animation: marquee 15s linear infinite;
-        padding-left: 100%; /* Mulai dari luar layar kanan */
+        animation: marquee 30s linear infinite; /* Diperlambat dari 15s ke 30s */
+        padding-left: 100%;
     }
     @keyframes marquee {
         0% { transform: translateX(0); }
@@ -88,12 +76,13 @@
                 </div>
 
                 <div id="loading-overlay" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center">
-                    <div class="animate-pulse flex flex-col items-center">
-                        <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg mb-4">
-                            <i class="fa-solid fa-city text-white text-3xl"></i>
+                    <div class="flex flex-col items-center">
+                        <div class="relative w-20 h-20 mb-4 flex items-center justify-center">
+                            <div class="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Loading" class="w-16 h-auto relative z-10 animate-bounce brightness-110 drop-shadow-lg">
                         </div>
-                        <h3 class="text-white font-extrabold text-lg tracking-widest">KTVDI</h3>
-                        <p class="text-blue-400 text-xs font-medium mt-1">Menghubungkan...</p>
+                        <h3 class="text-white font-extrabold text-lg tracking-widest uppercase">KTVDI CCTV</h3>
+                        <p class="text-blue-400 text-xs font-medium mt-1 animate-pulse">Menghubungkan ke Server...</p>
                     </div>
                 </div>
 
@@ -130,8 +119,8 @@
                         <i class="fa-solid fa-bullhorn text-white text-xs"></i>
                     </div>
                     <div class="marquee-wrapper w-full h-full flex items-center">
-                        <div class="marquee-content text-xs text-slate-600 font-medium">
-                            INFORMASI : Tayangan LIVE Streaming CCTV ini kami ambil dari source player publik dari Diskominfo dan kamera CCTV ini adalah aset milik <strong class="text-blue-700">Pemerintah Kota Pekalongan</strong>. -  Mohon pergunakan LIVE Streaming CCTV ini dengan bijak  -  Tayangan dilindungi hak cipta milik Pemerintah Daerah  -  KTVDI Smart City menampilkan LIVE CCTV ini agar memudahkan sobat KTVDI dalam mengakses baik via Android ataupun iOS  -  .
+                        <div class="marquee-content text-xs text-red-600 font-bold uppercase tracking-wide">
+                            INFORMASI : Tayangan LIVE Streaming CCTV ini kami ambil dari source player publik dari Diskominfo dan kamera CCTV ini adalah aset milik Pemerintah Kota Pekalongan. -  Mohon pergunakan LIVE Streaming CCTV ini dengan bijak  -  Tayangan dilindungi hak cipta milik Pemerintah Daerah  -  KTVDI Smart City menampilkan LIVE CCTV ini agar memudahkan sobat KTVDI dalam mengakses baik via Android ataupun iOS.
                         </div>
                     </div>
                 </div>
@@ -243,17 +232,14 @@
         const s = streams[index];
         const displayName = toTitleCase(s.name);
         
-        // Update bar status
         document.getElementById('playing-status').innerHTML = `Sedang memutar: <strong>${displayName}</strong>`;
         
-        // Reset
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
         
         renderList(document.getElementById('search-cctv').value);
 
-        // Auto Scroll ke item yang diklik
         setTimeout(() => {
             const activeItem = document.getElementById(`cctv-item-${index}`);
             if (activeItem) {
@@ -272,7 +258,6 @@
                     playPromise.then(() => {
                         loadingOverlay.classList.add('hidden');
                     }).catch(error => {
-                        // Jika autoplay diblokir (biasanya karena belum user interaction)
                         loadingOverlay.classList.add('hidden');
                         playOverlay.classList.remove('hidden');
                     });
@@ -285,7 +270,6 @@
                 }
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Support Native (Safari / iOS)
             video.src = s.url;
             video.addEventListener('loadedmetadata', () => {
                 video.play().catch(() => {
@@ -367,10 +351,8 @@
         }, 1000);
     }
 
-    // Inisialisasi awal
     window.addEventListener('DOMContentLoaded', init);
 
-    // Efek Blur saat tab tidak aktif (Fitur Privasi/Gimmick)
     window.addEventListener('blur', () => { 
         document.getElementById('main-body').style.filter = 'blur(10px)'; 
     });
