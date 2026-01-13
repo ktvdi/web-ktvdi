@@ -4,6 +4,7 @@ import firebase_admin
 import random
 import re
 import pytz
+import time
 import requests
 import feedparser
 import google.generativeai as genai
@@ -92,57 +93,77 @@ def chatbot():
     try:
         res = model.generate_content(data.get("prompt"))
         return jsonify({"response": res.text})
-    except: return jsonify({"error": "Sistem sedang sibuk."})
+    except: return jsonify({"error": "Sistem sibuk."})
 
 @app.route("/cctv")
 def cctv_page(): return render_template("cctv.html")
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # 50 Kota + Kab Pekalongan
+    # DAFTAR ID KOTA (Sesuai Kemenag/MyQuran API)
+    # ID ini spesifik agar datanya sync dengan Kemenag
     daftar_kota = [
-        {"id": "1301", "nama": "DKI Jakarta"}, {"id": "1107", "nama": "Kab. Pekalongan"},
-        {"id": "1108", "nama": "Kota Pekalongan"}, {"id": "1106", "nama": "Purwodadi (Grobogan)"},
-        {"id": "1133", "nama": "Kota Semarang"}, {"id": "1630", "nama": "Kota Surabaya"},
-        {"id": "1219", "nama": "Kota Bandung"}, {"id": "0224", "nama": "Kota Medan"},
-        {"id": "1221", "nama": "Kota Bekasi"}, {"id": "2701", "nama": "Kota Makassar"},
-        {"id": "0612", "nama": "Kota Palembang"}, {"id": "1222", "nama": "Kota Depok"},
-        {"id": "3006", "nama": "Kota Tangerang"}, {"id": "3210", "nama": "Kota Batam"},
-        {"id": "0412", "nama": "Kota Pekanbaru"}, {"id": "1633", "nama": "Kota Malang"},
-        {"id": "1130", "nama": "Kota Solo"}, {"id": "1009", "nama": "Kota Yogyakarta"},
-        {"id": "1701", "nama": "Kota Denpasar"}, {"id": "2301", "nama": "Kota Balikpapan"},
-        {"id": "2302", "nama": "Kota Samarinda"}, {"id": "0102", "nama": "Kota Banda Aceh"},
-        {"id": "2001", "nama": "Kota Banjarmasin"}, {"id": "0801", "nama": "Kota Bandar Lampung"},
-        {"id": "2201", "nama": "Kota Pontianak"}, {"id": "2601", "nama": "Kota Manado"},
-        {"id": "3301", "nama": "Kota Jayapura"}, {"id": "1901", "nama": "Kota Kupang"},
-        {"id": "1801", "nama": "Kota Mataram"}, {"id": "0301", "nama": "Kota Padang"},
-        {"id": "1128", "nama": "Kota Tegal"}, {"id": "1202", "nama": "Kab. Bogor"},
-        {"id": "1271", "nama": "Kota Bogor"}, {"id": "1601", "nama": "Kab. Sidoarjo"},
-        {"id": "1209", "nama": "Kab. Cirebon"}, {"id": "1274", "nama": "Kota Cirebon"},
-        {"id": "1121", "nama": "Kab. Demak"}, {"id": "1122", "nama": "Kab. Semarang"},
-        {"id": "1110", "nama": "Kab. Batang"}, {"id": "1125", "nama": "Kab. Pemalang"},
-        {"id": "3101", "nama": "Kota Ambon"}, {"id": "2401", "nama": "Kota Gorontalo"},
-        {"id": "2801", "nama": "Kota Palu"}, {"id": "2501", "nama": "Kota Kendari"},
-        {"id": "0501", "nama": "Kota Jambi"}, {"id": "0701", "nama": "Kota Bengkulu"},
-        {"id": "0901", "nama": "Kota Pangkal Pinang"}, {"id": "1001", "nama": "Kota Tanjung Pinang"},
-        {"id": "1401", "nama": "Kota Serang"}, {"id": "2901", "nama": "Kota Mamuju"}
+        {"id": "1301", "nama": "DKI Jakarta"},
+        {"id": "1107", "nama": "Kab. Pekalongan"},
+        {"id": "1108", "nama": "Kota Pekalongan"},
+        {"id": "1106", "nama": "Kab. Grobogan (Purwodadi)"},
+        {"id": "1133", "nama": "Kota Semarang"},
+        {"id": "1630", "nama": "Kota Surabaya"},
+        {"id": "1219", "nama": "Kota Bandung"},
+        {"id": "0224", "nama": "Kota Medan"},
+        {"id": "1221", "nama": "Kota Bekasi"},
+        {"id": "2701", "nama": "Kota Makassar"},
+        {"id": "0612", "nama": "Kota Palembang"},
+        {"id": "1222", "nama": "Kota Depok"},
+        {"id": "3006", "nama": "Kota Tangerang"},
+        {"id": "3210", "nama": "Kota Batam"},
+        {"id": "0412", "nama": "Kota Pekanbaru"},
+        {"id": "1633", "nama": "Kota Malang"},
+        {"id": "1130", "nama": "Kota Surakarta (Solo)"},
+        {"id": "1009", "nama": "Kota Yogyakarta"},
+        {"id": "1701", "nama": "Kota Denpasar"},
+        {"id": "2301", "nama": "Kota Balikpapan"},
+        {"id": "2302", "nama": "Kota Samarinda"},
+        {"id": "0102", "nama": "Kota Banda Aceh"},
+        {"id": "2001", "nama": "Kota Banjarmasin"},
+        {"id": "0801", "nama": "Kota Bandar Lampung"},
+        {"id": "2201", "nama": "Kota Pontianak"},
+        {"id": "2601", "nama": "Kota Manado"},
+        {"id": "3301", "nama": "Kota Jayapura"},
+        {"id": "1901", "nama": "Kota Kupang"},
+        {"id": "1801", "nama": "Kota Mataram"},
+        {"id": "0301", "nama": "Kota Padang"},
+        {"id": "1128", "nama": "Kota Tegal"},
+        {"id": "1202", "nama": "Kab. Bogor"},
+        {"id": "1271", "nama": "Kota Bogor"},
+        {"id": "1601", "nama": "Kab. Sidoarjo"},
+        {"id": "1209", "nama": "Kab. Cirebon"},
+        {"id": "1274", "nama": "Kota Cirebon"},
+        {"id": "1121", "nama": "Kab. Demak"},
+        {"id": "1122", "nama": "Kab. Semarang"},
+        {"id": "1110", "nama": "Kab. Batang"},
+        {"id": "1125", "nama": "Kab. Pemalang"},
+        {"id": "3101", "nama": "Kota Ambon"},
+        {"id": "2401", "nama": "Kota Gorontalo"},
+        {"id": "2801", "nama": "Kota Palu"},
+        {"id": "2501", "nama": "Kota Kendari"},
+        {"id": "0501", "nama": "Kota Jambi"},
+        {"id": "0701", "nama": "Kota Bengkulu"},
+        {"id": "0901", "nama": "Kota Pangkal Pinang"},
+        {"id": "1001", "nama": "Kota Tanjung Pinang"},
+        {"id": "1401", "nama": "Kota Serang"},
+        {"id": "2901", "nama": "Kota Mamuju"}
     ]
     return render_template("jadwal-sholat.html", daftar_kota=sorted(daftar_kota, key=lambda x: x['nama']))
 
-@app.route("/api/jadwal-sholat/<id_kota>")
-def get_jadwal_api(id_kota):
-    try:
-        t = datetime.now().strftime("%Y/%m/%d")
-        r = requests.get(f"https://api.myquran.com/v2/sholat/jadwal/{id_kota}/{t}", timeout=5)
-        return jsonify(r.json())
-    except Exception as e: return jsonify({"status": "error", "message": str(e)})
-
-# API KHUSUS BERITA RUNNING TEXT (UPDATE REALTIME)
+# API BERITA UMUM (NASIONAL)
 @app.route("/api/news-ticker")
 def news_ticker():
     try:
-        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
-        news = [entry.title for entry in feed.entries[:7]]
+        # Menggunakan Google News Top Stories Indonesia (Semua Kategori)
+        feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
+        # Ambil 10 Berita teratas
+        news = [entry.title for entry in feed.entries[:10]]
         return jsonify(news)
     except: return jsonify([])
 
@@ -191,8 +212,7 @@ def dashboard():
     return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list((ref.child('provinsi').get() or {}).values()))
 
 @app.route("/daftar-siaran")
-def daftar_siaran():
-    return render_template("daftar-siaran.html", provinsi_list=list((ref.child('provinsi').get() or {}).values()))
+def daftar_siaran(): return render_template("daftar-siaran.html", provinsi_list=list((ref.child('provinsi').get() or {}).values()))
 
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data():
@@ -228,7 +248,8 @@ def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi'
 
 @app.route('/berita')
 def berita():
-    feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+    # Berita Umum (Nasional) untuk Halaman Berita
+    feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
     articles = feed.entries
     page = request.args.get('page', 1, type=int)
     per_page = 6
