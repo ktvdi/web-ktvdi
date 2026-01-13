@@ -1,251 +1,99 @@
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}KTVDI - Komunitas TV Digital Indonesia{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 
-                        'marquee': 'marquee 180s linear infinite', 
-                        'shine': 'shine 3s linear infinite'
-                    },
-                    keyframes: { 
-                        marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-100%)' } },
-                        shine: { '0%': { backgroundPosition: '200% center' }, '100%': { backgroundPosition: '-200% center' } }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .glass-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .text-glossy {
-            background: linear-gradient(to right, #2563eb 20%, #38bdf8 40%, #ffffff 50%, #38bdf8 60%, #2563eb 80%);
-            background-size: 200% auto;
-            color: #000;
-            background-clip: text;
-            -webkit-background-clip: text;
-            text-fill-color: transparent;
-            -webkit-text-fill-color: transparent;
-            animation: shine 4s linear infinite;
-            font-weight: 800;
-        }
-        .chat-scroll::-webkit-scrollbar { width: 4px; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    </style>
+    <meta name="google-site-verification" content="aFor1zxHtm-oPfHoTIdxvVFAIapnM6_MeblwG_M4W2o">
+    <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/ktvdi.png') }}" type="image/x-icon" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
-<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen">
+<body class="{% block body_class %}default-page{% endblock %}">
+    <header>
+        <input type="checkbox" id="menu-toggle">
+        <label for="menu-toggle" class="menu-icon">&#9776;</label>
 
-    <nav class="fixed top-0 w-full z-50 glass-nav shadow-2xl transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
-                <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-10 w-auto filter drop-shadow-md brightness-200 group-hover:scale-105 transition">
-                </a>
-                
-                <div class="hidden lg:flex items-center space-x-8">
-                    <a href="/" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Beranda</a>
-                    <a href="/cctv" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">CCTV Live</a>
-                    <a href="/daftar-siaran" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Database</a>
-                    <a href="/berita" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Berita</a>
-                    <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Tentang</a>
-                </div>
-
-                <div class="hidden lg:flex items-center gap-3">
-                    {% if session.get('user') %}
-                        <a href="/dashboard" class="px-6 py-2.5 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-600 shadow-lg shadow-blue-900/50 transition transform hover:-translate-y-0.5">Dashboard</a>
-                        <a href="/logout" class="text-red-400 hover:text-red-300 text-lg ml-2 transition"><i class="fa-solid fa-power-off"></i></a>
-                    {% else %}
-                        <a href="/login" class="text-sm font-bold text-slate-300 hover:text-white px-3 transition">Masuk</a>
-                        <a href="/register" class="px-6 py-2.5 bg-white text-brand-navy text-sm font-bold rounded-full hover:bg-brand-sky hover:text-white transition shadow-lg transform hover:-translate-y-0.5">Daftar</a>
-                    {% endif %}
-                </div>
-
-                <button onclick="toggleMenu()" class="lg:hidden text-white text-2xl focus:outline-none"><i class="fa-solid fa-bars"></i></button>
-            </div>
+        <div class="logo">
+          <img src="{{ url_for('static', filename='images/ktvdi.png') }}" alt="Logo KTVDI">
         </div>
+        <nav>
+            <ul>
+                <li><a href="/">Beranda</a></li>
+                <li><a href="/daftar-siaran">Daftar Siaran</a></li>
+                <li><a href="/berita">Berita</a></li>
+                <li><a href="">Tentang</a></li>
+                <li><a href="/login" class="login">Login</a></li>
+                <li><a href="/register" class="register">Daftar</a></li>
+            </ul>
+        </nav>
+    </header>
 
-        <div id="mobile-menu" class="hidden lg:hidden bg-brand-navy border-t border-slate-800 p-5 space-y-4 shadow-xl absolute w-full z-50">
-            <a href="/" class="block text-slate-300 font-bold hover:text-white border-b border-slate-800 pb-2">Beranda</a>
-            <a href="/cctv" class="block text-slate-300 font-bold hover:text-white border-b border-slate-800 pb-2">CCTV Live</a>
-            <a href="/daftar-siaran" class="block text-slate-300 font-bold hover:text-white border-b border-slate-800 pb-2">Database Siaran</a>
-            <a href="/berita" class="block text-slate-300 font-bold hover:text-white border-b border-slate-800 pb-2">Berita Digital</a>
-            <a href="/about" class="block text-slate-300 font-bold hover:text-white border-b border-slate-800 pb-2">Tentang Kami</a>
-            <div class="pt-4 grid grid-cols-2 gap-3">
-                {% if session.get('user') %}
-                    <a href="/dashboard" class="col-span-2 py-3 bg-brand-blue text-white text-center rounded-xl font-bold">Dashboard</a>
-                    <a href="/logout" class="col-span-2 py-2 text-red-400 text-center text-sm">Keluar</a>
-                {% else %}
-                    <a href="/login" class="py-3 border border-slate-600 text-slate-300 text-center rounded-xl font-bold">Masuk</a>
-                    <a href="/register" class="py-3 bg-white text-brand-navy text-center rounded-xl font-bold">Daftar</a>
-                {% endif %}
-            </div>
+    <main>
+    {% block content %}
+        <!-- Content from child templates will go here -->
+    {% endblock %}
+    </main>
+    
+    <footer id="footers" style="display: none;">
+        <div class="social-icons">
+          <a href="https://www.instagram.com/ktvdi.id?igsh=YWNteGY0Yms0NGNp" class="social-icon instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://www.facebook.com/share/g/18CKU4FayC/?mibextid=A7sQZp" class="social-icon facebook"><i class="fab fa-facebook"></i></a>
+          <a href="https://youtube.com/@ktvdi_id?si=NU-Ig6WQORKGvt_E" class="social-icon youtube"><i class="fab fa-youtube"></i></a>
+          <a href="https://chat.whatsapp.com/DwqpvihDPRrKFX44bPVDPb" class="social-icon whatsapp"><i class="fab fa-whatsapp"></i></a>
+          <a href="https://t.me/SiaranDigitalIndonesia" class="social-icon telegram"><i class="fab fa-telegram-plane"></i></a>
         </div>
-    </nav>
-
-    <main class="flex-grow pt-20 pb-20">{% block content %}{% endblock %}</main>
-
-    <footer class="bg-brand-navy text-white pt-16 pb-28 border-t border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div class="col-span-1 md:col-span-2">
-                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-12 w-auto mb-6 brightness-200">
-                <p class="text-slate-400 text-sm leading-relaxed max-w-md">
-                    Komunitas TV Digital Indonesia adalah sebuah wadah komunitas yang menghimpun individu, praktisi, teknisi, kreator konten, akademisi, serta pemerhati penyiaran yang memiliki ketertarikan dan kepedulian terhadap perkembangan teknologi televisi digital di Indonesia. Komunitas ini hadir sebagai ruang berbagi pengetahuan, pengalaman, dan informasi seputar sistem penyiaran digital, migrasi dari siaran analog ke digital, perangkat penerima TV digital, standar teknologi penyiaran, serta inovasi yang berkaitan dengan dunia broadcast dan multimedia.
-
-Komunitas TV Digital Indonesia berperan aktif dalam memberikan edukasi kepada masyarakat mengenai manfaat dan penggunaan TV digital, termasuk peningkatan kualitas gambar dan suara, efisiensi spektrum frekuensi, serta peluang layanan tambahan yang dapat dinikmati oleh pemirsa. Melalui diskusi, pelatihan, seminar, dan kegiatan daring maupun luring, komunitas ini mendorong peningkatan literasi digital dan pemahaman teknis yang mudah dipahami oleh berbagai kalangan.
-                </p>
-            </div>
-            <div>
-                <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs md:text-sm">Navigasi</h4>
-                <ul class="space-y-3 text-sm text-slate-400">
-                    <li><a href="/daftar-siaran" class="hover:text-brand-sky transition">Cek Sinyal MUX</a></li>
-                    <li><a href="/cctv" class="hover:text-brand-sky transition">Pantauan CCTV</a></li>
-                    <li><a href="/berita" class="hover:text-brand-sky transition">Edukasi Digital</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs md:text-sm">Media Sosial</h4>
-                <div class="flex gap-3">
-                    <a href="https://www.instagram.com/ktvdi.id?igsh=MTVkMGVybDRkbTh6eQ==" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition border border-slate-700"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="https://youtube.com/@ktvdi_id?si=BQ_G6Zmzvw682hq-" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition border border-slate-700"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="https://www.facebook.com/share/g/1BxbMbMVLV/?mibextid=wwXIfr" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f"></i></a>
-                </div>
-                <p class="text-xs text-slate-500 mt-4">Email: kom.tvdigitalid@gmail.com</p>
-            </div>
-        </div>
-        <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 max-w-7xl mx-auto px-4">
-            <p>&copy; 2026 Komunitas TV Digital Indonesia.</p>
-        </div>
+        <p>&copy; 2025 Komunitas TV Digital Indonesia. All rights reserved.</p>
     </footer>
-
-    <div class="fixed bottom-0 w-full z-40 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] h-12 flex items-center justify-between px-0 select-none">
-        <div class="bg-brand-blue h-full flex items-center px-4 z-20 shadow-md">
-            <span class="text-white text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> LIVE INFO</span>
-        </div>
-        <div class="flex-1 overflow-hidden h-full flex items-center relative mask-edges bg-slate-50">
-            <div class="animate-marquee whitespace-nowrap text-xs font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">
-                <span class="ml-4 flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin text-brand-blue"></i> Memuat Data Berita & Jadwal Sholat...</span>
-            </div>
-        </div>
-        <div class="bg-white h-full flex items-center px-4 border-l border-slate-200 z-20 gap-3">
-            <div class="text-xs font-mono font-bold text-slate-800" id="clock">00:00</div>
-        </div>
-    </div>
-
-    <div class="fixed bottom-20 left-4 z-50 group">
-        <a href="tel:112" class="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 hover:pr-6 group-hover:w-auto overflow-hidden ring-4 ring-red-500/20">
-            <i class="fa-solid fa-phone-volume text-xl animate-pulse"></i>
-            <span class="font-bold text-xs whitespace-nowrap w-0 group-hover:w-auto overflow-hidden transition-all duration-300 pl-0 group-hover:pl-1">DARURAT 112</span>
-        </a>
-    </div>
-
-    <div class="fixed bottom-20 right-4 z-50">
-        <div id="chat-window" class="hidden w-[85vw] md:w-[350px] bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden mb-2 transform origin-bottom-right transition-all">
-            <div class="bg-brand-navy p-4 flex justify-between items-center text-white">
-                <div class="flex items-center gap-2"><i class="fa-solid fa-robot"></i> <span class="font-bold text-sm">MODI - Asisten KTVDI</span></div>
-                <button type="button" onclick="toggleChat(event)" class="hover:text-red-400"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div id="chat-messages" class="h-72 bg-slate-50 p-4 overflow-y-auto space-y-3 flex flex-col chat-scroll">
-                <div class="flex gap-2"><div class="bg-white p-3 rounded-lg rounded-tl-none text-xs shadow-sm border border-slate-200 text-slate-600">
-                    Halo! 👋 Saya Modi sebagai Asisten KTVDI. Tanyakan seputar:<br>
-                    • "Bagaimana cara pasang STB?"<br>
-                    • "Dimana nonton Piala Dunia?"<br>
-                    • "Kenapa sinyal hilang?"
-                </div></div>
-            </div>
-            <div class="p-3 bg-white border-t border-slate-200">
-                <form onsubmit="handleChat(event)" class="flex gap-2">
-                    <input type="text" id="chat-input" placeholder="Ketik pesan..." class="w-full bg-slate-100 text-xs px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue">
-                    <button type="submit" class="bg-brand-blue text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"><i class="fa-solid fa-paper-plane"></i></button>
-                </form>
-            </div>
-        </div>
-        <button type="button" onclick="toggleChat(event)" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl flex items-center justify-center text-2xl hover:scale-110 transition border-4 border-white"><i class="fa-solid fa-comment-dots"></i></button>
-    </div>
-
     <script>
-        function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
-        function toggleChat(e) { 
-            if(e){ e.preventDefault(); e.stopPropagation(); } 
-            document.getElementById('chat-window').classList.toggle('hidden'); 
-        }
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}); }, 1000);
-
-        // TICKER BERITA UMUM & JADWAL SHOLAT
-        async function updateTicker() {
-            const cities = ['Jakarta', 'Surabaya', 'Semarang', 'Bandung', 'Makassar', 'Pekalongan', 'Purwodadi', 'Kediri', 'Samarinda', 'Palembang', 'Yogyakarta'];
-            const date = new Date();
-            let content = "";
-            
-            // Berita Umum (CNN RSS)
-            const newsList = {{ breaking_news | tojson }}; 
-            if(newsList) newsList.forEach(news => content += `<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase font-bold text-slate-800">${news}</span> <span class="mx-4 text-slate-300">|</span>`);
-            
-            // Jadwal Sholat
-            try {
-                const reqs = cities.map(c => fetch(`https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${c}&country=Indonesia&method=20`).then(r=>r.json()));
-                const res = await Promise.all(reqs);
-                res.forEach((d, i) => { if(d.data) { const t = d.data.timings; content += `<span class="mx-4 text-green-600 font-bold"><i class="fa-solid fa-mosque"></i> ${cities[i].toUpperCase()}:</span> Subuh ${t.Fajr} • Maghrib ${t.Maghrib} <span class="mx-4 text-slate-300">|</span>`; }});
-            } catch(e) {}
-            
-            document.getElementById('unified-ticker').innerHTML = content + content; 
-        }
-        updateTicker();
-
-        // CHATBOT HYBRID (Offline + Online Fallback)
-        async function handleChat(e) {
-            e.preventDefault();
-            const inp = document.getElementById('chat-input');
-            const txt = inp.value.trim().toLowerCase();
-            if(!txt) return;
-            addMsg(inp.value, 'user'); inp.value = '';
-
-            // 1. Cek Jawaban Lokal (Offline Mode - Cepat & Responsif)
-            let reply = null;
-            if (txt.match(/halo|hai|pagi|siang|malam|assalamualaikum/)) reply = "Halo! Selamat datang di Chatbot KTVDI. Dengan saya Modi, Ada yang bisa saya bantu seputar TV Digital?";
-            else if (txt.includes('tv') || txt.includes('digital')) reply = "Siaran TV Digital adalah siaran gratis (FTA) dengan kualitas gambar bersih. Gunakan antena UHF biasa + STB DVB-T2.";
-            else if (txt.includes('stb')) reply = "Pastikan Anda menggunakan Set Top Box (STB) yang bersertifikat Kominfo dan mendukung fitur EWS (Early Warning System).";
-            else if (txt.includes('antena') || txt.includes('sinyal')) reply = "Untuk hasil yang terbaik, silakan Anda gunakan antena UHF luar (outdoor), gunakan kabel yang berkualitas seperti kitani dan arahkan antena Anda ke pemancar TV Digital terdekat dari rumah Anda. Cek arahnya di menu 'Database'.";
-            else if (txt.includes('piala dunia') || txt.includes('bola')) reply = "Siaran Langsung Piala Dunia 2026 akan disiarkan melalui jaringan terestrial **TVRI Nasional dan TVRI SPORT** (Lembaga Penyiaran Publik) dan partner resminya secara gratis.";
-            else if (txt.includes('ktvdi')) reply = "KTVDI merupakan sebuah komunitas independen untuk berbagi informasi frekuensi TV digital di Indonesia yang digerakkan untuk mendukung penyiaran pertelevisian di Indonesia.";
-            else if (txt.includes('bot') || txt.includes('siapa')) reply = "Perkenalkan saya Modi sebagai asisten virtual KTVDI yang siap membantu Anda 24/7, kalau butuh respon cepat DM IG @ktvdi.id yaa.";
-            else if (txt.match(/paham|oke|makasih|tq|siap/)) reply = "Sama-sama! Senang bisa membantu Anda. Jangan lupa cek menu lainnya ya.";
-            else if (txt.includes('turu') || txt.includes('tidur')) reply = "Jangan lupa matikan TV dan STB sebelum istirahat ya! 😴";
-
-            if (reply) { setTimeout(()=>addMsg(reply,'bot'), 500); return; }
-
-            // 2. Jika tidak ada di lokal, tanya API Gemini (Online)
-            addMsg('<i class="fa-solid fa-circle-notch fa-spin"></i> Sedang berpikir...', 'bot-loading');
-            try {
-                const res = await fetch('/chatbot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:txt})});
-                const d = await res.json();
-                document.querySelector('.bot-loading').remove();
-                addMsg(d.response || "Maaf, saya kurang paham. Coba tanya tentang 'STB', 'Sinyal', atau 'Piala Dunia'.", 'bot');
-            } catch { 
-                document.querySelector('.bot-loading').remove();
-                addMsg("Maaf, koneksi ke server AI sedang sibuk. Silakan coba pertanyaan dasar lainnya.", 'bot'); 
+        // animasi
+        document.addEventListener('DOMContentLoaded', () => {
+          const headline = document.getElementById('headline');
+          const paragraph = document.getElementById('paragraph');
+          const readMoreButton = document.getElementById('read-more');
+          const statistictv = document.getElementById('statistic-tv');
+          const footerss = document.getElementById('footers');
+          const toggleBot = document.getElementById('chat-toggle');
+    
+          // Fungsi typewriter effect
+          function typeWriter(element, text, i = 0, callback) {
+            if (i < text.length) {
+              element.innerHTML = text.substring(0, i + 1);
+              setTimeout(() => typeWriter(element, text, i + 1, callback), 90);
+            } else if (callback) {
+              callback();
             }
-        }
+          }
+    
+          // Menggunakan URL untuk memeriksa apakah ini halaman utama
+          const isHomePage = window.location.pathname === '/';  // Memeriksa apakah URL adalah halaman utama
+    
+          if (footerss) {
+            if (isHomePage) {
+              // Animasi typewriter untuk headline jika halaman utama
+              typeWriter(headline, headline.textContent, 0, () => {
+                paragraph.style.display = 'block';
+                paragraph.classList.add('fade-in-up');
+    
+                readMoreButton.style.display = 'block';
+                readMoreButton.classList.add('fade-in-up');
+    
+                statistictv.style.display = 'grid';
+                statistictv.classList.add('fade-in-up');
 
-        function addMsg(t, s) {
-            const d = document.createElement('div');
-            d.className = s.includes('user') ? "flex justify-end" : "flex gap-2 " + s;
-            d.innerHTML = s.includes('user') ? 
-                `<div class="bg-brand-blue text-white p-2.5 rounded-lg text-xs max-w-[85%] shadow">${t}</div>` : 
-                `<div class="bg-white p-2.5 rounded-lg text-xs border shadow-sm max-w-[85%] text-slate-700">${t}</div>`;
-            document.getElementById('chat-messages').appendChild(d);
-            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
-        }
+                toggleBot.style.display = 'flex';
+                toggleBot.classList.add('fade-in-up');
+    
+                // Menampilkan footer setelah animasi selesai
+                footerss.style.display = 'block';
+                footerss.classList.add('fade-in-up');
+              });
+            } else {
+              // Di halaman lain, footer langsung tampil
+              footerss.style.display = 'block';
+            }
+          }
+        });
     </script>
 </body>
 </html>
