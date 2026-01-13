@@ -37,7 +37,11 @@ try:
         })
     else:
         cred = credentials.Certificate("credentials.json")
-    firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
+        
+    # Cek apakah app sudah inisialisasi untuk mencegah double init di Vercel
+    if not firebase_admin._apps:
+        firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
+    
     ref = db.reference('/')
     print("✅ Firebase Connected")
 except Exception as e:
@@ -68,7 +72,7 @@ def time_since_published(published_time):
         return "Baru saja"
     except: return ""
 
-# --- FUNGSI BANTUAN ---
+# --- FUNGSI BANTUAN DATA ---
 def get_bmkg_weather():
     try:
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-DKIJakarta.xml"
@@ -102,14 +106,13 @@ def get_daily_news_summary():
         return summary
     except: return "Gagal memuat berita harian."
 
-# --- ROUTE CRON JOB (Pengganti Scheduler) ---
+# --- ROUTE CRON JOB (Daily Blast) ---
 @app.route("/api/cron/daily-blast", methods=['GET'])
 def trigger_daily_blast():
-    # Keamanan sederhana: Cek apakah request dari Vercel Cron
-    # (Opsional, tapi disarankan)
-    
     try:
         print(f"⏰ Memulai Blast Email Harian... {datetime.now()}")
+        if not ref: return jsonify({"error": "Database not connected"}), 500
+        
         users_data = ref.child('users').get()
         if not users_data: return jsonify({"status": "No users found"}), 200
 
@@ -222,6 +225,7 @@ def login():
         return render_template('login.html', error="Username atau Password Salah")
     return render_template('login.html')
 
+# --- REGISTER (EMAIL PROFESIONAL) ---
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -242,14 +246,20 @@ def register():
         
         try:
             msg = Message("Kode OTP Pendaftaran KTVDI", recipients=[e])
+            # ISI EMAIL REGISTRASI PROFESIONAL
             msg.body = f"""Halo {n},
 
 Perkenalkan, kami dari tim Komunitas TV Digital Indonesia (KTVDI).
-Terima kasih telah memulai proses pendaftaran.
+Terima kasih telah bergabung bersama kami untuk mewujudkan penyiaran digital yang merata.
 
-Kode OTP Anda: {otp}
+Berikut adalah kode OTP untuk menyelesaikan pendaftaran akun Anda:
+{otp}
 
-Mohon selesaikan verifikasi dalam 1 menit.
+Mohon hati-hati, JANGAN berikan kode ini kepada siapapun (termasuk admin).
+Kode OTP ini berlaku selama 1 menit.
+
+Salam hangat,
+Tim Admin KTVDI
 """
             mail.send(msg)
             session['pending_username'] = u
@@ -260,53 +270,81 @@ Mohon selesaikan verifikasi dalam 1 menit.
             
     return render_template("register.html")
 
+# --- VERIFIKASI (FIX ERROR 500) ---
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
     u = session.get('pending_username')
     if not u: return redirect(url_for('register'))
     
     if request.method == "POST":
-        p = ref.child(f'pending_users/{u}').get()
-        if p and str(p['otp']) == request.form.get("otp"):
-            ref.child(f'users/{u}').set({"nama":p['nama'], "email":p['email'], "password":p['password'], "points":0})
-            ref.child(f'pending_users/{u}').delete()
-            session.pop('pending_username', None)
-            
-            try:
-                msg = Message("Selamat Datang! Anda Resmi Menjadi Anggota KTVDI", recipients=[p['email']])
-                msg.body = f"""Halo {p['nama']},
+        try:
+            p = ref.child(f'pending_users/{u}').get()
+            if not p:
+                flash("Sesi habis, silakan daftar ulang.", "error")
+                return redirect(url_for('register'))
+
+            if str(p['otp']) == request.form.get("otp"):
+                # 1. Simpan User Resmi (CRITICAL STEP)
+                ref.child(f'users/{u}').set({
+                    "nama":p['nama'], 
+                    "email":p['email'], 
+                    "password":p['password'], 
+                    "points":0
+                })
+                # 2. Hapus data pending
+                ref.child(f'pending_users/{u}').delete()
+                session.pop('pending_username', None)
+                
+                # 3. KIRIM EMAIL SAMBUTAN (DALAM TRY-EXCEPT AGAR TIDAK BIKIN ERROR 500)
+                try:
+                    msg = Message("Selamat Datang! Anda Resmi Menjadi Anggota KTVDI", recipients=[p['email']])
+                    msg.body = f"""Halo {p['nama']},
 
 Selamat! Akun Anda telah berhasil diverifikasi.
 Sekarang Anda sudah TERDAFTAR RESMI sebagai anggota keluarga besar Komunitas TV Digital Indonesia (KTVDI).
 
-Akun Anda:
-Username: {u}
+Dengan akun ini, Anda dapat:
+- Mengakses Dashboard Kontributor
+- Melaporkan status sinyal MUX
+- Berdiskusi di forum komunitas
+
+Jangan lupa untuk selalu menjaga kerahasiaan akun Anda.
 
 Salam hangat,
-Admin KTVDI
+Tim Admin KTVDI
 """
-                mail.send(msg)
-            except: pass
+                    mail.send(msg)
+                except Exception as e:
+                    # Log error tapi JANGAN return error page, karena user sudah sukses register
+                    print(f"⚠️ Gagal kirim email sambutan (User tetap terdaftar): {e}")
 
-            flash("Registrasi Berhasil! Silakan Login.", "success")
-            return redirect(url_for('login'))
-        flash("Kode OTP Salah!", "error")
+                flash("Registrasi Berhasil! Silakan Login.", "success")
+                return redirect(url_for('login'))
+            
+            else:
+                flash("Kode OTP Salah!", "error")
+        
+        except Exception as e:
+            print(f"❌ Error Verifikasi: {e}")
+            flash("Terjadi kesalahan sistem saat verifikasi.", "error")
         
     return render_template("verify-register.html", username=u)
 
+# --- LUPA PASSWORD (EMAIL PROFESIONAL & REMINDER) ---
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
         email_input = request.form.get("email")
+        
         target_user = None
-        target_name = "Sobat"
+        target_name = "Sobat KTVDI"
         all_users = ref.child('users').get()
         
         if all_users:
             for uid, data in all_users.items():
                 if data.get('email') == email_input:
                     target_user = uid
-                    target_name = data.get('nama', 'Sobat')
+                    target_name = data.get('nama', 'Sobat KTVDI')
                     break
         
         if not target_user:
@@ -321,14 +359,27 @@ def forgot_password():
         
         try:
             msg = Message("Reset Password Akun KTVDI", recipients=[email_input])
+            # ISI EMAIL LUPA PASSWORD
             msg.body = f"""Halo {target_name},
 
-Kami menerima permintaan reset password.
-Kode OTP Anda: {otp}
+Perkenalkan, kami dari tim Komunitas TV Digital Indonesia (KTVDI).
+Kami menerima permintaan untuk mereset kata sandi akun Anda.
+
+Berikut adalah kode OTP untuk melanjutkan proses reset password:
+{otp}
+
+Mohon hati-hati, JANGAN berikan kode ini kepada siapapun.
+Kode OTP ini berlaku selama 1 menit.
+
+Jika Anda tidak merasa melakukan permintaan ini, silakan abaikan email ini.
+
+Salam hangat,
+Tim Admin KTVDI
 """
             mail.send(msg)
             return redirect(url_for('verify_reset'))
-        except:
+        except Exception as e:
+            print(f"EMAIL ERROR: {e}")
             flash("Gagal mengirim email.", "error")
             
     return render_template("forgot-password.html")
@@ -353,23 +404,31 @@ def reset_password():
         
         if new_pass == conf_pass:
             uid = session['reset_user']
-            nama = session.get('reset_name', 'Sobat')
+            nama = session.get('reset_name', 'Sobat KTVDI')
             email = session.get('reset_email')
             
             ref.child(f'users/{uid}').update({"password": hash_password(new_pass)})
             
+            # EMAIL PENGINGAT AKUN (SAFE MODE)
             if email:
                 try:
                     msg = Message("Password Berhasil Diubah - Ingat Akun Anda!", recipients=[email])
                     msg.body = f"""Halo {nama},
 
-Password akun KTVDI Anda telah diperbarui.
+Password akun KTVDI Anda telah berhasil diperbarui.
+
+MOHON DIINGAT:
 Username Anda: {uid}
 
-Mohon ingat detail akun Anda.
+Pastikan Anda mencatat atau mengingat kredensial ini agar tidak kehilangan akses ke komunitas di masa mendatang.
+Jika Anda tidak melakukan perubahan ini, segera hubungi admin.
+
+Salam aman,
+Tim Security KTVDI
 """
                     mail.send(msg)
-                except: pass
+                except Exception as e:
+                    print(f"Gagal kirim reminder: {e}")
 
             session.pop('reset_user', None)
             session.pop('reset_otp', None)
