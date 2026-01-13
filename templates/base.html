@@ -17,10 +17,7 @@
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 
-                        'marquee': 'marquee 180s linear infinite', 
-                        'shine': 'shine 3s linear infinite'
-                    },
+                    animation: { 'marquee': 'marquee 180s linear infinite', 'shine': 'shine 3s linear infinite' },
                     keyframes: { 
                         marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-100%)' } },
                         shine: { '0%': { backgroundPosition: '200% center' }, '100%': { backgroundPosition: '-200% center' } }
@@ -34,7 +31,6 @@
         .text-glossy {
             background: linear-gradient(to right, #2563eb 20%, #38bdf8 40%, #ffffff 50%, #38bdf8 60%, #2563eb 80%);
             background-size: 200% auto;
-            color: #000;
             background-clip: text; -webkit-background-clip: text;
             text-fill-color: transparent; -webkit-text-fill-color: transparent;
             animation: shine 4s linear infinite; font-weight: 800;
@@ -43,19 +39,19 @@
         .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen">
+<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-12">
 
     <nav class="fixed top-0 w-full z-50 glass-nav shadow-2xl transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-10 w-auto filter drop-shadow-md brightness-200 group-hover:scale-105 transition">
+                    <img src="{{ url_for('static', filename='images/ktvdi.png') }}" alt="KTVDI" class="h-10 w-auto filter drop-shadow-md brightness-200 group-hover:scale-105 transition">
                 </a>
                 
                 <div class="hidden lg:flex items-center space-x-6">
                     <a href="/" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Beranda</a>
-                    <a href="/cctv" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">CCTV Live</a>
-                    <a href="/jadwal-sholat" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Jadwal Sholat</a>
+                    <a href="/cctv" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">CCTV</a>
+                    <a href="/jadwal-sholat" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Sholat</a>
                     <a href="/daftar-siaran" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Database</a>
                     <a href="/berita" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Berita</a>
                     <a href="/about" class="text-sm font-semibold text-slate-300 hover:text-white hover:border-b-2 hover:border-brand-sky py-2 transition-all">Tentang</a>
@@ -64,41 +60,57 @@
                 <div class="hidden lg:flex items-center gap-3">
                     {% if session.get('user') %}
                         <a href="/dashboard" class="px-5 py-2 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-600 shadow-lg transition">Dashboard</a>
-                        <a href="/logout" class="text-red-400 hover:text-red-300 text-lg ml-2 transition"><i class="fa-solid fa-power-off"></i></a>
+                        <a href="/logout" class="text-red-400 hover:text-red-300 text-lg ml-2 transition" title="Keluar"><i class="fa-solid fa-power-off"></i></a>
                     {% else %}
                         <a href="/login" class="text-sm font-bold text-slate-300 hover:text-white px-3 transition">Masuk</a>
                         <a href="/register" class="px-5 py-2 bg-white text-brand-navy text-sm font-bold rounded-full hover:bg-brand-sky hover:text-white transition shadow-lg">Daftar</a>
                     {% endif %}
                 </div>
+
                 <button onclick="toggleMenu()" class="lg:hidden text-white text-2xl focus:outline-none"><i class="fa-solid fa-bars"></i></button>
             </div>
         </div>
         
-        <div id="mobile-menu" class="hidden lg:hidden bg-brand-navy border-t border-slate-800 p-5 space-y-4 shadow-xl absolute w-full z-50">
-            <a href="/" class="block text-slate-300 font-bold hover:text-white">Beranda</a>
-            <a href="/cctv" class="block text-slate-300 font-bold hover:text-white">CCTV Live</a>
-            <a href="/jadwal-sholat" class="block text-slate-300 font-bold hover:text-white">Jadwal Sholat</a>
-            <a href="/daftar-siaran" class="block text-slate-300 font-bold hover:text-white">Database</a>
-            {% if session.get('user') %}
-                <a href="/dashboard" class="block py-3 bg-brand-blue text-white text-center rounded-xl font-bold">Dashboard</a>
-                <a href="/logout" class="block py-2 text-red-400 text-center text-sm">Keluar</a>
-            {% else %}
-                <a href="/login" class="block py-3 bg-white text-brand-navy text-center rounded-xl font-bold">Masuk</a>
-            {% endif %}
+        <div id="mobile-menu" class="hidden lg:hidden bg-brand-navy border-t border-slate-800 p-6 space-y-4 shadow-xl absolute w-full z-50 left-0 top-20 h-screen overflow-y-auto pb-40">
+            <a href="/" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Beranda</a>
+            <a href="/cctv" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">CCTV Live</a>
+            <a href="/jadwal-sholat" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Jadwal Sholat</a>
+            <a href="/daftar-siaran" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Database Siaran</a>
+            <a href="/berita" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Berita Digital</a>
+            <a href="/about" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Tentang Kami</a>
+            
+            <div class="pt-6 grid grid-cols-2 gap-4">
+                {% if session.get('user') %}
+                    <a href="/dashboard" class="col-span-2 py-3 bg-brand-blue text-white text-center rounded-xl font-bold shadow-lg">Dashboard</a>
+                    <a href="/logout" class="col-span-2 py-3 border border-red-500 text-red-400 text-center rounded-xl font-bold">Keluar</a>
+                {% else %}
+                    <a href="/login" class="py-3 border border-slate-500 text-white text-center rounded-xl font-bold hover:bg-slate-800">Masuk</a>
+                    <a href="/register" class="py-3 bg-white text-brand-navy text-center rounded-xl font-bold hover:bg-gray-200">Daftar</a>
+                {% endif %}
+            </div>
         </div>
     </nav>
 
-    <main class="flex-grow pt-20 pb-20">{% block content %}{% endblock %}</main>
+    <main class="flex-grow pt-20 pb-20">
+        {% block content %}{% endblock %}
+    </main>
 
     <footer class="bg-brand-navy text-white pt-16 pb-28 border-t border-slate-800">
         <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div class="col-span-1 md:col-span-2">
-                <img src="{{ url_for('static', filename='images/ktvdi.png') }}" alt="KTVDI Logo" class="h-12 w-auto mb-6 brightness-200">
+                <div class="flex items-center gap-3 mb-6">
+                    <img src="{{ url_for('static', filename='images/ktvdi.png') }}" alt="KTVDI" class="h-12 w-auto brightness-200">
+                    <span class="text-xl font-extrabold tracking-tight">KTVDI</span>
+                </div>
                 <p class="text-slate-400 text-sm leading-relaxed max-w-md">
-                    Komunitas TV Digital Indonesia adalah wadah berbagi informasi seputar siaran digital DVB-T2. Mari wujudkan penyiaran yang merata.
+                    Komunitas TV Digital Indonesia adalah wadah independen untuk berbagi informasi frekuensi dan solusi teknis. Mari wujudkan penyiaran yang merata.
                 </p>
-                <p class="text-brand-sky font-bold mt-4 text-sm"><i class="fa-solid fa-envelope mr-2"></i> kom.tvdigitalid@gmail.com</p>
+                <div class="mt-6 flex items-center gap-2 text-slate-400 text-sm">
+                    <i class="fa-solid fa-envelope text-brand-sky"></i>
+                    <span>kom.tvdigitalid@gmail.com</span>
+                </div>
             </div>
+            
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Navigasi</h4>
                 <ul class="space-y-3 text-sm text-slate-400">
@@ -107,13 +119,14 @@
                     <li><a href="/jadwal-sholat" class="hover:text-brand-sky transition">Jadwal Sholat</a></li>
                 </ul>
             </div>
+            
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Media Sosial</h4>
                 <div class="flex gap-3">
-                    <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="https://www.instagram.com/ktvdi.id" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="https://youtube.com/@ktvdi_id" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition"><i class="fa-brands fa-youtube"></i></a>
-                    <a href="https://t.me/SiaranDigitalIndonesia" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition"><i class="fa-brands fa-telegram"></i></a>
+                    <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition text-white border border-slate-700"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com/ktvdi.id" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition text-white border border-slate-700"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://youtube.com/@ktvdi_id" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition text-white border border-slate-700"><i class="fa-brands fa-youtube"></i></a>
+                    <a href="https://t.me/SiaranDigitalIndonesia" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition text-white border border-slate-700"><i class="fa-brands fa-telegram"></i></a>
                 </div>
             </div>
         </div>
@@ -124,17 +137,13 @@
 
     <div class="fixed bottom-0 w-full z-40 bg-white border-t border-slate-200 h-12 flex items-center justify-between px-0 select-none shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <div class="bg-brand-blue h-full flex items-center px-4 z-20 shadow-md">
-            <span class="text-white text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> LIVE INFO</span>
+            <span class="text-white text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-2">
+                <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> LIVE INFO
+            </span>
         </div>
         <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50">
-            <div class="animate-marquee whitespace-nowrap text-xs font-semibold text-slate-700 flex items-center gap-0">
-                {% if breaking_news %}
-                    {% for news in breaking_news %}
-                        <span class="mx-4 text-brand-blue font-bold">INFO:</span> <span class="uppercase text-slate-800">{{ news }}</span> <span class="mx-4 text-slate-300">|</span>
-                    {% endfor %}
-                {% else %}
-                    <span class="ml-4">Selamat Datang di KTVDI...</span>
-                {% endif %}
+            <div class="animate-marquee whitespace-nowrap text-xs font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">
+                <span class="ml-4">Memuat data terkini...</span>
             </div>
         </div>
         <div class="bg-white h-full flex items-center px-4 border-l border-slate-200 z-20 gap-3">
@@ -153,48 +162,88 @@
         <div id="chat-window" class="hidden w-[85vw] md:w-[350px] bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden mb-2 transform origin-bottom-right transition-all">
             <div class="bg-brand-navy p-4 flex justify-between items-center text-white">
                 <div class="flex items-center gap-2"><i class="fa-solid fa-robot"></i> <span class="font-bold text-sm">MODI - AI KTVDI</span></div>
-                <button onclick="toggleChat()" class="hover:text-red-400"><i class="fa-solid fa-xmark"></i></button>
+                <button onclick="toggleChat()" class="hover:text-red-400 text-lg"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div id="chat-messages" class="h-72 bg-slate-50 p-4 overflow-y-auto space-y-3 flex flex-col chat-scroll">
-                <div class="flex gap-2"><div class="bg-white p-3 rounded-lg rounded-tl-none text-xs shadow-sm border border-slate-200 text-slate-600">Halo! 👋 Saya Modi. Ada yang bisa dibantu?</div></div>
+                <div class="flex gap-2">
+                    <div class="bg-white p-3 rounded-lg rounded-tl-none text-xs shadow-sm border border-slate-200 text-slate-600">
+                        Halo! 👋 Saya Modi. Tanyakan saya tentang:<br>• "Cara pasang STB"<br>• "Arah antena"<br>• "Kenapa sinyal hilang"
+                    </div>
+                </div>
             </div>
             <div class="p-3 bg-white border-t border-slate-200">
                 <form onsubmit="handleChat(event)" class="flex gap-2">
                     <input type="text" id="chat-input" placeholder="Ketik pesan..." class="w-full bg-slate-100 text-xs px-3 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue">
-                    <button type="submit" class="bg-brand-blue text-white px-3 py-2 rounded-lg hover:bg-blue-700"><i class="fa-solid fa-paper-plane"></i></button>
+                    <button type="submit" class="bg-brand-blue text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
             </div>
         </div>
-        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl flex items-center justify-center text-2xl hover:scale-110 transition border-4 border-white"><i class="fa-solid fa-comment-dots"></i></button>
+        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl flex items-center justify-center text-2xl hover:scale-110 transition border-4 border-white transform active:scale-95">
+            <i class="fa-solid fa-comment-dots"></i>
+        </button>
     </div>
 
     <script>
         function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}); }, 1000);
         
+        // JAM GLOBAL
+        setInterval(() => { 
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}); 
+        }, 1000);
+
+        // TICKER GLOBAL (JS FETCH AGAR JALAN DI SEMUA HALAMAN)
+        async function fetchTicker() {
+            // Data statis untuk kecepatan + Fetch API jika perlu
+            const infos = [
+                "Gunakan STB Bersertifikat Kominfo",
+                "Arahkan Antena ke Pemancar Terdekat",
+                "Siaran TV Digital Gratis Selamanya",
+                "KTVDI: Menghubungkan Nusantara"
+            ];
+            
+            let html = "";
+            infos.forEach(i => {
+                html += `<span class="mx-4 text-brand-blue font-bold">INFO:</span> <span class="uppercase text-slate-800 font-semibold">${i}</span> <span class="mx-4 text-slate-300">|</span>`;
+            });
+            document.getElementById('unified-ticker').innerHTML = html;
+        }
+        fetchTicker();
+
+        // CHATBOT JS
         async function handleChat(e) {
             e.preventDefault();
             const inp = document.getElementById('chat-input');
             const txt = inp.value.trim();
             if(!txt) return;
-            addMsg(txt, 'user'); inp.value = '';
-            addMsg('Sedang mengetik...', 'bot-loading');
+            
+            addMsg(txt, 'user'); 
+            inp.value = '';
+            
+            const loadDiv = document.createElement('div');
+            loadDiv.className = "flex gap-2 bot-loading";
+            loadDiv.innerHTML = `<div class="bg-white p-2.5 rounded-lg text-xs border shadow-sm text-slate-500 italic"><i class="fa-solid fa-circle-notch fa-spin"></i> Sedang mengetik...</div>`;
+            document.getElementById('chat-messages').appendChild(loadDiv);
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+
             try {
                 const res = await fetch('/', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:txt})});
                 const d = await res.json();
                 document.querySelector('.bot-loading').remove();
-                addMsg(d.response || "Error", 'bot');
+                addMsg(d.response || "Maaf, saya sedang gangguan.", 'bot');
             } catch { 
                 document.querySelector('.bot-loading').remove();
-                addMsg("Gagal koneksi.", 'bot'); 
+                addMsg("Gagal terhubung ke server.", 'bot'); 
             }
         }
 
         function addMsg(t, s) {
             const d = document.createElement('div');
             d.className = s.includes('user') ? "flex justify-end" : "flex gap-2 " + s;
-            d.innerHTML = s.includes('user') ? `<div class="bg-brand-blue text-white p-2.5 rounded-lg text-xs shadow">${t}</div>` : `<div class="bg-white p-2.5 rounded-lg text-xs border shadow-sm text-slate-700">${t}</div>`;
+            let fmt = t.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+            d.innerHTML = s.includes('user') 
+                ? `<div class="bg-brand-blue text-white p-2.5 rounded-lg text-xs max-w-[85%] shadow">${fmt}</div>` 
+                : `<div class="bg-white p-2.5 rounded-lg text-xs border shadow-sm max-w-[85%] text-slate-700">${fmt}</div>`;
             document.getElementById('chat-messages').appendChild(d);
             document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
         }
