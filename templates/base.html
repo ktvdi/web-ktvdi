@@ -18,7 +18,7 @@
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
                     animation: { 
-                        'marquee': 'marquee 45s linear infinite', 
+                        'marquee': 'marquee 80s linear infinite', /* DIPERLAMBAT KE 80s */
                         'shine': 'shine 3s linear infinite' 
                     },
                     keyframes: { 
@@ -81,7 +81,6 @@
             <a href="/daftar-siaran" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Database Siaran</a>
             <a href="/berita" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Berita Digital</a>
             <a href="/about" class="block text-slate-300 font-bold hover:text-white border-b border-slate-700 pb-3">Tentang Kami</a>
-            
             <div class="pt-6 grid grid-cols-2 gap-4">
                 {% if session.get('user') %}
                     <a href="/dashboard" class="col-span-2 py-3 bg-brand-blue text-white text-center rounded-xl font-bold shadow-lg">Dashboard</a>
@@ -106,10 +105,6 @@
                 <p class="text-slate-400 text-sm leading-relaxed max-w-md">
                     Komunitas TV Digital Indonesia adalah wadah independen untuk berbagi informasi frekuensi dan solusi teknis. Mari wujudkan penyiaran yang merata.
                 </p>
-                <div class="mt-6 flex items-center gap-2 text-slate-400 text-sm">
-                    <i class="fa-solid fa-envelope text-brand-sky"></i>
-                    <span>kom.tvdigitalid@gmail.com</span>
-                </div>
             </div>
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Navigasi</h4>
@@ -150,13 +145,6 @@
         </div>
     </div>
 
-    <div class="fixed bottom-20 left-4 z-50 group">
-        <a href="tel:112" class="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 hover:pr-6 group-hover:w-auto overflow-hidden ring-4 ring-red-500/20">
-            <i class="fa-solid fa-phone-volume text-xl animate-pulse"></i>
-            <span class="font-bold text-xs whitespace-nowrap w-0 group-hover:w-auto overflow-hidden transition-all duration-300 pl-0 group-hover:pl-1">DARURAT 112</span>
-        </a>
-    </div>
-
     <div class="fixed bottom-20 right-4 z-50">
         <div id="chat-window" class="hidden w-[85vw] md:w-[350px] bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden mb-2 transform origin-bottom-right transition-all">
             <div class="bg-brand-navy p-4 flex justify-between items-center text-white">
@@ -186,24 +174,20 @@
         function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
         
-        // JAM REAL-TIME (Sesuai Perangkat User)
+        // JAM REAL-TIME LOKAL
         setInterval(() => { 
             const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', {
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: false 
-            });
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
             document.getElementById('clock').innerText = timeString; 
         }, 1000);
         
-        // FETCH TICKER BERITA (Anti-Duplikat & Ada Nama Media)
+        // FETCH TICKER DENGAN SET UNTUK HILANGKAN DUPLIKAT
         async function updateTicker() {
             try {
                 const res = await fetch('/api/news-ticker');
                 const news = await res.json();
                 
-                // Gunakan Set untuk hilangkan duplikat
+                // Set digunakan untuk membersihkan duplikat
                 const uniqueNews = [...new Set(news)];
                 
                 let html = "";
@@ -221,6 +205,7 @@
         }
         updateTicker();
 
+        // Chatbot Logic
         async function handleChat(e) {
             e.preventDefault();
             const inp = document.getElementById('chat-input');
