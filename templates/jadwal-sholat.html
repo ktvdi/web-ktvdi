@@ -3,70 +3,126 @@
 {% block content %}
 <div class="min-h-screen bg-brand-surface py-12 px-4 font-['Plus_Jakarta_Sans']">
     <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
-        <h1 class="text-3xl font-extrabold text-brand-navy text-center mb-8">Jadwal Sholat & Imsakiyah</h1>
+        <div class="text-center mb-10">
+            <span class="inline-block py-1 px-3 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider mb-3">
+                <i class="fa-solid fa-mosque mr-1"></i> Ibadah
+            </span>
+            <h1 class="text-3xl font-extrabold text-brand-navy mb-2">Jadwal Sholat & Imsakiyah</h1>
+            <p class="text-slate-500">Data akurat bersumber dari Kemenag RI.</p>
+        </div>
+
         <div class="mb-8">
+            <label for="kotaSelect" class="block text-sm font-bold text-slate-700 mb-2">Pilih Kota (50 Kota Besar)</label>
             <select id="kotaSelect" onchange="loadJadwal()" class="block w-full p-4 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-brand-blue cursor-pointer">
-                <option value="" selected disabled>-- Pilih Lokasi Anda (50 Kota) --</option>
-                {% for kota in daftar_kota %}
-                <option value="{{ kota.id }}">{{ kota.nama }}</option>
-                {% endfor %}
+                <option value="" selected disabled>-- Cari Kota Anda --</option>
+                <option value="Jakarta">DKI Jakarta</option>
+                <option value="Pekalongan">Kota/Kab. Pekalongan</option>
+                <option value="Purwodadi">Purwodadi (Grobogan)</option>
+                <option value="Semarang">Kota Semarang</option>
+                <option value="Surabaya">Kota Surabaya</option>
+                <option value="Bandung">Kota Bandung</option>
+                <option value="Medan">Kota Medan</option>
+                <option value="Bekasi">Kota Bekasi</option>
+                <option value="Makassar">Kota Makassar</option>
+                <option value="Palembang">Kota Palembang</option>
+                <option value="Depok">Kota Depok</option>
+                <option value="Tangerang">Kota Tangerang</option>
+                <option value="Batam">Kota Batam</option>
+                <option value="Pekanbaru">Kota Pekanbaru</option>
+                <option value="Malang">Kota Malang</option>
+                <option value="Surakarta">Kota Solo (Surakarta)</option>
+                <option value="Yogyakarta">DI Yogyakarta</option>
+                <option value="Denpasar">Kota Denpasar</option>
+                <option value="Balikpapan">Kota Balikpapan</option>
+                <option value="Samarinda">Kota Samarinda</option>
+                <option value="Banda Aceh">Banda Aceh</option>
+                <option value="Banjarmasin">Kota Banjarmasin</option>
+                <option value="Bandar Lampung">Bandar Lampung</option>
+                <option value="Pontianak">Kota Pontianak</option>
+                <option value="Manado">Kota Manado</option>
+                <option value="Jayapura">Kota Jayapura</option>
+                <option value="Kupang">Kota Kupang</option>
+                <option value="Mataram">Kota Mataram</option>
+                <option value="Padang">Kota Padang</option>
+                <option value="Tegal">Kota Tegal</option>
+                <option value="Bogor">Kota Bogor</option>
+                <option value="Sidoarjo">Kab. Sidoarjo</option>
+                <option value="Cirebon">Kota Cirebon</option>
+                <option value="Demak">Kab. Demak</option>
+                <option value="Ambon">Kota Ambon</option>
+                <option value="Gorontalo">Kota Gorontalo</option>
+                <option value="Palu">Kota Palu</option>
+                <option value="Kendari">Kota Kendari</option>
+                <option value="Jambi">Kota Jambi</option>
+                <option value="Bengkulu">Kota Bengkulu</option>
+                <option value="Serang">Kota Serang</option>
+                <option value="Mamuju">Kota Mamuju</option>
+                <option value="Palangkaraya">Kota Palangkaraya</option>
+                <option value="Ternate">Kota Ternate</option>
+                <option value="Sorong">Kota Sorong</option>
+                <option value="Tasikmalaya">Kota Tasikmalaya</option>
+                <option value="Cimahi">Kota Cimahi</option>
+                <option value="Magelang">Kota Magelang</option>
+                <option value="Salatiga">Kota Salatiga</option>
+                <option value="Batu">Kota Batu</option>
             </select>
         </div>
         
         <div id="loading" class="hidden text-center py-8">
             <i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-blue"></i>
-            <p class="text-slate-400 mt-2">Mengambil data...</p>
+            <p class="text-slate-400 mt-2 font-medium">Sedang menghitung waktu...</p>
         </div>
 
-        <div id="jadwalResult" class="hidden">
-            <div class="text-center mb-8">
-                <h2 id="namaKotaDisplay" class="text-2xl font-bold text-brand-navy"></h2>
-                <p class="text-slate-500 text-sm">Waktu Indonesia Barat/Tengah/Timur</p>
+        <div id="jadwalResult" class="hidden animate-fade-in-up">
+            <div class="text-center mb-8 pb-6 border-b border-slate-100">
+                <h2 id="namaKotaDisplay" class="text-3xl font-extrabold text-brand-navy"></h2>
+                <p id="tanggalDisplay" class="text-slate-500 text-sm mt-1 font-mono bg-slate-100 inline-block px-3 py-1 rounded-lg"></p>
             </div>
             
             <div class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
-                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 hover:shadow-md transition">
-                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">IMSAK</div>
-                    <div id="imsak" class="text-2xl font-extrabold text-brand-navy">--:--</div>
-                    <i class="fa-solid fa-mug-hot text-blue-300 mt-2"></i>
+                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 hover:shadow-md transition hover:-translate-y-1">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-2">IMSAK</div>
+                    <div id="imsak" class="text-3xl font-black text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-mug-hot text-blue-300 mt-3 text-xl"></i>
                 </div>
 
-                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
-                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">SUBUH</div>
-                    <div id="subuh" class="text-2xl font-extrabold text-brand-navy">--:--</div>
-                    <i class="fa-solid fa-cloud-sun text-slate-300 mt-2"></i>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition hover:-translate-y-1">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-2">SUBUH</div>
+                    <div id="subuh" class="text-3xl font-black text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-cloud-sun text-slate-300 mt-3 text-xl"></i>
                 </div>
 
-                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
-                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">DZUHUR</div>
-                    <div id="dzuhur" class="text-2xl font-extrabold text-brand-navy">--:--</div>
-                    <i class="fa-solid fa-sun text-yellow-400 mt-2"></i>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition hover:-translate-y-1">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-2">DZUHUR</div>
+                    <div id="dzuhur" class="text-3xl font-black text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-sun text-yellow-400 mt-3 text-xl"></i>
                 </div>
 
-                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
-                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">ASHAR</div>
-                    <div id="ashar" class="text-2xl font-extrabold text-brand-navy">--:--</div>
-                    <i class="fa-solid fa-sun-plant-wilt text-orange-300 mt-2"></i>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition hover:-translate-y-1">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-2">ASHAR</div>
+                    <div id="ashar" class="text-3xl font-black text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-sun-plant-wilt text-orange-300 mt-3 text-xl"></i>
                 </div>
 
                 <div class="bg-brand-navy p-6 rounded-2xl border border-brand-navy shadow-lg transform scale-105 ring-4 ring-brand-navy/10 relative overflow-hidden">
                     <div class="absolute inset-0 bg-brand-blue opacity-10"></div>
                     <div class="relative z-10">
-                        <div class="text-xs text-brand-sky font-bold tracking-widest mb-1">MAGHRIB</div>
-                        <div id="maghrib" class="text-2xl font-extrabold text-white">--:--</div>
-                        <i class="fa-solid fa-moon text-brand-sky mt-2"></i>
+                        <div class="text-xs text-brand-sky font-bold tracking-widest mb-2">MAGHRIB</div>
+                        <div id="maghrib" class="text-3xl font-black text-white">--:--</div>
+                        <i class="fa-solid fa-moon text-brand-sky mt-3 text-xl"></i>
                     </div>
                 </div>
 
-                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
-                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">ISYA</div>
-                    <div id="isya" class="text-2xl font-extrabold text-brand-navy">--:--</div>
-                    <i class="fa-solid fa-star text-indigo-300 mt-2"></i>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition hover:-translate-y-1">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-2">ISYA</div>
+                    <div id="isya" class="text-3xl font-black text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-star text-indigo-300 mt-3 text-xl"></i>
                 </div>
             </div>
             
-            <div class="mt-8 text-center text-xs text-slate-400">
-                <i class="fa-solid fa-circle-info mr-1"></i> Data bersumber dari Kemenag RI via MyQuran API. Tambahkan waktu ihtiyati ± 2 menit.
+            <div class="mt-10 bg-slate-50 p-4 rounded-xl border border-slate-200 text-center text-xs text-slate-500 leading-relaxed">
+                <i class="fa-solid fa-circle-info mr-1 text-brand-blue"></i> 
+                Waktu sholat dihitung berdasarkan metode <strong>Kemenag RI (Method 20)</strong>. Mohon tambahkan waktu ihtiyati ± 2 menit untuk kehati-hatian.
             </div>
         </div>
     </div>
@@ -74,27 +130,41 @@
 
 <script>
     function loadJadwal() {
-        const id = document.getElementById('kotaSelect').value;
-        const nama = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
+        const city = document.getElementById('kotaSelect').value;
+        const cityName = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
         
+        if(!city) return;
+
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('jadwalResult').classList.add('hidden');
 
-        fetch(`/api/jadwal-sholat/${id}`).then(r=>r.json()).then(d=>{
-            const j = d.data.jadwal;
-            document.getElementById('namaKotaDisplay').innerText = nama + " - " + j.tanggal;
-            
-            // Isi Data
-            document.getElementById('imsak').innerText = j.imsak;
-            document.getElementById('subuh').innerText = j.subuh;
-            document.getElementById('dzuhur').innerText = j.dzuhur;
-            document.getElementById('ashar').innerText = j.ashar;
-            document.getElementById('maghrib').innerText = j.maghrib;
-            document.getElementById('isya').innerText = j.isya;
-            
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('jadwalResult').classList.remove('hidden');
-        });
+        // Menggunakan API Aladhan yang sangat stabil dan lengkap
+        const date = new Date();
+        const url = `https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${city}&country=Indonesia&method=20`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const t = data.data.timings;
+                const d = data.data.date.readable;
+                
+                document.getElementById('namaKotaDisplay').innerText = cityName;
+                document.getElementById('tanggalDisplay').innerText = d;
+                
+                document.getElementById('imsak').innerText = t.Imsak;
+                document.getElementById('subuh').innerText = t.Fajr;
+                document.getElementById('dzuhur').innerText = t.Dhuhr;
+                document.getElementById('ashar').innerText = t.Asr;
+                document.getElementById('maghrib').innerText = t.Maghrib;
+                document.getElementById('isya').innerText = t.Isha;
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('jadwalResult').classList.remove('hidden');
+            })
+            .catch(err => {
+                alert("Gagal mengambil data. Pastikan koneksi internet lancar.");
+                document.getElementById('loading').classList.add('hidden');
+            });
     }
 </script>
 {% endblock %}
