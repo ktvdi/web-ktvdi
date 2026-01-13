@@ -64,7 +64,7 @@ mail = Mail(app)
 
 # --- 3. CONFIG GEMINI AI ---
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash", system_instruction="Anda adalah Asisten KTVDI. Jawab singkat padat seputar TV Digital, STB, dan Antena.")
+model = genai.GenerativeModel("gemini-2.5-flash", system_instruction="Anda adalah Asisten KTVDI. Jawab singkat padat seputar TV Digital.")
 
 # --- HELPER ---
 def hash_password(password):
@@ -84,7 +84,7 @@ def time_since_published(published_time):
 
 @app.route("/")
 def home():
-    # Logika Statistik Manual (Agar Index Modern Anda Jalan)
+    # Logika Statistik Manual
     siaran_data = ref.child('siaran').get() if ref else {}
     stats = {'wilayah': 0, 'mux': 0, 'channel': 0}
     
@@ -107,7 +107,6 @@ def home():
     except:
         breaking_news = ["Selamat Datang di KTVDI", "Pastikan STB Bersertifikat Kominfo"]
 
-    # Kirim variabel 'stats' dan 'breaking_news' ke template
     return render_template('index.html', stats=stats, breaking_news=breaking_news)
 
 @app.route('/', methods=['POST'])
@@ -122,16 +121,16 @@ def chatbot():
 @app.route("/cctv")
 def cctv_page(): return render_template("cctv.html")
 
-# --- FITUR JADWAL SHOLAT ---
+# --- FITUR JADWAL SHOLAT (50 KOTA + IMSAK) ---
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # Data Kota Lengkap (30 Kota + Kab. Pekalongan)
+    # Daftar 50 Kota Lengkap
     daftar_kota = [
+        {"id": "1301", "nama": "DKI Jakarta"},
         {"id": "1107", "nama": "Kab. Pekalongan"},
         {"id": "1108", "nama": "Kota Pekalongan"},
         {"id": "1106", "nama": "Kab. Grobogan (Purwodadi)"},
         {"id": "1133", "nama": "Kota Semarang"},
-        {"id": "1301", "nama": "DKI Jakarta"},
         {"id": "1630", "nama": "Kota Surabaya"},
         {"id": "1219", "nama": "Kota Bandung"},
         {"id": "0224", "nama": "Kota Medan"},
@@ -157,7 +156,26 @@ def jadwal_sholat_page():
         {"id": "1901", "nama": "Kota Kupang"},
         {"id": "1801", "nama": "Kota Mataram"},
         {"id": "0301", "nama": "Kota Padang"},
-        {"id": "1128", "nama": "Kota Tegal"}
+        {"id": "1128", "nama": "Kota Tegal"},
+        {"id": "1202", "nama": "Kab. Bogor (Cibinong)"},
+        {"id": "1271", "nama": "Kota Bogor"},
+        {"id": "1601", "nama": "Kab. Sidoarjo"},
+        {"id": "1209", "nama": "Kab. Cirebon"},
+        {"id": "1274", "nama": "Kota Cirebon"},
+        {"id": "1121", "nama": "Kab. Demak"},
+        {"id": "1122", "nama": "Kab. Semarang (Ungaran)"},
+        {"id": "1110", "nama": "Kab. Batang"},
+        {"id": "1125", "nama": "Kab. Pemalang"},
+        {"id": "3101", "nama": "Kota Ambon"},
+        {"id": "2401", "nama": "Kota Gorontalo"},
+        {"id": "2801", "nama": "Kota Palu"},
+        {"id": "2501", "nama": "Kota Kendari"},
+        {"id": "0501", "nama": "Kota Jambi"},
+        {"id": "0701", "nama": "Kota Bengkulu"},
+        {"id": "0901", "nama": "Kota Pangkal Pinang"},
+        {"id": "1001", "nama": "Kota Tanjung Pinang"},
+        {"id": "1401", "nama": "Kota Serang"},
+        {"id": "2901", "nama": "Kota Mamuju"}
     ]
     return render_template("jadwal-sholat.html", daftar_kota=sorted(daftar_kota, key=lambda x: x['nama']))
 
@@ -178,7 +196,7 @@ def login():
         if u and u.get('password') == pw:
             session['user'], session['nama'] = user, u.get('nama')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Login Gagal")
+        return render_template('login.html', error="Gagal Login")
     return render_template('login.html')
 
 @app.route("/register", methods=["GET", "POST"])
@@ -186,7 +204,7 @@ def register():
     if request.method == "POST":
         u, e, p = request.form.get("username"), request.form.get("email"), request.form.get("password")
         if ref.child(f'users/{u}').get():
-            flash("Username sudah ada", "error"); return render_template("register.html")
+            flash("Username dipakai", "error"); return render_template("register.html")
         otp = str(random.randint(100000, 999999))
         ref.child(f'pending_users/{u}').set({"nama":request.form.get("nama"), "email":e, "password":hash_password(p), "otp":otp})
         try:
@@ -209,7 +227,7 @@ def verify_register():
         flash("OTP Salah", "error")
     return render_template("verify-register.html", username=u)
 
-# --- DASHBOARD & CRUD ---
+# --- DASHBOARD & DATABASE ---
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
