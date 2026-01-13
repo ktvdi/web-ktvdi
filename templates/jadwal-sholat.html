@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jadwal Sholat - KTVDI</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-sholat { transition: transform 0.2s; }
+        .card-sholat:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">KTVDI</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cctv">CCTV</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/jadwal-sholat">Jadwal Sholat</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h2 class="text-center mb-4">Jadwal Sholat Hari Ini</h2>
+        
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-6">
+                <label for="kotaSelect" class="form-label">Pilih Kota:</label>
+                <select id="kotaSelect" class="form-select" onchange="loadJadwal()">
+                    <option value="" selected disabled>-- Pilih Kota --</option>
+                    {% for kota in daftar_kota %}
+                    <option value="{{ kota.id }}">{{ kota.nama }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div id="loading" class="text-center d-none">
+            <div class="spinner-border text-success" role="status"></div>
+            <p>Mengambil data...</p>
+        </div>
+
+        <div id="jadwalResult" class="row justify-content-center d-none">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white text-center">
+                        <h4 id="namaKotaDisplay">Nama Kota</h4>
+                        <small id="tanggalDisplay">Tanggal</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-4 col-md-2 mb-3">
+                                <div class="fw-bold">Subuh</div>
+                                <div id="subuh" class="badge bg-secondary fs-6">--:--</div>
+                            </div>
+                            <div class="col-4 col-md-2 mb-3">
+                                <div class="fw-bold">Dzuhur</div>
+                                <div id="dzuhur" class="badge bg-secondary fs-6">--:--</div>
+                            </div>
+                            <div class="col-4 col-md-2 mb-3">
+                                <div class="fw-bold">Ashar</div>
+                                <div id="ashar" class="badge bg-secondary fs-6">--:--</div>
+                            </div>
+                            <div class="col-4 col-md-2 mb-3">
+                                <div class="fw-bold">Maghrib</div>
+                                <div id="maghrib" class="badge bg-warning text-dark fs-6">--:--</div>
+                            </div>
+                            <div class="col-4 col-md-2 mb-3">
+                                <div class="fw-bold">Isya</div>
+                                <div id="isya" class="badge bg-secondary fs-6">--:--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadJadwal() {
+            const kotaId = document.getElementById('kotaSelect').value;
+            const kotaNama = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
+            
+            if (!kotaId) return;
+
+            document.getElementById('loading').classList.remove('d-none');
+            document.getElementById('jadwalResult').classList.add('d-none');
+
+            fetch(`/api/jadwal-sholat/${kotaId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const jadwal = data.data.jadwal;
+                    
+                    document.getElementById('namaKotaDisplay').innerText = kotaNama;
+                    document.getElementById('tanggalDisplay').innerText = jadwal.tanggal;
+                    
+                    document.getElementById('subuh').innerText = jadwal.subuh;
+                    document.getElementById('dzuhur').innerText = jadwal.dzuhur;
+                    document.getElementById('ashar').innerText = jadwal.ashar;
+                    document.getElementById('maghrib').innerText = jadwal.maghrib;
+                    document.getElementById('isya').innerText = jadwal.isya;
+
+                    document.getElementById('loading').classList.add('d-none');
+                    document.getElementById('jadwalResult').classList.remove('d-none');
+                })
+                .catch(error => {
+                    alert('Gagal mengambil data jadwal sholat.');
+                    document.getElementById('loading').classList.add('d-none');
+                });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
