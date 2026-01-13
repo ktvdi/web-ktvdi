@@ -1,173 +1,210 @@
-{% extends "base.html" %}
-
-{% block title %}Komunitas TV Digital Indonesia{% endblock %}
-
-{% block body_class %}home-page{% endblock %}
+{% extends 'base.html' %}
 
 {% block content %}
-    <section class="hero">
-        <h1 id="headline">Selamat Datang di Website Komunitas TV Digital Indonesia</h1>
-        <p id="paragraph" style="display: none;">
-          KTVDI menjadi wadah diskusi bagi semua pemirsa siaran televisi digital di Indonesia untuk memperluas wawasan terkait segala hal yang berkaitan dengan siaran televisi, khususnya Televisi Digital Terestrial (DTT).
-        </p>
-        <a href="#statistic-tv" id="read-more" style="display:none;">Selengkapnya</a>
-    </section>
-    
-    <div class="statistik" id="statistic-tv" style="display:none;">
-      <h1 class="statistik-title">Siaran Digital dalam Angka</h1>
-
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_wilayah_layanan }}</h2>
-          <p>Wilayah Layanan</p>
+<section class="relative bg-white pt-16 pb-24 overflow-hidden">
+    <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-surface rounded-full blur-3xl opacity-60 -mr-20 -mt-20"></div>
+    <div class="max-w-7xl mx-auto px-4 relative z-10">
+        <div class="flex flex-col lg:flex-row items-center gap-16">
+            <div class="flex-1 text-center lg:text-left">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 text-brand-blue text-xs font-bold rounded-full mb-6 shadow-sm">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    Menyongsong Era Baru Penyiaran
+                </div>
+                <h1 class="text-4xl md:text-6xl font-extrabold text-brand-navy leading-tight mb-6">
+                    Selamat Datang di <br> 
+                    <span class="text-glossy">Komunitas TV Digital Indonesia</span>
+                </h1>
+                <p class="text-slate-500 text-lg mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-justify">
+                    Sudah saatnya kita meninggalkan era analog "semut" dan beralih ke siaran yang jernih, canggih, dan merata. KTVDI hadir bukan sekadar database, tapi gerakan masyarakat untuk memastikan hak informasi publik terpenuhi. Temukan frekuensi MUX di daerahmu dan jadilah bagian dari revolusi digital.
+                </p>
+                <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
+                    <a href="/daftar-siaran" class="px-8 py-4 bg-brand-blue text-white font-bold rounded-xl shadow-xl hover:bg-blue-700 transition flex items-center gap-2 transform hover:-translate-y-1">
+                        <i class="fa-solid fa-tower-broadcast"></i> Cek Sinyal Digital
+                    </a>
+                    {% if not session.get('user') %}
+                    <a href="/register" class="px-8 py-4 bg-white border border-slate-200 text-brand-navy font-bold rounded-xl hover:border-brand-blue hover:text-brand-blue transition flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> Gabung Komunitas
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="flex-1 w-full max-w-md">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center hover:border-brand-blue transition group">
+                        <div class="text-4xl font-extrabold text-brand-navy group-hover:text-brand-blue transition">{{ stats.wilayah }}</div>
+                        <div class="text-xs text-slate-400 font-bold uppercase mt-1">Wilayah Terjangkau</div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center hover:border-brand-blue transition group">
+                        <div class="text-4xl font-extrabold text-brand-navy group-hover:text-brand-blue transition">{{ stats.mux }}</div>
+                        <div class="text-xs text-slate-400 font-bold uppercase mt-1">MUX Beroperasi</div>
+                    </div>
+                    <div class="col-span-2 bg-brand-navy p-8 rounded-2xl shadow-xl text-center text-white relative overflow-hidden group">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-brand-blue rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition"></div>
+                        <div class="relative z-10">
+                            <div class="text-6xl font-extrabold text-brand-sky mb-2 group-hover:scale-110 transition duration-300">{{ stats.channel }}</div>
+                            <div class="text-sm text-slate-300 font-bold uppercase tracking-widest">Total Channel Nasional</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah Wilayah Layanan yang tersedia di seluruh Indonesia berjumlah {{ jumlah_wilayah_layanan }} Wilayah Layanan.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_penyelenggara_mux }}</h2>
-          <p>Layanan MUX</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah Layanan MUX yang beroperasi di seluruh Indonesia berjumlah {{ jumlah_penyelenggara_mux }} layanan MUX.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ jumlah_siaran }}</h2>
-          <p>Siaran TV Digital</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini jumlah siaran TV Digital yang beroperasi di seluruh Indonesia berjumlah {{ jumlah_siaran }} siaran.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
-      <div class="card-statistik">
-        <div class="card-header-statistik">
-          <h2>{{ most_common_siaran_name }}</h2>
-          <p>Siaran TV Digital Terluas</p>
-        </div>
-        <div class="card-body-statistik">
-          <p>Saat ini {{ most_common_siaran_name }} merupakan saluran TV Digital dengan jangkauan terluas di Indonesia, yang tersedia di {{ most_common_siaran_count }} layanan MUX.</p>
-        </div>
-        <div class="card-footer-statistik">
-          <p><i class="fa-solid fa-rotate"></i>last update {{ last_updated_time }}</p>
-        </div>
-      </div>
     </div>
+</section>
 
-    <!-- Tombol Toggle -->
-    <button id="chat-toggle" style="display: none;"><i class="fa-solid fa-comments"></i></button>
+<section class="py-20 bg-brand-surface border-y border-slate-200">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="flex justify-between items-end mb-10">
+            <div>
+                <span class="text-brand-blue font-bold text-sm uppercase tracking-wider">Official Stream</span>
+                <h2 class="text-3xl font-extrabold text-brand-navy mt-2">Nonton TV Digital Online</h2>
+            </div>
+        </div>
 
-    <!-- Chat Popup -->
-    <div class="chatbot" id="chatbot" style="display: none;">
-      <h1>ChatKTVDI</h1>
-      <div class="chat-body" id="chat-body">
-        <!-- Pesan muncul di sini -->
-      </div>
-      <div class="input-area">
-        <textarea id="prompt" placeholder="Tulis pertanyaan..."></textarea>
-        <button class="send-btn" onclick="sendPrompt()"><i class="fa-solid fa-paper-plane"></i></button>
-      </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="tv-grid">
+            </div>
     </div>
+</section>
 
-    <script>
-      // Toggle Chat Widget
-      const toggleBtn = document.getElementById("chat-toggle");
-      const chatbot = document.getElementById("chatbot");
-      const chatBody = document.getElementById("chat-body");
-      const promptInput = document.getElementById("prompt");
+<section class="py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="text-center mb-16">
+            <span class="text-brand-blue font-bold text-sm uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full">Literasi Digital</span>
+            <h2 class="text-3xl font-extrabold text-brand-navy mt-4">Panduan & Solusi Masyarakat</h2>
+            <p class="text-slate-500 max-w-2xl mx-auto mt-2">Pengetahuan dasar yang wajib diketahui setiap pemilik TV di Indonesia.</p>
+        </div>
 
-      toggleBtn.addEventListener("click", () => {
-        chatbot.style.display = chatbot.style.display === "flex" ? "none" : "flex";
-      });
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div class="space-y-4">
+                <h3 class="text-xl font-bold text-brand-navy mb-4 border-b border-slate-100 pb-2">Pertanyaan Umum</h3>
+                
+                <details class="group bg-brand-surface p-5 rounded-2xl border border-slate-200">
+                    <summary class="flex justify-between items-center font-bold text-brand-navy cursor-pointer list-none">
+                        Apa itu MUX (Multiplexing)?
+                        <span class="transition group-open:rotate-180 text-brand-blue"><i class="fa-solid fa-chevron-down"></i></span>
+                    </summary>
+                    <p class="text-slate-600 text-sm mt-4 leading-relaxed text-justify">MUX ibarat "Bus" yang mengangkut banyak penumpang (Channel TV). Satu frekuensi MUX bisa membawa 5-10 channel sekaligus. Jadi jika Anda menangkap sinyal MUX TVRI, otomatis Anda akan mendapatkan TVRI Nasional, TVRI Sport, TVRI World, dan TVRI Daerah sekaligus.</p>
+                </details>
 
-      // Fungsi kirim prompt ke server Flask
-      async function sendPrompt() {
-        const prompt = promptInput.value.trim();
-        if (!prompt) return;
+                <details class="group bg-brand-surface p-5 rounded-2xl border border-slate-200">
+                    <summary class="flex justify-between items-center font-bold text-brand-navy cursor-pointer list-none">
+                        Apa Beda Smart TV dengan Android TV?
+                        <span class="transition group-open:rotate-180 text-brand-blue"><i class="fa-solid fa-chevron-down"></i></span>
+                    </summary>
+                    <p class="text-slate-600 text-sm mt-4 leading-relaxed text-justify">Smart TV biasanya menggunakan sistem operasi bawaan merk (seperti Tizen Samsung atau WebOS LG) dengan aplikasi terbatas. Android TV menggunakan OS Google yang bisa install ribuan aplikasi dari PlayStore. Keduanya **BISA** menangkap siaran digital asalkan speknya **DVB-T2 Ready**.</p>
+                </details>
 
-        // Tampilkan pesan user
-        appendMessage(prompt, "user");
-        promptInput.value = "";
+                <details class="group bg-brand-surface p-5 rounded-2xl border border-slate-200">
+                    <summary class="flex justify-between items-center font-bold text-brand-navy cursor-pointer list-none">
+                        Dimana Nonton Piala Dunia 2026?
+                        <span class="transition group-open:rotate-180 text-brand-blue"><i class="fa-solid fa-chevron-down"></i></span>
+                    </summary>
+                    <p class="text-slate-600 text-sm mt-4 leading-relaxed text-justify">Hak siar <strong>Piala Dunia 2026</strong> untuk jalur terestrial (UHF gratis) dipegang oleh <strong>TVRI</strong>. Pastikan antena Anda mengarah ke pemancar TVRI terdekat untuk mendapatkan kualitas HD tanpa diacak.</p>
+                </details>
 
-        // Tambahkan placeholder sementara
-        const thinkingMsg = appendMessage("⏳ Sedang memproses...", "bot");
+                <details class="group bg-brand-surface p-5 rounded-2xl border border-slate-200">
+                    <summary class="flex justify-between items-center font-bold text-brand-navy cursor-pointer list-none">
+                        Kenapa Sinyal Saya Sering Hilang?
+                        <span class="transition group-open:rotate-180 text-brand-blue"><i class="fa-solid fa-chevron-down"></i></span>
+                    </summary>
+                    <p class="text-slate-600 text-sm mt-4 leading-relaxed text-justify">Penyebab utama: 1. Arah antena salah, 2. Kabel antena tua/rusak, 3. Jack konektor karatan. Solusi: Gunakan antena outdoor, kabel RG6 berkualitas, dan pastikan konektor terpasang kencang. Cek lokasi pemancar di menu Database kami.</p>
+                </details>
+            </div>
 
-        try {
-          const res = await fetch("/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prompt })
-          });
+            <div>
+                <h3 class="text-xl font-bold text-brand-navy mb-4 border-b border-slate-100 pb-2">Panduan Instalasi</h3>
+                <div class="bg-brand-navy text-white p-8 rounded-3xl relative overflow-hidden shadow-2xl">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-brand-blue rounded-full blur-3xl opacity-20 -mr-10 -mt-10"></div>
+                    
+                    <div class="relative z-10 space-y-8">
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-xl shrink-0 border border-white/10">1</div>
+                            <div>
+                                <h4 class="font-bold text-brand-sky">Wajib Antena UHF</h4>
+                                <p class="text-sm text-slate-300 mt-1">TV Digital BUKAN streaming internet dan BUKAN parabola. Wajib pakai antena tulang ikan (UHF) biasa. Outdoor lebih disarankan.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-xl shrink-0 border border-white/10">2</div>
+                            <div>
+                                <h4 class="font-bold text-brand-sky">Perangkat STB</h4>
+                                <p class="text-sm text-slate-300 mt-1">Jika TV masih tabung/LCD lama, pasang Set Top Box (STB) DVB-T2. Colok kabel antena ke STB, lalu STB ke TV (kabel RCA/HDMI).</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-xl shrink-0 border border-white/10">3</div>
+                            <div>
+                                <h4 class="font-bold text-brand-sky">Scan Otomatis</h4>
+                                <p class="text-sm text-slate-300 mt-1">Masuk menu Pencarian di STB, masukkan Kode Pos (untuk fitur bencana EWS), lalu pilih "Pencarian Otomatis".</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-white/10 text-center">
+                        <p class="text-xs text-slate-400 mb-3">Masih bingung caranya?</p>
+                        <a href="https://www.instagram.com/direct/t/ktvdi.id" target="_blank" class="inline-block w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                            <i class="fa-brands fa-instagram text-xl"></i> DM Komunitas di Instagram
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
-          const data = await res.json();
-          chatBody.removeChild(thinkingMsg);
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // DATA CHANNEL LENGKAP
+        const channels = [
+            {name: "TVRI Nasional", url: "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8", cat: "Publik"},
+            {name: "TVRI Sport", url: "https://ott-balancer.tvri.go.id/live/eds/Sport/hls/Sport.m3u8", cat: "Olahraga"},
+            {name: "Nusantara TV", url: "https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8", cat: "Berita"},
+            {name: "RTV HD", url: "https://rtvstream.rtv.co.id:4555/hls/rtv.m3u8", cat: "Anak"},
+            {name: "Kompas TV", url: "http://103.46.11.106:9981/stream/channelid/1691704072?ticket=933C4850FCC4D9EE7E8D7D37D095694F55914124&profile=pass", cat: "Berita"},
+            {name: "Berita Satu", url: "https://beritasatu.secureswiftcontent.com/han/beritasatu/bsatu10008/srtoutput/manifest.m3u8", cat: "Bisnis"},
+            {name: "Garuda TV", url: "https://hgmtv.com:19360/garudatvlivestreaming/garudatvlivestreaming.m3u8", cat: "Umum"},
+            {name: "Matrix TV", url: "https://stream.matrixtv.id/hls/stream.m3u8", cat: "Hiburan"},
+            {name: "JTV Surabaya", url: "https://cctv.jtv.co.id/hls/test.m3u8", cat: "Lokal"},
+            {name: "MQTV Bandung", url: "https://live.mqtv.co.id/hls/mqtv.m3u8", cat: "Religi"},
+            {name: "Bali TV", url: "https://live.balitv.tv/hls/balitv.m3u8", cat: "Budaya"},
+            {name: "DAAI TV", url: "https://stream.daaitv.co.id/live/DAAI-TV/index.m3u8", cat: "Inspirasi"}
+        ];
 
-          if (data.response) {
-            appendMessage(data.response, "bot");
-          } else {
-            appendMessage("❌ Terjadi kesalahan: " + data.error, "bot");
-          }
-        } catch (err) {
-          chatBody.removeChild(thinkingMsg);
-          appendMessage("⚠️ Gagal terhubung ke server.", "bot");
-        }
-      }
+        const grid = document.getElementById('tv-grid');
+        
+        channels.forEach((ch, idx) => {
+            const div = document.createElement('div');
+            div.className = "bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 hover:shadow-xl transition group relative";
+            div.innerHTML = `
+                <div class="relative aspect-video bg-black group-hover:scale-[1.02] transition duration-500">
+                    <video id="vid-${idx}" class="w-full h-full object-cover" controls playsinline muted></video>
+                    <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow animate-pulse z-10">LIVE</span>
+                    <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition z-10 flex gap-2">
+                        <span class="bg-black/60 backdrop-blur text-white text-[9px] border border-white/20 rounded px-2 py-1">HD</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-brand-navy text-sm truncate pr-2">${ch.name}</h3>
+                        <span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shrink-0">
+                            <i class="fa-solid fa-signal"></i> On Air
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500">${ch.cat}</p>
+                </div>
+            `;
+            grid.appendChild(div);
 
-      // Fungsi untuk mengupdate pesan bot secara animasi
-      function appendMessage(text, sender) {
-        const msg = document.createElement("div");
-        msg.classList.add("message", sender);
-        chatBody.appendChild(msg);
-        chatBody.scrollTop = chatBody.scrollHeight;
-
-        // Replace newlines with <br> tags
-        const formattedText = text.replace(/\n/g, '<br>');
-
-        let i = 0;
-        msg.innerText = ""; // Mulai dengan teks kosong
-
-        // Fungsi untuk menambahkan karakter satu per satu
-        function typeWriter() {
-          if (i < text.length) {
-            msg.textContent += text.charAt(i);
-            i++;
-            chatBody.scrollTop = chatBody.scrollHeight;
-            setTimeout(typeWriter, 20); // Adjust kecepatan pengetikan di sini (50ms)
-          } else {
-            requestAnimationFrame(() => {
-              chatBody.scrollTop = chatBody.scrollHeight;
-            });
-          }  
-        }
-
-        // Mulai efek pengetikan
-        typeWriter();
-
-        requestAnimationFrame(() => {
-          chatBody.scrollTop = chatBody.scrollHeight;
+            const video = document.getElementById(`vid-${idx}`);
+            // Inisialisasi HLS (Library sudah ada di base.html)
+            if(Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(ch.url);
+                hls.attachMedia(video);
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = ch.url;
+            }
         });
-
-        return msg;
-      }
-      
-      // Enter = kirim pesan
-      promptInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendPrompt();
-        }
-      });
-    </script>
+    });
+</script>
 {% endblock %}
