@@ -3,6 +3,12 @@
 {% block content %}
 
 <style>
+    /* Font mirip YouTube (Roboto) */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    
+    .font-youtube { font-family: 'Roboto', sans-serif; }
+
+    /* Animasi Glossy Teks */
     @keyframes textShine {
         0% { background-position: 0% 50%; }
         100% { background-position: 200% 50%; }
@@ -18,13 +24,15 @@
         font-weight: 800;
         display: inline-block;
     }
+    
+    /* Animasi Wave Audio */
     @keyframes wave {
         0%, 100% { height: 4px; }
-        50% { height: 16px; }
+        50% { height: 12px; }
     }
 </style>
 
-<section class="relative bg-white pt-20 pb-28 overflow-hidden">
+<section class="relative bg-white pt-20 pb-28 overflow-hidden font-['Plus_Jakarta_Sans']">
     <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-brand-surface rounded-full blur-3xl opacity-60 -mr-20 -mt-20 z-0"></div>
     <div class="max-w-7xl mx-auto px-4 relative z-10">
         <div class="flex flex-col lg:flex-row items-center gap-16">
@@ -75,17 +83,15 @@
     </div>
 </section>
 
-<section class="py-24 bg-slate-900 border-y border-slate-800 relative overflow-hidden">
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-brand-blue/5 blur-[100px] rounded-full"></div>
-
-    <div class="max-w-7xl mx-auto px-4 relative z-10">
-        <div class="text-center mb-16">
-            <span class="text-brand-sky font-bold text-xs uppercase tracking-[0.2em] bg-slate-800/50 px-4 py-2 rounded-full border border-slate-700/50 backdrop-blur-sm">Official Stream</span>
-            <h2 class="text-3xl md:text-4xl font-extrabold text-white mt-6 tracking-tight">Nonton Siaran TV FTA Indonesia</h2>
-            <p class="text-slate-400 mt-3 max-w-2xl mx-auto">Anda bisa menyaksikan Saluran pilihan TV FTA di Indonesia, kapan saja dimana saja dalam genggaman.</p>
+<section class="py-20 bg-[#0f0f0f] border-y border-slate-800 relative overflow-hidden">
+    <div class="max-w-6xl mx-auto px-4 relative z-10">
+        <div class="text-center mb-12">
+            <span class="text-brand-sky font-bold text-[10px] uppercase tracking-[0.2em] bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 backdrop-blur-sm">Official Stream</span>
+            <h2 class="text-2xl md:text-3xl font-bold text-white mt-4 font-youtube tracking-tight">Nonton Siaran TV FTA Indonesia</h2>
+            <p class="text-gray-400 text-sm mt-2 max-w-2xl mx-auto font-youtube">Anda bisa menyaksikan Saluran pilihan TV FTA di Indonesia, kapan saja dimana saja dalam genggaman.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8" id="tv-grid"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10" id="tv-grid"></div>
     </div>
 </section>
 
@@ -172,60 +178,58 @@
         
         channels.forEach((ch, idx) => {
             const div = document.createElement('div');
-            // MODERN CARD
-            div.className = "bg-slate-800 rounded-3xl overflow-hidden border border-slate-700/50 hover:border-brand-blue/50 transition-all duration-500 group relative shadow-2xl hover:shadow-brand-blue/10 hover:-translate-y-1";
+            // Youtube Style Card (No Border, Dark BG)
+            div.className = "bg-transparent group";
             
             let playerContent = '';
             
             if (ch.type === "youtube") {
-                playerContent = `<iframe src="https://www.youtube.com/embed/DOOrIxw5xOw?autoplay=0&mute=1" class="w-full h-full absolute inset-0 rounded-t-3xl" frameborder="0" allowfullscreen></iframe>`;
+                playerContent = `<iframe src="https://www.youtube.com/embed/DOOrIxw5xOw?autoplay=0&mute=1" class="w-full h-full absolute inset-0 rounded-xl" frameborder="0" allowfullscreen></iframe>`;
             } else {
                 playerContent = `
-                    <div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-20 loading-spinner transition-opacity duration-500">
-                        <div class="relative">
-                            <div class="absolute inset-0 bg-brand-blue blur-xl opacity-20 rounded-full animate-pulse"></div>
-                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="w-14 h-auto relative z-10 animate-bounce mb-4 brightness-150 drop-shadow-lg">
-                        </div>
-                        <span class="text-xs text-brand-sky font-bold tracking-widest uppercase animate-pulse">Memuat Siaran...</span>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center bg-[#0f0f0f] z-20 loading-spinner transition-opacity duration-500 rounded-xl">
+                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="w-10 h-auto animate-bounce mb-2 brightness-150">
+                        <span class="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Memuat...</span>
                     </div>
-                    
-                    <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/60 unmute-overlay opacity-0 hover:opacity-100 transition-opacity cursor-pointer group-video" onclick="unmuteVideo('vid-${idx}', this)">
-                        <div class="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-full flex items-center gap-3 transform group-hover:scale-110 transition-transform">
-                            <i class="fa-solid fa-volume-high text-white text-xl"></i>
-                            <span class="text-white font-bold text-sm tracking-wide">BUNYIKAN SUARA</span>
-                        </div>
-                    </div>
-
-                    <video id="vid-${idx}" class="w-full h-full object-cover rounded-t-3xl" controls playsinline muted></video>
+                    <video id="vid-${idx}" class="w-full h-full object-cover rounded-xl" controls playsinline muted></video>
                 `;
             }
 
             div.innerHTML = `
-                <div class="relative aspect-video bg-black/50">
+                <div class="relative aspect-video bg-[#202020] rounded-xl overflow-hidden shadow-lg group-hover:shadow-brand-blue/10 transition-all duration-300">
                     ${playerContent}
                 </div>
                 
-                <div class="p-5 bg-gradient-to-b from-slate-800 to-slate-900 border-t border-white/5">
-                    <div class="flex items-center justify-between mb-2">
-                        ${ch.type !== 'youtube' ? `
-                        <div class="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-full text-[10px] font-bold text-red-400 tracking-wider">
-                            <span class="relative flex h-1.5 w-1.5">
-                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                              <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
-                            </span>
-                            LIVE
-                        </div>` : ''}
-                        
-                        ${ch.type !== 'youtube' ? `
-                        <div class="flex items-center gap-1" title="Sedang Memutar">
-                            <div class="w-1 bg-brand-blue rounded-full animate-[wave_1s_ease-in-out_infinite]"></div>
-                            <div class="w-1 bg-brand-blue rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></div>
-                            <div class="w-1 bg-brand-blue rounded-full animate-[wave_0.8s_ease-in-out_infinite]"></div>
-                        </div>` 
-                        : '<i class="fa-brands fa-youtube text-red-500 text-xl"></i>'}
+                <div class="pt-3 flex gap-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-gray-400 border border-slate-700">
+                            <i class="fa-solid fa-tv text-xs"></i>
+                        </div>
                     </div>
 
-                    <h3 class="font-bold text-white text-base tracking-wide group-hover:text-brand-sky transition-colors truncate">${ch.name}</h3>
+                    <div class="flex-1">
+                        <h3 class="text-white text-[15px] font-bold font-youtube leading-tight mb-1 group-hover:text-brand-blue transition-colors line-clamp-2">${ch.name}</h3>
+                        
+                        <div class="flex items-center gap-2 text-[12px] text-gray-400 font-youtube">
+                            ${ch.type !== 'youtube' ? `
+                            <span class="text-red-500 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 rounded">
+                                <span class="relative flex h-1.5 w-1.5">
+                                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
+                                </span>
+                                LIVE
+                            </span>` : '<span class="bg-red-600 text-white px-1 rounded text-[10px] font-bold">YouTube</span>'}
+                            
+                            <span>• Indonesia</span>
+                        </div>
+
+                        ${ch.type !== 'youtube' ? `
+                        <div class="mt-2 hidden group-video-unmute cursor-pointer" onclick="unmuteVideo('vid-${idx}', this)">
+                            <div class="inline-flex items-center gap-1.5 bg-brand-blue/10 hover:bg-brand-blue/20 text-brand-blue border border-brand-blue/30 px-2 py-1 rounded text-[10px] font-bold transition-all">
+                                <i class="fa-solid fa-volume-high"></i> Bunyikan Suara
+                            </div>
+                        </div>` : ''}
+                    </div>
                 </div>
             `;
             
@@ -234,16 +238,24 @@
             if (ch.type !== "youtube") {
                 const video = document.getElementById(`vid-${idx}`);
                 const spinner = div.querySelector('.loading-spinner');
+                const unmuteBtn = div.querySelector('.group-video-unmute');
                 
                 video.addEventListener('canplay', () => { 
                     spinner.style.opacity = '0'; 
                     setTimeout(() => spinner.remove(), 500); 
-                    // Show unmute button hint
-                    div.querySelector('.unmute-overlay').style.opacity = '1';
-                    setTimeout(() => { div.querySelector('.unmute-overlay').classList.remove('opacity-0'); }, 2000); 
+                    
+                    // Show unmute button if video is muted (autoplay policy)
+                    if(video.muted) {
+                        unmuteBtn.classList.remove('hidden');
+                    }
                 });
                 
                 video.addEventListener('waiting', () => { if(spinner) spinner.style.opacity = '1'; });
+                
+                // Hide button if unmuted manually
+                video.addEventListener('volumechange', () => {
+                    if(!video.muted) unmuteBtn.classList.add('hidden');
+                });
 
                 if(Hls.isSupported()) {
                     const hls = new Hls();
@@ -262,7 +274,7 @@
         if(v) {
             v.muted = false;
             v.volume = 1.0;
-            btn.style.display = 'none'; // Sembunyikan tombol
+            // Button will be hidden by 'volumechange' event listener
         }
     }
 </script>
