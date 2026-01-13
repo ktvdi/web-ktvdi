@@ -1,19 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}Jadwal Sholat - KTVDI{% endblock %}
+{% block title %}Jadwal Sholat Kemenag RI - KTVDI{% endblock %}
 {% block content %}
 
 <style>
-    /* Pola Geometris Islami Halus */
     .bg-islamic-pattern {
         background-color: #f8fafc;
         background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23059669' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     }
-    
-    /* Font Elegan untuk Judul */
     @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-    
     .font-amiri { font-family: 'Amiri', serif; }
-    .font-sans { font-family: 'Plus Jakarta Sans', sans-serif; }
 </style>
 
 <div class="min-h-screen bg-islamic-pattern py-12 px-4 font-sans">
@@ -21,9 +16,11 @@
         
         <div class="text-center mb-10">
             <h1 class="text-4xl md:text-5xl font-bold text-emerald-900 font-amiri mb-2">Jadwal Sholat & Imsakiyah</h1>
-            <p class="text-emerald-600/80 mb-8">Mari jaga sholat tepat pada waktunya.</p>
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-check-circle"></i> Sumber: Kemenag RI (Bimas Islam)
+            </div>
 
-            <div class="bg-white border-y-4 border-emerald-500 rounded-lg shadow-lg p-6 max-w-3xl mx-auto relative overflow-hidden">
+            <div class="bg-white border-y-4 border-emerald-500 rounded-lg shadow-lg p-6 max-w-3xl mx-auto mt-8 relative overflow-hidden">
                 <div class="absolute top-2 left-4 text-6xl text-emerald-100 font-serif">“</div>
                 <p id="quranQuote" class="text-lg text-slate-700 font-medium italic relative z-10 font-amiri leading-relaxed">
                     Memuat kutipan...
@@ -37,10 +34,10 @@
             <div class="bg-emerald-900 p-6 md:p-8 text-white">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
-                        <label for="kotaSelect" class="block text-sm font-bold text-emerald-200 mb-2 uppercase tracking-wider">Lokasi Anda</label>
+                        <label for="kotaSelect" class="block text-sm font-bold text-emerald-200 mb-2 uppercase tracking-wider">Pilih Kota / Kabupaten</label>
                         <div class="relative">
                             <select id="kotaSelect" onchange="loadJadwal()" class="block w-full p-4 pl-12 bg-emerald-800 border border-emerald-700 rounded-xl text-white font-bold focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 cursor-pointer appearance-none transition-all">
-                                <option value="" selected disabled>-- Pilih Kota --</option>
+                                <option value="" selected disabled>-- Cari Kota Anda (50 Kota) --</option>
                                 {% for kota in daftar_kota %}
                                 <option value="{{ kota.id }}">{{ kota.nama }}</option>
                                 {% endfor %}
@@ -63,7 +60,7 @@
 
             <div id="loading" class="hidden text-center py-12">
                 <i class="fa-solid fa-mosque fa-bounce text-4xl text-emerald-600"></i>
-                <p class="text-slate-500 mt-4 font-medium">Sedang mengambil data jadwal...</p>
+                <p class="text-slate-500 mt-4 font-medium">Mengambil data Kemenag RI...</p>
             </div>
 
             <div id="jadwalResult" class="hidden p-6 md:p-8">
@@ -76,40 +73,30 @@
                 </div>
                 
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <div id="card-Imsak" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center transition-all duration-300">
+                    <div id="card-Imsak" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
                         <div class="text-xs text-slate-500 font-bold uppercase mb-1">IMSAK</div>
                         <div id="time-Imsak" class="text-xl font-bold text-slate-800">--:--</div>
                     </div>
-
-                    <div id="card-Fajr" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center transition-all duration-300">
+                    <div id="card-Subuh" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
                         <div class="text-xs text-slate-500 font-bold uppercase mb-1">SUBUH</div>
-                        <div id="time-Fajr" class="text-xl font-bold text-slate-800">--:--</div>
+                        <div id="time-Subuh" class="text-xl font-bold text-slate-800">--:--</div>
                     </div>
-
-                    <div id="card-Dhuhr" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center transition-all duration-300">
+                    <div id="card-Dzuhur" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
                         <div class="text-xs text-slate-500 font-bold uppercase mb-1">DZUHUR</div>
-                        <div id="time-Dhuhr" class="text-xl font-bold text-slate-800">--:--</div>
+                        <div id="time-Dzuhur" class="text-xl font-bold text-slate-800">--:--</div>
                     </div>
-
-                    <div id="card-Asr" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center transition-all duration-300">
+                    <div id="card-Ashar" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
                         <div class="text-xs text-slate-500 font-bold uppercase mb-1">ASHAR</div>
-                        <div id="time-Asr" class="text-xl font-bold text-slate-800">--:--</div>
+                        <div id="time-Ashar" class="text-xl font-bold text-slate-800">--:--</div>
                     </div>
-
-                    <div id="card-Maghrib" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center transition-all duration-300">
+                    <div id="card-Maghrib" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
                         <div class="text-xs text-slate-500 font-bold uppercase mb-1">MAGHRIB</div>
                         <div id="time-Maghrib" class="text-xl font-bold text-slate-800">--:--</div>
                     </div>
-
-                    <div id="card-Isha" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center transition-all duration-300">
+                    <div id="card-Isya" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
                         <div class="text-xs text-slate-500 font-bold uppercase mb-1">ISYA</div>
-                        <div id="time-Isha" class="text-xl font-bold text-slate-800">--:--</div>
+                        <div id="time-Isya" class="text-xl font-bold text-slate-800">--:--</div>
                     </div>
-                </div>
-                
-                <div class="mt-8 text-center text-xs text-slate-400 border-t border-slate-100 pt-4">
-                    <p>Metode Perhitungan: Kemenag RI (Method 20). Waktu yang ditampilkan adalah WIB/WITA/WIT sesuai lokasi.</p>
-                    <p class="mt-1">Disarankan menambahkan waktu ihtiyati ± 2 menit.</p>
                 </div>
             </div>
         </div>
@@ -117,75 +104,80 @@
 </div>
 
 <script>
-    // 1. DATA KUTIPAN ISLAMI
+    // Quotes Islami
     const quotes = [
         { text: "Sesungguhnya sholat itu adalah fardhu yang ditentukan waktunya atas orang-orang yang beriman.", source: "QS. An-Nisa: 103" },
-        { text: "Bacalah apa yang telah diwahyukan kepadamu, yaitu Al Kitab (Al Quran) dan dirikanlah shalat. Sesungguhnya shalat itu mencegah dari (perbuatan-perbuatan) keji dan mungkar.", source: "QS. Al-Ankabut: 45" },
-        { text: "Amalan yang paling dicintai oleh Allah adalah sholat pada waktunya.", source: "HR. Bukhari & Muslim" },
-        { text: "Jadikanlah sabar dan shalat sebagai penolongmu. Dan sesungguhnya yang demikian itu sungguh berat, kecuali bagi orang-orang yang khusyu'.", source: "QS. Al-Baqarah: 45" },
-        { text: "Maka dirikanlah shalat, sesungguhnya shalat itu adalah kewajiban yang ditentukan waktunya atas orang-orang yang beriman.", source: "QS. An-Nisa: 103" }
+        { text: "Bacalah apa yang telah diwahyukan kepadamu, yaitu Al Kitab (Al Quran) dan dirikanlah shalat.", source: "QS. Al-Ankabut: 45" },
+        { text: "Amalan yang paling dicintai oleh Allah adalah sholat pada waktunya.", source: "HR. Bukhari & Muslim" }
     ];
-
-    // Tampilkan kutipan acak saat load
-    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-    document.getElementById('quranQuote').innerText = `"${randomQuote.text}"`;
-    document.getElementById('quranSource').innerText = randomQuote.source;
+    const rQ = quotes[Math.floor(Math.random() * quotes.length)];
+    document.getElementById('quranQuote').innerText = `"${rQ.text}"`;
+    document.getElementById('quranSource').innerText = rQ.source;
 
     let countdownInterval;
 
     function loadJadwal() {
-        const city = document.getElementById('kotaSelect').value;
-        const cityName = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
+        const idKota = document.getElementById('kotaSelect').value;
+        const namaKota = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
         
-        if(!city) return;
+        if(!idKota) return;
 
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('jadwalResult').classList.add('hidden');
         document.getElementById('countdownBox').classList.add('hidden');
 
-        const date = new Date();
-        const url = `https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${city}&country=Indonesia&method=20`;
+        // Menggunakan Tanggal Hari Ini
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+
+        // URL API MyQuran (Proxy Kemenag)
+        const url = `https://api.myquran.com/v2/sholat/jadwal/${idKota}/${year}/${month}/${day}`;
 
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                const t = data.data.timings;
-                const d = data.data.date.readable;
-                
-                document.getElementById('namaKotaDisplay').innerText = cityName;
-                document.getElementById('tanggalDisplay').innerText = d;
-                
-                // Update UI Teks
-                document.getElementById('time-Imsak').innerText = t.Imsak;
-                document.getElementById('time-Fajr').innerText = t.Fajr;
-                document.getElementById('time-Dhuhr').innerText = t.Dhuhr;
-                document.getElementById('time-Asr').innerText = t.Asr;
-                document.getElementById('time-Maghrib').innerText = t.Maghrib;
-                document.getElementById('time-Isha').innerText = t.Isha;
-                
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('jadwalResult').classList.remove('hidden');
-                document.getElementById('countdownBox').classList.remove('hidden');
+                if(data.status && data.data && data.data.jadwal) {
+                    const j = data.data.jadwal;
+                    
+                    document.getElementById('namaKotaDisplay').innerText = namaKota;
+                    document.getElementById('tanggalDisplay').innerText = j.tanggal;
+                    
+                    // Update UI Teks
+                    document.getElementById('time-Imsak').innerText = j.imsak;
+                    document.getElementById('time-Subuh').innerText = j.subuh;
+                    document.getElementById('time-Dzuhur').innerText = j.dzuhur;
+                    document.getElementById('time-Ashar').innerText = j.ashar;
+                    document.getElementById('time-Maghrib').innerText = j.maghrib;
+                    document.getElementById('time-Isya').innerText = j.isya;
+                    
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('jadwalResult').classList.remove('hidden');
+                    document.getElementById('countdownBox').classList.remove('hidden');
 
-                // Mulai Hitung Mundur
-                startCountdown(t);
+                    startCountdown(j);
+                } else {
+                    alert("Data jadwal tidak ditemukan.");
+                    document.getElementById('loading').classList.add('hidden');
+                }
             })
             .catch(err => {
-                alert("Gagal mengambil data. Pastikan internet lancar.");
+                alert("Gagal koneksi ke server Kemenag.");
                 document.getElementById('loading').classList.add('hidden');
             });
     }
 
-    function startCountdown(timings) {
+    function startCountdown(jadwal) {
         if (countdownInterval) clearInterval(countdownInterval);
 
         const prayers = [
-            { name: "IMSAK", time: timings.Imsak, id: 'card-Imsak' },
-            { name: "SUBUH", time: timings.Fajr, id: 'card-Fajr' },
-            { name: "DZUHUR", time: timings.Dhuhr, id: 'card-Dhuhr' },
-            { name: "ASHAR", time: timings.Asr, id: 'card-Asr' },
-            { name: "MAGHRIB", time: timings.Maghrib, id: 'card-Maghrib' },
-            { name: "ISYA", time: timings.Isha, id: 'card-Isha' }
+            { name: "IMSAK", time: jadwal.imsak, id: 'card-Imsak' },
+            { name: "SUBUH", time: jadwal.subuh, id: 'card-Subuh' },
+            { name: "DZUHUR", time: jadwal.dzuhur, id: 'card-Dzuhur' },
+            { name: "ASHAR", time: jadwal.ashar, id: 'card-Ashar' },
+            { name: "MAGHRIB", time: jadwal.maghrib, id: 'card-Maghrib' },
+            { name: "ISYA", time: jadwal.isya, id: 'card-Isya' }
         ];
 
         // Reset Styles
@@ -199,18 +191,13 @@
             let nextPrayer = null;
             let minDiff = Infinity;
 
-            // Cari sholat berikutnya
             for (let p of prayers) {
                 const [h, m] = p.time.split(':');
                 const pTime = new Date();
                 pTime.setHours(h, m, 0);
 
                 let diff = pTime - now;
-                
-                // Jika waktu sudah lewat hari ini, anggap besok (untuk Isya -> Subuh)
-                if (diff < 0) {
-                    continue; 
-                }
+                if (diff < 0) continue; // Waktu sudah lewat
 
                 if (diff < minDiff) {
                     minDiff = diff;
@@ -218,26 +205,25 @@
                 }
             }
 
-            // Jika tidak ada sholat tersisa hari ini, berarti targetnya Imsak besok
+            // Jika semua lewat, target Imsak besok
             if (!nextPrayer) {
-                nextPrayer = prayers[0]; // Imsak
+                nextPrayer = prayers[0];
                 const [h, m] = nextPrayer.time.split(':');
                 const pTime = new Date();
-                pTime.setDate(pTime.getDate() + 1); // Besok
+                pTime.setDate(pTime.getDate() + 1);
                 pTime.setHours(h, m, 0);
                 minDiff = pTime - now;
             }
 
-            // Update UI Hitung Mundur
-            const hours = Math.floor((minDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((minDiff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((minDiff % (1000 * 60)) / 1000);
+            const h = Math.floor((minDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((minDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((minDiff % (1000 * 60)) / 1000);
 
             document.getElementById('nextPrayerName').innerText = nextPrayer.name;
             document.getElementById('countdownTimer').innerText = 
-                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-            // Highlight Kartu Sholat Berikutnya
+            // Highlight Active
             const activeCard = document.getElementById(nextPrayer.id);
             if (activeCard) {
                 activeCard.className = "time-card bg-emerald-600 p-4 rounded-xl border border-emerald-500 text-center shadow-lg transform scale-105 transition-all duration-300";
