@@ -17,7 +17,10 @@
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 'marquee': 'marquee 180s linear infinite', 'shine': 'shine 3s linear infinite' },
+                    animation: { 
+                        'marquee': 'marquee 45s linear infinite', /* DIPERCEPAT */
+                        'shine': 'shine 3s linear infinite'
+                    },
                     keyframes: { 
                         marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-100%)' } },
                         shine: { '0%': { backgroundPosition: '200% center' }, '100%': { backgroundPosition: '-200% center' } }
@@ -31,6 +34,7 @@
         .text-glossy {
             background: linear-gradient(to right, #2563eb 20%, #38bdf8 40%, #ffffff 50%, #38bdf8 60%, #2563eb 80%);
             background-size: 200% auto;
+            color: #000;
             background-clip: text; -webkit-background-clip: text;
             text-fill-color: transparent; -webkit-text-fill-color: transparent;
             animation: shine 4s linear infinite; font-weight: 800;
@@ -45,7 +49,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <a href="/" class="flex items-center gap-3 group">
-                    <img src="{{ url_for('static', filename='images/ktvdi.png') }}" alt="KTVDI" class="h-10 w-auto filter drop-shadow-md brightness-200 group-hover:scale-105 transition">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-10 w-auto filter drop-shadow-md brightness-200 group-hover:scale-105 transition">
                 </a>
                 
                 <div class="hidden lg:flex items-center space-x-6">
@@ -66,7 +70,6 @@
                         <a href="/register" class="px-5 py-2 bg-white text-brand-navy text-sm font-bold rounded-full hover:bg-brand-sky hover:text-white transition shadow-lg">Daftar</a>
                     {% endif %}
                 </div>
-
                 <button onclick="toggleMenu()" class="lg:hidden text-white text-2xl focus:outline-none"><i class="fa-solid fa-bars"></i></button>
             </div>
         </div>
@@ -91,15 +94,13 @@
         </div>
     </nav>
 
-    <main class="flex-grow pt-20 pb-20">
-        {% block content %}{% endblock %}
-    </main>
+    <main class="flex-grow pt-20 pb-20">{% block content %}{% endblock %}</main>
 
     <footer class="bg-brand-navy text-white pt-16 pb-28 border-t border-slate-800">
         <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div class="col-span-1 md:col-span-2">
                 <div class="flex items-center gap-3 mb-6">
-                    <img src="{{ url_for('static', filename='images/ktvdi.png') }}" alt="KTVDI" class="h-12 w-auto brightness-200">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-12 w-auto brightness-200">
                     <span class="text-xl font-extrabold tracking-tight">KTVDI</span>
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed max-w-md">
@@ -110,7 +111,6 @@
                     <span>kom.tvdigitalid@gmail.com</span>
                 </div>
             </div>
-            
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Navigasi</h4>
                 <ul class="space-y-3 text-sm text-slate-400">
@@ -119,7 +119,6 @@
                     <li><a href="/jadwal-sholat" class="hover:text-brand-sky transition">Jadwal Sholat</a></li>
                 </ul>
             </div>
-            
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Media Sosial</h4>
                 <div class="flex gap-3">
@@ -143,7 +142,7 @@
         </div>
         <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50">
             <div class="animate-marquee whitespace-nowrap text-xs font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">
-                <span class="ml-4">Memuat data terkini...</span>
+                <span class="ml-4 flex items-center gap-2"><i class="fa-solid fa-spinner fa-spin text-brand-blue"></i> Memuat Berita...</span>
             </div>
         </div>
         <div class="bg-white h-full flex items-center px-4 border-l border-slate-200 z-20 gap-3">
@@ -167,7 +166,7 @@
             <div id="chat-messages" class="h-72 bg-slate-50 p-4 overflow-y-auto space-y-3 flex flex-col chat-scroll">
                 <div class="flex gap-2">
                     <div class="bg-white p-3 rounded-lg rounded-tl-none text-xs shadow-sm border border-slate-200 text-slate-600">
-                        Halo! 👋 Saya Modi. Tanyakan saya tentang:<br>• "Cara pasang STB"<br>• "Arah antena"<br>• "Kenapa sinyal hilang"
+                        Halo! 👋 Saya Modi. Ada yang bisa dibantu?
                     </div>
                 </div>
             </div>
@@ -186,39 +185,34 @@
     <script>
         function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}); }, 1000);
         
-        // JAM GLOBAL
-        setInterval(() => { 
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}); 
-        }, 1000);
-
-        // TICKER GLOBAL (JS FETCH AGAR JALAN DI SEMUA HALAMAN)
-        async function fetchTicker() {
-            // Data statis untuk kecepatan + Fetch API jika perlu
-            const infos = [
-                "Gunakan STB Bersertifikat Kominfo",
-                "Arahkan Antena ke Pemancar Terdekat",
-                "Siaran TV Digital Gratis Selamanya",
-                "KTVDI: Menghubungkan Nusantara"
-            ];
-            
-            let html = "";
-            infos.forEach(i => {
-                html += `<span class="mx-4 text-brand-blue font-bold">INFO:</span> <span class="uppercase text-slate-800 font-semibold">${i}</span> <span class="mx-4 text-slate-300">|</span>`;
-            });
-            document.getElementById('unified-ticker').innerHTML = html;
+        // FETCH NEWS TICKER (REALTIME)
+        async function updateTicker() {
+            try {
+                const res = await fetch('/api/news-ticker');
+                const news = await res.json();
+                let html = "";
+                if(news.length > 0) {
+                    news.forEach(n => {
+                        html += `<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span> <span class="mx-4 text-slate-300">|</span>`;
+                    });
+                } else {
+                    html = '<span class="ml-4">Selamat Datang di KTVDI...</span>';
+                }
+                document.getElementById('unified-ticker').innerHTML = html;
+            } catch {
+                document.getElementById('unified-ticker').innerHTML = '<span class="ml-4">Gagal memuat berita...</span>';
+            }
         }
-        fetchTicker();
+        updateTicker();
 
-        // CHATBOT JS
         async function handleChat(e) {
             e.preventDefault();
             const inp = document.getElementById('chat-input');
             const txt = inp.value.trim();
             if(!txt) return;
-            
-            addMsg(txt, 'user'); 
-            inp.value = '';
+            addMsg(txt, 'user'); inp.value = '';
             
             const loadDiv = document.createElement('div');
             loadDiv.className = "flex gap-2 bot-loading";
