@@ -21,12 +21,12 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-ktvdi")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 # --- Inisialisasi Firebase ---
 try:
-    # Cek apakah menggunakan Env Var (Vercel) atau File json (Local)
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
+        # Produksi (Vercel)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -41,21 +41,19 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        # Fallback untuk local dev jika ada file credential
+        # Lokal (jika ada file json)
         cred = credentials.Certificate("credentials.json")
 
     firebase_admin.initialize_app(cred, {
         'databaseURL': os.environ.get('DATABASE_URL')
     })
-
     ref = db.reference('/')
     print("✅ Firebase berhasil terhubung!")
-
 except Exception as e:
     print("❌ Error initializing Firebase:", str(e))
     ref = None
 
-# --- Inisialisasi Email ---
+# --- Konfigurasi Email ---
 app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
 app.config['MAIL_PORT'] = int(os.environ.get("MAIL_PORT", 587))
 app.config['MAIL_USE_TLS'] = True
@@ -103,7 +101,7 @@ def home():
                             if 'siaran' in mux:
                                 stats['channel'] += len(mux['siaran'])
 
-    # 2. Ambil Breaking News untuk Ticker (CNN Indonesia)
+    # 2. Ambil Breaking News untuk Ticker
     breaking_news = []
     try:
         feed = feedparser.parse('https://www.cnnindonesia.com/nasional/rss')
@@ -118,26 +116,19 @@ def chatbot():
     data = request.get_json()
     prompt = data.get("prompt")
     try:
-        # System instruction sederhana agar lebih terarah
-        full_prompt = (
-            "Anda adalah Asisten AI untuk Komunitas TV Digital Indonesia (KTVDI). "
-            "Jawablah dengan singkat, padat, dan membantu terkait TV Digital (STB, Antena, Sinyal). "
-            f"Pertanyaan user: {prompt}"
-        )
-        response = model.generate_content(full_prompt)
+        response = model.generate_content(prompt)
         return jsonify({"response": response.text})
     except Exception as e:
-        return jsonify({"error": "Maaf, server AI sedang sibuk."})
+        return jsonify({"error": str(e)})
 
-# --- CCTV Route ---
+# --- ROUTE CCTV (YANG HILANG) ---
 @app.route("/cctv")
 def cctv_page():
     return render_template("cctv.html")
 
-# --- Jadwal Sholat Route ---
+# --- ROUTE JADWAL SHOLAT (YANG HILANG) ---
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # Daftar 15 Kota Besar + Purwodadi + Semarang
     daftar_kota = [
         {"id": "1106", "nama": "Purwodadi (Grobogan)"},
         {"id": "1108", "nama": "Kota Semarang"},
@@ -157,7 +148,6 @@ def jadwal_sholat_page():
         {"id": "1009", "nama": "Kota Yogyakarta"},
         {"id": "1701", "nama": "Kota Denpasar"}
     ]
-    # Urutkan nama kota secara alfabetis
     daftar_kota = sorted(daftar_kota, key=lambda x: x['nama'])
     return render_template("jadwal-sholat.html", daftar_kota=daftar_kota)
 
@@ -171,14 +161,13 @@ def get_jadwal_api(id_kota):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
-# --- Berita Route ---
+# --- BERITA ---
 @app.route('/berita')
 def berita():
-    rss_url = 'https://www.cnnindonesia.com/teknologi/rss' # Menggunakan CNN Tech agar lebih relevan
+    rss_url = 'https://www.cnnindonesia.com/teknologi/rss'
     feed = feedparser.parse(rss_url)
     articles = feed.entries
     
-    # Pagination Logic
     page = request.args.get('page', 1, type=int)
     per_page = 6
     start = (page - 1) * per_page
@@ -194,8 +183,7 @@ def berita():
 
     return render_template('berita.html', articles=current_articles, page=page, total_pages=total_pages)
 
-# --- Auth & User System ---
-
+# --- LOGIN & REGISTER ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -218,7 +206,6 @@ def register():
         user = request.form.get("username")
         email = request.form.get("email")
         
-        # Cek duplikat sederhana
         if ref.child(f'users/{user}').get():
             flash("Username sudah dipakai", "error")
             return render_template("register.html")
@@ -226,7 +213,6 @@ def register():
         otp = str(random.randint(100000, 999999))
         hashed = hash_password(request.form.get("password"))
         
-        # Simpan sementara
         ref.child(f'pending_users/{user}').set({
             "nama": request.form.get("nama"),
             "email": email,
@@ -234,7 +220,6 @@ def register():
             "otp": otp
         })
         
-        # Kirim Email
         try:
             msg = Message("Verifikasi KTVDI", recipients=[email])
             msg.body = f"Kode OTP Anda: {otp}"
@@ -256,12 +241,11 @@ def verify_register():
         pending = ref.child(f'pending_users/{user}').get()
         
         if pending and str(pending['otp']) == input_otp:
-            # Pindahkan ke users aktif
             ref.child(f'users/{user}').set({
                 "nama": pending['nama'],
                 "email": pending['email'],
                 "password": pending['password'],
-                "points": 10 # Bonus daftar
+                "points": 10
             })
             ref.child(f'pending_users/{user}').delete()
             flash("Berhasil! Silakan login", "success")
@@ -271,13 +255,7 @@ def verify_register():
             
     return render_template("verify-register.html", username=user)
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
-
-# --- Dashboard & CRUD ---
-
+# --- DASHBOARD & DATABASE ---
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
@@ -295,7 +273,7 @@ def add_data():
     
     if request.method == 'POST':
         p = request.form.get('provinsi')
-        w = request.form.get('wilayah').replace(' ', '') # Bersihkan spasi
+        w = request.form.get('wilayah').replace(' ', '')
         m = request.form.get('mux')
         s = request.form.get('siaran').split(',')
         s = [x.strip() for x in s if x.strip()]
@@ -310,7 +288,7 @@ def add_data():
     prov = ref.child('provinsi').get() if ref else {}
     return render_template('add_data_form.html', provinsi_list=list(prov.values()) if prov else [])
 
-# --- API Endpoints untuk Dropdown ---
+# --- API HELPERS ---
 @app.route("/get_wilayah")
 def get_wilayah():
     p = request.args.get("provinsi")
@@ -324,10 +302,23 @@ def get_mux():
     d = ref.child(f"siaran/{p}/{w}").get() if ref else {}
     return jsonify({"mux": list(d.keys()) if d else []})
 
-# --- Lainnya ---
+@app.route("/get_siaran")
+def get_siaran():
+    p = request.args.get("provinsi")
+    w = request.args.get("wilayah")
+    m = request.args.get("mux")
+    d = ref.child(f"siaran/{p}/{w}/{m}").get() if ref else {}
+    return jsonify(d)
+
+# --- LAINNYA ---
 @app.route('/about')
 def about():
     return render_template('about.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 @app.route('/sitemap.xml')
 def sitemap():
@@ -335,7 +326,6 @@ def sitemap():
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    # Implementasi sederhana
     return render_template("forgot-password.html")
 
 if __name__ == "__main__":
