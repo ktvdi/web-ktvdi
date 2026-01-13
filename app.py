@@ -2,7 +2,9 @@ import os
 import hashlib
 import firebase_admin
 import random
+import re
 import pytz
+import requests
 import feedparser
 import google.generativeai as genai
 from firebase_admin import credentials, db
@@ -17,7 +19,7 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-ktvdi")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 # --- KONEKSI FIREBASE ---
 try:
@@ -42,7 +44,7 @@ try:
     print("✅ Firebase Connected")
 except:
     ref = None
-    print("❌ Firebase Error (Cek Env/Creds)")
+    print("❌ Firebase Error")
 
 # --- CONFIG ---
 app.config['MAIL_SERVER'] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
@@ -53,15 +55,24 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 mail = Mail(app)
 
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash", system_instruction="Anda adalah Asisten KTVDI. Jawab profesional dan ramah.")
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
+
+def time_since_published(published_time):
+    try:
+        now = datetime.now()
+        pt = datetime(*published_time[:6])
+        diff = now - pt
+        if diff.days > 0: return f"{diff.days} hari lalu"
+        if diff.seconds > 3600: return f"{diff.seconds//3600} jam lalu"
+        return "Baru saja"
+    except: return ""
 
 # --- ROUTES ---
 
 @app.route("/")
 def home():
-    # Statistik Manual
     siaran_data = ref.child('siaran').get() if ref else {}
     stats = {'wilayah': 0, 'mux': 0, 'channel': 0}
     if siaran_data:
@@ -73,8 +84,6 @@ def home():
                         stats['mux'] += len(wil)
                         for mux in wil.values():
                             if 'siaran' in mux: stats['channel'] += len(mux['siaran'])
-    
-    # Breaking news sekarang ditangani di base.html via JS agar muncul di semua halaman
     return render_template('index.html', stats=stats)
 
 @app.route('/', methods=['POST'])
@@ -83,43 +92,60 @@ def chatbot():
     try:
         res = model.generate_content(data.get("prompt"))
         return jsonify({"response": res.text})
-    except: return jsonify({"error": "Maaf, sistem sedang sibuk."})
+    except: return jsonify({"error": "Sistem sedang sibuk."})
 
 @app.route("/cctv")
 def cctv_page(): return render_template("cctv.html")
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # Tidak butuh data backend, semua dihandle frontend via API Aladhan
-    return render_template("jadwal-sholat.html")
+    # 50 Kota + Kab Pekalongan
+    daftar_kota = [
+        {"id": "1301", "nama": "DKI Jakarta"}, {"id": "1107", "nama": "Kab. Pekalongan"},
+        {"id": "1108", "nama": "Kota Pekalongan"}, {"id": "1106", "nama": "Purwodadi (Grobogan)"},
+        {"id": "1133", "nama": "Kota Semarang"}, {"id": "1630", "nama": "Kota Surabaya"},
+        {"id": "1219", "nama": "Kota Bandung"}, {"id": "0224", "nama": "Kota Medan"},
+        {"id": "1221", "nama": "Kota Bekasi"}, {"id": "2701", "nama": "Kota Makassar"},
+        {"id": "0612", "nama": "Kota Palembang"}, {"id": "1222", "nama": "Kota Depok"},
+        {"id": "3006", "nama": "Kota Tangerang"}, {"id": "3210", "nama": "Kota Batam"},
+        {"id": "0412", "nama": "Kota Pekanbaru"}, {"id": "1633", "nama": "Kota Malang"},
+        {"id": "1130", "nama": "Kota Solo"}, {"id": "1009", "nama": "Kota Yogyakarta"},
+        {"id": "1701", "nama": "Kota Denpasar"}, {"id": "2301", "nama": "Kota Balikpapan"},
+        {"id": "2302", "nama": "Kota Samarinda"}, {"id": "0102", "nama": "Kota Banda Aceh"},
+        {"id": "2001", "nama": "Kota Banjarmasin"}, {"id": "0801", "nama": "Kota Bandar Lampung"},
+        {"id": "2201", "nama": "Kota Pontianak"}, {"id": "2601", "nama": "Kota Manado"},
+        {"id": "3301", "nama": "Kota Jayapura"}, {"id": "1901", "nama": "Kota Kupang"},
+        {"id": "1801", "nama": "Kota Mataram"}, {"id": "0301", "nama": "Kota Padang"},
+        {"id": "1128", "nama": "Kota Tegal"}, {"id": "1202", "nama": "Kab. Bogor"},
+        {"id": "1271", "nama": "Kota Bogor"}, {"id": "1601", "nama": "Kab. Sidoarjo"},
+        {"id": "1209", "nama": "Kab. Cirebon"}, {"id": "1274", "nama": "Kota Cirebon"},
+        {"id": "1121", "nama": "Kab. Demak"}, {"id": "1122", "nama": "Kab. Semarang"},
+        {"id": "1110", "nama": "Kab. Batang"}, {"id": "1125", "nama": "Kab. Pemalang"},
+        {"id": "3101", "nama": "Kota Ambon"}, {"id": "2401", "nama": "Kota Gorontalo"},
+        {"id": "2801", "nama": "Kota Palu"}, {"id": "2501", "nama": "Kota Kendari"},
+        {"id": "0501", "nama": "Kota Jambi"}, {"id": "0701", "nama": "Kota Bengkulu"},
+        {"id": "0901", "nama": "Kota Pangkal Pinang"}, {"id": "1001", "nama": "Kota Tanjung Pinang"},
+        {"id": "1401", "nama": "Kota Serang"}, {"id": "2901", "nama": "Kota Mamuju"}
+    ]
+    return render_template("jadwal-sholat.html", daftar_kota=sorted(daftar_kota, key=lambda x: x['nama']))
 
-@app.route('/berita')
-def berita():
-    # Fetch RSS CNN Teknologi
+@app.route("/api/jadwal-sholat/<id_kota>")
+def get_jadwal_api(id_kota):
     try:
-        feed = feedparser.parse('https://www.cnnindonesia.com/teknologi/rss')
-        articles = feed.entries
-        # Pagination simpel
-        page = request.args.get('page', 1, type=int)
-        per_page = 6
-        start = (page - 1) * per_page
-        end = start + per_page
-        current = articles[start:end]
-        
-        # Helper time directly here
-        now = datetime.now()
-        for a in current:
-            try:
-                pt = datetime(*a.published_parsed[:6])
-                diff = now - pt
-                a.time_str = f"{diff.days} hari lalu" if diff.days > 0 else "Baru saja"
-            except: a.time_str = ""
-            
-        return render_template('berita.html', articles=current, page=page, total_pages=(len(articles)//per_page)+1)
-    except:
-        return render_template('berita.html', articles=[], page=1, total_pages=1)
+        t = datetime.now().strftime("%Y/%m/%d")
+        r = requests.get(f"https://api.myquran.com/v2/sholat/jadwal/{id_kota}/{t}", timeout=5)
+        return jsonify(r.json())
+    except Exception as e: return jsonify({"status": "error", "message": str(e)})
 
-# --- AUTH ---
+# API KHUSUS BERITA RUNNING TEXT (UPDATE REALTIME)
+@app.route("/api/news-ticker")
+def news_ticker():
+    try:
+        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+        news = [entry.title for entry in feed.entries[:7]]
+        return jsonify(news)
+    except: return jsonify([])
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -128,7 +154,7 @@ def login():
         if u and u.get('password') == pw:
             session['user'], session['nama'] = user, u.get('nama')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Username/Password Salah")
+        return render_template('login.html', error="Gagal Login")
     return render_template('login.html')
 
 @app.route("/register", methods=["GET", "POST"])
@@ -136,14 +162,14 @@ def register():
     if request.method == "POST":
         u, e, p = request.form.get("username"), request.form.get("email"), request.form.get("password")
         if ref.child(f'users/{u}').get():
-            flash("Username sudah ada", "error"); return render_template("register.html")
+            flash("Username dipakai", "error"); return render_template("register.html")
         otp = str(random.randint(100000, 999999))
         ref.child(f'pending_users/{u}').set({"nama":request.form.get("nama"), "email":e, "password":hash_password(p), "otp":otp})
         try:
-            mail.send(Message("Kode OTP KTVDI", recipients=[e], body=f"Kode OTP Anda: {otp}"))
+            mail.send(Message("OTP KTVDI", recipients=[e], body=f"OTP: {otp}"))
             session['pending_username'] = u
             return redirect(url_for("verify_register"))
-        except: flash("Gagal kirim email", "error")
+        except: flash("Gagal email", "error")
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
@@ -156,17 +182,17 @@ def verify_register():
             ref.child(f'users/{u}').set({"nama":p['nama'], "email":p['email'], "password":p['password'], "points":0})
             ref.child(f'pending_users/{u}').delete()
             return redirect(url_for('login'))
-        flash("Kode OTP Salah", "error")
+        flash("OTP Salah", "error")
     return render_template("verify-register.html", username=u)
 
-# --- DASHBOARD & CRUD ---
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
     return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list((ref.child('provinsi').get() or {}).values()))
 
 @app.route("/daftar-siaran")
-def daftar_siaran(): return render_template("daftar-siaran.html", provinsi_list=list((ref.child('provinsi').get() or {}).values()))
+def daftar_siaran():
+    return render_template("daftar-siaran.html", provinsi_list=list((ref.child('provinsi').get() or {}).values()))
 
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data():
@@ -193,7 +219,6 @@ def delete_data(provinsi, wilayah, mux):
     ref.child(f'siaran/{provinsi}/{wilayah}/{mux}').delete()
     return redirect(url_for('dashboard'))
 
-# --- API HELPER ---
 @app.route("/get_wilayah")
 def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
 @app.route("/get_mux")
@@ -201,7 +226,19 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- SYSTEM ---
+@app.route('/berita')
+def berita():
+    feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+    articles = feed.entries
+    page = request.args.get('page', 1, type=int)
+    per_page = 6
+    start = (page - 1) * per_page
+    end = start + per_page
+    current = articles[start:end]
+    for a in current: 
+        if hasattr(a,'published_parsed'): a.time_since_published = time_since_published(a.published_parsed)
+    return render_template('berita.html', articles=current, page=page, total_pages=(len(articles)//per_page)+1)
+
 @app.route('/about')
 def about(): return render_template('about.html')
 @app.route('/logout')
