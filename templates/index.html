@@ -3,12 +3,9 @@
 {% block content %}
 
 <style>
-    /* Font mirip YouTube (Roboto) */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-    
     .font-youtube { font-family: 'Roboto', sans-serif; }
 
-    /* Animasi Glossy Teks */
     @keyframes textShine {
         0% { background-position: 0% 50%; }
         100% { background-position: 200% 50%; }
@@ -24,8 +21,6 @@
         font-weight: 800;
         display: inline-block;
     }
-    
-    /* Animasi Wave Audio */
     @keyframes wave {
         0%, 100% { height: 4px; }
         50% { height: 12px; }
@@ -84,14 +79,16 @@
 </section>
 
 <section class="py-20 bg-[#0f0f0f] border-y border-slate-800 relative overflow-hidden">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-gradient-to-b from-brand-blue/5 to-transparent pointer-events-none"></div>
+
     <div class="max-w-6xl mx-auto px-4 relative z-10">
-        <div class="text-center mb-12">
-            <span class="text-brand-sky font-bold text-[10px] uppercase tracking-[0.2em] bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 backdrop-blur-sm">Official Stream</span>
-            <h2 class="text-2xl md:text-3xl font-bold text-white mt-4 font-youtube tracking-tight">Nonton Siaran TV FTA Indonesia</h2>
-            <p class="text-gray-400 text-sm mt-2 max-w-2xl mx-auto font-youtube">Anda bisa menyaksikan Saluran pilihan TV FTA di Indonesia, kapan saja dimana saja dalam genggaman.</p>
+        <div class="text-center mb-16">
+            <span class="text-brand-sky font-bold text-[10px] uppercase tracking-[0.2em] bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 backdrop-blur-sm shadow-lg">Official Stream</span>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-white mt-6 tracking-tight font-youtube">Nonton Siaran TV FTA Indonesia</h2>
+            <p class="text-gray-400 mt-3 max-w-2xl mx-auto font-youtube text-sm">Streaming saluran TV Nasional pilihan kualitas HD, gratis di mana saja.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10" id="tv-grid"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-12" id="tv-grid"></div>
     </div>
 </section>
 
@@ -178,8 +175,8 @@
         
         channels.forEach((ch, idx) => {
             const div = document.createElement('div');
-            // Youtube Style Card (No Border, Dark BG)
-            div.className = "bg-transparent group";
+            // Card Style: Clean Youtube-like
+            div.className = "bg-transparent group mb-6";
             
             let playerContent = '';
             
@@ -191,44 +188,44 @@
                         <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="w-10 h-auto animate-bounce mb-2 brightness-150">
                         <span class="text-[10px] text-gray-500 font-bold tracking-widest uppercase">Memuat...</span>
                     </div>
-                    <video id="vid-${idx}" class="w-full h-full object-cover rounded-xl" controls playsinline muted></video>
+                    <video id="vid-${idx}" class="w-full h-full object-cover rounded-xl shadow-lg border border-white/5" controls playsinline muted></video>
                 `;
             }
 
             div.innerHTML = `
-                <div class="relative aspect-video bg-[#202020] rounded-xl overflow-hidden shadow-lg group-hover:shadow-brand-blue/10 transition-all duration-300">
+                <div class="relative aspect-video bg-[#202020] rounded-xl overflow-hidden shadow-xl group-hover:shadow-brand-blue/10 transition-all duration-300">
                     ${playerContent}
                 </div>
                 
                 <div class="pt-3 flex gap-3">
                     <div class="flex-shrink-0">
-                        <div class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-gray-400 border border-slate-700">
-                            <i class="fa-solid fa-tv text-xs"></i>
+                        <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-gray-400 border border-slate-700">
+                            <i class="fa-solid fa-tv text-sm"></i>
                         </div>
                     </div>
 
                     <div class="flex-1">
-                        <h3 class="text-white text-[15px] font-bold font-youtube leading-tight mb-1 group-hover:text-brand-blue transition-colors line-clamp-2">${ch.name}</h3>
+                        <h3 class="text-white text-base font-bold font-youtube leading-tight mb-1 group-hover:text-brand-blue transition-colors line-clamp-1">${ch.name}</h3>
                         
-                        <div class="flex items-center gap-2 text-[12px] text-gray-400 font-youtube">
+                        <div class="flex flex-wrap items-center gap-2 text-[11px] text-gray-400 font-youtube font-medium">
                             ${ch.type !== 'youtube' ? `
-                            <span class="text-red-500 font-bold flex items-center gap-1 bg-red-500/10 px-1.5 rounded">
+                            <span class="text-red-500 font-bold flex items-center gap-1.5 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
                                 <span class="relative flex h-1.5 w-1.5">
                                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                   <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
                                 </span>
                                 LIVE
-                            </span>` : '<span class="bg-red-600 text-white px-1 rounded text-[10px] font-bold">YouTube</span>'}
+                            </span>` : '<span class="bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">YouTube</span>'}
                             
                             <span>• Indonesia</span>
-                        </div>
 
-                        ${ch.type !== 'youtube' ? `
-                        <div class="mt-2 hidden group-video-unmute cursor-pointer" onclick="unmuteVideo('vid-${idx}', this)">
-                            <div class="inline-flex items-center gap-1.5 bg-brand-blue/10 hover:bg-brand-blue/20 text-brand-blue border border-brand-blue/30 px-2 py-1 rounded text-[10px] font-bold transition-all">
-                                <i class="fa-solid fa-volume-high"></i> Bunyikan Suara
-                            </div>
-                        </div>` : ''}
+                            ${ch.type !== 'youtube' ? `
+                            <div class="hidden group-video-unmute cursor-pointer ml-auto" onclick="unmuteVideo('vid-${idx}', this)">
+                                <div class="inline-flex items-center gap-1 bg-brand-blue/10 hover:bg-brand-blue/20 text-brand-blue border border-brand-blue/30 px-2 py-0.5 rounded text-[10px] font-bold transition-all">
+                                    <i class="fa-solid fa-volume-high"></i> Bunyikan
+                                </div>
+                            </div>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -244,7 +241,6 @@
                     spinner.style.opacity = '0'; 
                     setTimeout(() => spinner.remove(), 500); 
                     
-                    // Show unmute button if video is muted (autoplay policy)
                     if(video.muted) {
                         unmuteBtn.classList.remove('hidden');
                     }
@@ -252,7 +248,6 @@
                 
                 video.addEventListener('waiting', () => { if(spinner) spinner.style.opacity = '1'; });
                 
-                // Hide button if unmuted manually
                 video.addEventListener('volumechange', () => {
                     if(!video.muted) unmuteBtn.classList.add('hidden');
                 });
@@ -268,13 +263,11 @@
         });
     });
 
-    // Helper Unmute
     function unmuteVideo(id, btn) {
         const v = document.getElementById(id);
         if(v) {
             v.muted = false;
             v.volume = 1.0;
-            // Button will be hidden by 'volumechange' event listener
         }
     }
 </script>
