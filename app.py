@@ -2,9 +2,6 @@ import os
 import hashlib
 import firebase_admin
 import random
-import re
-import pytz
-import requests
 import feedparser
 import google.generativeai as genai
 from firebase_admin import credentials, db
@@ -18,7 +15,7 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 # --- KONEKSI FIREBASE ---
 try:
@@ -45,13 +42,14 @@ except Exception as e:
     ref = None
     print(f"❌ Firebase Error: {e}")
 
-# --- KONFIGURASI EMAIL (FIXED) ---
+# --- KONFIGURASI EMAIL (GMAIL SMTP) ---
+# Wajib pakai APP PASSWORD jika pakai Gmail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME") # Email Gmail Anda
-app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD") # APP PASSWORD (Bukan Password Login Biasa)
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME") # Set default sender
+app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME") 
+app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD") 
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
@@ -69,7 +67,7 @@ def time_since_published(published_time):
         return "Baru saja"
     except: return ""
 
-# --- ROUTES ---
+# --- ROUTES UTAMA ---
 
 @app.route("/")
 def home():
@@ -118,17 +116,7 @@ def cctv_page(): return render_template("cctv.html")
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    daftar_kota = [
-        "Jakarta", "Surabaya", "Bandung", "Semarang", "Medan", "Makassar", 
-        "Palembang", "Bekasi", "Tangerang", "Depok", "Pekalongan", "Grobogan", 
-        "Malang", "Surakarta", "Yogyakarta", "Denpasar", "Balikpapan", 
-        "Samarinda", "Banda Aceh", "Banjarmasin", "Bandar Lampung", "Pontianak", 
-        "Manado", "Jayapura", "Kupang", "Mataram", "Padang", "Tegal", "Bogor", 
-        "Sidoarjo", "Cirebon", "Demak", "Ambon", "Gorontalo", "Palu", "Kendari", 
-        "Jambi", "Bengkulu", "Serang", "Mamuju", "Palangkaraya", "Ternate", 
-        "Sorong", "Tasikmalaya", "Cimahi", "Magelang", "Salatiga", "Batu", 
-        "Kediri", "Madiun"
-    ]
+    daftar_kota = ["Jakarta", "Surabaya", "Bandung", "Semarang", "Yogyakarta", "Medan", "Makassar", "Palembang", "Denpasar", "Balikpapan", "Pekalongan"] # Tambahkan kota lain
     return render_template("jadwal-sholat.html", daftar_kota=sorted(daftar_kota))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -142,7 +130,7 @@ def login():
         return render_template('login.html', error="Username atau Password Salah")
     return render_template('login.html')
 
-# --- PERBAIKAN REGISTER ---
+# --- LOGIKA REGISTER (DENGAN OTP) ---
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -151,68 +139,118 @@ def register():
         p = request.form.get("password")
         n = request.form.get("nama")
 
-        # Cek Username di Firebase
+        # 1. Cek Username
         if ref.child(f'users/{u}').get():
-            flash("Username sudah digunakan, pilih yang lain.", "error")
+            flash("Username sudah digunakan", "error")
             return render_template("register.html")
         
+        # 2. Buat OTP
         otp = str(random.randint(100000, 999999))
         
-        # Simpan ke pending_users (Temporary)
+        # 3. Simpan Sementara
         ref.child(f'pending_users/{u}').set({
-            "nama": n, 
-            "email": e, 
-            "password": hash_password(p), 
-            "otp": otp
+            "nama": n, "email": e, "password": hash_password(p), "otp": otp
         })
         
-        # Kirim Email dengan Error Handling Jelas
+        # 4. Kirim Email
         try:
-            msg = Message("Kode OTP Registrasi KTVDI", 
-                          sender=app.config['MAIL_USERNAME'], 
-                          recipients=[e])
-            msg.body = f"Halo {n},\n\nTerima kasih telah mendaftar di KTVDI.\nKode OTP Anda adalah: {otp}\n\nJangan berikan kode ini kepada siapapun."
+            msg = Message("Kode OTP Registrasi KTVDI", recipients=[e])
+            msg.body = f"Halo {n},\n\nKode OTP Anda adalah: {otp}\nJangan berikan kepada siapapun."
             mail.send(msg)
-            
-            # Jika berhasil kirim
             session['pending_username'] = u
             return redirect(url_for("verify_register"))
-            
         except Exception as error:
-            # Print error ke terminal agar bisa didebug
-            print(f"❌ ERROR PENGIRIMAN EMAIL: {error}")
-            flash(f"Gagal mengirim email: {error}", "error")
-            return render_template("register.html")
+            print(f"EMAIL ERROR: {error}") # Cek terminal
+            flash(f"Gagal kirim email: {error}", "error")
             
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
     u = session.get('pending_username')
-    if not u: 
-        return redirect(url_for('register'))
+    if not u: return redirect(url_for('register'))
     
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
-        
         if p and str(p['otp']) == request.form.get("otp"):
-            # Pindahkan data dari pending ke users real
-            ref.child(f'users/{u}').set({
-                "nama": p['nama'], 
-                "email": p['email'], 
-                "password": p['password'], 
-                "points": 0
-            })
-            # Hapus data pending
+            # Pindahkan ke Users
+            ref.child(f'users/{u}').set({"nama":p['nama'], "email":p['email'], "password":p['password'], "points":0})
             ref.child(f'pending_users/{u}').delete()
             session.pop('pending_username', None)
-            
             flash("Registrasi Berhasil! Silakan Login.", "success")
             return redirect(url_for('login'))
-        
         flash("Kode OTP Salah!", "error")
         
     return render_template("verify-register.html", username=u)
+
+# --- LOGIKA LUPA PASSWORD (FIXED) ---
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email_input = request.form.get("email")
+        
+        # 1. Cari Username berdasarkan Email
+        target_user = None
+        all_users = ref.child('users').get()
+        if all_users:
+            for uid, data in all_users.items():
+                if data.get('email') == email_input:
+                    target_user = uid
+                    break
+        
+        if not target_user:
+            flash("Email tidak ditemukan.", "error")
+            return render_template("forgot-password.html")
+            
+        # 2. Generate OTP Reset
+        otp = str(random.randint(100000, 999999))
+        session['reset_user'] = target_user
+        session['reset_otp'] = otp
+        
+        # 3. Kirim Email
+        try:
+            msg = Message("Reset Password KTVDI", recipients=[email_input])
+            msg.body = f"Kode OTP Reset Password: {otp}"
+            mail.send(msg)
+            return redirect(url_for('verify_reset'))
+        except Exception as e:
+            print(f"EMAIL ERROR: {e}")
+            flash("Gagal mengirim email.", "error")
+            
+    return render_template("forgot-password.html")
+
+@app.route("/verify-reset", methods=["GET", "POST"])
+def verify_reset():
+    if 'reset_user' not in session: return redirect(url_for('login'))
+    if request.method == 'POST':
+        if request.form.get('otp') == session.get('reset_otp'):
+            session['reset_verified'] = True
+            return redirect(url_for('reset_password'))
+        flash("OTP Salah", "error")
+    return render_template("verify_reset.html") # Template baru di bawah
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    if not session.get('reset_verified'): return redirect(url_for('login'))
+    
+    if request.method == "POST":
+        new_pass = request.form.get("password")
+        conf_pass = request.form.get("confirm_password")
+        
+        if new_pass == conf_pass:
+            uid = session['reset_user']
+            ref.child(f'users/{uid}').update({"password": hash_password(new_pass)})
+            
+            # Bersihkan session
+            session.pop('reset_user', None)
+            session.pop('reset_otp', None)
+            session.pop('reset_verified', None)
+            
+            flash("Password berhasil diubah. Silakan login.", "success")
+            return redirect(url_for('login'))
+        flash("Password tidak sama.", "error")
+        
+    return render_template("reset_password.html")
 
 @app.route("/dashboard")
 def dashboard():
@@ -273,8 +311,6 @@ def about(): return render_template('about.html')
 def logout(): session.clear(); return redirect(url_for('login'))
 @app.route('/sitemap.xml')
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
-@app.route("/forgot-password", methods=["GET", "POST"])
-def forgot_password(): return render_template("forgot-password.html")
 
 if __name__ == "__main__":
     app.run(debug=True)
