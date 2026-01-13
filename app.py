@@ -20,7 +20,7 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-# --- KONEKSI FIREBASE (Pastikan creds benar) ---
+# --- KONEKSI FIREBASE ---
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -41,16 +41,17 @@ try:
     firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
     ref = db.reference('/')
     print("✅ Firebase Connected")
-except:
+except Exception as e:
     ref = None
-    print("❌ Firebase Error")
+    print(f"❌ Firebase Error: {e}")
 
-# --- CONFIG ---
+# --- KONFIGURASI EMAIL (FIXED) ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME")
-app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
+app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME") # Email Gmail Anda
+app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD") # APP PASSWORD (Bukan Password Login Biasa)
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME") # Set default sender
 mail = Mail(app)
 
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
@@ -85,26 +86,21 @@ def home():
                             if 'siaran' in mux: stats['channel'] += len(mux['siaran'])
     return render_template('index.html', stats=stats)
 
-# --- API NEWS TICKER ---
 @app.route("/api/news-ticker")
 def news_ticker():
     try:
-        # Google News RSS (Berita Umum)
         feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
         news_list = []
         for entry in feed.entries[:15]:
             title = entry.title
-            # Bersihkan nama media jika formatnya "Judul - Media"
             if ' - ' in title:
                 parts = title.rsplit(' - ', 1)
                 judul = parts[0]
                 sumber = parts[1]
-                # Format HTML untuk Running Text
                 clean_title = f"<span class='text-brand-blue font-black'>[{sumber}]</span> {judul}"
                 news_list.append(clean_title)
             else:
                 news_list.append(title)
-        
         return jsonify(news_list)
     except: 
         return jsonify([])
@@ -143,35 +139,79 @@ def login():
         if u and u.get('password') == pw:
             session['user'], session['nama'] = user, u.get('nama')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Login Gagal")
+        return render_template('login.html', error="Username atau Password Salah")
     return render_template('login.html')
 
+# --- PERBAIKAN REGISTER ---
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        u, e, p = request.form.get("username"), request.form.get("email"), request.form.get("password")
+        u = request.form.get("username")
+        e = request.form.get("email")
+        p = request.form.get("password")
+        n = request.form.get("nama")
+
+        # Cek Username di Firebase
         if ref.child(f'users/{u}').get():
-            flash("Username dipakai", "error"); return render_template("register.html")
+            flash("Username sudah digunakan, pilih yang lain.", "error")
+            return render_template("register.html")
+        
         otp = str(random.randint(100000, 999999))
-        ref.child(f'pending_users/{u}').set({"nama":request.form.get("nama"), "email":e, "password":hash_password(p), "otp":otp})
+        
+        # Simpan ke pending_users (Temporary)
+        ref.child(f'pending_users/{u}').set({
+            "nama": n, 
+            "email": e, 
+            "password": hash_password(p), 
+            "otp": otp
+        })
+        
+        # Kirim Email dengan Error Handling Jelas
         try:
-            mail.send(Message("OTP KTVDI", recipients=[e], body=f"OTP: {otp}"))
+            msg = Message("Kode OTP Registrasi KTVDI", 
+                          sender=app.config['MAIL_USERNAME'], 
+                          recipients=[e])
+            msg.body = f"Halo {n},\n\nTerima kasih telah mendaftar di KTVDI.\nKode OTP Anda adalah: {otp}\n\nJangan berikan kode ini kepada siapapun."
+            mail.send(msg)
+            
+            # Jika berhasil kirim
             session['pending_username'] = u
             return redirect(url_for("verify_register"))
-        except: flash("Gagal email", "error")
+            
+        except Exception as error:
+            # Print error ke terminal agar bisa didebug
+            print(f"❌ ERROR PENGIRIMAN EMAIL: {error}")
+            flash(f"Gagal mengirim email: {error}", "error")
+            return render_template("register.html")
+            
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
     u = session.get('pending_username')
-    if not u: return redirect(url_for('register'))
+    if not u: 
+        return redirect(url_for('register'))
+    
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
+        
         if p and str(p['otp']) == request.form.get("otp"):
-            ref.child(f'users/{u}').set({"nama":p['nama'], "email":p['email'], "password":p['password'], "points":0})
+            # Pindahkan data dari pending ke users real
+            ref.child(f'users/{u}').set({
+                "nama": p['nama'], 
+                "email": p['email'], 
+                "password": p['password'], 
+                "points": 0
+            })
+            # Hapus data pending
             ref.child(f'pending_users/{u}').delete()
+            session.pop('pending_username', None)
+            
+            flash("Registrasi Berhasil! Silakan Login.", "success")
             return redirect(url_for('login'))
-        flash("OTP Salah", "error")
+        
+        flash("Kode OTP Salah!", "error")
+        
     return render_template("verify-register.html", username=u)
 
 @app.route("/dashboard")
