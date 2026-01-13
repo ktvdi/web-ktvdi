@@ -1,22 +1,63 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<section class="relative bg-white pt-16 pb-24 overflow-hidden">
-    <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-brand-surface rounded-full blur-3xl opacity-60 -mr-20 -mt-20"></div>
+
+<style>
+    /* Animasi Glossy / Mengkilat Bergerak */
+    @keyframes textShine {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 200% 50%; }
+    }
+    
+    .text-glossy-effect {
+        /* Gradasi warna: Biru Tua -> Putih (Kilau) -> Biru Muda -> Biru Tua */
+        background: linear-gradient(
+            to right,
+            #0f172a 0%,   /* Navy */
+            #2563eb 20%,  /* Blue */
+            #ffffff 50%,  /* PUTIH (Kilau) */
+            #2563eb 80%,  /* Blue */
+            #0f172a 100%  /* Navy */
+        );
+        background-size: 200% auto;
+        color: #0f172a; /* Fallback */
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: textShine 3s linear infinite;
+        font-weight: 800;
+        display: inline-block;
+    }
+
+    /* Animasi Wave Audio */
+    @keyframes wave {
+        0%, 100% { height: 4px; }
+        50% { height: 16px; }
+    }
+</style>
+
+<section class="relative bg-white pt-20 pb-28 overflow-hidden">
+    <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-brand-surface rounded-full blur-3xl opacity-60 -mr-20 -mt-20 z-0"></div>
+    
     <div class="max-w-7xl mx-auto px-4 relative z-10">
         <div class="flex flex-col lg:flex-row items-center gap-16">
             <div class="flex-1 text-center lg:text-left">
-                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 text-brand-blue text-xs font-bold rounded-full mb-6 shadow-sm animate-fade-in-down">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 text-brand-blue text-xs font-bold rounded-full mb-6 shadow-sm animate-pulse">
+                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
                     Revolusi Penyiaran Indonesia
                 </div>
-                <h1 class="text-4xl md:text-6xl font-extrabold text-brand-navy leading-tight mb-6">
+                
+                <h1 class="text-4xl md:text-6xl font-extrabold text-brand-navy leading-tight mb-6 tracking-tight">
                     Selamat Datang di <br> 
-                    <span class="text-glossy">Komunitas TV Digital Indonesia</span>
+                    <span class="text-glossy-effect pb-2">
+                        Komunitas TV Digital Indonesia
+                    </span>
                 </h1>
+                
                 <p class="text-slate-500 text-lg mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-justify">
                     Sudah saatnya kita meninggalkan era analog yang penuh "semut" dan beralih ke siaran yang jernih, canggih, dan merata. KTVDI hadir sebagai jembatan informasi agar setiap keluarga Indonesia mendapatkan hak siaran yang jernih, canggih, dan gratis.
                 </p>
+                
                 <div class="flex flex-wrap gap-4 justify-center lg:justify-start">
                     <a href="/daftar-siaran" class="px-8 py-4 bg-brand-blue text-white font-bold rounded-xl shadow-xl hover:bg-blue-700 transition flex items-center gap-2 transform hover:-translate-y-1">
                         <i class="fa-solid fa-tower-broadcast"></i> Cek Sinyal Digital
@@ -31,16 +72,16 @@
             
             <div class="flex-1 w-full max-w-md">
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center hover:border-brand-blue transition group">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center hover:border-brand-blue transition group transform hover:-translate-y-1">
                         <div class="text-4xl font-extrabold text-brand-navy group-hover:text-brand-blue transition">{{ stats.wilayah }}</div>
                         <div class="text-xs text-slate-400 font-bold uppercase mt-1">Wilayah Terjangkau</div>
                     </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center hover:border-brand-blue transition group">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 text-center hover:border-brand-blue transition group transform hover:-translate-y-1">
                         <div class="text-4xl font-extrabold text-brand-navy group-hover:text-brand-blue transition">{{ stats.mux }}</div>
                         <div class="text-xs text-slate-400 font-bold uppercase mt-1">MUX Beroperasi</div>
                     </div>
-                    <div class="col-span-2 bg-brand-navy p-8 rounded-2xl shadow-xl text-center text-white relative overflow-hidden group">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-brand-blue rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition"></div>
+                    <div class="col-span-2 bg-brand-navy p-8 rounded-2xl shadow-xl text-center text-white relative overflow-hidden group transform hover:-translate-y-1">
+                        <div class="absolute top-0 right-0 w-40 h-40 bg-brand-blue rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition"></div>
                         <div class="relative z-10">
                             <div class="text-6xl font-extrabold text-brand-sky mb-2 group-hover:scale-110 transition duration-300">{{ stats.channel }}</div>
                             <div class="text-sm text-slate-300 font-bold uppercase tracking-widest">Total Channel Nasional</div>
@@ -235,10 +276,11 @@
                         <h3 class="font-bold text-white text-base tracking-wide group-hover:text-brand-sky transition-colors">${ch.name}</h3>
                         
                         ${ch.type !== 'youtube' ? `
-                        <div class="flex items-center gap-1.5" title="Sedang Memutar">
-                            <span class="block w-1 h-3 bg-brand-blue rounded-full animate-[wave_1s_ease-in-out_infinite]"></span>
-                            <span class="block w-1 h-5 bg-brand-blue rounded-full animate-[wave_1s_ease-in-out_0.2s_infinite]"></span>
-                            <span class="block w-1 h-3 bg-brand-blue rounded-full animate-[wave_1s_ease-in-out_0.4s_infinite]"></span>
+                        <div class="flex items-center gap-1" title="Sedang Memutar">
+                            <div class="w-1 bg-brand-blue rounded-full animate-[wave_1s_ease-in-out_infinite]"></div>
+                            <div class="w-1 bg-brand-blue rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></div>
+                            <div class="w-1 bg-brand-blue rounded-full animate-[wave_0.8s_ease-in-out_infinite]"></div>
+                            <div class="w-1 bg-brand-blue rounded-full animate-[wave_1.1s_ease-in-out_infinite]"></div>
                         </div>` 
                         : '<i class="fa-brands fa-youtube text-red-500 text-xl"></i>'}
                     </div>
@@ -271,11 +313,4 @@
         });
     });
 </script>
-
-<style>
-    @keyframes wave {
-        0%, 100% { height: 6px; opacity: 0.5; }
-        50% { height: 16px; opacity: 1; }
-    }
-</style>
 {% endblock %}
