@@ -1,52 +1,116 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Data Siaran</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <div class="container">
-        <h1 class="mt-5">✍️ Tambahkan Data Siaran Baru</h1>
+{% block title %}Tambah Data - KTVDI{% endblock %}
 
-        {% if error_message %}
-        <div class="alert alert-danger">
-            {{ error_message }}
+{% block content %}
+<div class="min-h-screen bg-brand-surface py-12 px-4 relative overflow-hidden font-['Plus_Jakarta_Sans']">
+    
+    <div class="absolute top-0 left-0 w-96 h-96 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
+    <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+
+    <div class="max-w-2xl mx-auto relative z-10">
+        
+        <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-2 text-slate-500 hover:text-brand-blue font-bold mb-6 transition-colors">
+            <i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
+        </a>
+
+        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden">
+            
+            <div class="bg-gradient-to-r from-brand-blue to-blue-600 p-6 text-white flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-extrabold flex items-center gap-3">
+                        <i class="fa-solid fa-folder-plus"></i> Tambah Data Baru
+                    </h1>
+                    <p class="text-blue-100 text-sm mt-1">Kontribusi data siaran digital untuk database nasional.</p>
+                </div>
+            </div>
+
+            {% if error_message %}
+            <div class="bg-red-50 text-red-600 p-4 border-b border-red-100 flex items-center gap-3 text-sm font-bold animate-pulse">
+                <i class="fa-solid fa-circle-exclamation"></i> {{ error_message }}
+            </div>
+            {% endif %}
+
+            <div class="p-8">
+                <form method="POST" class="space-y-6">
+                    
+                    <div class="space-y-2">
+                        <label for="provinsi" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Provinsi</label>
+                        <div class="relative">
+                            <select id="provinsi" name="provinsi" required class="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold focus:ring-2 focus:ring-brand-blue focus:border-brand-blue appearance-none cursor-pointer transition-all">
+                                <option value="">-- Pilih Provinsi --</option>
+                                {% for p in provinsi_list %}
+                                    <option value="{{ p }}">{{ p }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                            </div>
+                            <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div class="space-y-2">
+                            <label for="wilayah" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Wilayah Layanan</label>
+                            <div class="relative">
+                                <input type="text" name="wilayah" id="wilayah" placeholder="Contoh: Jawa Timur-1" required
+                                    class="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all placeholder:text-slate-400">
+                                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <i class="fa-solid fa-map"></i>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 ml-1">Format: Nama Provinsi-Angka (Sesuai Kominfo)</p>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label for="mux" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Penyelenggara MUX</label>
+                            <div class="relative">
+                                <input type="text" name="mux" id="mux" placeholder="Contoh: UHF 27 - Metro TV" required
+                                    class="w-full p-4 pl-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue transition-all placeholder:text-slate-400">
+                                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <i class="fa-solid fa-tower-broadcast"></i>
+                                </div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 ml-1">Format: UHF [XX] - [Nama Stasiun]</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="siaran" class="text-sm font-bold text-brand-navy flex justify-between items-center">
+                            <span>Daftar Channel TV</span>
+                            <span class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">Pisahkan dengan koma (,)</span>
+                        </label>
+                        <div class="relative">
+                            <textarea name="siaran" id="siaran" rows="5" required
+                                class="w-full p-4 bg-white border-2 border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:border-brand-blue focus:ring-4 focus:ring-brand-blue/20 transition-all placeholder:text-slate-300 leading-relaxed"
+                                placeholder="Contoh: Metro TV, Magna Channel, BN Channel, TVRI Nasional..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-100 mt-6">
+                        <button type="submit" class="w-full bg-gradient-to-r from-brand-navy to-brand-blue hover:from-blue-800 hover:to-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> Simpan Data Baru
+                        </button>
+                    </div>
+
+                </form>
+            </div>
         </div>
-        {% endif %}
-
-        <form method="POST">
-            <div class="form-group">
-                <label for="provinsi">Pilih Provinsi:</label>
-                <select id="provinsi" name="provinsi">
-                  <option value="">-- Pilih Provinsi --</option>
-                  {% for p in provinsi_list %}
-                    <option value="{{ p }}">{{ p }}</option>
-                  {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="wilayah">Wilayah Layanan (Format: Nama Provinsi-Angka):</label>
-                <input type="text" name="wilayah" id="wilayah" class="form-control" placeholder="Contoh: Jawa Timur-1">
-            </div>
-
-            <div class="form-group">
-                <label for="mux">Penyelenggara MUX (Format: UHF XX - Nama MUX):</label>
-                <input type="text" name="mux" id="mux" class="form-control" placeholder="Contoh: UHF 27 - Metro TV">
-            </div>
-
-            <div class="form-group">
-                <label for="siaran">Daftar Siaran (pisahkan dengan koma):</label>
-                <textarea name="siaran" id="siaran" class="form-control" placeholder="Contoh: Metro TV, Magna Channel, BN Channel"></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-success">Simpan Data Baru</button>
-        </form>
     </div>
+</div>
 
-</body>
-</html>
+<style>
+    .animate-blob { animation: blob 7s infinite; }
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animation-delay-2000 { animation-delay: 2s; }
+</style>
+{% endblock %}
