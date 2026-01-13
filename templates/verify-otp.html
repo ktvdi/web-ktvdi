@@ -1,33 +1,80 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Komunitas TV Digital Indonesia</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-  <!-- Header -->
-  <div id="header"></div>
+{% extends "base.html" %}
 
-  <div class="container">
-  <h1>Verifikasi OTP</h1>
-  <form method="POST">
-    <input type="text" name="otp" placeholder="Masukkan kode OTP" required>
-    <button type="submit">Verifikasi</button>
-  </form>
-  
-  <div class="flash-message-container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, msg in messages %}
-          <p class="{{ category }}">{{ msg }}</p>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-  </div>
-  
-  </div>
+{% block title %}Verifikasi OTP - Komunitas TV Digital Indonesia{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-brand-surface py-12 px-4 relative overflow-hidden font-['Plus_Jakarta_Sans']">
+    
+    <div class="absolute top-0 left-0 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-32 left-20 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+
+    <div class="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 relative z-10 text-center">
+        
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-blue/10 text-brand-blue mb-6 shadow-sm animate-pulse-slow">
+            <i class="fa-solid fa-envelope-open-text text-4xl"></i>
+        </div>
+
+        <h1 class="text-3xl font-extrabold text-brand-navy tracking-tight mb-2">Verifikasi Email</h1>
+        <p class="text-slate-500 text-sm mb-8 leading-relaxed">
+            Kode OTP telah dikirim ke email Anda.<br>Silakan cek Inbox atau folder Spam.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-6 space-y-2 text-left">
+                {% for category, message in messages %}
+                    <div class="p-3 rounded-xl text-xs font-bold flex items-center gap-2 
+                        {{ 'bg-green-50 text-green-600 border border-green-200' if category == 'success' else 'bg-red-50 text-red-600 border border-red-200' }}">
+                        <i class="fa-solid {{ 'fa-check-circle' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="space-y-6">
+            <div class="relative">
+                <input type="text" name="otp" placeholder="Masukkan 6 Digit Kode" maxlength="6" required autofocus
+                    class="w-full px-4 py-4 text-center text-2xl font-bold tracking-[0.5em] bg-slate-50 border border-slate-200 rounded-2xl text-brand-navy focus:outline-none focus:ring-4 focus:ring-brand-blue/20 focus:border-brand-blue transition-all placeholder:text-slate-300 placeholder:tracking-normal placeholder:text-sm placeholder:font-normal">
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-brand-navy to-brand-blue hover:from-blue-800 hover:to-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check-circle"></i> Verifikasi Sekarang
+            </button>
+        </form>
+
+        <div class="mt-8 text-center border-t border-slate-100 pt-6">
+            <p class="text-xs text-slate-400">
+                Tidak menerima kode? 
+                <a href="{{ url_for('register') }}" class="text-brand-blue font-bold hover:underline">Kirim Ulang</a> 
+                atau 
+                <a href="mailto:kom.tvdigitalid@gmail.com" class="text-brand-blue font-bold hover:underline">Hubungi Bantuan</a>
+            </p>
+        </div>
+    </div>
 </div>
-</body>
-</html>
+
+<style>
+    /* Animasi Blob Background */
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+    .animation-delay-4000 {
+        animation-delay: 4s;
+    }
+    .animate-pulse-slow {
+        animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+</style>
+{% endblock %}
