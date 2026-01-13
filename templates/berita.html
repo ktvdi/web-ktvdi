@@ -1,30 +1,92 @@
 {% extends "base.html" %}
 
-{% block title %}Komunitas TV Digital Indonesia{% endblock %}
+{% block title %}Berita TV Digital - KTVDI{% endblock %}
 
 {% block content %}
-    <div id="articles">
-        {% for article in articles %}
-            <div class="article">
-                <h2>{{ article.title }}</h2>
-                {% if article.time_since_published %}
-                    <p>{{ article.time_since_published }}</p>
-                {% endif %}
-                <a href="{{ article.actual_link }}" class="read-more" target="_blank">Baca Selengkapnya</a>
+<div class="min-h-screen bg-brand-surface py-12 px-4 font-['Plus_Jakarta_Sans']">
+    <div class="max-w-7xl mx-auto">
+        
+        <div class="text-center mb-12">
+            <span class="inline-block py-1 px-3 rounded-full bg-blue-100 text-brand-blue text-xs font-bold uppercase tracking-wider mb-3">
+                <i class="fa-solid fa-newspaper mr-1"></i> Update Terkini
+            </span>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-brand-navy mb-4">
+                Berita & Informasi Digital
+            </h1>
+            <p class="text-slate-500 max-w-2xl mx-auto">
+                Dapatkan informasi terbaru seputar perkembangan TV Digital, frekuensi, dan teknologi penyiaran di Indonesia.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for article in articles %}
+            <article class="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col h-full group hover:-translate-y-1">
+                
+                <div class="flex justify-between items-center mb-4">
+                    <span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2.5 py-1 rounded-md uppercase tracking-wider border border-slate-200">
+                        <i class="fa-solid fa-globe mr-1 text-brand-blue"></i>
+                        {{ article.source.title if article.source else 'Berita' }}
+                    </span>
+                    <span class="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                        <i class="fa-regular fa-clock"></i>
+                        {{ article.time_since_published }}
+                    </span>
+                </div>
+
+                <h3 class="text-lg font-bold text-brand-navy mb-3 line-clamp-3 leading-snug group-hover:text-brand-blue transition-colors">
+                    <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">
+                        {{ article.title }}
+                    </a>
+                </h3>
+
+                <div class="mt-auto pt-4 border-t border-slate-50">
+                    <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-sm font-bold text-slate-500 hover:text-brand-blue transition-colors group/link">
+                        Baca Selengkapnya 
+                        <i class="fa-solid fa-arrow-right ml-2 transform group-hover/link:translate-x-1 transition-transform"></i>
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        {% if total_pages > 1 %}
+        <div class="mt-16 flex justify-center items-center gap-4">
+            {% if page > 1 %}
+            <a href="{{ url_for('berita', page=page-1) }}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold shadow-sm hover:bg-brand-blue hover:text-white hover:border-brand-blue transition-all flex items-center gap-2">
+                <i class="fa-solid fa-chevron-left text-xs"></i> Sebelumnya
+            </a>
+            {% else %}
+            <button disabled class="px-5 py-2.5 bg-slate-100 text-slate-400 rounded-xl font-bold border border-slate-200 cursor-not-allowed flex items-center gap-2 opacity-70">
+                <i class="fa-solid fa-chevron-left text-xs"></i> Sebelumnya
+            </button>
+            {% endif %}
+
+            <span class="text-sm font-bold text-slate-500 bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm">
+                Halaman <span class="text-brand-blue">{{ page }}</span> / {{ total_pages }}
+            </span>
+
+            {% if page < total_pages %}
+            <a href="{{ url_for('berita', page=page+1) }}" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold shadow-sm hover:bg-brand-blue hover:text-white hover:border-brand-blue transition-all flex items-center gap-2">
+                Berikutnya <i class="fa-solid fa-chevron-right text-xs"></i>
+            </a>
+            {% else %}
+            <button disabled class="px-5 py-2.5 bg-slate-100 text-slate-400 rounded-xl font-bold border border-slate-200 cursor-not-allowed flex items-center gap-2 opacity-70">
+                Berikutnya <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if not articles %}
+        <div class="text-center py-20">
+            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fa-regular fa-newspaper text-3xl text-slate-400"></i>
             </div>
-        {% endfor %}
-    </div>
-
-    <!-- Paginasi -->
-    <div class="paginasi">
-        {% if page > 1 %}
-            <a href="{{ url_for('berita', page=page-1) }}">Sebelumnya</a>
+            <h3 class="text-lg font-bold text-slate-700">Belum ada berita terbaru</h3>
+            <p class="text-slate-500 text-sm">Silakan cek kembali nanti.</p>
+        </div>
         {% endif %}
 
-        <span>Halaman {{ page }} dari {{ total_pages }}</span>
-
-        {% if page < total_pages %}
-            <a href="{{ url_for('berita', page=page+1) }}">Berikutnya</a>
-        {% endif %}
     </div>
+</div>
 {% endblock %}
