@@ -6,10 +6,25 @@
     <meta name="google-site-verification" content="aFor1zxHtm-oPfHoTIdxvVFAIapnM6_MeblwG_M4W2o">
     <title>{% block title %}Komunitas TV Digital Indonesia{% endblock %}</title>
     <link rel="icon" href="{{ url_for('static', filename='images/ktvdi.png') }}" type="image/x-icon" />
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8' } }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="{% block body_class %}default-page{% endblock %}">
+<body class="{% block body_class %}default-page{% endblock %} bg-gray-50">
     <header>
         <input type="checkbox" id="menu-toggle">
         <label for="menu-toggle" class="menu-icon">&#9776;</label>
@@ -20,19 +35,23 @@
         <nav>
             <ul>
                 <li><a href="/">Beranda</a></li>
-                <li><a href="/daftar-siaran">Daftar Siaran</a></li>
+                <li><a href="/cctv">CCTV Live</a></li> <li><a href="/jadwal-sholat">Jadwal Sholat</a></li> <li><a href="/daftar-siaran">Daftar Siaran</a></li>
                 <li><a href="/berita">Berita</a></li>
-                <li><a href="">Tentang</a></li>
-                <li><a href="/login" class="login">Login</a></li>
-                <li><a href="/register" class="register">Daftar</a></li>
+                <li><a href="/about">Tentang</a></li>
+                {% if session.get('user') %}
+                    <li><a href="/dashboard" class="login">Dashboard</a></li>
+                    <li><a href="/logout" class="register" style="background:red;">Keluar</a></li>
+                {% else %}
+                    <li><a href="/login" class="login">Login</a></li>
+                    <li><a href="/register" class="register">Daftar</a></li>
+                {% endif %}
             </ul>
         </nav>
     </header>
 
     <main>
     {% block content %}
-        <!-- Content from child templates will go here -->
-    {% endblock %}
+        {% endblock %}
     </main>
     
     <footer id="footers" style="display: none;">
@@ -54,40 +73,35 @@
           const statistictv = document.getElementById('statistic-tv');
           const footerss = document.getElementById('footers');
           const toggleBot = document.getElementById('chat-toggle');
-    
+       
           // Fungsi typewriter effect
           function typeWriter(element, text, i = 0, callback) {
-            if (i < text.length) {
+            if (element && i < text.length) {
               element.innerHTML = text.substring(0, i + 1);
               setTimeout(() => typeWriter(element, text, i + 1, callback), 90);
             } else if (callback) {
               callback();
             }
           }
-    
+       
           // Menggunakan URL untuk memeriksa apakah ini halaman utama
           const isHomePage = window.location.pathname === '/';  // Memeriksa apakah URL adalah halaman utama
-    
+       
           if (footerss) {
             if (isHomePage) {
               // Animasi typewriter untuk headline jika halaman utama
-              typeWriter(headline, headline.textContent, 0, () => {
-                paragraph.style.display = 'block';
-                paragraph.classList.add('fade-in-up');
-    
-                readMoreButton.style.display = 'block';
-                readMoreButton.classList.add('fade-in-up');
-    
-                statistictv.style.display = 'grid';
-                statistictv.classList.add('fade-in-up');
-
-                toggleBot.style.display = 'flex';
-                toggleBot.classList.add('fade-in-up');
-    
-                // Menampilkan footer setelah animasi selesai
-                footerss.style.display = 'block';
-                footerss.classList.add('fade-in-up');
-              });
+              if(headline) {
+                  typeWriter(headline, headline.textContent, 0, () => {
+                    if(paragraph) { paragraph.style.display = 'block'; paragraph.classList.add('fade-in-up'); }
+                    if(readMoreButton) { readMoreButton.style.display = 'block'; readMoreButton.classList.add('fade-in-up'); }
+                    if(statistictv) { statistictv.style.display = 'grid'; statistictv.classList.add('fade-in-up'); }
+                    if(toggleBot) { toggleBot.style.display = 'flex'; toggleBot.classList.add('fade-in-up'); }
+                    footerss.style.display = 'block';
+                    footerss.classList.add('fade-in-up');
+                  });
+              } else {
+                  footerss.style.display = 'block';
+              }
             } else {
               // Di halaman lain, footer langsung tampil
               footerss.style.display = 'block';
