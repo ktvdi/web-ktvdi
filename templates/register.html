@@ -1,44 +1,123 @@
 {% extends "base.html" %}
 
-{% block title %}Komunitas TV Digital Indonesia{% endblock %}
+{% block title %}Daftar - Komunitas TV Digital Indonesia{% endblock %}
 
 {% block content %}
+<div class="min-h-screen flex items-center justify-center bg-brand-surface py-12 px-4 relative overflow-hidden font-['Plus_Jakarta_Sans']">
+    
+    <div class="absolute top-0 left-0 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute top-0 right-0 w-96 h-96 bg-cyan-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-32 left-20 w-96 h-96 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
-  <div class="container">
-    <h1>Daftar Akun</h1>
-    <form method="POST">
-      <input type="text" name="nama" placeholder="Nama Lengkap" required>
-      <input type="email" name="email" placeholder="Email" required>
-      <input type="text" name="username" placeholder="Username (huruf kecil & angka)" pattern="[a-z0-9]+" required>
-      <div class="password-wrapper">
-        <input type="password" id="password" name="password" placeholder="Password" required>
-        <span class="toggle-password" onclick="togglePassword()">👁️</span>
-      </div>
-      <button type="submit">Daftar</button>
-    </form>
-    <a href="/login" class="forgot">← Sudah punya akun? Login</a>
-    <div class="flash-message-container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, msg in messages %}
-          <p class="{{ category }}">{{ msg }}</p>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <div class="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 relative z-10">
+        
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-blue/10 text-brand-blue mb-4 shadow-sm">
+                <i class="fa-solid fa-user-plus text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold text-brand-navy tracking-tight">Buat Akun Baru</h1>
+            <p class="text-slate-500 text-sm mt-2">Bergabunglah bersama komunitas kami.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-6 space-y-2">
+                {% for category, message in messages %}
+                    <div class="p-3 rounded-xl text-xs font-bold flex items-center gap-2 
+                        {{ 'bg-green-50 text-green-600 border border-green-200' if category == 'success' else 'bg-red-50 text-red-600 border border-red-200' }}">
+                        <i class="fa-solid {{ 'fa-check-circle' if category == 'success' else 'fa-circle-exclamation' }}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="/register" class="space-y-4">
+            
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-id-card text-slate-400 group-focus-within:text-brand-blue transition-colors"></i>
+                </div>
+                <input type="text" name="nama" placeholder="Nama Lengkap" required 
+                    class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all placeholder:text-slate-400">
+            </div>
+
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-envelope text-slate-400 group-focus-within:text-brand-blue transition-colors"></i>
+                </div>
+                <input type="email" name="email" placeholder="Alamat Email" required 
+                    class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all placeholder:text-slate-400">
+            </div>
+
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-at text-slate-400 group-focus-within:text-brand-blue transition-colors"></i>
+                </div>
+                <input type="text" name="username" placeholder="Username (huruf kecil & angka)" pattern="[a-z0-9]+" title="Hanya huruf kecil dan angka diperbolehkan" required 
+                    class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all placeholder:text-slate-400">
+            </div>
+
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-lock text-slate-400 group-focus-within:text-brand-blue transition-colors"></i>
+                </div>
+                <input type="password" id="password" name="password" placeholder="Password (Min. 8 Karakter)" required minlength="8"
+                    class="w-full pl-11 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-blue/50 focus:border-brand-blue transition-all placeholder:text-slate-400">
+                
+                <div class="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-brand-blue transition-colors" onclick="togglePassword()">
+                    <i id="eye-icon" class="fa-solid fa-eye"></i>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-brand-navy to-brand-blue hover:from-blue-800 hover:to-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-0.5 transition-all duration-300 mt-2">
+                Daftar Sekarang
+            </button>
+        </form>
+
+        <div class="mt-8 text-center border-t border-slate-100 pt-6">
+            <p class="text-sm text-slate-500">
+                Sudah punya akun? 
+                <a href="/login" class="text-brand-blue font-bold hover:underline transition">Masuk disini</a>
+            </p>
+        </div>
     </div>
-  </div>
-<script>
-  function togglePassword() {
-      const password = document.getElementById("password");
-      const toggle = document.querySelector(".toggle-password");
+</div>
 
-      if (password.type === "password") {
-        password.type = "text";
-        toggle.textContent = "🙈";
-      } else {
-        password.type = "password";
-        toggle.textContent = "👁️";
-      }
+<script>
+    function togglePassword() {
+        const passwordInput = document.getElementById("password");
+        const eyeIcon = document.getElementById("eye-icon");
+
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            eyeIcon.classList.remove("fa-eye");
+            eyeIcon.classList.add("fa-eye-slash");
+        } else {
+            passwordInput.type = "password";
+            eyeIcon.classList.remove("fa-eye-slash");
+            eyeIcon.classList.add("fa-eye");
+        }
     }
 </script>
+
+<style>
+    /* Animasi Blob Background */
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+        animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+        animation-delay: 2s;
+    }
+    .animation-delay-4000 {
+        animation-delay: 4s;
+    }
+</style>
 {% endblock %}
