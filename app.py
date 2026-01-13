@@ -145,11 +145,11 @@ def home():
     
     # Kirim jumlah siaran, jumlah penyelenggara mux, dan waktu pembaruan ke template
     return render_template('index.html', most_common_siaran_name=most_common_siaran_name,
-                                        most_common_siaran_count=most_common_siaran_count,
-                                        jumlah_wilayah_layanan=jumlah_wilayah_layanan,
-                                        jumlah_siaran=jumlah_siaran, 
-                                        jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
-                                        last_updated_time=last_updated_time)
+                                            most_common_siaran_count=most_common_siaran_count,
+                                            jumlah_wilayah_layanan=jumlah_wilayah_layanan,
+                                            jumlah_siaran=jumlah_siaran, 
+                                            jumlah_penyelenggara_mux=jumlah_penyelenggara_mux, 
+                                            last_updated_time=last_updated_time)
 
 @app.route('/', methods=['POST'])
 def chatbot():
@@ -724,61 +724,6 @@ def logout():
     session.pop('user', None)
     print("User logged out.")  # Debugging logout
     return redirect(url_for('login'))
-
-# ==========================================
-# 🆕 TAMBAHAN ROUTE: CCTV & JADWAL SHOLAT
-# ==========================================
-
-@app.route("/cctv")
-def cctv():
-    return render_template("cctv.html")
-
-@app.route("/jadwal-sholat")
-def jadwal_sholat_page():
-    # Daftar ID Kota (Menggunakan ID dari API MyQuran)
-    # Termasuk Purwodadi (Grobogan), Semarang, dan 15 kota besar lainnya
-    daftar_kota = [
-        {"id": "1106", "nama": "Purwodadi (Grobogan)"},
-        {"id": "1108", "nama": "Kota Semarang"},
-        {"id": "1301", "nama": "DKI Jakarta"},
-        {"id": "1630", "nama": "Kota Surabaya"},
-        {"id": "1219", "nama": "Kota Bandung"},
-        {"id": "0224", "nama": "Kota Medan"},
-        {"id": "1221", "nama": "Kota Bekasi"},
-        {"id": "2701", "nama": "Kota Makassar"},
-        {"id": "0612", "nama": "Kota Palembang"},
-        {"id": "1222", "nama": "Kota Depok"},
-        {"id": "3006", "nama": "Kota Tangerang"},
-        {"id": "3210", "nama": "Kota Batam"},
-        {"id": "0412", "nama": "Kota Pekanbaru"},
-        {"id": "1633", "nama": "Kota Malang"},
-        {"id": "1130", "nama": "Kota Surakarta (Solo)"},
-        {"id": "1009", "nama": "Kota Yogyakarta"},
-        {"id": "1701", "nama": "Kota Denpasar"}
-    ]
-    return render_template("jadwal-sholat.html", daftar_kota=daftar_kota)
-
-# API Proxy untuk Jadwal Sholat (Menghindari CORS di frontend)
-@app.route("/api/jadwal-sholat/<id_kota>")
-def get_jadwal_sholat(id_kota):
-    try:
-        # Menggunakan API Public MyQuran
-        # Format tanggal: YYYY/MM/DD
-        today = datetime.now().strftime("%Y/%m/%d")
-        url = f"https://api.myquran.com/v2/sholat/jadwal/{id_kota}/{today}"
-        
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            return jsonify(data)
-        else:
-            return jsonify({"status": "error", "message": "Gagal mengambil data dari sumber eksternal"}), 500
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-# ==========================================
-# AKHIR TAMBAHAN ROUTE
-# ==========================================
 
 @app.route("/test-firebase")
 def test_firebase():
