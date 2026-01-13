@@ -8,7 +8,7 @@
 <style>
     /* Islamic Pattern Background */
     .bg-islamic-pattern {
-        background-color: #f0fdf4; /* Emerald 50 */
+        background-color: #f0fdf4;
         background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     }
     
@@ -18,38 +18,86 @@
     .card-sholat.active {
         background: linear-gradient(135deg, #059669 0%, #047857 100%);
         color: white;
-        border-color: #059669;
+        border-color: #fbbf24; /* Gold Border */
         transform: translateY(-5px);
         box-shadow: 0 10px 20px -5px rgba(5, 150, 105, 0.4);
     }
-    .card-sholat.active .label-text { color: #d1fae5; }
+    .card-sholat.active .label-text { color: #fbbf24; } /* Gold text */
     .card-sholat.active .time-text { color: #ffffff; }
 
-    /* Custom Select2 Styling */
+    /* --- ISLAMIC SEARCH BAR STYLE (Custom Select2) --- */
+    .select2-container { width: 100% !important; }
+    
+    /* Kotak Utama Dropdown */
     .select2-container--default .select2-selection--single {
-        background-color: rgba(6, 78, 59, 0.8); /* Emerald 900 */
-        border: 1px solid #047857;
-        border-radius: 0.75rem; /* rounded-xl */
-        height: 50px;
+        background-color: #064e3b; /* Emerald 900 */
+        border: 1px solid #fbbf24; /* Gold Border */
+        border-radius: 12px;
+        height: 54px;
         display: flex;
         align-items: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
+    
+    /* Teks di dalam Dropdown */
     .select2-container--default .select2-selection--single .select2-selection__rendered {
-        color: white;
+        color: #f0fdf4; /* Light Green Text */
         font-weight: 600;
-        padding-left: 45px; /* Space for icon */
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        padding-left: 45px;
+        font-size: 15px;
     }
+    
+    /* Placeholder Text */
+    .select2-container--default .select2-selection--single .select2-selection__placeholder {
+        color: #a7f3d0;
+    }
+
+    /* Panah Dropdown */
     .select2-container--default .select2-selection--single .select2-selection__arrow {
-        height: 48px;
-        right: 10px;
+        height: 52px;
+        right: 15px;
     }
     .select2-container--default .select2-selection--single .select2-selection__arrow b {
-        border-color: #fff transparent transparent transparent;
+        border-color: #fbbf24 transparent transparent transparent; /* Gold Arrow */
+        border-width: 6px 5px 0 5px;
     }
+
+    /* Dropdown Menu saat dibuka */
     .select2-dropdown {
-        border-radius: 0.75rem;
-        border: 1px solid #e2e8f0;
+        background-color: #ffffff;
+        border: 1px solid #fbbf24;
+        border-radius: 12px;
+        overflow: hidden;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 9999;
+    }
+
+    /* Kotak Pencarian di dalam Dropdown */
+    .select2-search--dropdown .select2-search__field {
+        border: 1px solid #10b981;
+        border-radius: 8px;
+        padding: 8px;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Item List */
+    .select2-results__option {
+        padding: 10px 15px;
+        font-size: 14px;
+        color: #064e3b;
+        border-bottom: 1px solid #f0fdf4;
+    }
+
+    /* Item saat di-hover / dipilih */
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: #059669; /* Emerald 600 */
+        color: white;
+    }
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: #d1fae5;
+        color: #064e3b;
+        font-weight: bold;
     }
 </style>
 
@@ -85,10 +133,12 @@
                 
                 <div class="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                     <div>
-                        <label class="block text-xs font-bold text-emerald-200 mb-2 uppercase tracking-wider pl-1">Lokasi Anda</label>
+                        <label class="block text-xs font-bold text-yellow-400 mb-2 uppercase tracking-wider pl-1">
+                            <i class="fa-solid fa-map-location-dot mr-1"></i> Lokasi Anda
+                        </label>
                         <div class="relative">
-                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-300 z-20">
-                                <i class="fa-solid fa-location-dot"></i>
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-yellow-400 z-20 pointer-events-none">
+                                <i class="fa-solid fa-magnifying-glass"></i>
                             </div>
                             <select id="kotaSelect" class="w-full">
                                 <option value="" selected disabled>Cari Kota / Kabupaten...</option>
@@ -100,9 +150,19 @@
                     </div>
 
                     <div id="countdownBox" class="hidden text-center lg:text-right">
+                        
                         <div id="statusNormal">
                             <p class="text-emerald-200 text-xs font-bold uppercase tracking-widest mb-1">Menuju Waktu <span id="nextPrayerName" class="text-yellow-400 text-sm">...</span></p>
-                            <div class="text-5xl md:text-6xl font-mono font-bold text-white tracking-wider drop-shadow-md" id="countdownTimer">00:00:00</div>
+                            <div class="text-5xl md:text-6xl font-mono font-bold text-white tracking-wider drop-shadow-md transition-colors duration-300" id="countdownTimer">00:00:00</div>
+                            
+                            <div id="prePrayerAlert" class="mt-3 hidden">
+                                <div class="inline-block bg-yellow-500/20 border border-yellow-400/50 backdrop-blur-sm px-4 py-2 rounded-lg">
+                                    <p class="text-yellow-200 text-xs md:text-sm font-bold animate-pulse flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-bell"></i>
+                                        <span id="prePrayerMessage"></span>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                         
                         <div id="statusAzan" class="hidden animate-pulse">
@@ -153,7 +213,7 @@
                     </div>
 
                     <div id="card-Maghrib" class="card-sholat bg-white p-5 rounded-2xl border border-slate-100 text-center shadow-sm hover:shadow-md transition-all duration-300">
-                        <div class="label-text text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">MAGRIB</div>
+                        <div class="label-text text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">MAGHRIB</div>
                         <div id="time-Maghrib" class="time-text text-2xl font-black text-slate-800 font-amiri">--:--</div>
                     </div>
 
@@ -217,7 +277,6 @@
         $('#countdownBox').addClass('hidden');
 
         const date = new Date();
-        // API MyQuran / Aladhan Method 20 (Kemenag)
         const url = `https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${city}&country=Indonesia&method=20`;
 
         fetch(url)
@@ -251,8 +310,7 @@
     // 4. COUNTDOWN LOGIC
     function startCountdown(timings) {
         if (countdownInterval) clearInterval(countdownInterval);
-        if (azanTimeout) clearTimeout(azanTimeout);
-
+        
         // Reset UI Status
         document.getElementById('statusNormal').classList.remove('hidden');
         document.getElementById('statusAzan').classList.add('hidden');
@@ -280,7 +338,7 @@
 
                 let diff = pTime - now;
 
-                // Logika "Sedang Azan" (Selama 4 menit setelah waktu masuk)
+                // LOGIKA "SEDANG AZAN" (0 sampai -4 menit setelah waktu masuk)
                 // 4 menit = 240000 ms
                 if (diff <= 0 && diff > -240000) {
                     showAzanStatus(p.name);
@@ -294,7 +352,7 @@
                 }
             }
 
-            if (isAzanTime) return; // Stop update countdown jika sedang azan
+            if (isAzanTime) return; // Stop jika sedang azan
 
             // Jika semua lewat hari ini, target Imsak besok
             if (!nextPrayer) {
@@ -318,11 +376,33 @@
             timerEl.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             document.getElementById('nextPrayerName').innerText = nextPrayer.name;
 
+            // --- FITUR PESAN KHUSUS (H-MENIT) ---
+            const msgBox = document.getElementById('prePrayerAlert');
+            const msgText = document.getElementById('prePrayerMessage');
+            
+            // Konversi sisa waktu ke menit untuk cek kondisi
+            const minutesLeft = Math.floor(minDiff / 60000);
+
+            // Logika Pesan
+            if (nextPrayer.name === 'IMSAK' && minutesLeft <= 5) {
+                // H-5 Menit Imsak
+                msgBox.classList.remove('hidden');
+                msgText.innerText = "Ayo makan atau minumnya dipercepat, jangan lupa niat puasa, gosok gigi, dan ke kamar mandi ya sebelum Imsak!";
+            } 
+            else if (['ASHAR', 'MAGHRIB', 'ISYA'].includes(nextPrayer.name) && minutesLeft <= 10) {
+                // H-10 Menit Sholat (Ashar, Maghrib, Isya)
+                msgBox.classList.remove('hidden');
+                msgText.innerText = "Sobat KTVDI sudah Sholat belum? Udah mau waktu selanjutnya nih!";
+            } 
+            else {
+                msgBox.classList.add('hidden');
+            }
+
             // Highlight Card
             $('.card-sholat').removeClass('active');
             $(`#${nextPrayer.id}`).addClass('active');
 
-            // Warna Merah jika < 60 detik (bukan 30, biar lebih siap)
+            // Warna Merah jika < 60 detik
             if (minDiff < 60000) {
                 timerEl.classList.remove('text-white');
                 timerEl.classList.add('text-red-400', 'animate-pulse');
@@ -339,14 +419,12 @@
         document.getElementById('statusAzan').classList.remove('hidden');
         document.getElementById('azanMessage').innerText = `WAKTU ${prayerName}`;
         
-        // Highlight card yang sedang azan
-        let cardId = '';
-        if(prayerName === 'IMSAK') cardId = 'card-Imsak';
-        else if(prayerName === 'SUBUH') cardId = 'card-Fajr';
-        else if(prayerName === 'DZUHUR') cardId = 'card-Dhuhr';
-        else if(prayerName === 'ASHAR') cardId = 'card-Asr';
-        else if(prayerName === 'MAGHRIB') cardId = 'card-Maghrib';
-        else if(prayerName === 'ISYA') cardId = 'card-Isha';
+        // Highlight card
+        let cardId = 'card-' + (prayerName === 'DZUHUR' ? 'Dhuhr' : 
+                               prayerName === 'ASHAR' ? 'Asr' : 
+                               prayerName === 'ISYA' ? 'Isha' : 
+                               prayerName === 'IMSAK' ? 'Imsak' : 
+                               prayerName === 'SUBUH' ? 'Fajr' : 'Maghrib');
 
         $('.card-sholat').removeClass('active');
         $(`#${cardId}`).addClass('active');
