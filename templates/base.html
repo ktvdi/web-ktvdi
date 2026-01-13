@@ -18,8 +18,9 @@
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
                     animation: { 
-                        'marquee': 'marquee 80s linear infinite', /* DIPERLAMBAT KE 80s */
-                        'shine': 'shine 3s linear infinite' 
+                        'marquee': 'marquee 80s linear infinite', 
+                        'shine': 'shine 3s linear infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
                     },
                     keyframes: { 
                         marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-100%)' } },
@@ -145,7 +146,14 @@
         </div>
     </div>
 
-    <div class="fixed bottom-20 right-4 z-50">
+    <div class="fixed bottom-24 left-6 z-[60] group">
+        <a href="tel:112" class="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white p-3.5 rounded-full shadow-2xl shadow-red-600/30 transition-all duration-300 hover:pr-6 group-hover:w-auto overflow-hidden ring-4 ring-red-500/20 transform hover:-translate-y-1">
+            <i class="fa-solid fa-phone-volume text-xl animate-pulse"></i>
+            <span class="font-bold text-xs whitespace-nowrap w-0 group-hover:w-auto overflow-hidden transition-all duration-300 pl-0 group-hover:pl-1">DARURAT 112</span>
+        </a>
+    </div>
+
+    <div class="fixed bottom-24 right-6 z-[60]">
         <div id="chat-window" class="hidden w-[85vw] md:w-[350px] bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden mb-2 transform origin-bottom-right transition-all">
             <div class="bg-brand-navy p-4 flex justify-between items-center text-white">
                 <div class="flex items-center gap-2"><i class="fa-solid fa-robot"></i> <span class="font-bold text-sm">MODI - AI KTVDI</span></div>
@@ -165,7 +173,7 @@
                 </form>
             </div>
         </div>
-        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl flex items-center justify-center text-2xl hover:scale-110 transition border-4 border-white transform active:scale-95">
+        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl shadow-blue-600/30 flex items-center justify-center text-2xl hover:scale-110 transition border-4 border-white transform active:scale-95">
             <i class="fa-solid fa-comment-dots"></i>
         </button>
     </div>
@@ -174,22 +182,17 @@
         function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
         
-        // JAM REAL-TIME LOKAL
         setInterval(() => { 
             const now = new Date();
             const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
             document.getElementById('clock').innerText = timeString; 
         }, 1000);
         
-        // FETCH TICKER DENGAN SET UNTUK HILANGKAN DUPLIKAT
         async function updateTicker() {
             try {
                 const res = await fetch('/api/news-ticker');
                 const news = await res.json();
-                
-                // Set digunakan untuk membersihkan duplikat
                 const uniqueNews = [...new Set(news)];
-                
                 let html = "";
                 if(uniqueNews.length > 0) {
                     uniqueNews.forEach(n => {
@@ -205,7 +208,6 @@
         }
         updateTicker();
 
-        // Chatbot Logic
         async function handleChat(e) {
             e.preventDefault();
             const inp = document.getElementById('chat-input');
