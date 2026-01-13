@@ -172,6 +172,7 @@
         
         channels.forEach((ch, idx) => {
             const div = document.createElement('div');
+            // MODERN CARD
             div.className = "bg-slate-800 rounded-3xl overflow-hidden border border-slate-700/50 hover:border-brand-blue/50 transition-all duration-500 group relative shadow-2xl hover:shadow-brand-blue/10 hover:-translate-y-1";
             
             let playerContent = '';
@@ -187,6 +188,14 @@
                         </div>
                         <span class="text-xs text-brand-sky font-bold tracking-widest uppercase animate-pulse">Memuat Siaran...</span>
                     </div>
+                    
+                    <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/60 unmute-overlay opacity-0 hover:opacity-100 transition-opacity cursor-pointer group-video" onclick="unmuteVideo('vid-${idx}', this)">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 px-6 py-3 rounded-full flex items-center gap-3 transform group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-volume-high text-white text-xl"></i>
+                            <span class="text-white font-bold text-sm tracking-wide">BUNYIKAN SUARA</span>
+                        </div>
+                    </div>
+
                     <video id="vid-${idx}" class="w-full h-full object-cover rounded-t-3xl" controls playsinline muted></video>
                 `;
             }
@@ -199,7 +208,7 @@
                 <div class="p-5 bg-gradient-to-b from-slate-800 to-slate-900 border-t border-white/5">
                     <div class="flex items-center justify-between mb-2">
                         ${ch.type !== 'youtube' ? `
-                        <div class="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded text-[10px] font-bold text-red-400 tracking-wider">
+                        <div class="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-full text-[10px] font-bold text-red-400 tracking-wider">
                             <span class="relative flex h-1.5 w-1.5">
                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                               <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
@@ -229,11 +238,12 @@
                 video.addEventListener('canplay', () => { 
                     spinner.style.opacity = '0'; 
                     setTimeout(() => spinner.remove(), 500); 
+                    // Show unmute button hint
+                    div.querySelector('.unmute-overlay').style.opacity = '1';
+                    setTimeout(() => { div.querySelector('.unmute-overlay').classList.remove('opacity-0'); }, 2000); 
                 });
                 
-                video.addEventListener('waiting', () => { 
-                    if(spinner) spinner.style.opacity = '1'; 
-                });
+                video.addEventListener('waiting', () => { if(spinner) spinner.style.opacity = '1'; });
 
                 if(Hls.isSupported()) {
                     const hls = new Hls();
@@ -245,5 +255,15 @@
             }
         });
     });
+
+    // Helper Unmute
+    function unmuteVideo(id, btn) {
+        const v = document.getElementById(id);
+        if(v) {
+            v.muted = false;
+            v.volume = 1.0;
+            btn.style.display = 'none'; // Sembunyikan tombol
+        }
+    }
 </script>
 {% endblock %}
