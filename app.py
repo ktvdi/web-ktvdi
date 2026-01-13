@@ -20,7 +20,7 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-# --- KONEKSI FIREBASE ---
+# --- KONEKSI FIREBASE (Pastikan creds benar) ---
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -89,18 +89,17 @@ def home():
 @app.route("/api/news-ticker")
 def news_ticker():
     try:
-        # Menggunakan Google News RSS (Campuran)
+        # Google News RSS (Berita Umum)
         feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
         news_list = []
-        for entry in feed.entries[:15]: # Ambil 15 berita
-            # Format: "Judul Berita - Nama Media"
-            # Biasanya Google News formatnya: "Judul - Sumber"
+        for entry in feed.entries[:15]:
             title = entry.title
+            # Bersihkan nama media jika formatnya "Judul - Media"
             if ' - ' in title:
-                parts = title.rsplit(' - ', 1) # Pisahkan judul dan sumber dari belakang
+                parts = title.rsplit(' - ', 1)
                 judul = parts[0]
                 sumber = parts[1]
-                # Format output: [SUMBER] Judul
+                # Format HTML untuk Running Text
                 clean_title = f"<span class='text-brand-blue font-black'>[{sumber}]</span> {judul}"
                 news_list.append(clean_title)
             else:
