@@ -18,8 +18,8 @@
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
                     animation: { 
-                        'marquee': 'marquee 45s linear infinite', /* DIPERCEPAT */
-                        'shine': 'shine 3s linear infinite'
+                        'marquee': 'marquee 45s linear infinite', 
+                        'shine': 'shine 3s linear infinite' 
                     },
                     keyframes: { 
                         marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-100%)' } },
@@ -185,16 +185,30 @@
     <script>
         function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('hidden'); }
         function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'}); }, 1000);
         
-        // FETCH NEWS TICKER (REALTIME)
+        // JAM REAL-TIME (Sesuai Perangkat User)
+        setInterval(() => { 
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', {
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            });
+            document.getElementById('clock').innerText = timeString; 
+        }, 1000);
+        
+        // FETCH TICKER BERITA (Anti-Duplikat & Ada Nama Media)
         async function updateTicker() {
             try {
                 const res = await fetch('/api/news-ticker');
                 const news = await res.json();
+                
+                // Gunakan Set untuk hilangkan duplikat
+                const uniqueNews = [...new Set(news)];
+                
                 let html = "";
-                if(news.length > 0) {
-                    news.forEach(n => {
+                if(uniqueNews.length > 0) {
+                    uniqueNews.forEach(n => {
                         html += `<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span> <span class="mx-4 text-slate-300">|</span>`;
                     });
                 } else {
