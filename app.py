@@ -20,7 +20,7 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-# --- KONEKSI FIREBASE (Tetap Sama) ---
+# --- KONEKSI FIREBASE ---
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -45,7 +45,7 @@ except:
     ref = None
     print("❌ Firebase Error")
 
-# --- CONFIG LAINNYA ---
+# --- CONFIG ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -85,21 +85,44 @@ def home():
                             if 'siaran' in mux: stats['channel'] += len(mux['siaran'])
     return render_template('index.html', stats=stats)
 
-# --- API NEWS TICKER (BERITA UMUM NASIONAL) ---
+# --- API NEWS TICKER ---
 @app.route("/api/news-ticker")
 def news_ticker():
     try:
-        # Mengambil Berita Nasional dari CNN Indonesia (Update Realtime)
-        feed = feedparser.parse('https://www.cnnindonesia.com/nasional/rss')
-        # Ambil 10 Judul Berita
-        news = [entry.title for entry in feed.entries[:10]]
-        return jsonify(news)
+        # Menggunakan Google News RSS (Campuran)
+        feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
+        news_list = []
+        for entry in feed.entries[:15]: # Ambil 15 berita
+            # Format: "Judul Berita - Nama Media"
+            # Biasanya Google News formatnya: "Judul - Sumber"
+            title = entry.title
+            if ' - ' in title:
+                parts = title.rsplit(' - ', 1) # Pisahkan judul dan sumber dari belakang
+                judul = parts[0]
+                sumber = parts[1]
+                # Format output: [SUMBER] Judul
+                clean_title = f"<span class='text-brand-blue font-black'>[{sumber}]</span> {judul}"
+                news_list.append(clean_title)
+            else:
+                news_list.append(title)
+        
+        return jsonify(news_list)
     except: 
-        return jsonify(["Selamat Datang di KTVDI", "Cek Jadwal Sholat Terupdate", "Nonton TV Digital Gratis"])
+        return jsonify([])
+
+@app.route('/', methods=['POST'])
+def chatbot():
+    data = request.get_json()
+    try:
+        res = model.generate_content(data.get("prompt"))
+        return jsonify({"response": res.text})
+    except: return jsonify({"error": "AI Busy"})
+
+@app.route("/cctv")
+def cctv_page(): return render_template("cctv.html")
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # Daftar Kota (Nama harus sesuai ejaan umum agar terbaca API Aladhan)
     daftar_kota = [
         "Jakarta", "Surabaya", "Bandung", "Semarang", "Medan", "Makassar", 
         "Palembang", "Bekasi", "Tangerang", "Depok", "Pekalongan", "Grobogan", 
@@ -111,21 +134,7 @@ def jadwal_sholat_page():
         "Sorong", "Tasikmalaya", "Cimahi", "Magelang", "Salatiga", "Batu", 
         "Kediri", "Madiun"
     ]
-    # Sortir Abjad
     return render_template("jadwal-sholat.html", daftar_kota=sorted(daftar_kota))
-
-# --- ROUTE LAINNYA (LOGIN, REGISTER, DLL) TETAP SAMA ---
-# (Pastikan route login, register, dashboard, dll tetap ada seperti file sebelumnya)
-@app.route('/', methods=['POST'])
-def chatbot():
-    data = request.get_json()
-    try:
-        res = model.generate_content(data.get("prompt"))
-        return jsonify({"response": res.text})
-    except: return jsonify({"error": "AI Busy"})
-
-@app.route("/cctv")
-def cctv_page(): return render_template("cctv.html")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -208,7 +217,7 @@ def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi'
 
 @app.route('/berita')
 def berita():
-    feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+    feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
     articles = feed.entries
     page = request.args.get('page', 1, type=int)
     per_page = 6
