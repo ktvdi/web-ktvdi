@@ -1,103 +1,72 @@
 {% extends 'base.html' %}
-
 {% block title %}Jadwal Sholat - KTVDI{% endblock %}
-
 {% block content %}
-<div class="min-h-screen bg-brand-surface py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans']">
-    <div class="max-w-4xl mx-auto">
+<div class="min-h-screen bg-brand-surface py-12 px-4 font-['Plus_Jakarta_Sans']">
+    <div class="max-w-4xl mx-auto bg-white rounded-3xl shadow-xl border border-slate-100 p-8">
+        <h1 class="text-3xl font-extrabold text-brand-navy text-center mb-8">Jadwal Sholat & Imsakiyah</h1>
+        <div class="mb-8">
+            <select id="kotaSelect" onchange="loadJadwal()" class="block w-full p-4 border border-slate-200 rounded-xl bg-slate-50 font-bold text-slate-700 focus:ring-2 focus:ring-brand-blue cursor-pointer">
+                <option value="" selected disabled>-- Pilih Lokasi Anda (50 Kota) --</option>
+                {% for kota in daftar_kota %}
+                <option value="{{ kota.id }}">{{ kota.nama }}</option>
+                {% endfor %}
+            </select>
+        </div>
         
-        <div class="text-center mb-10">
-            <span class="inline-block py-1 px-3 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider mb-3">
-                <i class="fa-solid fa-mosque mr-1"></i> Ibadah
-            </span>
-            <h1 class="text-3xl md:text-4xl font-extrabold text-brand-navy mb-4">
-                Jadwal Sholat Digital
-            </h1>
-            <p class="text-slate-500 max-w-lg mx-auto">
-                Cek waktu sholat akurat untuk wilayah Purwodadi, Semarang, dan kota besar lainnya di Indonesia.
-            </p>
+        <div id="loading" class="hidden text-center py-8">
+            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-brand-blue"></i>
+            <p class="text-slate-400 mt-2">Mengambil data...</p>
         </div>
 
-        <div class="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden relative">
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-brand-blue"></div>
-            <div class="absolute -top-20 -right-20 w-64 h-64 bg-green-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+        <div id="jadwalResult" class="hidden">
+            <div class="text-center mb-8">
+                <h2 id="namaKotaDisplay" class="text-2xl font-bold text-brand-navy"></h2>
+                <p class="text-slate-500 text-sm">Waktu Indonesia Barat/Tengah/Timur</p>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
+                <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 hover:shadow-md transition">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">IMSAK</div>
+                    <div id="imsak" class="text-2xl font-extrabold text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-mug-hot text-blue-300 mt-2"></i>
+                </div>
 
-            <div class="p-6 md:p-10 relative z-10">
-                
-                <div class="mb-8">
-                    <label for="kotaSelect" class="block text-sm font-bold text-slate-700 mb-2">Pilih Lokasi Anda</label>
-                    <div class="relative">
-                        <select id="kotaSelect" onchange="loadJadwal()" class="block w-full pl-4 pr-10 py-3 text-base border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-xl transition shadow-sm appearance-none cursor-pointer text-slate-700 font-semibold">
-                            <option value="" selected disabled>-- Cari Kota --</option>
-                            {% for kota in daftar_kota %}
-                            <option value="{{ kota.id }}">{{ kota.nama }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                            <i class="fa-solid fa-location-dot"></i>
-                        </div>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">SUBUH</div>
+                    <div id="subuh" class="text-2xl font-extrabold text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-cloud-sun text-slate-300 mt-2"></i>
+                </div>
+
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">DZUHUR</div>
+                    <div id="dzuhur" class="text-2xl font-extrabold text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-sun text-yellow-400 mt-2"></i>
+                </div>
+
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">ASHAR</div>
+                    <div id="ashar" class="text-2xl font-extrabold text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-sun-plant-wilt text-orange-300 mt-2"></i>
+                </div>
+
+                <div class="bg-brand-navy p-6 rounded-2xl border border-brand-navy shadow-lg transform scale-105 ring-4 ring-brand-navy/10 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-brand-blue opacity-10"></div>
+                    <div class="relative z-10">
+                        <div class="text-xs text-brand-sky font-bold tracking-widest mb-1">MAGHRIB</div>
+                        <div id="maghrib" class="text-2xl font-extrabold text-white">--:--</div>
+                        <i class="fa-solid fa-moon text-brand-sky mt-2"></i>
                     </div>
                 </div>
 
-                <div id="loading" class="hidden text-center py-10">
-                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-green-500 mb-3"></i>
-                    <p class="text-slate-500 font-medium animate-pulse">Mengambil data dari Kemenag...</p>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 hover:shadow-md transition">
+                    <div class="text-xs text-slate-500 font-bold tracking-widest mb-1">ISYA</div>
+                    <div id="isya" class="text-2xl font-extrabold text-brand-navy">--:--</div>
+                    <i class="fa-solid fa-star text-indigo-300 mt-2"></i>
                 </div>
-
-                <div id="jadwalResult" class="hidden animate-fade-in-up">
-                    <div class="flex flex-col md:flex-row justify-between items-end mb-8 border-b border-slate-100 pb-4">
-                        <div>
-                            <h2 id="namaKotaDisplay" class="text-2xl font-bold text-brand-navy">Nama Kota</h2>
-                            <p class="text-slate-400 text-sm mt-1"><i class="fa-regular fa-calendar mr-2"></i> <span id="tanggalDisplay">-</span></p>
-                        </div>
-                        <div class="mt-4 md:mt-0">
-                            <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-lg">WIB / WITA / WIT</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 hover:border-green-300 transition hover:bg-green-50 group">
-                            <div class="text-xs text-slate-500 font-bold uppercase mb-1">Subuh</div>
-                            <div id="subuh" class="text-xl font-extrabold text-brand-navy group-hover:text-green-600">--:--</div>
-                            <i class="fa-solid fa-cloud-sun text-slate-300 mt-2 text-sm group-hover:text-green-400"></i>
-                        </div>
-
-                        <div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 hover:border-yellow-300 transition hover:bg-yellow-50 group">
-                            <div class="text-xs text-slate-500 font-bold uppercase mb-1">Dzuhur</div>
-                            <div id="dzuhur" class="text-xl font-extrabold text-brand-navy group-hover:text-yellow-600">--:--</div>
-                            <i class="fa-solid fa-sun text-slate-300 mt-2 text-sm group-hover:text-yellow-400"></i>
-                        </div>
-
-                        <div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 hover:border-orange-300 transition hover:bg-orange-50 group">
-                            <div class="text-xs text-slate-500 font-bold uppercase mb-1">Ashar</div>
-                            <div id="ashar" class="text-xl font-extrabold text-brand-navy group-hover:text-orange-600">--:--</div>
-                            <i class="fa-solid fa-sun-plant-wilt text-slate-300 mt-2 text-sm group-hover:text-orange-400"></i>
-                        </div>
-
-                        <div class="bg-brand-navy p-4 rounded-2xl text-center border border-brand-navy shadow-lg transform scale-105 ring-4 ring-brand-navy/10 relative overflow-hidden">
-                            <div class="absolute inset-0 bg-brand-blue opacity-20"></div>
-                            <div class="relative z-10">
-                                <div class="text-xs text-brand-sky font-bold uppercase mb-1">Maghrib</div>
-                                <div id="maghrib" class="text-2xl font-extrabold text-white">--:--</div>
-                                <i class="fa-solid fa-moon text-brand-sky mt-2 text-sm"></i>
-                            </div>
-                        </div>
-
-                        <div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 hover:border-indigo-300 transition hover:bg-indigo-50 group">
-                            <div class="text-xs text-slate-500 font-bold uppercase mb-1">Isya</div>
-                            <div id="isya" class="text-xl font-extrabold text-brand-navy group-hover:text-indigo-600">--:--</div>
-                            <i class="fa-solid fa-star text-slate-300 mt-2 text-sm group-hover:text-indigo-400"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-3">
-                        <i class="fa-solid fa-circle-info text-brand-blue mt-0.5"></i>
-                        <p class="text-xs text-slate-600 leading-relaxed">
-                            <strong>Catatan:</strong> Waktu sholat diambil berdasarkan koordinat pusat kota dari Kemenag RI. Mohon tambahkan waktu ihtiyati ± 2 menit untuk keamanan waktu sholat Anda.
-                        </p>
-                    </div>
-
-                </div>
+            </div>
+            
+            <div class="mt-8 text-center text-xs text-slate-400">
+                <i class="fa-solid fa-circle-info mr-1"></i> Data bersumber dari Kemenag RI via MyQuran API. Tambahkan waktu ihtiyati ± 2 menit.
             </div>
         </div>
     </div>
@@ -105,38 +74,27 @@
 
 <script>
     function loadJadwal() {
-        const kotaId = document.getElementById('kotaSelect').value;
-        const kotaNama = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
+        const id = document.getElementById('kotaSelect').value;
+        const nama = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
         
-        if (!kotaId) return;
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('jadwalResult').classList.add('hidden');
 
-        const loading = document.getElementById('loading');
-        const result = document.getElementById('jadwalResult');
-
-        loading.classList.remove('hidden');
-        result.classList.add('hidden');
-
-        fetch(`/api/jadwal-sholat/${kotaId}`)
-            .then(response => response.json())
-            .then(data => {
-                const jadwal = data.data.jadwal;
-                
-                document.getElementById('namaKotaDisplay').innerText = kotaNama;
-                document.getElementById('tanggalDisplay').innerText = jadwal.tanggal;
-                
-                document.getElementById('subuh').innerText = jadwal.subuh;
-                document.getElementById('dzuhur').innerText = jadwal.dzuhur;
-                document.getElementById('ashar').innerText = jadwal.ashar;
-                document.getElementById('maghrib').innerText = jadwal.maghrib;
-                document.getElementById('isya').innerText = jadwal.isya;
-
-                loading.classList.add('hidden');
-                result.classList.remove('hidden');
-            })
-            .catch(error => {
-                alert('Gagal mengambil data jadwal sholat. Silakan coba lagi.');
-                loading.classList.add('hidden');
-            });
+        fetch(`/api/jadwal-sholat/${id}`).then(r=>r.json()).then(d=>{
+            const j = d.data.jadwal;
+            document.getElementById('namaKotaDisplay').innerText = nama + " - " + j.tanggal;
+            
+            // Isi Data
+            document.getElementById('imsak').innerText = j.imsak;
+            document.getElementById('subuh').innerText = j.subuh;
+            document.getElementById('dzuhur').innerText = j.dzuhur;
+            document.getElementById('ashar').innerText = j.ashar;
+            document.getElementById('maghrib').innerText = j.maghrib;
+            document.getElementById('isya').innerText = j.isya;
+            
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('jadwalResult').classList.remove('hidden');
+        });
     }
 </script>
 {% endblock %}
