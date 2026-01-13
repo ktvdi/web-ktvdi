@@ -12,8 +12,6 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-import atexit
 
 load_dotenv()
 
@@ -70,26 +68,18 @@ def time_since_published(published_time):
         return "Baru saja"
     except: return ""
 
-# --- FUNGSI BANTUAN DATA ---
-
+# --- FUNGSI BANTUAN ---
 def get_bmkg_weather():
-    """Mengambil Data Cuaca Harian dari API BMKG (XML) - Contoh: DKI Jakarta"""
     try:
-        # Endpoint Data Terbuka BMKG
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-DKIJakarta.xml"
         response = requests.get(url)
         if response.status_code == 200:
             root = ET.fromstring(response.content)
-            # Ambil cuaca hari ini untuk Jakarta Pusat (Area ID: 501195)
-            # Ini hanya contoh parsing sederhana, bisa disesuaikan
             weather_desc = []
             for area in root.findall(".//area[@description='Jakarta Pusat']"):
                 for parameter in area.findall("parameter[@id='weather']"):
-                    # Ambil prediksi jam pertama (00:00 atau terdekat)
                     timerange = parameter.find("timerange")
                     value = timerange.find("value").text
-                    
-                    # Kode Cuaca BMKG (Sederhana)
                     weather_codes = {
                         "0": "Cerah", "1": "Cerah Berawan", "2": "Cerah Berawan", "3": "Berawan", 
                         "4": "Berawan Tebal", "5": "Udara Kabur", "10": "Asap", "45": "Kabut", 
@@ -99,40 +89,34 @@ def get_bmkg_weather():
                     cuaca = weather_codes.get(value, "Berawan")
                     weather_desc.append(f"Jakarta Pusat: {cuaca}")
                     break 
-            
-            return " | ".join(weather_desc) if weather_desc else "Data Cuaca Tidak Tersedia"
-        return "Gagal mengambil data BMKG"
-    except Exception as e:
-        return f"Error BMKG: {str(e)}"
+            return " | ".join(weather_desc) if weather_desc else "Cerah Berawan"
+        return "Data Cuaca Tidak Tersedia"
+    except: return "Gagal mengambil data BMKG"
 
 def get_daily_news_summary():
-    """Mengambil 5 Berita Teratas"""
     try:
         feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
         summary = ""
         for i, entry in enumerate(feed.entries[:5], 1):
             summary += f"{i}. {entry.title}\n   ({entry.link})\n\n"
         return summary
-    except:
-        return "Gagal memuat berita harian."
+    except: return "Gagal memuat berita harian."
 
-# --- SCHEDULER (BLAST EMAIL JAM 19.00) ---
-
-def send_daily_blast():
-    with app.app_context():
+# --- ROUTE CRON JOB (Pengganti Scheduler) ---
+@app.route("/api/cron/daily-blast", methods=['GET'])
+def trigger_daily_blast():
+    # Keamanan sederhana: Cek apakah request dari Vercel Cron
+    # (Opsional, tapi disarankan)
+    
+    try:
         print(f"⏰ Memulai Blast Email Harian... {datetime.now()}")
-        
-        # 1. Ambil Data
         users_data = ref.child('users').get()
-        if not users_data:
-            print("Tidak ada user untuk dikirim.")
-            return
+        if not users_data: return jsonify({"status": "No users found"}), 200
 
         cuaca = get_bmkg_weather()
         berita = get_daily_news_summary()
         tanggal = datetime.now().strftime("%d %B %Y")
-
-        # 2. Kirim Email ke Setiap User
+        
         count = 0
         for uid, user in users_data.items():
             email_dest = user.get('email')
@@ -161,19 +145,11 @@ Tim Komunitas TV Digital Indonesia
                 except Exception as e:
                     print(f"Gagal kirim ke {email_dest}: {e}")
         
-        print(f"✅ Blast Email Selesai. Terkirim ke {count} pengguna.")
+        return jsonify({"status": "Success", "sent_count": count}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-# Inisialisasi Scheduler
-scheduler = BackgroundScheduler()
-# Set jam 19:00 WIB (Server time mungkin UTC, sesuaikan jika perlu. Default asumsi local time server)
-scheduler.add_job(func=send_daily_blast, trigger="cron", hour=19, minute=0)
-scheduler.start()
-
-# Matikan scheduler saat app berhenti
-atexit.register(lambda: scheduler.shutdown())
-
-
-# --- ROUTES ---
+# --- ROUTES REGULER ---
 
 @app.route("/")
 def home():
@@ -246,7 +222,6 @@ def login():
         return render_template('login.html', error="Username atau Password Salah")
     return render_template('login.html')
 
-# --- ROUTE REGISTER (EMAIL SAMBUTAN) ---
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -293,12 +268,10 @@ def verify_register():
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
         if p and str(p['otp']) == request.form.get("otp"):
-            # 1. Simpan User Resmi
             ref.child(f'users/{u}').set({"nama":p['nama'], "email":p['email'], "password":p['password'], "points":0})
             ref.child(f'pending_users/{u}').delete()
             session.pop('pending_username', None)
             
-            # 2. KIRIM EMAIL SAMBUTAN ANGGOTA RESMI
             try:
                 msg = Message("Selamat Datang! Anda Resmi Menjadi Anggota KTVDI", recipients=[p['email']])
                 msg.body = f"""Halo {p['nama']},
@@ -306,19 +279,14 @@ def verify_register():
 Selamat! Akun Anda telah berhasil diverifikasi.
 Sekarang Anda sudah TERDAFTAR RESMI sebagai anggota keluarga besar Komunitas TV Digital Indonesia (KTVDI).
 
-Dengan akun ini, Anda dapat:
-- Mengakses Dashboard Kontributor
-- Melaporkan status sinyal MUX
-- Berdiskusi di forum komunitas
-
-Jangan lupa untuk selalu menjaga kerahasiaan akun Anda.
+Akun Anda:
+Username: {u}
 
 Salam hangat,
 Admin KTVDI
 """
                 mail.send(msg)
-            except Exception as e:
-                print(f"Gagal kirim email sambutan: {e}")
+            except: pass
 
             flash("Registrasi Berhasil! Silakan Login.", "success")
             return redirect(url_for('login'))
@@ -326,12 +294,10 @@ Admin KTVDI
         
     return render_template("verify-register.html", username=u)
 
-# --- ROUTE LUPA PASSWORD (EMAIL REMINDER) ---
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
         email_input = request.form.get("email")
-        
         target_user = None
         target_name = "Sobat"
         all_users = ref.child('users').get()
@@ -349,8 +315,8 @@ def forgot_password():
             
         otp = str(random.randint(100000, 999999))
         session['reset_user'] = target_user
-        session['reset_name'] = target_name # Simpan nama untuk email konfirmasi nanti
-        session['reset_email'] = email_input # Simpan email
+        session['reset_name'] = target_name
+        session['reset_email'] = email_input
         session['reset_otp'] = otp
         
         try:
@@ -359,13 +325,10 @@ def forgot_password():
 
 Kami menerima permintaan reset password.
 Kode OTP Anda: {otp}
-
-Jika bukan Anda, abaikan pesan ini.
 """
             mail.send(msg)
             return redirect(url_for('verify_reset'))
-        except Exception as e:
-            print(f"EMAIL ERROR: {e}")
+        except:
             flash("Gagal mengirim email.", "error")
             
     return render_template("forgot-password.html")
@@ -393,32 +356,21 @@ def reset_password():
             nama = session.get('reset_name', 'Sobat')
             email = session.get('reset_email')
             
-            # 1. Update Password
             ref.child(f'users/{uid}').update({"password": hash_password(new_pass)})
             
-            # 2. KIRIM EMAIL PENGINGAT AKUN
             if email:
                 try:
                     msg = Message("Password Berhasil Diubah - Ingat Akun Anda!", recipients=[email])
                     msg.body = f"""Halo {nama},
 
-Password akun KTVDI Anda telah berhasil diperbarui.
+Password akun KTVDI Anda telah diperbarui.
+Username Anda: {uid}
 
-MOHON DIINGAT:
-Username: {uid}
-Password: (Password baru yang baru saja Anda buat)
-
-Pastikan Anda mencatat atau mengingat kredensial ini agar tidak kehilangan akses ke komunitas di masa mendatang.
-Jika Anda tidak melakukan perubahan ini, segera hubungi admin.
-
-Salam aman,
-Security Team KTVDI
+Mohon ingat detail akun Anda.
 """
                     mail.send(msg)
-                except Exception as e:
-                    print(f"Gagal kirim email reminder: {e}")
+                except: pass
 
-            # Bersihkan session
             session.pop('reset_user', None)
             session.pop('reset_otp', None)
             session.pop('reset_verified', None)
