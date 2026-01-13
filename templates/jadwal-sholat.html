@@ -1,45 +1,64 @@
 {% extends 'base.html' %}
-{% block title %}Jadwal Sholat Kemenag RI - KTVDI{% endblock %}
+{% block title %}Jadwal Sholat & Imsakiyah - KTVDI{% endblock %}
 {% block content %}
 
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-    .bg-islamic-pattern {
-        background-color: #f8fafc;
-        background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23059669' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-    }
-    @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
     .font-amiri { font-family: 'Amiri', serif; }
+    .bg-islamic-pattern {
+        background-color: #f0fdf4; /* Emerald 50 */
+        background-image: radial-gradient(#10b981 0.5px, transparent 0.5px), radial-gradient(#10b981 0.5px, #f0fdf4 0.5px);
+        background-size: 20px 20px;
+        background-position: 0 0, 10px 10px;
+    }
+    .card-sholat.active {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        color: white;
+        border-color: #059669;
+        transform: scale(1.05);
+        box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.3);
+    }
+    .card-sholat.active .text-slate-500 { color: #a7f3d0; } /* Text lighter on active */
+    .card-sholat.active .text-slate-800 { color: #ffffff; }
 </style>
 
-<div class="min-h-screen bg-islamic-pattern py-12 px-4 font-sans">
+<div class="min-h-screen bg-islamic-pattern py-12 px-4 font-['Plus_Jakarta_Sans']">
     <div class="max-w-5xl mx-auto">
         
         <div class="text-center mb-10">
+            <span class="inline-block py-1.5 px-4 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-wider mb-4 border border-emerald-200">
+                <i class="fa-solid fa-kaaba mr-2"></i> Pengingat Ibadah
+            </span>
             <h1 class="text-4xl md:text-5xl font-bold text-emerald-900 font-amiri mb-2">Jadwal Sholat & Imsakiyah</h1>
-            <div class="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-check-circle"></i> Sumber: Kemenag RI (Bimas Islam)
-            </div>
+            <p class="text-emerald-700/80 font-medium">Perhitungan Waktu Berdasarkan Kemenag RI</p>
+        </div>
 
-            <div class="bg-white border-y-4 border-emerald-500 rounded-lg shadow-lg p-6 max-w-3xl mx-auto mt-8 relative overflow-hidden">
-                <div class="absolute top-2 left-4 text-6xl text-emerald-100 font-serif">“</div>
-                <p id="quranQuote" class="text-lg text-slate-700 font-medium italic relative z-10 font-amiri leading-relaxed">
-                    Memuat kutipan...
+        <div class="bg-white border-l-4 border-emerald-500 rounded-r-xl shadow-lg p-6 max-w-3xl mx-auto mb-12 relative overflow-hidden animate-fade-in-up">
+            <div class="absolute -right-6 -bottom-6 text-9xl text-emerald-50 opacity-50 font-serif">”</div>
+            <div class="relative z-10">
+                <p id="quranQuote" class="text-lg text-slate-700 font-medium italic font-amiri leading-relaxed text-center">
+                    "Sesungguhnya sholat itu mencegah dari (perbuatan-perbuatan) keji dan mungkar."
                 </p>
-                <p id="quranSource" class="text-sm text-emerald-600 font-bold mt-3 relative z-10"></p>
+                <p id="quranSource" class="text-sm text-emerald-600 font-bold mt-3 text-center uppercase tracking-wide">
+                    QS. Al-Ankabut: 45
+                </p>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl border border-emerald-100 overflow-hidden">
+        <div class="bg-white rounded-3xl shadow-2xl border border-emerald-100 overflow-hidden">
             
-            <div class="bg-emerald-900 p-6 md:p-8 text-white">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div class="bg-emerald-900 p-6 md:p-8 text-white relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10" style="background-image: url('https://www.transparenttextures.com/patterns/arabesque.png');"></div>
+                
+                <div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                     <div>
-                        <label for="kotaSelect" class="block text-sm font-bold text-emerald-200 mb-2 uppercase tracking-wider">Pilih Kota / Kabupaten</label>
+                        <label for="kotaSelect" class="block text-sm font-bold text-emerald-200 mb-2 uppercase tracking-wider">Lokasi Anda</label>
                         <div class="relative">
-                            <select id="kotaSelect" onchange="loadJadwal()" class="block w-full p-4 pl-12 bg-emerald-800 border border-emerald-700 rounded-xl text-white font-bold focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 cursor-pointer appearance-none transition-all">
-                                <option value="" selected disabled>-- Cari Kota Anda (50 Kota) --</option>
+                            <select id="kotaSelect" onchange="loadJadwal()" class="block w-full p-4 pl-12 bg-emerald-800/80 backdrop-blur border border-emerald-600 rounded-xl text-white font-bold focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 cursor-pointer appearance-none transition-all hover:bg-emerald-800">
+                                <option value="" selected disabled>-- Pilih Kota --</option>
                                 {% for kota in daftar_kota %}
-                                <option value="{{ kota.id }}">{{ kota.nama }}</option>
+                                <option value="{{ kota }}">{{ kota }}</option>
                                 {% endfor %}
                             </select>
                             <div class="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-300">
@@ -52,51 +71,61 @@
                     </div>
 
                     <div id="countdownBox" class="hidden text-center md:text-right">
-                        <p class="text-emerald-200 text-sm mb-1">Menuju waktu <span id="nextPrayerName" class="font-bold text-yellow-400 uppercase">...</span></p>
-                        <div class="text-4xl md:text-5xl font-mono font-bold text-white tracking-widest" id="countdownTimer">00:00:00</div>
+                        <p class="text-emerald-200 text-xs font-bold uppercase tracking-widest mb-1">Menuju Waktu <span id="nextPrayerName" class="text-yellow-400">...</span></p>
+                        <div class="text-5xl font-mono font-bold text-white tracking-wider drop-shadow-md" id="countdownTimer">00:00:00</div>
                     </div>
                 </div>
             </div>
 
-            <div id="loading" class="hidden text-center py-12">
-                <i class="fa-solid fa-mosque fa-bounce text-4xl text-emerald-600"></i>
-                <p class="text-slate-500 mt-4 font-medium">Mengambil data Kemenag RI...</p>
+            <div id="loading" class="hidden text-center py-16">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-600 mb-4"></i>
+                <p class="text-slate-500 font-medium animate-pulse">Mengambil data dari server...</p>
             </div>
 
-            <div id="jadwalResult" class="hidden p-6 md:p-8">
-                <div class="text-center mb-8">
-                    <h2 id="namaKotaDisplay" class="text-2xl font-bold text-emerald-900 font-amiri"></h2>
-                    <div class="inline-flex items-center gap-2 mt-2 px-4 py-1 bg-emerald-50 rounded-full border border-emerald-100">
-                        <i class="fa-regular fa-calendar text-emerald-600"></i>
-                        <span id="tanggalDisplay" class="text-emerald-800 font-medium text-sm"></span>
+            <div id="jadwalResult" class="hidden p-6 md:p-10">
+                <div class="text-center mb-10">
+                    <h2 id="namaKotaDisplay" class="text-3xl font-extrabold text-emerald-900 font-amiri mb-1"></h2>
+                    <div class="inline-flex items-center gap-2 text-slate-500 text-sm bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                        <i class="fa-regular fa-calendar-days text-emerald-500"></i>
+                        <span id="tanggalDisplay"></span>
                     </div>
                 </div>
                 
                 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <div id="card-Imsak" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">IMSAK</div>
-                        <div id="time-Imsak" class="text-xl font-bold text-slate-800">--:--</div>
+                    <div id="card-Imsak" class="card-sholat bg-white p-5 rounded-2xl border border-slate-100 text-center shadow-sm hover:shadow-md transition-all">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">IMSAK</div>
+                        <div id="time-Imsak" class="text-2xl font-black text-slate-800 font-amiri">--:--</div>
                     </div>
-                    <div id="card-Subuh" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">SUBUH</div>
-                        <div id="time-Subuh" class="text-xl font-bold text-slate-800">--:--</div>
+
+                    <div id="card-Fajr" class="card-sholat bg-white p-5 rounded-2xl border border-slate-100 text-center shadow-sm hover:shadow-md transition-all">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">SUBUH</div>
+                        <div id="time-Fajr" class="text-2xl font-black text-slate-800 font-amiri">--:--</div>
                     </div>
-                    <div id="card-Dzuhur" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">DZUHUR</div>
-                        <div id="time-Dzuhur" class="text-xl font-bold text-slate-800">--:--</div>
+
+                    <div id="card-Dhuhr" class="card-sholat bg-white p-5 rounded-2xl border border-slate-100 text-center shadow-sm hover:shadow-md transition-all">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">DZUHUR</div>
+                        <div id="time-Dhuhr" class="text-2xl font-black text-slate-800 font-amiri">--:--</div>
                     </div>
-                    <div id="card-Ashar" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">ASHAR</div>
-                        <div id="time-Ashar" class="text-xl font-bold text-slate-800">--:--</div>
+
+                    <div id="card-Asr" class="card-sholat bg-white p-5 rounded-2xl border border-slate-100 text-center shadow-sm hover:shadow-md transition-all">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ASHAR</div>
+                        <div id="time-Asr" class="text-2xl font-black text-slate-800 font-amiri">--:--</div>
                     </div>
-                    <div id="card-Maghrib" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">MAGHRIB</div>
-                        <div id="time-Maghrib" class="text-xl font-bold text-slate-800">--:--</div>
+
+                    <div id="card-Maghrib" class="card-sholat bg-white p-5 rounded-2xl border border-slate-100 text-center shadow-sm hover:shadow-md transition-all">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">MAGHRIB</div>
+                        <div id="time-Maghrib" class="text-2xl font-black text-slate-800 font-amiri">--:--</div>
                     </div>
-                    <div id="card-Isya" class="time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <div class="text-xs text-slate-500 font-bold uppercase mb-1">ISYA</div>
-                        <div id="time-Isya" class="text-xl font-bold text-slate-800">--:--</div>
+
+                    <div id="card-Isha" class="card-sholat bg-white p-5 rounded-2xl border border-slate-100 text-center shadow-sm hover:shadow-md transition-all">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ISYA</div>
+                        <div id="time-Isha" class="text-2xl font-black text-slate-800 font-amiri">--:--</div>
                     </div>
+                </div>
+                
+                <div class="mt-10 pt-6 border-t border-slate-100 text-center text-xs text-slate-400">
+                    <p>Metode Perhitungan: <strong class="text-emerald-600">Kemenag RI (Sihat/Method 20)</strong> via Aladhan API.</p>
+                    <p class="mt-1">Disarankan menambahkan waktu ihtiyati ± 2 menit untuk kehati-hatian.</p>
                 </div>
             </div>
         </div>
@@ -104,11 +133,12 @@
 </div>
 
 <script>
-    // Quotes Islami
+    // Quotes Rotator
     const quotes = [
-        { text: "Sesungguhnya sholat itu adalah fardhu yang ditentukan waktunya atas orang-orang yang beriman.", source: "QS. An-Nisa: 103" },
-        { text: "Bacalah apa yang telah diwahyukan kepadamu, yaitu Al Kitab (Al Quran) dan dirikanlah shalat.", source: "QS. Al-Ankabut: 45" },
-        { text: "Amalan yang paling dicintai oleh Allah adalah sholat pada waktunya.", source: "HR. Bukhari & Muslim" }
+        { text: "Jadikanlah sabar dan shalat sebagai penolongmu.", source: "QS. Al-Baqarah: 45" },
+        { text: "Amalan yang paling dicintai Allah adalah shalat pada waktunya.", source: "HR. Bukhari & Muslim" },
+        { text: "Sesungguhnya shalat itu mencegah dari perbuatan keji dan mungkar.", source: "QS. Al-Ankabut: 45" },
+        { text: "Maka dirikanlah shalat, sesungguhnya shalat itu adalah kewajiban yang ditentukan waktunya.", source: "QS. An-Nisa: 103" }
     ];
     const rQ = quotes[Math.floor(Math.random() * quotes.length)];
     document.getElementById('quranQuote').innerText = `"${rQ.text}"`;
@@ -117,74 +147,61 @@
     let countdownInterval;
 
     function loadJadwal() {
-        const idKota = document.getElementById('kotaSelect').value;
-        const namaKota = document.getElementById('kotaSelect').options[document.getElementById('kotaSelect').selectedIndex].text;
-        
-        if(!idKota) return;
+        const city = document.getElementById('kotaSelect').value;
+        if(!city) return;
 
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('jadwalResult').classList.add('hidden');
         document.getElementById('countdownBox').classList.add('hidden');
 
-        // Menggunakan Tanggal Hari Ini
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-
-        // URL API MyQuran (Proxy Kemenag)
-        const url = `https://api.myquran.com/v2/sholat/jadwal/${idKota}/${year}/${month}/${day}`;
+        // Gunakan API Aladhan dengan Method 20 (Kemenag RI)
+        const date = new Date();
+        const url = `https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${city}&country=Indonesia&method=20`;
 
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                if(data.status && data.data && data.data.jadwal) {
-                    const j = data.data.jadwal;
-                    
-                    document.getElementById('namaKotaDisplay').innerText = namaKota;
-                    document.getElementById('tanggalDisplay').innerText = j.tanggal;
-                    
-                    // Update UI Teks
-                    document.getElementById('time-Imsak').innerText = j.imsak;
-                    document.getElementById('time-Subuh').innerText = j.subuh;
-                    document.getElementById('time-Dzuhur').innerText = j.dzuhur;
-                    document.getElementById('time-Ashar').innerText = j.ashar;
-                    document.getElementById('time-Maghrib').innerText = j.maghrib;
-                    document.getElementById('time-Isya').innerText = j.isya;
-                    
-                    document.getElementById('loading').classList.add('hidden');
-                    document.getElementById('jadwalResult').classList.remove('hidden');
-                    document.getElementById('countdownBox').classList.remove('hidden');
+                const t = data.data.timings;
+                const d = data.data.date.readable;
+                
+                document.getElementById('namaKotaDisplay').innerText = "Wilayah " + city;
+                document.getElementById('tanggalDisplay').innerText = d;
+                
+                // Set Times
+                document.getElementById('time-Imsak').innerText = t.Imsak;
+                document.getElementById('time-Fajr').innerText = t.Fajr;
+                document.getElementById('time-Dhuhr').innerText = t.Dhuhr;
+                document.getElementById('time-Asr').innerText = t.Asr;
+                document.getElementById('time-Maghrib').innerText = t.Maghrib;
+                document.getElementById('time-Isha').innerText = t.Isha;
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('jadwalResult').classList.remove('hidden');
+                document.getElementById('countdownBox').classList.remove('hidden');
 
-                    startCountdown(j);
-                } else {
-                    alert("Data jadwal tidak ditemukan.");
-                    document.getElementById('loading').classList.add('hidden');
-                }
+                startCountdown(t);
             })
             .catch(err => {
-                alert("Gagal koneksi ke server Kemenag.");
+                alert("Gagal koneksi. Coba lagi nanti.");
                 document.getElementById('loading').classList.add('hidden');
             });
     }
 
-    function startCountdown(jadwal) {
+    function startCountdown(timings) {
         if (countdownInterval) clearInterval(countdownInterval);
 
+        // Map Prayer Names to Card IDs
         const prayers = [
-            { name: "IMSAK", time: jadwal.imsak, id: 'card-Imsak' },
-            { name: "SUBUH", time: jadwal.subuh, id: 'card-Subuh' },
-            { name: "DZUHUR", time: jadwal.dzuhur, id: 'card-Dzuhur' },
-            { name: "ASHAR", time: jadwal.ashar, id: 'card-Ashar' },
-            { name: "MAGHRIB", time: jadwal.maghrib, id: 'card-Maghrib' },
-            { name: "ISYA", time: jadwal.isya, id: 'card-Isya' }
+            { name: "IMSAK", time: timings.Imsak, id: 'card-Imsak' },
+            { name: "SUBUH", time: timings.Fajr, id: 'card-Fajr' },
+            { name: "DZUHUR", time: timings.Dhuhr, id: 'card-Dhuhr' },
+            { name: "ASHAR", time: timings.Asr, id: 'card-Asr' },
+            { name: "MAGHRIB", time: timings.Maghrib, id: 'card-Maghrib' },
+            { name: "ISYA", time: timings.Isha, id: 'card-Isha' }
         ];
 
         // Reset Styles
-        document.querySelectorAll('.time-card').forEach(el => {
-            el.className = "time-card bg-slate-50 p-4 rounded-xl border border-slate-200 text-center transition-all duration-300";
-            el.querySelector('div:last-child').className = "text-xl font-bold text-slate-800";
-        });
+        document.querySelectorAll('.card-sholat').forEach(el => el.classList.remove('active'));
 
         countdownInterval = setInterval(() => {
             const now = new Date();
@@ -197,7 +214,9 @@
                 pTime.setHours(h, m, 0);
 
                 let diff = pTime - now;
-                if (diff < 0) continue; // Waktu sudah lewat
+                
+                // Kalau waktu sudah lewat, cek apakah ini Isya -> Subuh besok?
+                if (diff < 0) continue;
 
                 if (diff < minDiff) {
                     minDiff = diff;
@@ -205,7 +224,7 @@
                 }
             }
 
-            // Jika semua lewat, target Imsak besok
+            // Kalau semua lewat, berarti target adalah Imsak besok
             if (!nextPrayer) {
                 nextPrayer = prayers[0];
                 const [h, m] = nextPrayer.time.split(':');
@@ -215,6 +234,7 @@
                 minDiff = pTime - now;
             }
 
+            // Update Countdown Text
             const h = Math.floor((minDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const m = Math.floor((minDiff % (1000 * 60 * 60)) / (1000 * 60));
             const s = Math.floor((minDiff % (1000 * 60)) / 1000);
@@ -223,13 +243,9 @@
             document.getElementById('countdownTimer').innerText = 
                 `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 
-            // Highlight Active
+            // Highlight Active Card
             const activeCard = document.getElementById(nextPrayer.id);
-            if (activeCard) {
-                activeCard.className = "time-card bg-emerald-600 p-4 rounded-xl border border-emerald-500 text-center shadow-lg transform scale-105 transition-all duration-300";
-                activeCard.querySelector('div:first-child').className = "text-xs text-emerald-200 font-bold uppercase mb-1";
-                activeCard.querySelector('div:last-child').className = "text-xl font-bold text-white";
-            }
+            if (activeCard) activeCard.classList.add('active');
 
         }, 1000);
     }
