@@ -17,15 +17,8 @@
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 
-                        'marquee': 'marquee 150s linear infinite', 
-                    },
-                    keyframes: { 
-                        marquee: { 
-                            '0%': { transform: 'translateX(0%)' }, 
-                            '100%': { transform: 'translateX(-50%)' } 
-                        } 
-                    }
+                    animation: { 'marquee': 'marquee 60s linear infinite' }, /* 60 detik = Normal & Readable */
+                    keyframes: { marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-50%)' } } }
                 }
             }
         }
@@ -40,8 +33,9 @@
             #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
         }
         
+        /* Ticker Container yang Benar */
         .marquee-container { overflow: hidden; white-space: nowrap; position: relative; display: flex; }
-        .marquee-content { display: flex; align-items: center; white-space: nowrap; animation: marquee 150s linear infinite; will-change: transform; }
+        .marquee-content { display: flex; align-items: center; white-space: nowrap; animation: marquee 60s linear infinite; will-change: transform; }
         .marquee-container:hover .marquee-content { animation-play-state: paused; }
         
         .footer-link { transition: all 0.3s ease; display: inline-block; }
@@ -68,7 +62,7 @@
                     {% if session.get('user') %}
                         <div class="relative">
                             <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none">
-                                <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}<br><span class="text-[10px] text-slate-400 font-normal">Member</span></span>
+                                <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}</span>
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-9 w-9 rounded-full border-2 border-slate-700">
                             </button>
                             <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
@@ -101,7 +95,7 @@
                 </p>
                 <div class="flex gap-4 pt-2">
                     <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
-                    <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition border border-slate-700"><i class="fa-brands fa-twitter text-sm"></i></a>
+                    <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition border border-slate-700"><i class="fa-brands fa-telegram text-sm"></i></a>
                     <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition border border-slate-700"><i class="fa-brands fa-instagram text-sm"></i></a>
                 </div>
             </div>
@@ -174,77 +168,4 @@
                 <button onclick="toggleChat()" class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div id="chat-messages" class="h-80 sm:h-80 chat-bg p-4 overflow-y-auto flex flex-col chat-scroll text-sm space-y-3 relative z-10">
-                <div class="flex gap-2">
-                    <div class="chat-bubble-bot p-3 shadow-sm max-w-[85%] text-slate-800 leading-relaxed relative">
-                        Halo Kak! 👋 Selamat datang di KTVDI.<br>Ada yang bisa Modi bantu hari ini? 😊
-                    </div>
-                </div>
-            </div>
-            <div class="p-2 bg-white border-t border-slate-200 relative z-20 shrink-0">
-                <form onsubmit="handleChat(event)" class="flex gap-2 items-center">
-                    <input type="text" id="chat-input" placeholder="Ketik pesan..." class="w-full bg-slate-50 text-sm px-4 py-3 rounded-full focus:outline-none border border-slate-200 shadow-sm" autocomplete="off">
-                    <button type="submit" class="bg-brand-blue text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-700 transition shadow-md"><i class="fa-solid fa-paper-plane text-sm"></i></button>
-                </form>
-            </div>
-        </div>
-        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition active:scale-95 border-2 border-white p-1 overflow-hidden relative group">
-             <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover rounded-full">
-             <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[9px] flex items-center justify-center font-bold animate-bounce">1</span>
-        </button>
-    </div>
-
-    <script>
-        function toggleProfile() { document.getElementById('profile-dropdown').classList.toggle('hidden'); }
-        function toggleChat() { 
-            const win = document.getElementById('chat-window');
-            win.classList.toggle('hidden');
-            if(!win.classList.contains('hidden')){ setTimeout(() => document.getElementById('chat-messages').scrollTop = 9999, 100); }
-        }
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }, 1000);
-        
-        async function updateTicker() {
-            try { 
-                const res=await fetch('/api/news-ticker'); const d=await res.json(); 
-                // Format berita
-                const content = d.map(n=>`
-                    <div class="inline-flex items-center mx-8">
-                        <span class="bg-blue-100 text-brand-blue border border-blue-200 text-[9px] font-bold px-1.5 rounded mr-2">TERKINI</span>
-                        <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wide whitespace-nowrap">${n}</span>
-                    </div>
-                `).join('');
-                
-                // SEAMLESS: Content + Content (Duplicate agar tidak putus)
-                // Animasi CSS berjalan 0% ke -50% (geser setengah, lalu reset instan)
-                document.getElementById('unified-ticker').innerHTML = content + content;
-                
-            } catch(e) {
-                console.log("Ticker error:", e);
-            }
-        }
-        updateTicker();
-        
-        async function handleChat(e){ 
-            e.preventDefault(); const i=document.getElementById('chat-input'), t=i.value.trim(); if(!t)return;
-            addMsg(t,'user'); i.value='';
-            const load=document.createElement('div'); load.className="flex gap-2 bot-load"; load.innerHTML=`<div class="chat-bubble-bot p-3 text-slate-400 italic text-xs">Modi mengetik...</div>`;
-            document.getElementById('chat-messages').appendChild(load);
-            try {
-                const r=await fetch('/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:t})});
-                const d=await r.json();
-                document.querySelector('.bot-load').remove();
-                addMsg(d.response,'bot');
-            } catch {
-                document.querySelector('.bot-load').remove();
-                addMsg("Server sibuk, coba lagi nanti.",'bot');
-            }
-        }
-        function addMsg(t,s){
-            const d=document.createElement('div'); d.className="flex gap-2";
-            const tm=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-            d.innerHTML = s=='user' ? `<div class="chat-bubble-user p-3 shadow-sm max-w-[85%] relative">${t}<div class="text-[9px] text-blue-300 text-right mt-1">${tm} ✓✓</div></div>` : `<div class="chat-bubble-bot p-3 shadow-sm max-w-[85%] relative">${t.replace(/\n/g,'<br>')}<div class="text-[9px] text-slate-400 text-right mt-1">${tm}</div></div>`;
-            document.getElementById('chat-messages').appendChild(d);
-            document.getElementById('chat-messages').scrollTop = 9999;
-        }
-    </script>
-</body>
-</html>
+                <div class="flex
