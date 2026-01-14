@@ -18,12 +18,12 @@
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
                     animation: { 
-                        'marquee': 'marquee 150s linear infinite', /* DURASI 150 DETIK */
+                        'marquee-smooth': 'marquee 90s linear infinite', /* Kecepatan Ideal (90s) */
                     },
                     keyframes: { 
                         marquee: { 
                             '0%': { transform: 'translateX(0%)' }, 
-                            '100%': { transform: 'translateX(-50%)' } 
+                            '100%': { transform: 'translateX(-100%)' } /* Geser full satu set konten */
                         } 
                     }
                 }
@@ -41,10 +41,33 @@
             #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
         }
         
-        /* Ticker Container Setup - 150 Detik */
-        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; display: flex; }
-        .marquee-content { display: flex; align-items: center; white-space: nowrap; animation: marquee 150s linear infinite; will-change: transform; }
-        .marquee-container:hover .marquee-content { animation-play-state: paused; }
+        /* Ticker Logic Baru (Flex Parent) */
+        .ticker-wrap {
+            display: flex;
+            overflow: hidden;
+            user-select: none;
+            width: 100%;
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); /* Efek fade di pinggir */
+        }
+        
+        .ticker-move {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            min-width: 100%;
+            animation: marquee 90s linear infinite; /* Animasi di sini */
+            will-change: transform; /* Paksa GPU rendering agar halus */
+        }
+        
+        .ticker-item {
+            flex-shrink: 0;
+            padding: 0 2rem;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        /* Pause saat hover */
+        .ticker-wrap:hover .ticker-move { animation-play-state: paused; }
         
         .footer-link { transition: all 0.3s ease; display: inline-block; }
         .footer-link:hover { transform: translateX(5px); color: #38bdf8; }
@@ -99,7 +122,7 @@
                     <span class="text-xl font-extrabold tracking-tight">KTVDI</span>
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed">
-                    Platform komunitas independen terdepan di Indonesia yang mendedikasikan diri untuk pemerataan informasi penyiaran digital.
+                    Platform komunitas independen terdepan di Indonesia yang mendedikasikan diri untuk pemerataan informasi penyiaran digital dan edukasi teknologi bagi seluruh lapisan masyarakat.
                 </p>
                 <div class="flex gap-4 pt-2">
                     <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
@@ -152,9 +175,15 @@
 
     <div class="fixed bottom-[65px] lg:bottom-0 w-full z-40 bg-white border-t border-slate-200 h-9 lg:h-10 flex items-center justify-between px-0 select-none shadow-sm">
         <div class="bg-brand-blue h-full flex items-center px-3 z-20 shrink-0"><span class="text-white text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE INFO</span></div>
-        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50 marquee-container">
-            <div class="marquee-content text-[10px] font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">Memuat Berita...</div>
+        
+        <div class="ticker-wrap flex-1 bg-slate-50 h-full flex items-center">
+            <div class="ticker-move" id="ticker-track-1">
+                <span class="text-[10px] text-slate-500 font-bold px-4">Memuat Berita...</span>
+            </div>
+            <div class="ticker-move" id="ticker-track-2">
+                </div>
         </div>
+        
         <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20 shrink-0"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00</div></div>
     </div>
 
@@ -205,11 +234,24 @@
         async function updateTicker() {
             try { 
                 const res=await fetch('/api/news-ticker'); const d=await res.json(); 
-                const content = d.map(n=>`<span class="mx-6 text-brand-blue font-bold tracking-wide">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold tracking-wide">${n}</span>`).join('<span class="mx-6 text-slate-300 opacity-50">|</span>');
+                // Buat string konten
+                const content = d.map(n=>`
+                    <div class="ticker-item">
+                        <span class="bg-blue-100 text-brand-blue border border-blue-200 text-[9px] font-bold px-1.5 rounded mr-2">TERKINI</span>
+                        <span class="text-[10px] font-bold text-slate-700 uppercase tracking-wide">${n}</span>
+                    </div>
+                `).join('');
                 
-                // DUPLIKASI KONTEN 4 KALI AGAR SEAMLESS TANPA PUTUS
-                document.getElementById('unified-ticker').innerHTML = content + '<span class="mx-6 text-slate-300 opacity-50">|</span>' + content + '<span class="mx-6 text-slate-300 opacity-50">|</span>' + content + '<span class="mx-6 text-slate-300 opacity-50">|</span>' + content;
-            } catch{}
+                // ISI KE DUA TRACK AGAR SEAMLESS (LOOPING)
+                const track1 = document.getElementById('ticker-track-1');
+                const track2 = document.getElementById('ticker-track-2');
+                
+                track1.innerHTML = content;
+                track2.innerHTML = content;
+                
+            } catch(e) {
+                console.log("Ticker error:", e);
+            }
         }
         updateTicker();
         
