@@ -17,17 +17,19 @@ from flask_mail import Mail, Message
 from datetime import datetime
 from collections import Counter
 
+# Muat variabel lingkungan
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-# Menggunakan Key Statis agar session tidak hilang saat restart
-app.secret_key = os.environ.get("SECRET_KEY", "ktvdi-fixed-login-key-2026")
+# Menggunakan key statis agar session stabil
+app.secret_key = os.environ.get("SECRET_KEY", "ktvdi-super-fixed-key-2026")
 
 # ==========================================
-# 1. KONEKSI FIREBASE
+# 1. KONEKSI FIREBASE (SESUAI PERMINTAAN)
 # ==========================================
 try:
+    # Cek apakah pakai Environment Variable (Vercel) atau File Lokal
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
             "type": "service_account",
@@ -43,15 +45,20 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
+        # Fallback lokal
         cred = credentials.Certificate("credentials.json")
-    
+
     if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
+        firebase_admin.initialize_app(cred, {
+            'databaseURL': os.environ.get('DATABASE_URL')
+        })
+
     ref = db.reference('/')
-    print("✅ Firebase Terhubung.")
+    print("✅ Firebase berhasil terhubung!")
+
 except Exception as e:
+    print("❌ Error initializing Firebase:", str(e))
     ref = None
-    print(f"❌ Firebase Error: {e}")
 
 # ==========================================
 # 2. EMAIL
@@ -67,28 +74,21 @@ mail = Mail(app)
 # ==========================================
 # 3. AI CHATBOT
 # ==========================================
-MY_API_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU"
 try:
-    genai.configure(api_key=MY_API_KEY)
+    genai.configure(api_key="AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU") 
     model = genai.GenerativeModel("gemini-1.5-flash")
 except: model = None
 
-MODI_PROMPT = "Anda adalah MODI, Sahabat Digital KTVDI. Jawab ramah dan singkat."
+MODI_PROMPT = "Anda adalah MODI, AI KTVDI. Jawab ramah, sopan, gunakan emoji."
 
 # ==========================================
-# 4. HELPERS (PENTING: NORMALISASI INPUT)
+# 4. HELPERS
 # ==========================================
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
 def normalize_input(text):
-    """
-    Membersihkan input:
-    1. Hapus spasi depan/belakang (.strip)
-    2. Ubah ke huruf kecil semua (.lower)
-    """
-    if text:
-        return text.strip().lower()
-    return ""
+    """Membersihkan input agar pencarian database akurat"""
+    return text.strip().lower() if text else ""
 
 def get_news_entries():
     """Fallback Berita agar Running Text TIDAK KOSONG"""
@@ -122,7 +122,7 @@ def time_since_published(published_time):
     except: return "Baru saja"
 
 # ==========================================
-# 5. AUTH ROUTES (LOGIC DIPERBAIKI)
+# 5. AUTH ROUTES (LOGIC PERBAIKAN)
 # ==========================================
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -132,7 +132,7 @@ def login():
         password = request.form.get('password')
         hashed_pw = hash_password(password)
         
-        # 1. Bersihkan Input User
+        # Bersihkan input user
         clean_input = normalize_input(raw_input)
         print(f"DEBUG: Mencoba login dengan input bersih: '{clean_input}'")
 
@@ -143,22 +143,17 @@ def login():
         target_user = None
         target_uid = None
 
-        # 2. Cari User (Looping Hati-Hati)
+        # CARI USER (Looping agar case-insensitive)
         if users:
             for uid, data in users.items():
-                # Pastikan data valid (dict)
                 if not isinstance(data, dict): continue
                 
-                # Ambil data dari DB dan bersihkan juga
-                db_username = normalize_input(uid)
-                db_email = normalize_input(data.get('email'))
-                
-                # Cek Username
-                if db_username == clean_input:
+                # Cek Username (Key)
+                if normalize_input(uid) == clean_input:
                     target_user = data; target_uid = uid; break
                 
-                # Cek Email
-                if db_email == clean_input:
+                # Cek Email (Value)
+                if normalize_input(data.get('email')) == clean_input:
                     target_user = data; target_uid = uid; break
         
         if target_user:
@@ -166,21 +161,18 @@ def login():
                 session.permanent = True
                 session['user'] = target_uid
                 session['nama'] = target_user.get('nama', 'Pengguna')
-                print(f"DEBUG: Login Berhasil untuk {target_uid}")
+                print("DEBUG: Login Berhasil")
                 return redirect(url_for('dashboard'))
             else:
-                print("DEBUG: Password Salah")
                 return render_template('login.html', error="Password Salah")
         else:
-            print("DEBUG: User/Email Tidak Ditemukan di Database")
-            return render_template('login.html', error="Akun tidak ditemukan. Cek ejaan atau Daftar.")
+            return render_template('login.html', error="Akun tidak ditemukan")
 
     return render_template('login.html')
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        # 1. Bersihkan Input
         u = normalize_input(request.form.get("username"))
         e = normalize_input(request.form.get("email"))
         n = request.form.get("nama")
@@ -190,34 +182,32 @@ def register():
         
         users = ref.child("users").get() or {}
         
-        # 2. Cek Duplikasi (Looping Hati-Hati)
+        # Cek Duplikasi
         if u in users:
             flash("Username sudah dipakai", "error")
             return render_template("register.html")
         
         for uid, data in users.items():
-            if isinstance(data, dict) and normalize_input(data.get('email')) == e:
+            if normalize_input(data.get('email')) == e:
                 flash("Email ini sudah terdaftar", "error")
                 return render_template("register.html")
 
         otp = str(random.randint(100000, 999999))
         
-        # 3. Simpan Sementara
+        # Simpan Sementara
         ref.child(f'pending_users/{u}').set({
             "nama": n, "email": e, "password": hash_password(p), "otp": otp
         })
         
-        # 4. Kirim Email (Dengan Log Error)
         try:
-            msg = Message("Kode Verifikasi KTVDI (1 Menit)", recipients=[e])
-            msg.body = f"Halo {n},\n\nKode OTP Anda: {otp}\n\nMasukkan segera!\n\nSalam,\nAdmin"
+            msg = Message("Kode Verifikasi KTVDI", recipients=[e])
+            msg.body = f"Halo {n},\n\nKode OTP Anda: {otp}\n\nSalam,\nAdmin"
             mail.send(msg)
-            print(f"DEBUG: Email OTP terkirim ke {e}")
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
-        except Exception as mail_err:
-            print(f"DEBUG: Gagal Kirim Email: {mail_err}")
-            flash("Gagal kirim email. Pastikan email benar.", "error")
+        except Exception as err:
+            print(f"Mail Error: {err}")
+            flash("Gagal kirim email.", "error")
             
     return render_template("register.html")
 
@@ -228,7 +218,6 @@ def verify_register():
     
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
-        # Validasi OTP
         if p and str(p.get('otp')).strip() == request.form.get("otp").strip():
             ref.child(f'users/{u}').set({
                 "nama": p['nama'], "email": p['email'], "password": p['password'], "points": 0
@@ -243,23 +232,13 @@ def verify_register():
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        # 1. Bersihkan Input
         email_input = normalize_input(request.form.get("identifier"))
-        print(f"DEBUG: Mencari email '{email_input}' untuk reset password")
-        
         users = ref.child("users").get() or {}
         found_uid = None
         
-        # 2. Cari User (Looping Hati-Hati)
         for uid, user_data in users.items():
-            if not isinstance(user_data, dict): continue
-            
-            # Bandingkan email yang sudah dinormalisasi
-            db_email = normalize_input(user_data.get('email'))
-            
-            if db_email == email_input:
+            if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
                 found_uid = uid
-                print(f"DEBUG: Email ditemukan pada user {uid}")
                 break
         
         if found_uid:
@@ -267,17 +246,13 @@ def forgot_password():
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp})
             try:
                 msg = Message("Reset Password KTVDI", recipients=[email_input])
-                msg.body = f"Kode OTP Reset: {otp} (Berlaku 1 Menit)"
+                msg.body = f"Kode OTP Reset: {otp}"
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
-            except Exception as e:
-                print(f"DEBUG: Gagal kirim email reset: {e}")
-                flash("Gagal kirim email server.", "error")
+            except: flash("Gagal kirim email.", "error")
         else:
-            print("DEBUG: Email tidak ditemukan di database.")
             flash("Email tidak ditemukan.", "error")
-            
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -301,12 +276,12 @@ def reset_password():
         ref.child(f"users/{uid}").update({"password": hash_password(pw)})
         ref.child(f"otp/{uid}").delete()
         session.clear()
-        flash("Password berhasil diubah. Silakan Login.", "success")
+        flash("Password berhasil diubah.", "success")
         return redirect(url_for('login'))
     return render_template("reset-password.html")
 
 # ==========================================
-# 6. APP ROUTES (HALAMAN UTAMA)
+# 6. HALAMAN UTAMA & FITUR
 # ==========================================
 
 @app.route("/", methods=['GET'])
@@ -360,12 +335,10 @@ def berita_page():
         start = (page - 1) * per_page
         end = start + per_page
         current = entries[start:end]
-        
         for a in current:
             if isinstance(a, dict) and 'published_parsed' in a:
                  a['time_since_published'] = time_since_published(a['published_parsed'])
             else: a['time_since_published'] = ""
-            
             a['image'] = None
             if 'media_content' in a: a['image'] = a['media_content'][0]['url']
             elif 'links' in a:
@@ -385,13 +358,17 @@ def daftar_siaran():
     data = ref.child("provinsi").get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
 
+# CRUD Placeholders
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data(): return redirect(url_for('dashboard'))
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux): return redirect(url_for('dashboard'))
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
-def delete_data(provinsi, wilayah, mux): return redirect(url_for('dashboard'))
+def delete_data(provinsi, wilayah, mux):
+    if 'user' in session: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
+    return redirect(url_for('dashboard'))
 
+# API Helpers
 @app.route("/get_wilayah")
 def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
 @app.route("/get_mux")
