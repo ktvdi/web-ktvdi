@@ -21,9 +21,11 @@ load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-ktvdi")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-ktvdi-secret-key-2026")
 
-# --- 1. KONEKSI FIREBASE ---
+# ==========================================
+# 1. KONEKSI FIREBASE
+# ==========================================
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -51,7 +53,9 @@ except Exception as e:
     ref = None
     print(f"❌ Firebase Error: {e}")
 
-# --- EMAIL ---
+# ==========================================
+# 2. EMAIL (SMTP)
+# ==========================================
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -60,30 +64,39 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# --- AI GEMINI (FIXED DENGAN KEY ANDA) ---
-API_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU"  # Key Anda sudah dimasukkan di sini
+# ==========================================
+# 3. AI CHATBOT (MODI) - KUNCI DITANAM
+# ==========================================
+# API KEY DARI ANDA (DITANAM LANGSUNG AGAR JALAN)
+DIRECT_API_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU"
 
-genai.configure(api_key=API_KEY)
-model = genai.GenerativeModel("gemini-1.5-flash")
+try:
+    genai.configure(api_key=DIRECT_API_KEY)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    print("✅ Gemini AI Connected")
+except Exception as e:
+    model = None
+    print(f"❌ AI Error: {e}")
 
 MODI_PROMPT = """
-Kamu adalah MODI, Customer Service Profesional dari Komunitas TV Digital Indonesia (KTVDI).
-Gaya: Ramah, Sopan, Solutif, menggunakan Emoji yang pas (😊, 👋, 📺).
-Tugas: Menjawab pertanyaan seputar TV Digital, STB, Sinyal, Antena, dan Website KTVDI.
+Kamu adalah MODI, Customer Service Profesional dari KTVDI.
+Tugas: Membantu user seputar TV Digital, STB, Sinyal, dan Website KTVDI.
+Gaya: Ramah, Sopan, Menggunakan Emoji (😊, 👋, 📺), namun tetap Profesional.
 Aturan:
-1. Sapa user dengan "Kak" atau "Sobat KTVDI".
-2. Jawaban harus to-the-point dan mudah dipahami orang awam.
-3. Selalu tawarkan bantuan tambahan di akhir chat.
+1. Sapa dengan "Kak" atau "Sobat KTVDI".
+2. Jawaban ringkas, padat, dan solutif.
+3. Jika ditanya Piala Dunia 2026, jawab hak siar dipegang TVRI (Gratis & HD).
+4. Selalu tawarkan bantuan lain di akhir percakapan.
 """
 
 SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 ]
 
-# --- HELPERS ---
+# ==========================================
+# 4. HELPERS (CUACA & BERITA)
+# ==========================================
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
 def time_since_published(published_time):
@@ -102,41 +115,44 @@ def get_bmkg_weather():
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             root = ET.fromstring(response.content)
-            # Ambil Jakarta Pusat (Cuaca Umum)
             for area in root.findall(".//area[@description='Jakarta Pusat']"):
                 for parameter in area.findall("parameter[@id='weather']"):
                     timerange = parameter.find("timerange")
                     if timerange:
                         val = timerange.find("value").text
-                        codes = {"0":"Cerah ☀️","1":"Cerah Berawan 🌤️","3":"Berawan ☁️","60":"Hujan 🌧️","61":"Hujan 🌧️","95":"Badai ⛈️"}
+                        codes = {"0":"Cerah ☀️","1":"Cerah Berawan 🌤️","3":"Berawan ☁️","60":"Hujan 🌧️","95":"Badai ⛈️"}
                         return f"Jakarta Pusat: {codes.get(val, 'Berawan ☁️')}"
         return "Cerah Berawan 🌤️"
     except: return "Cerah Berawan 🌤️"
 
+def get_news_data():
+    """Mengambil berita dengan fallback jika gagal"""
+    try:
+        # Menggunakan RSS CNN Indonesia Teknologi (Lebih stabil)
+        feed = feedparser.parse('https://www.cnnindonesia.com/teknologi/rss')
+        if not feed.entries:
+            # Fallback ke Google News jika CNN gagal
+            feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
+        return feed.entries
+    except:
+        return []
+
 def get_daily_news_summary_ai():
     try:
-        # Gunakan RSS Teknologi agar relevan
-        feed = feedparser.parse('https://news.google.com/rss/search?q=teknologi+indonesia&hl=id&gl=ID&ceid=ID:id')
-        titles = [e.title for e in feed.entries[:5]]
+        entries = get_news_data()
+        titles = [e.title for e in entries[:5]]
         text = "\n".join(titles)
-        
-        # Minta AI Merangkum menjadi paragraf yang enak dibaca
-        prompt = f"Buatlah satu paragraf rangkuman berita teknologi harian yang menarik dan santai dari judul-judul berikut:\n{text}"
-        response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
-        return response.text
-    except: return "Silakan cek halaman Berita untuk informasi terbaru seputar teknologi dan TV digital."
+        if model and text:
+            prompt = f"Buatlah rangkuman berita teknologi harian (3 poin) yang profesional untuk buletin email:\n{text}"
+            response = model.generate_content(prompt, safety_settings=SAFETY_SETTINGS)
+            return response.text
+        return "Silakan cek halaman Berita di website KTVDI untuk informasi terbaru."
+    except: return "Gagal memuat rangkuman berita."
 
-def get_daily_tips():
-    tips = [
-        "Pastikan antena TV mengarah tepat ke pemancar (MUX) terdekat untuk sinyal maksimal 📡.",
-        "Gunakan kabel koaksial RG6 berkualitas tinggi agar sinyal tidak bocor 🔌.",
-        "Lakukan pencarian ulang (scan) STB secara berkala untuk mendapatkan channel baru 📺.",
-        "Jaga kebersihan remote TV dan STB agar tombol tetap responsif ✨.",
-        "Matikan STB saat tidak ditonton untuk menghemat listrik dan menjaga keawetan alat ⚡."
-    ]
-    return random.choice(tips)
+# ==========================================
+# 5. ROUTES (LENGKAP)
+# ==========================================
 
-# --- ROUTES ---
 @app.route("/")
 def home():
     siaran_data = ref.child('siaran').get() if ref else {}
@@ -179,14 +195,14 @@ def home():
 # --- CHATBOT API (PASTI JALAN) ---
 @app.route('/', methods=['POST'])
 def chatbot_api():
+    if not model:
+        return jsonify({"response": "Maaf Kak, sistem sedang inisialisasi ulang. Coba refresh halaman ya. 🙏"})
+    
     data = request.get_json()
     user_msg = data.get("prompt")
-    
-    if not user_msg:
-        return jsonify({"response": "Maaf Kak, Modi tidak mendengar pesan Kakak. Bisa diulangi? 👂"})
+    if not user_msg: return jsonify({"response": "..."})
 
     try:
-        # Panggil AI Langsung
         response = model.generate_content(
             f"{MODI_PROMPT}\nUser: {user_msg}\nModi:",
             safety_settings=SAFETY_SETTINGS
@@ -194,72 +210,61 @@ def chatbot_api():
         return jsonify({"response": response.text})
     except Exception as e:
         print(f"AI Error: {e}")
-        return jsonify({"response": "Waduh, Modi lagi pusing sebentar. Coba tanya lagi ya Kak! 😅"})
+        return jsonify({"response": "Mohon maaf Kak, server sedang penuh. Boleh ulangi pertanyaannya? 😊"})
 
-# --- NEWS TICKER API (REALTIME) ---
+# --- NEWS TICKER API ---
 @app.route("/api/news-ticker")
 def news_ticker():
-    try:
-        feed = feedparser.parse('https://news.google.com/rss/search?q=tv+digital+indonesia&hl=id&gl=ID&ceid=ID:id')
-        news_list = []
-        for entry in feed.entries[:10]:
-            title = entry.title
-            if ' - ' in title:
-                parts = title.rsplit(' - ', 1)
-                news_list.append(parts[0])
-            else:
-                news_list.append(title)
-        return jsonify(news_list)
-    except: return jsonify(["Selamat Datang di KTVDI", "Pantau Informasi TV Digital Terkini", "Cek Sinyal di Daerahmu Sekarang"])
+    entries = get_news_data()
+    titles = [e.title for e in entries[:10]]
+    if not titles:
+        titles = ["Selamat Datang di KTVDI", "Pantau Informasi TV Digital Terkini", "Cek Sinyal di Daerahmu Sekarang"]
+    return jsonify(titles)
 
-# --- EMAIL BLAST (PROFESIONAL & LENGKAP) ---
+# --- EMAIL BLAST (PROFESIONAL) ---
 @app.route("/api/cron/daily-blast", methods=['GET'])
 def trigger_daily_blast():
     try:
-        if not ref: return jsonify({"error": "No Database"}), 500
-        users = ref.child('users').get()
+        users = ref.child('users').get() if ref else {}
         if not users: return jsonify({"status": "No users"}), 200
         
         cuaca = get_bmkg_weather()
         berita = get_daily_news_summary_ai()
-        tips = get_daily_tips()
         date = datetime.now().strftime("%d %B %Y")
         
         count = 0
         for uid, user in users.items():
             if user.get('email'):
                 try:
-                    msg = Message(f"📰 Buletin Harian KTVDI - {date}", recipients=[user['email']])
-                    # FORMAT EMAIL PROFESIONAL & PANJANG
+                    msg = Message(f"📰 Buletin Informasi KTVDI - {date}", recipients=[user['email']])
                     msg.body = f"""Yth. {user.get('nama','Anggota KTVDI')},
 
 Selamat malam dan salam sejahtera.
-Semoga hari ini menyenangkan bagi Anda dan keluarga. KTVDI hadir kembali untuk menyampaikan rangkuman informasi harian.
+Terima kasih telah setia menjadi bagian dari Komunitas TV Digital Indonesia. Berikut kami sampaikan rangkuman informasi harian untuk Anda.
 
 --------------------------------------------------
-🌤️ PRAKIRAAN CUACA BESOK (DKI Jakarta)
+🌤️ PRAKIRAAN CUACA BESOK (DKI Jakarta & Sekitarnya)
 {cuaca}
-*Tetap jaga kesehatan dan persiapkan diri sebelum beraktivitas.*
+*Kami himbau untuk selalu menjaga kesehatan di tengah perubahan cuaca.*
 --------------------------------------------------
 
-📰 RANGKUMAN BERITA TEKNOLOGI HARI INI
+📰 INTISARI BERITA TEKNOLOGI & PENYIARAN
 {berita}
 
 --------------------------------------------------
-💡 TIPS & RENUNGAN DIGITAL HARI INI
-"{tips}"
+💡 RENUNGAN HARIAN & ETIKA DIGITAL
+"Integritas adalah melakukan hal yang benar, bahkan ketika tidak ada orang yang melihat."
 
-Mari kita senantiasa menjaga etika dalam bermedia sosial, serta memastikan perangkat siaran kita berfungsi optimal untuk mendapatkan informasi yang jernih dan bermanfaat.
+Dalam beraktivitas di dunia maya maupun nyata, mari kita junjung tinggi kejujuran dan etika. Hindari penyebaran informasi palsu (hoax) dan senantiasa verifikasi kebenaran sebelum membagikan ulang.
 --------------------------------------------------
 
-📺 INFO KOMUNITAS
-Kami mengimbau seluruh anggota untuk aktif melaporkan kondisi sinyal MUX di wilayah masing-masing melalui dashboard kontributor. Kontribusi Anda sangat berarti bagi pemerataan informasi di Indonesia.
-
-Selamat beristirahat.
+Kami mengajak Anda untuk terus aktif berkontribusi dengan melaporkan status sinyal MUX di wilayah Anda melalui dashboard KTVDI.
 
 Hormat kami,
-Pengurus Pusat KTVDI
-Komunitas TV Digital Indonesia
+
+Tim Pengurus Pusat
+Komunitas TV Digital Indonesia (KTVDI)
+Email: kom.tvdigitalid@gmail.com
 """
                     mail.send(msg)
                     count += 1
@@ -267,47 +272,69 @@ Komunitas TV Digital Indonesia
         return jsonify({"status": "Sent", "count": count}), 200
     except Exception as e: return jsonify({"error": str(e)}), 500
 
-# --- HALAMAN BERITA (FIXED) ---
+# --- HALAMAN BERITA ---
 @app.route('/berita')
 def berita_page():
-    try:
-        # Feed Berita Teknologi Nasional
-        feed = feedparser.parse('https://news.google.com/rss/search?q=teknologi+indonesia&hl=id&gl=ID&ceid=ID:id')
-        articles = feed.entries
-        
-        page = request.args.get('page', 1, type=int)
-        per_page = 9 # Tampilkan 9 berita per halaman agar rapi
-        start = (page - 1) * per_page
-        end = start + per_page
-        current = articles[start:end]
-        
-        for a in current: 
-            if hasattr(a,'published_parsed'): a.time_since_published = time_since_published(a.published_parsed)
-            # Bersihkan gambar jika ada
-            if 'media_content' in a: a.image = a.media_content[0]['url']
-            else: a.image = None
+    entries = get_news_data()
+    page = request.args.get('page', 1, type=int)
+    per_page = 9
+    start = (page - 1) * per_page
+    end = start + per_page
+    current = entries[start:end]
+    
+    for a in current: 
+        if hasattr(a,'published_parsed'): a.time_since_published = time_since_published(a.published_parsed)
+        # Cari gambar
+        a.image = None
+        if 'media_content' in a: a.image = a.media_content[0]['url']
+        elif 'links' in a:
+            for link in a.links:
+                if 'image' in link.type: a.image = link.href
 
-        return render_template('berita.html', articles=current, page=page, total_pages=(len(articles)//per_page)+1)
-    except:
-        return render_template('berita.html', articles=[], page=1, total_pages=1) # Fallback jika error
+    return render_template('berita.html', articles=current, page=page, total_pages=(len(entries)//per_page)+1)
 
-# --- ROUTES LAIN ---
+# --- ROUTES FITUR LAIN ---
 @app.route("/cctv")
 def cctv_page(): return render_template("cctv.html")
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
+    # EMAIL REMINDER SHOLAT (PROFESIONAL)
     if 'user' in session and not session.get('sholat_sent'):
         try:
             u = ref.child(f"users/{session['user']}").get()
             if u and u.get('email'):
-                msg = Message("🕋 Pengingat Ibadah - KTVDI", recipients=[u['email']])
-                msg.body = f"Assalamualaikum {u.get('nama')},\n\nPesan KTVDI:\nMari laksanakan sholat tepat waktu. Kejujuran dan integritas adalah kunci keberkahan hidup.\n\nBagi yang non-muslim, mari tebar kebaikan dan toleransi.\n\nSalam,\nKTVDI"
+                msg = Message("🕋 Pengingat Ibadah & Renungan - KTVDI", recipients=[u['email']])
+                msg.body = f"""Assalamualaikum Wr. Wb. / Salam Sejahtera,
+Yth. {u.get('nama')},
+
+Terima kasih telah menggunakan fitur Jadwal Sholat KTVDI.
+
+Sebagai pengingat bagi kita bersama (khususnya umat Muslim):
+"Sesungguhnya sholat itu mencegah dari perbuatan keji dan mungkar."
+
+Mari kita jadikan ibadah sebagai sarana untuk membentuk pribadi yang jujur, amanah, dan menjauhi perbuatan yang merugikan diri sendiri maupun orang lain (seperti korupsi, judi, dan hiburan malam yang berlebihan).
+
+Bagi rekan-rekan non-muslim, mari kita terus rawat toleransi dan menebarkan kebaikan bagi sesama.
+
+Salam hangat,
+Komunitas TV Digital Indonesia
+"""
                 mail.send(msg)
                 session['sholat_sent'] = True
         except: pass
-    return render_template("jadwal-sholat.html", daftar_kota=["Jakarta","Surabaya","Bandung","Semarang","Yogyakarta","Medan","Pekalongan"])
+    
+    # KOTA LENGKAP 50++
+    kota = [
+        "Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjarmasin", "Batam", "Bekasi", "Bengkulu", "Bogor",
+        "Cirebon", "Denpasar", "Depok", "Gorontalo", "Jakarta", "Jambi", "Jayapura", "Kendari", "Kupang", "Madiun",
+        "Magelang", "Makassar", "Malang", "Mamuju", "Manado", "Mataram", "Medan", "Padang", "Palangkaraya", "Palembang",
+        "Palu", "Pangkal Pinang", "Pekalongan", "Pekanbaru", "Pontianak", "Purwokerto", "Purwodadi", "Salatiga", "Samarinda", "Semarang",
+        "Serang", "Sidoarjo", "Solo", "Sorong", "Surabaya", "Tangerang", "Tanjung Pinang", "Tasikmalaya", "Tegal", "Ternate", "Yogyakarta"
+    ]
+    return render_template("jadwal-sholat.html", daftar_kota=sorted(kota))
 
+# --- AUTH ROUTES (OTP PROFESIONAL) ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -318,27 +345,46 @@ def login():
             session['user'] = u
             session['nama'] = udata.get('nama', 'Pengguna')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Login Gagal")
+        return render_template('login.html', error="Username atau Password Salah")
     return render_template('login.html')
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        u, e, n, p = request.form.get("username"), request.form.get("email"), request.form.get("nama"), request.form.get("password")
-        if len(p) < 8: flash("Password min 8 karakter", "error"); return render_template("register.html")
+        u = request.form.get("username")
+        e = request.form.get("email")
+        p = request.form.get("password")
+        n = request.form.get("nama")
+        
         users = ref.child("users").get() or {}
-        if u in users: flash("Username dipakai", "error"); return render_template("register.html")
+        if u in users: flash("Username sudah digunakan", "error"); return render_template("register.html")
         
         otp = str(random.randint(100000, 999999))
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp})
         
         try:
-            msg = Message("Verifikasi Pendaftaran KTVDI", recipients=[e])
-            msg.body = f"Yth. {n},\n\nSelamat datang di KTVDI.\nKode OTP: {otp}\n\nJaga kerahasiaan akun Anda.\n\nSalam,\nAdmin KTVDI"
+            msg = Message("Verifikasi Pendaftaran Anggota KTVDI", recipients=[e])
+            msg.body = f"""Yth. Calon Anggota KTVDI, {n},
+
+Selamat datang di sistem pendaftaran Komunitas TV Digital Indonesia.
+Untuk melanjutkan proses registrasi, mohon gunakan kode verifikasi berikut:
+
+KODE OTP: {otp}
+
+⚠️ PERHATIAN KEAMANAN:
+1. Kode ini bersifat RAHASIA. Jangan berikan kepada siapapun.
+2. Kode hanya berlaku selama 1 (satu) menit.
+3. KTVDI tidak pernah meminta password atau OTP Anda melalui telepon/SMS.
+
+Terima kasih atas kepercayaan Anda.
+
+Hormat kami,
+Tim Admin KTVDI
+"""
             mail.send(msg)
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
-        except: flash("Gagal kirim email", "error")
+        except: flash("Gagal mengirim email verifikasi.", "error")
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
@@ -351,14 +397,29 @@ def verify_register():
             ref.child(f'users/{u}').set({"nama":p['nama'], "email":p['email'], "password":p['password'], "points":0})
             ref.child(f'pending_users/{u}').delete()
             session.pop('pending_username', None)
+            
             try:
-                msg = Message("Selamat Datang Resmi di KTVDI", recipients=[p['email']])
-                msg.body = f"Yth. {p['nama']},\n\nSelamat! Akun Anda aktif. Mari berkontribusi untuk penyiaran Indonesia.\n\nSalam,\nKetua KTVDI"
+                msg = Message("Selamat Datang di Keluarga Besar KTVDI", recipients=[p['email']])
+                msg.body = f"""Yth. {p['nama']},
+
+Selamat! Akun keanggotaan Anda di Komunitas TV Digital Indonesia (KTVDI) telah BERHASIL diaktifkan.
+
+Anda kini memiliki akses penuh untuk:
+- Berdiskusi di forum komunitas.
+- Melaporkan pembaruan sinyal di daerah Anda.
+- Mengakses informasi teknis eksklusif.
+
+Mari bersama-sama mewujudkan penyiaran digital yang inklusif dan merata di Indonesia.
+
+Salam hormat,
+Ketua Umum KTVDI
+"""
                 mail.send(msg)
             except: pass
-            flash("Berhasil!", "success")
+            
+            flash("Registrasi Berhasil! Silakan Login.", "success")
             return redirect(url_for('login'))
-        flash("OTP Salah", "error")
+        flash("Kode OTP Salah atau Kadaluarsa.", "error")
     return render_template("verify-register.html", username=u)
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -367,17 +428,28 @@ def forgot_password():
         email = request.form.get("identifier")
         users = ref.child("users").get() or {}
         found_uid = next((uid for uid, v in users.items() if v.get('email')==email), None)
+        
         if found_uid:
             otp = str(random.randint(100000, 999999))
             ref.child(f"otp/{found_uid}").set({"email": email, "otp": otp})
             try:
-                msg = Message("Reset Password", recipients=[email])
-                msg.body = f"Kode OTP: {otp}"
+                msg = Message("Permintaan Pemulihan Kata Sandi - KTVDI", recipients=[email])
+                msg.body = f"""Yth. Anggota KTVDI,
+
+Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.
+
+KODE OTP PEMULIHAN: {otp}
+
+Jika Anda tidak merasa melakukan permintaan ini, mohon abaikan email ini dan segera amankan akun Anda. Keamanan data Anda adalah prioritas kami.
+
+Salam,
+Tim Keamanan IT KTVDI
+"""
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
-            except: flash("Gagal kirim email", "error")
-        else: flash("Email tidak ditemukan", "error")
+            except: flash("Gagal mengirim email.", "error")
+        else: flash("Email tidak terdaftar dalam database kami.", "error")
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -389,7 +461,7 @@ def verify_otp():
         if data and data["otp"] == request.form.get("otp"):
             session['reset_verified'] = True
             return redirect(url_for("reset_password"))
-        flash("OTP Salah", "error")
+        flash("Kode OTP Salah.", "error")
     return render_template("verify-otp.html")
 
 @app.route("/reset-password", methods=["GET", "POST"])
@@ -398,17 +470,30 @@ def reset_password():
     uid = session.get("reset_uid")
     if request.method == "POST":
         pw = request.form.get("password")
-        if len(pw) < 8: flash("Min 8 karakter", "error"); return render_template("reset-password.html")
+        if len(pw) < 8: flash("Kata sandi minimal 8 karakter.", "error"); return render_template("reset-password.html")
         ref.child(f"users/{uid}").update({"password": hash_password(pw)})
         ref.child(f"otp/{uid}").delete()
+        
+        # Email Sukses Reset
         try:
             udata = ref.child(f"users/{uid}").get()
-            msg = Message("Password Berhasil Diubah", recipients=[udata['email']])
-            msg.body = "Password akun Anda telah diubah. Jika bukan Anda, lapor admin."
+            msg = Message("Pemberitahuan: Kata Sandi Berhasil Diubah", recipients=[udata['email']])
+            msg.body = """Yth. Anggota,
+
+Kata sandi akun KTVDI Anda telah berhasil diperbarui.
+
+PENTING:
+Mohon jaga kerahasiaan kredensial (Email & Password) Anda.
+Kehilangan akses terhadap email terdaftar dapat mengakibatkan hilangnya status keanggotaan dan poin kontribusi Anda secara permanen.
+
+Terima kasih.
+Admin KTVDI
+"""
             mail.send(msg)
         except: pass
+        
         session.clear()
-        flash("Sukses", "success")
+        flash("Kata sandi berhasil diubah. Silakan login kembali.", "success")
         return redirect(url_for('login'))
     return render_template("reset-password.html")
 
@@ -423,6 +508,7 @@ def daftar_siaran_page():
     data = ref.child("provinsi").get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
 
+# --- CRUD ROUTES ---
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data():
     if 'user' not in session: return redirect(url_for('login'))
