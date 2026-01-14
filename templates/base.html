@@ -14,9 +14,7 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 'marquee': 'marquee 60s linear infinite' },
-                    keyframes: { marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } } }
+                    colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } }
                 }
             }
         }
@@ -26,13 +24,19 @@
         .chat-bubble-user { background-color: #dbeafe; color: #1e3a8a; border-radius: 12px 0 12px 12px; margin-left: auto; border: 1px solid #bfdbfe; font-size: 13px; }
         .chat-bubble-bot { background-color: #ffffff; color: #334155; border-radius: 0 12px 12px 12px; border: 1px solid #e2e8f0; font-size: 13px; }
         
+        /* Chatbot Fullscreen Mobile */
         @media (max-width: 640px) {
             #chat-window:not(.hidden) {
-                position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; width: 100% !important; height: 100% !important;
+                position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important;
                 border-radius: 0 !important; z-index: 9999 !important; display: flex; flex-direction: column;
             }
             #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
         }
+
+        /* Seamless Marquee */
+        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; }
+        .marquee-content { display: inline-block; animation: marquee 120s linear infinite; } /* DURASI 120s (SEDANG) */
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
     </style>
 </head>
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[120px] lg:pb-0">
@@ -51,15 +55,17 @@
                     <a href="/berita" class="text-sm font-bold text-slate-300 hover:text-white transition-colors">Berita</a>
                 </div>
                 <div class="flex items-center gap-3 md:gap-4">
-                    <a href="/about" class="hidden lg:block text-sm font-bold text-slate-300 hover:text-brand-sky mr-2">Tentang</a>
+                    <a href="/about" class="text-slate-400 hover:text-brand-sky mr-2 p-2"><i class="fa-solid fa-circle-info text-xl"></i></a>
                     {% if session.get('user') %}
-                        <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none">
-                            <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}</span>
-                            <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-9 w-9 rounded-full border-2 border-slate-700">
-                        </button>
-                        <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
-                            <a href="/dashboard" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Dashboard</a>
-                            <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Keluar</a>
+                        <div class="relative">
+                            <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none">
+                                <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}</span>
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-9 w-9 rounded-full border-2 border-slate-700">
+                            </button>
+                            <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
+                                <a href="/dashboard" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Dashboard</a>
+                                <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Keluar</a>
+                            </div>
                         </div>
                     {% else %}
                         <div class="flex items-center gap-2">
@@ -82,7 +88,7 @@
                     <span class="text-lg font-extrabold">KTVDI</span>
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed max-w-md mx-auto md:mx-0">
-                    Komunitas TV Digital Indonesia.
+                    Komunitas TV Digital Indonesia adalah wadah independen untuk berbagi informasi frekuensi dan solusi teknis.
                 </p>
             </div>
             <div>
@@ -117,15 +123,12 @@
     </nav>
 
     <div class="fixed bottom-[65px] lg:bottom-0 w-full z-40 bg-white border-t border-slate-200 h-9 lg:h-10 flex items-center justify-between px-0 select-none shadow-sm">
-        <div class="bg-brand-blue h-full flex items-center px-3 z-20"><span class="text-white text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE INFO</span></div>
-        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50"><div class="animate-marquee whitespace-nowrap text-[10px] font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">...</div></div>
-        <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00</div></div>
-    </div>
-
-    <div class="fixed bottom-[110px] lg:bottom-20 left-4 z-[60] group">
-        <a href="tel:112" class="flex items-center gap-2 bg-red-600/90 backdrop-blur-sm hover:bg-red-700 text-white p-3 rounded-full shadow-lg ring-2 ring-red-500/20 w-10 group-hover:w-auto overflow-hidden transition-all duration-300">
-            <i class="fa-solid fa-phone-volume text-sm animate-pulse"></i><span class="font-bold text-[10px] whitespace-nowrap hidden group-hover:inline pl-1">DARURAT 112</span>
-        </a>
+        <div class="bg-brand-blue h-full flex items-center px-3 z-20 shrink-0"><span class="text-white text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE INFO</span></div>
+        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50 marquee-container">
+            <div class="marquee-content text-[10px] font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">
+                </div>
+        </div>
+        <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20 shrink-0"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00</div></div>
     </div>
 
     <div class="fixed bottom-[110px] lg:bottom-20 right-4 z-[60]">
@@ -170,8 +173,11 @@
         
         async function updateTicker() {
             try { 
-                const res=await fetch('/api/news-ticker'); const d=await res.json(); 
-                if(d.length > 0) document.getElementById('unified-ticker').innerHTML = d.map(n=>`<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('<span class="mx-4 text-slate-300">|</span>');
+                const res=await fetch('/api/news-ticker'); 
+                const data=await res.json(); 
+                const content = data.map(n=>`<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('<span class="mx-4 text-slate-300">|</span>');
+                // Duplicate content for seamless loop
+                document.getElementById('unified-ticker').innerHTML = content + content;
             } catch{}
         }
         updateTicker();
