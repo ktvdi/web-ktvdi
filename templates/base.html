@@ -16,7 +16,9 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } }
+                    colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
+                    animation: { 'marquee': 'marquee 60s linear infinite' }, /* LEBIH PELAN */
+                    keyframes: { marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } } }
                 }
             }
         }
@@ -26,16 +28,14 @@
         .chat-bubble-user { background-color: #dbeafe; color: #1e3a8a; border-radius: 12px 0 12px 12px; margin-left: auto; border: 1px solid #bfdbfe; font-size: 13px; }
         .chat-bubble-bot { background-color: #ffffff; color: #334155; border-radius: 0 12px 12px 12px; border: 1px solid #e2e8f0; font-size: 13px; }
         
-        /* Mobile Chat Fullscreen */
         @media (max-width: 640px) {
             #chat-window:not(.hidden) { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0 !important; z-index: 9999 !important; display: flex; flex-direction: column; }
             #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
         }
-
-        /* Seamless Marquee CSS */
-        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; }
-        .marquee-content { display: inline-block; animation: marquee 60s linear infinite; } /* Kecepatan Sedang */
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        
+        /* Footer Links Hover */
+        .footer-link { transition: all 0.3s ease; display: inline-block; }
+        .footer-link:hover { transform: translateX(5px); color: #38bdf8; }
     </style>
 </head>
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[120px] lg:pb-0">
@@ -58,7 +58,7 @@
                     {% if session.get('user') %}
                         <div class="relative">
                             <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none">
-                                <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}</span>
+                                <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}<br><span class="text-[10px] text-slate-400 font-normal">Member</span></span>
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-9 w-9 rounded-full border-2 border-slate-700">
                             </button>
                             <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
@@ -79,40 +79,73 @@
 
     <main class="flex-grow pt-16 md:pt-20">{% block content %}{% endblock %}</main>
 
-    <footer class="bg-brand-navy text-white pt-16 pb-32 lg:pb-16 border-t border-slate-800 font-['Plus_Jakarta_Sans']">
-        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12 text-center md:text-left">
-            <div class="col-span-1 md:col-span-2">
-                <div class="flex items-center justify-center md:justify-start gap-3 mb-6">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-10 w-auto brightness-200">
-                    <span class="text-lg font-extrabold">KTVDI</span>
+    <footer class="bg-[#0f172a] text-white pt-20 pb-32 lg:pb-16 border-t border-slate-800 font-['Plus_Jakarta_Sans']">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                <div class="space-y-6">
+                    <div class="flex items-center gap-3">
+                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-10 w-auto brightness-200">
+                        <span class="text-xl font-extrabold tracking-tight">KTVDI</span>
+                    </div>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Platform komunitas independen terdepan di Indonesia yang mendedikasikan diri untuk pemerataan informasi penyiaran digital dan edukasi teknologi bagi seluruh lapisan masyarakat.
+                    </p>
+                    <div class="flex gap-4 pt-2">
+                        <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition border border-slate-700"><i class="fa-brands fa-twitter text-sm"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition border border-slate-700"><i class="fa-brands fa-instagram text-sm"></i></a>
+                        <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition border border-slate-700"><i class="fa-brands fa-youtube text-sm"></i></a>
+                    </div>
                 </div>
-                <p class="text-slate-400 text-sm leading-relaxed max-w-md mx-auto md:mx-0">
-                    Komunitas TV Digital Indonesia.
-                </p>
-            </div>
-            <div>
-                <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Navigasi</h4>
-                <ul class="space-y-3 text-sm text-slate-400">
-                    <li><a href="/daftar-siaran" class="hover:text-brand-sky">Cek MUX</a></li>
-                    <li><a href="/cctv" class="hover:text-brand-sky">CCTV</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Media Sosial</h4>
-                <div class="flex gap-3 justify-center md:justify-start mb-4">
-                    <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="https://t.me/komunitastvdigital" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition"><i class="fa-brands fa-telegram"></i></a>
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition"><i class="fa-brands fa-instagram"></i></a>
+
+                <div>
+                    <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Menu Utama</h4>
+                    <ul class="space-y-3 text-sm text-slate-400">
+                        <li><a href="/" class="footer-link">Beranda</a></li>
+                        <li><a href="/daftar-siaran" class="footer-link">Database MUX</a></li>
+                        <li><a href="/cctv" class="footer-link">Pantauan CCTV</a></li>
+                        <li><a href="/berita" class="footer-link">Berita Terkini</a></li>
+                    </ul>
                 </div>
-                <p class="text-xs text-slate-500">Email: kom.tvdigitalid@gmail.com</p>
+
+                <div>
+                    <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Dukungan</h4>
+                    <ul class="space-y-3 text-sm text-slate-400">
+                        <li><a href="/about" class="footer-link">Tentang Kami</a></li>
+                        <li><a href="#" class="footer-link">Pusat Bantuan</a></li>
+                        <li><a href="#" class="footer-link">Forum Diskusi</a></li>
+                        <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Hubungi Kami</h4>
+                    <ul class="space-y-4 text-sm text-slate-400">
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-envelope mt-1 text-brand-sky"></i>
+                            <span>kom.tvdigitalid@gmail.com<br><span class="text-xs text-slate-500">Respon dalam 24 jam</span></span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa-solid fa-location-dot mt-1 text-brand-sky"></i>
+                            <span>Jakarta, Indonesia<br><span class="text-xs text-slate-500">Kantor Pusat</span></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+                <p>&copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi Undang-Undang.</p>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-white">Syarat & Ketentuan</a>
+                    <a href="#" class="hover:text-white">Disclaimer</a>
+                </div>
             </div>
         </div>
-        <div class="border-t border-slate-800 pt-8 text-center text-xs text-slate-500">&copy; 2026 KTVDI.</div>
     </footer>
 
     <nav class="lg:hidden fixed bottom-0 w-full bg-white z-[60] pb-safe border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
         <div class="grid grid-cols-5 h-[65px] items-center px-2">
-            <a href="/" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-bold">Beranda</span></a>
+            <a href="/" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-bold">Home</span></a>
             <a href="/cctv" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-video text-lg"></i><span class="text-[9px] font-bold">CCTV</span></a>
             <a href="/jadwal-sholat" class="flex flex-col items-center justify-center -mt-6 group"><div class="w-12 h-12 rounded-full bg-brand-blue text-white flex items-center justify-center border-4 border-white shadow-lg"><i class="fa-solid fa-mosque text-lg"></i></div><span class="text-[9px] font-bold mt-1">Religi</span></a>
             <a href="/daftar-siaran" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-database text-lg"></i><span class="text-[9px] font-bold">Data</span></a>
@@ -122,9 +155,7 @@
 
     <div class="fixed bottom-[65px] lg:bottom-0 w-full z-40 bg-white border-t border-slate-200 h-9 lg:h-10 flex items-center justify-between px-0 select-none shadow-sm">
         <div class="bg-brand-blue h-full flex items-center px-3 z-20 shrink-0"><span class="text-white text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE INFO</span></div>
-        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50 marquee-container">
-            <div class="marquee-content text-[10px] font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">Memuat Berita...</div>
-        </div>
+        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50"><div class="animate-marquee whitespace-nowrap text-[10px] font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">...</div></div>
         <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20 shrink-0"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00</div></div>
     </div>
 
@@ -175,9 +206,8 @@
         async function updateTicker() {
             try { 
                 const res=await fetch('/api/news-ticker'); const d=await res.json(); 
-                // Seamless Logic: Duplikasi konten agar nyambung terus
                 const content = d.map(n=>`<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('<span class="mx-4 text-slate-300">|</span>');
-                document.getElementById('unified-ticker').innerHTML = content + content + content; // Duplicate 3x for smooth loop
+                document.getElementById('unified-ticker').innerHTML = content + content;
             } catch{}
         }
         updateTicker();
