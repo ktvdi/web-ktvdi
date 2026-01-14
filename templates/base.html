@@ -17,8 +17,18 @@
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 'marquee': 'marquee 60s linear infinite' }, /* LEBIH PELAN */
-                    keyframes: { marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } } }
+                    animation: { 
+                        // Dibuat 250 detik agar SANGAT PELAN dan mudah dibaca
+                        'marquee': 'marquee 150s linear infinite' 
+                    },
+                    keyframes: { 
+                        marquee: { 
+                            '0%': { transform: 'translateX(0%)' }, 
+                            // Pindah ke -50% saja (setengah lebar total karena konten diduplikasi)
+                            // Ini kunci agar seamless (tidak putus)
+                            '100%': { transform: 'translateX(-50%)' } 
+                        } 
+                    }
                 }
             }
         }
@@ -28,12 +38,18 @@
         .chat-bubble-user { background-color: #dbeafe; color: #1e3a8a; border-radius: 12px 0 12px 12px; margin-left: auto; border: 1px solid #bfdbfe; font-size: 13px; }
         .chat-bubble-bot { background-color: #ffffff; color: #334155; border-radius: 0 12px 12px 12px; border: 1px solid #e2e8f0; font-size: 13px; }
         
+        /* Mobile Chat Fullscreen */
         @media (max-width: 640px) {
             #chat-window:not(.hidden) { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0 !important; z-index: 9999 !important; display: flex; flex-direction: column; }
             #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
         }
         
-        /* Footer Links Hover */
+        /* Container Running Text */
+        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; display: flex; }
+        .marquee-content { display: flex; align-items: center; white-space: nowrap; animation: marquee 250s linear infinite; will-change: transform; }
+        /* Pause saat di-hover mouse agar user bisa baca detail */
+        .marquee-container:hover .marquee-content { animation-play-state: paused; }
+        
         .footer-link { transition: all 0.3s ease; display: inline-block; }
         .footer-link:hover { transform: translateX(5px); color: #38bdf8; }
     </style>
@@ -94,7 +110,6 @@
                         <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
                         <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition border border-slate-700"><i class="fa-brands fa-twitter text-sm"></i></a>
                         <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition border border-slate-700"><i class="fa-brands fa-instagram text-sm"></i></a>
-                        <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition border border-slate-700"><i class="fa-brands fa-youtube text-sm"></i></a>
                     </div>
                 </div>
 
@@ -113,7 +128,6 @@
                     <ul class="space-y-3 text-sm text-slate-400">
                         <li><a href="/about" class="footer-link">Tentang Kami</a></li>
                         <li><a href="#" class="footer-link">Pusat Bantuan</a></li>
-                        <li><a href="#" class="footer-link">Forum Diskusi</a></li>
                         <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
                     </ul>
                 </div>
@@ -123,11 +137,7 @@
                     <ul class="space-y-4 text-sm text-slate-400">
                         <li class="flex items-start gap-3">
                             <i class="fa-solid fa-envelope mt-1 text-brand-sky"></i>
-                            <span>kom.tvdigitalid@gmail.com<br><span class="text-xs text-slate-500">Respon dalam 24 jam</span></span>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <i class="fa-solid fa-location-dot mt-1 text-brand-sky"></i>
-                            <span>Jakarta, Indonesia<br><span class="text-xs text-slate-500">Kantor Pusat</span></span>
+                            <span>kom.tvdigitalid@gmail.com<br><span class="text-xs text-slate-500">Respon Cepat</span></span>
                         </li>
                     </ul>
                 </div>
@@ -145,7 +155,7 @@
 
     <nav class="lg:hidden fixed bottom-0 w-full bg-white z-[60] pb-safe border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
         <div class="grid grid-cols-5 h-[65px] items-center px-2">
-            <a href="/" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-bold">Home</span></a>
+            <a href="/" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-bold">Beranda</span></a>
             <a href="/cctv" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-video text-lg"></i><span class="text-[9px] font-bold">CCTV</span></a>
             <a href="/jadwal-sholat" class="flex flex-col items-center justify-center -mt-6 group"><div class="w-12 h-12 rounded-full bg-brand-blue text-white flex items-center justify-center border-4 border-white shadow-lg"><i class="fa-solid fa-mosque text-lg"></i></div><span class="text-[9px] font-bold mt-1">Religi</span></a>
             <a href="/daftar-siaran" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue group"><i class="fa-solid fa-database text-lg"></i><span class="text-[9px] font-bold">Data</span></a>
@@ -155,7 +165,11 @@
 
     <div class="fixed bottom-[65px] lg:bottom-0 w-full z-40 bg-white border-t border-slate-200 h-9 lg:h-10 flex items-center justify-between px-0 select-none shadow-sm">
         <div class="bg-brand-blue h-full flex items-center px-3 z-20 shrink-0"><span class="text-white text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE INFO</span></div>
-        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50"><div class="animate-marquee whitespace-nowrap text-[10px] font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">...</div></div>
+        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50 marquee-container">
+            <div class="marquee-content text-[10px] font-semibold text-slate-700" id="unified-ticker">
+                Memuat Berita...
+            </div>
+        </div>
         <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20 shrink-0"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00</div></div>
     </div>
 
@@ -199,15 +213,22 @@
         function toggleChat() { 
             const win = document.getElementById('chat-window');
             win.classList.toggle('hidden');
-            if(!win.classList.contains('hidden')){ setTimeout(() => document.getElementById('chat-messages').scrollTop = 9999, 100); }
+            if(!win.classList.contains('hidden')){
+                setTimeout(() => document.getElementById('chat-messages').scrollTop = 9999, 100);
+            }
         }
         setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }, 1000);
         
         async function updateTicker() {
             try { 
-                const res=await fetch('/api/news-ticker'); const d=await res.json(); 
-                const content = d.map(n=>`<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('<span class="mx-4 text-slate-300">|</span>');
-                document.getElementById('unified-ticker').innerHTML = content + content;
+                const res=await fetch('/api/news-ticker'); 
+                const data=await res.json(); 
+                // Format berita
+                const content = data.map(n=>`<span class="mx-6 text-brand-blue font-bold tracking-wide">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold tracking-wide">${n}</span>`).join('<span class="mx-6 text-slate-300 opacity-50">|</span>');
+                
+                // KUNCI SEAMLESS: Duplikat konten (A + A)
+                // Animasi CSS bergerak 0% ke -50%
+                document.getElementById('unified-ticker').innerHTML = content + '<span class="mx-6 text-slate-300 opacity-50">|</span>' + content;
             } catch{}
         }
         updateTicker();
