@@ -9,14 +9,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
-                    animation: { 'marquee': 'marquee 40s linear infinite' },
+                    animation: { 'marquee': 'marquee 120s linear infinite' }, // PELAN 120 Detik
                     keyframes: { marquee: { '0%': { transform: 'translateX(100%)' }, '100%': { transform: 'translateX(-100%)' } } }
                 }
             }
@@ -26,15 +25,16 @@
         .glass-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.08); }
         .chat-bubble-user { background-color: #dbeafe; color: #1e3a8a; border-radius: 12px 0 12px 12px; margin-left: auto; border: 1px solid #bfdbfe; font-size: 13px; }
         .chat-bubble-bot { background-color: #ffffff; color: #334155; border-radius: 0 12px 12px 12px; border: 1px solid #e2e8f0; font-size: 13px; }
-        .chat-bg { background-color: #f8fafc; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
         
-        /* Mobile Chat Fullscreen Fix */
+        /* Mobile Chat Fullscreen - Keyboard Fix */
         @media (max-width: 640px) {
             #chat-window:not(.hidden) {
-                position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; width: 100% !important; height: 100% !important;
+                position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; 
+                width: 100% !important; height: 100% !important;
                 border-radius: 0 !important; z-index: 9999 !important; display: flex; flex-direction: column;
             }
-            #chat-messages { flex: 1; height: auto !important; padding-bottom: 80px; }
+            #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
+            #chat-input-area { padding-bottom: env(safe-area-inset-bottom); background: white; }
         }
     </style>
 </head>
@@ -56,15 +56,13 @@
                 <div class="flex items-center gap-3 md:gap-4">
                     <a href="/about" class="hidden lg:block text-sm font-bold text-slate-300 hover:text-brand-sky mr-2">Tentang</a>
                     {% if session.get('user') %}
-                        <div class="relative">
-                            <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none">
-                                <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}<br><span class="text-[10px] text-slate-400 font-normal">Member</span></span>
-                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-9 w-9 rounded-full border-2 border-slate-700">
-                            </button>
-                            <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
-                                <a href="/dashboard" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Dashboard</a>
-                                <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Keluar</a>
-                            </div>
+                        <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none">
+                            <span class="hidden md:block text-xs font-bold text-white text-right">{{ session.get('nama') }}<br><span class="text-[10px] text-slate-400 font-normal">Member</span></span>
+                            <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-9 w-9 rounded-full border-2 border-slate-700">
+                        </button>
+                        <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
+                            <a href="/dashboard" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Dashboard</a>
+                            <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Keluar</a>
                         </div>
                     {% else %}
                         <div class="flex items-center gap-2">
@@ -100,10 +98,6 @@
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Kontak</h4>
                 <p class="text-xs text-slate-500 mb-4">Email: kom.tvdigitalid@gmail.com</p>
-                <div class="flex gap-3 justify-center md:justify-start">
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600"><i class="fa-brands fa-instagram"></i></a>
-                </div>
             </div>
         </div>
         <div class="border-t border-slate-800 pt-8 text-center text-xs text-slate-500">&copy; 2026 KTVDI.</div>
@@ -111,7 +105,7 @@
 
     <nav class="lg:hidden fixed bottom-0 w-full bg-white z-[60] pb-safe border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
         <div class="grid grid-cols-5 h-[65px] items-center px-2">
-            <a href="/" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-bold">Home</span></a>
+            <a href="/" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue"><i class="fa-solid fa-house text-lg"></i><span class="text-[9px] font-bold">Beranda</span></a>
             <a href="/cctv" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue"><i class="fa-solid fa-video text-lg"></i><span class="text-[9px] font-bold">CCTV</span></a>
             <a href="/jadwal-sholat" class="flex flex-col items-center justify-center -mt-6"><div class="w-12 h-12 rounded-full bg-brand-blue text-white flex items-center justify-center border-4 border-white shadow-lg"><i class="fa-solid fa-mosque text-lg"></i></div><span class="text-[9px] font-bold mt-1">Religi</span></a>
             <a href="/daftar-siaran" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-brand-blue"><i class="fa-solid fa-database text-lg"></i><span class="text-[9px] font-bold">Data</span></a>
@@ -144,11 +138,10 @@
                 <div class="flex gap-2">
                     <div class="chat-bubble-bot p-3 shadow-sm max-w-[85%] text-slate-800 leading-relaxed relative">
                         Halo Kak! 👋 Selamat datang di KTVDI.<br>Ada yang bisa Modi bantu hari ini? 😊
-                        <div class="text-[9px] text-slate-400 text-right mt-1" id="chat-time"></div>
                     </div>
                 </div>
             </div>
-            <div class="p-2 bg-white border-t border-slate-200 relative z-20">
+            <div id="chat-input-area" class="p-2 bg-white border-t border-slate-200 relative z-20">
                 <form onsubmit="handleChat(event)" class="flex gap-2 items-center">
                     <input type="text" id="chat-input" placeholder="Ketik pesan..." class="w-full bg-slate-50 text-sm px-4 py-3 rounded-full focus:outline-none border border-slate-200 shadow-sm" autocomplete="off">
                     <button type="submit" class="bg-brand-blue text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-700 transition shadow-md"><i class="fa-solid fa-paper-plane text-sm"></i></button>
@@ -167,10 +160,6 @@
             const win = document.getElementById('chat-window');
             win.classList.toggle('hidden');
             if(!win.classList.contains('hidden')){
-                const now = new Date();
-                const timeStr = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-                const chatTime = document.getElementById('chat-time');
-                if(chatTime) chatTime.innerText = timeStr;
                 setTimeout(() => document.getElementById('chat-messages').scrollTop = 9999, 100);
             }
         }
@@ -179,7 +168,7 @@
         async function updateTicker() {
             try { 
                 const res=await fetch('/api/news-ticker'); const d=await res.json(); 
-                if(d.length > 0) document.getElementById('unified-ticker').innerHTML = d.map(n=>`<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('<span class="mx-2 text-slate-300">|</span>');
+                if(d.length > 0) document.getElementById('unified-ticker').innerHTML = d.map(n=>`<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('<span class="mx-4 text-slate-300">|</span>');
             } catch{}
         }
         updateTicker();
