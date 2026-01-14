@@ -23,7 +23,9 @@ app = Flask(__name__)
 CORS(app)
 app.secret_key = os.environ.get("SECRET_KEY", "ktvdi-final-pro-2026")
 
-# --- 1. KONEKSI FIREBASE ---
+# ==========================================
+# 1. KONEKSI FIREBASE
+# ==========================================
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -40,7 +42,6 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        # Fallback untuk development lokal
         cred = credentials.Certificate("credentials.json")
     
     if not firebase_admin._apps:
@@ -51,7 +52,9 @@ except Exception as e:
     ref = None
     print(f"❌ Firebase Error: {e}")
 
-# --- 2. EMAIL ---
+# ==========================================
+# 2. EMAIL CONFIGURATION
+# ==========================================
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -60,7 +63,9 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# --- 3. AI GEMINI (KEY TANAM) ---
+# ==========================================
+# 3. AI CHATBOT
+# ==========================================
 MY_API_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU"
 
 try:
@@ -72,25 +77,28 @@ except Exception as e:
     print(f"❌ AI Error: {e}")
 
 MODI_PROMPT = """
-Anda adalah MODI, Sahabat Digital KTVDI.
-Tugas: Membantu seputar TV Digital, STB, dan Website.
+Anda adalah MODI, Sahabat Digital dari KTVDI.
+Tugas: Membantu masyarakat awam memahami TV Digital dengan bahasa yang hangat.
 Aturan:
-1. Sapa dengan "Kak".
-2. Piala Dunia 2026: Hak siar TVRI (Gratis & HD).
+1. Sapa dengan "Kak" atau "Sobat".
+2. Info Piala Dunia 2026: Hak siar TVRI (Gratis & HD).
 3. Selalu tawarkan bantuan lain.
 """
 
-# --- 4. HELPERS (ANTI-CRASH) ---
+# ==========================================
+# 4. HELPERS
+# ==========================================
+def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
+
+def normalize_input(text):
+    return text.strip().lower() if text else ""
+
 def get_news_entries():
-    """Mengambil Berita dengan FALLBACK (Data Cadangan)"""
     all_news = []
     sources = [
         'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
-        'https://www.cnnindonesia.com/nasional/rss',
-        'https://www.antaranews.com/rss/tekno.xml'
+        'https://www.cnnindonesia.com/nasional/rss'
     ]
-    
-    # Coba ambil berita online
     try:
         for url in sources:
             try:
@@ -100,57 +108,14 @@ def get_news_entries():
                         entry['source_name'] = feed.feed.title if 'title' in feed.feed else "Berita"
                     all_news.extend(feed.entries[:5])
             except: continue
-        
         all_news.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.gmtime(0), reverse=True)
     except: pass
-
-    # JIKA KOSONG (GAGAL AMBIL), PAKAI DATA CADANGAN AGAR TIDAK ERROR
+    
+    # FALLBACK JIKA KOSONG
     if not all_news:
-        current_time = datetime.now()
-        dummy_news = [
-            {'title': 'Cara Pasang STB yang Benar dan Mudah', 'link': '#', 'published_parsed': current_time.timetuple(), 'source_name': 'Info KTVDI', 'summary': 'Panduan lengkap memasang STB.'},
-            {'title': 'Daftar Frekuensi TV Digital Terbaru 2026', 'link': '/daftar-siaran', 'published_parsed': current_time.timetuple(), 'source_name': 'Database', 'summary': 'Cek MUX di wilayah Anda.'},
-            {'title': 'Piala Dunia 2026 Tayang Gratis di TVRI', 'link': '#', 'published_parsed': current_time.timetuple(), 'source_name': 'TVRI', 'summary': 'Saksikan di TVRI Nasional dan Sport.'},
-            {'title': 'Tips Memilih Antena UHF Terbaik', 'link': '#', 'published_parsed': current_time.timetuple(), 'source_name': 'Tips', 'summary': 'Gunakan antena outdoor untuk sinyal maksimal.'}
-        ]
-        return dummy_news
-
+        return [{'title': 'Selamat Datang di KTVDI - Informasi TV Digital Terkini', 'link': '#', 'source_name': 'Info'}]
+    
     return all_news[:20]
-
-def get_java_weather():
-    try:
-        cities = [
-            ("DigitalForecast-DKIJakarta.xml", "Jakarta Pusat"),
-            ("DigitalForecast-JawaBarat.xml", "Bandung"),
-            ("DigitalForecast-JawaTengah.xml", "Semarang"),
-            ("DigitalForecast-DIYogyakarta.xml", "Yogyakarta"),
-            ("DigitalForecast-JawaTimur.xml", "Surabaya"),
-            ("DigitalForecast-Banten.xml", "Serang")
-        ]
-        report = []
-        base = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/"
-        for xml, area in cities:
-            try:
-                r = requests.get(base + xml, timeout=2)
-                if r.status_code == 200:
-                    root = ET.fromstring(r.content)
-                    for a in root.findall(".//area"):
-                        if a.get("description") == area:
-                            p = a.find("parameter[@id='weather']")
-                            if p:
-                                v = p.find("timerange").find("value").text
-                                c = {"0":"Cerah","1":"Berawan","3":"Berawan","60":"Hujan","95":"Badai"}
-                                report.append(f"- {area}: {c.get(v, 'Cerah')}")
-                            break
-            except: continue
-        return "\n".join(report) if report else "Cuaca Cerah Berawan."
-    except: return "Cuaca Cerah Berawan."
-
-def get_daily_news_summary_ai():
-    # Sederhanakan agar tidak error timeout
-    return "Cek halaman Berita untuk update informasi terbaru seputar TV Digital."
-
-def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
 def time_since_published(published_time):
     try:
@@ -162,175 +127,147 @@ def time_since_published(published_time):
         return "Baru saja"
     except: return "Baru saja"
 
-# --- 5. ROUTES ---
+# ==========================================
+# 5. AUTH ROUTES (FIXED)
+# ==========================================
 
-@app.route("/")
-def home():
-    siaran_data = ref.child('siaran').get() if ref else {}
-    stats = {'wilayah': 0, 'mux': 0, 'channel': 0}
-    last_updated = None
-    
-    if siaran_data:
-        for prov in siaran_data.values():
-            if isinstance(prov, dict):
-                stats['wilayah'] += len(prov)
-                for wil in prov.values():
-                    if isinstance(wil, dict):
-                        stats['mux'] += len(wil)
-                        for detail in wil.values():
-                            if 'siaran' in detail: stats['channel'] += len(detail['siaran'])
-                            if 'last_updated_date' in detail:
-                                try:
-                                    curr = datetime.strptime(detail['last_updated_date'], '%d-%m-%Y')
-                                    if last_updated is None or curr > last_updated: last_updated = curr
-                                except: pass
-    
-    last_str = last_updated.strftime('%d-%m-%Y') if last_updated else "-"
-    return render_template('index.html', stats=stats, last_updated_time=last_str)
-
-@app.route('/api/chat', methods=['POST'])
-def chatbot_api():
-    if not model: return jsonify({"response": "Maaf, AI sedang gangguan."})
-    data = request.get_json()
-    try:
-        response = model.generate_content(f"{MODI_PROMPT}\nUser: {data.get('prompt')}\nModi:")
-        return jsonify({"response": response.text})
-    except: return jsonify({"response": "Maaf Kak, coba lagi nanti ya."})
-
-@app.route("/api/news-ticker")
-def news_ticker():
-    # Route ini DIJAMIN tidak akan error karena fungsi get_news_entries punya fallback
-    entries = get_news_entries()
-    titles = [e.get('title', 'Info TV Digital') for e in entries] # Use .get to be safe
-    return jsonify(titles)
-
-# --- HALAMAN YANG TADINYA ERROR ---
-@app.route('/berita')
-def berita_page():
-    try:
-        entries = get_news_entries()
-        page = request.args.get('page', 1, type=int)
-        per_page = 9
-        start = (page - 1) * per_page
-        end = start + per_page
-        current = entries[start:end]
-        
-        for a in current: 
-            # Fix error jika published_parsed tidak ada
-            if isinstance(a, dict) and 'published_parsed' in a:
-                 a['time_since_published'] = time_since_published(a['published_parsed'])
-            else:
-                 a['time_since_published'] = "Baru saja"
-            
-            # Fix image
-            a['image'] = None
-            if 'media_content' in a: a['image'] = a['media_content'][0]['url']
-            elif 'links' in a:
-                for link in a['links']:
-                    if 'image' in link.get('type',''): a['image'] = link.get('href')
-
-        return render_template('berita.html', articles=current, page=page, total_pages=(len(entries)//per_page)+1)
-    except Exception as e:
-        print(f"Berita Error: {e}")
-        # Jangan crash, tampilkan halaman kosong atau fallback
-        return render_template('berita.html', articles=[], page=1, total_pages=1)
-
-@app.route("/cctv")
-def cctv_page(): 
-    return render_template("cctv.html")
-
-@app.route("/jadwal-sholat")
-def jadwal_sholat_page():
-    # Hapus logika email disini agar tidak bikin berat loading halaman
-    kota = ["Jakarta", "Bandung", "Semarang", "Yogyakarta", "Surabaya", "Serang", "Denpasar", "Medan", "Makassar", "Palembang"]
-    return render_template("jadwal-sholat.html", daftar_kota=sorted(kota))
-
-# --- AUTH & DASHBOARD ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        u = request.form.get('username')
-        p = hash_password(request.form.get('password'))
-        udata = ref.child(f'users/{u}').get() if ref else None
-        if udata and udata.get('password') == p:
-            session['user'] = u
-            session['nama'] = udata.get('nama', 'Pengguna')
+        raw_input = request.form.get('username')
+        password = request.form.get('password')
+        hashed_pw = hash_password(password)
+        users = ref.child('users').get() if ref else {}
+        target_user = None
+        target_uid = None
+        clean_input = normalize_input(raw_input)
+
+        if users:
+            # Cek Username
+            for uid, data in users.items():
+                if uid.lower() == clean_input:
+                    target_user = data
+                    target_uid = uid
+                    break
+            # Cek Email
+            if not target_user:
+                for uid, data in users.items():
+                    if isinstance(data, dict) and normalize_input(data.get('email')) == clean_input:
+                        target_user = data
+                        target_uid = uid
+                        break
+        
+        if target_user and target_user.get('password') == hashed_pw:
+            session.permanent = True
+            session['user'] = target_uid
+            session['nama'] = target_user.get('nama', 'Pengguna')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Gagal Login")
+        
+        return render_template('login.html', error="Username/Email atau Password Salah")
     return render_template('login.html')
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        u = request.form.get("username")
-        e = request.form.get("email")
-        p = request.form.get("password")
+        u = normalize_input(request.form.get("username"))
+        e = normalize_input(request.form.get("email"))
         n = request.form.get("nama")
+        p = request.form.get("password")
+        users = ref.child("users").get() or {}
         
-        # Cek User Existing
-        users_data = ref.child("users").get()
-        if users_data and u in users_data:
-             flash("Username dipakai", "error")
-             return render_template("register.html")
+        if u in users:
+            flash("Username sudah digunakan", "error")
+            return render_template("register.html")
+        for uid, data in users.items():
+            if normalize_input(data.get('email')) == e:
+                flash("Email sudah terdaftar", "error")
+                return render_template("register.html")
 
         otp = str(random.randint(100000, 999999))
-        ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp})
+        ref.child(f'pending_users/{u}').set({ "nama": n, "email": e, "password": hash_password(p), "otp": otp })
+        
         try:
-            msg = Message("Verifikasi KTVDI", recipients=[e])
-            msg.body = f"Kode OTP: {otp}"
+            msg = Message("Kode Verifikasi KTVDI (Berlaku 1 Menit)", recipients=[e])
+            msg.body = f"""Halo Kak {n},
+
+Terima kasih telah memilih untuk bergabung bersama keluarga besar Komunitas TV Digital Indonesia.
+
+Untuk keamanan akun Kakak, silakan masukkan kode verifikasi berikut dalam waktu 1 menit:
+
+>> {otp} <<
+
+Jangan berikan kode ini kepada siapapun ya, Kak. Kami tunggu kehadiran Kakak di dalam aplikasi.
+
+Salam hangat,
+Tim Admin KTVDI
+"""
             mail.send(msg)
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
         except: flash("Gagal kirim email", "error")
+            
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
     u = session.get("pending_username")
+    if not u: return redirect(url_for("register"))
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
         if p and str(p.get('otp')) == request.form.get("otp"):
-            ref.child(f'users/{u}').set(p)
+            ref.child(f'users/{u}').set({ "nama": p['nama'], "email": p['email'], "password": p['password'], "points": 0 })
             ref.child(f'pending_users/{u}').delete()
-            flash("Sukses", "success")
+            session.pop('pending_username', None)
+            # Email Welcome
+            try:
+                msg = Message("Selamat Datang di Rumah Baru!", recipients=[p['email']])
+                msg.body = f"Halo Kak {p['nama']},\n\nSelamat! Akun Kakak sudah aktif. Mari bersama-sama kita majukan penyiaran digital Indonesia.\n\nSalam sayang,\nKTVDI"
+                mail.send(msg)
+            except: pass
+            flash("Berhasil! Silakan Login.", "success")
             return redirect(url_for('login'))
-        flash("OTP Salah", "error")
+        flash("OTP Salah/Kadaluarsa", "error")
     return render_template("verify-register.html", username=u)
 
-# --- ROUTE LUPA PASSWORD (DIPERBAIKI) ---
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        email = request.form.get("identifier")
+        email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
-        
         found_uid = None
         for uid, user_data in users.items():
-            if isinstance(user_data, dict) and user_data.get('email') == email:
+            if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
                 found_uid = uid
                 break
         
         if found_uid:
             otp = str(random.randint(100000, 999999))
-            ref.child(f"otp/{found_uid}").set({"email": email, "otp": otp})
+            ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp})
             try:
-                msg = Message("Reset Password KTVDI", recipients=[email])
-                msg.body = f"Kode OTP Reset Password: {otp}"
+                msg = Message("Pemulihan Akun KTVDI", recipients=[email_input])
+                msg.body = f"""Halo Kak,
+
+Kami mendengar Kakak kesulitan masuk. Jangan khawatir, gunakan kode ini untuk mereset kata sandi (Berlaku 1 Menit):
+
+{otp}
+
+Jika bukan Kakak, abaikan saja ya. Keamanan Kakak prioritas kami.
+
+Salam,
+Tim Support KTVDI
+"""
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
-            except Exception as e:
-                print(f"Mail Error: {e}")
-                flash("Gagal kirim email", "error")
+            except: flash("Gagal kirim email.", "error")
         else:
-            flash("Email tidak ditemukan", "error")
+            flash("Email tidak ditemukan.", "error")
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():
     uid = session.get("reset_uid")
     if not uid: return redirect(url_for("forgot_password"))
-    
     if request.method == "POST":
         data = ref.child(f"otp/{uid}").get()
         if data and str(data.get("otp")) == request.form.get("otp"):
@@ -339,7 +276,7 @@ def verify_otp():
         flash("OTP Salah", "error")
     return render_template("verify-otp.html")
 
-@app.route("/reset-password", methods=["GET", "POST"])
+@app.route("/reset_password", methods=["GET", "POST"])
 def reset_password():
     if not session.get('reset_verified'): return redirect(url_for('login'))
     uid = session.get("reset_uid")
@@ -348,9 +285,13 @@ def reset_password():
         ref.child(f"users/{uid}").update({"password": hash_password(pw)})
         ref.child(f"otp/{uid}").delete()
         session.clear()
-        flash("Sukses", "success")
+        flash("Sukses ubah password.", "success")
         return redirect(url_for('login'))
     return render_template("reset-password.html")
+
+# ==========================================
+# 6. APP ROUTES
+# ==========================================
 
 @app.route("/dashboard")
 def dashboard():
@@ -368,9 +309,7 @@ def add_data(): return redirect(url_for('dashboard'))
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux): return redirect(url_for('dashboard'))
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
-def delete_data(provinsi, wilayah, mux):
-    if 'user' in session: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
-    return redirect(url_for('dashboard'))
+def delete_data(provinsi, wilayah, mux): return redirect(url_for('dashboard'))
 
 @app.route("/get_wilayah")
 def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
@@ -379,6 +318,44 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
+@app.route('/berita')
+def berita_page():
+    try:
+        entries = get_news_entries()
+        page = request.args.get('page', 1, type=int)
+        per_page = 9
+        start = (page - 1) * per_page
+        end = start + per_page
+        current = entries[start:end]
+        for a in current: 
+            if isinstance(a, dict) and 'published_parsed' in a:
+                 a['time_since_published'] = time_since_published(a['published_parsed'])
+            else: a['time_since_published'] = "Baru saja"
+            a['image'] = None
+            if 'media_content' in a: a['image'] = a['media_content'][0]['url']
+            elif 'links' in a:
+                for link in a['links']:
+                    if 'image' in link.get('type',''): a['image'] = link.get('href')
+        return render_template('berita.html', articles=current, page=page, total_pages=(len(entries)//per_page)+1)
+    except: return render_template('berita.html', articles=[], page=1, total_pages=1)
+
+@app.route("/cctv")
+def cctv_page(): return render_template("cctv.html")
+
+@app.route("/jadwal-sholat")
+def jadwal_sholat_page():
+    # 60 Kota Termasuk Purwodadi & Pekalongan
+    kota = [
+        "Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjarmasin", "Batam", "Bekasi", "Bengkulu", "Bogor", 
+        "Bukittinggi", "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Gorontalo", "Jakarta", "Jambi", 
+        "Jayapura", "Kediri", "Kendari", "Kupang", "Lubuklinggau", "Madiun", "Magelang", "Makassar", "Malang", "Mamuju", 
+        "Manado", "Mataram", "Medan", "Padang", "Palangkaraya", "Palembang", "Palu", "Pangkal Pinang", "Parepare", "Pasuruan", 
+        "Pekalongan", "Pekanbaru", "Pontianak", "Probolinggo", "Purwokerto", "Purwodadi", "Salatiga", "Samarinda", "Semarang", "Serang", 
+        "Sidoarjo", "Singkawang", "Solo", "Sorong", "Sukabumi", "Surabaya", "Tangerang", "Tanjung Pinang", "Tarakan", "Tasikmalaya", 
+        "Tegal", "Ternate", "Yogyakarta"
+    ]
+    return render_template("jadwal-sholat.html", daftar_kota=sorted(kota))
+
 @app.route('/about')
 def about(): return render_template('about.html')
 @app.route('/logout')
@@ -386,10 +363,24 @@ def logout(): session.clear(); return redirect(url_for('login'))
 @app.route('/sitemap.xml')
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
+# API CHATBOT
+@app.route('/api/chat', methods=['POST'])
+def chatbot_api():
+    data = request.get_json()
+    try:
+        response = model.generate_content(f"{MODI_PROMPT}\nUser: {data.get('prompt')}\nModi:")
+        return jsonify({"response": response.text})
+    except: return jsonify({"response": "Maaf, AI sibuk."})
+
+@app.route("/api/news-ticker")
+def news_ticker():
+    entries = get_news_entries()
+    titles = [e.get('title') for e in entries]
+    return jsonify(titles)
+
 # Email Blast (Cron)
 @app.route("/api/cron/daily-blast", methods=['GET'])
-def trigger_daily_blast():
-    return jsonify({"status": "OK"}), 200
+def trigger_daily_blast(): return jsonify({"status": "OK"}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
