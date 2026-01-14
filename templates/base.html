@@ -51,7 +51,7 @@
 
                 <div class="flex items-center gap-3 md:gap-4">
                     <a href="/about" class="hidden lg:block text-sm font-bold text-slate-300 hover:text-brand-sky transition-colors mr-2">Tentang</a>
-                    <a href="/about" class="lg:hidden text-slate-400 hover:text-white transition-colors p-2"><i class="fa-solid fa-circle-info text-lg"></i></a>
+                    <a href="/about" class="lg:hidden text-slate-400 hover:text-white transition-colors p-2" title="Tentang Kami"><i class="fa-solid fa-circle-info text-lg"></i></a>
 
                     {% if session.get('user') %}
                         <div class="relative">
@@ -92,7 +92,7 @@
                     <span class="text-lg font-extrabold tracking-tight">KTVDI</span>
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed max-w-md mx-auto md:mx-0">
-                    Komunitas TV Digital Indonesia adalah sebuah wadah independen untuk berbagi informasi frekuensi, solusi teknis, dan database MUX. Mari terus dukung penyiaran yang merata, jernih, dan canggih bagi seluruh rakyat Indonesia.
+                    Komunitas TV Digital Indonesia adalah wadah independen untuk berbagi informasi frekuensi, solusi teknis, dan database MUX. Mari wujudkan penyiaran yang merata, jernih, dan canggih bagi seluruh rakyat Indonesia.
                 </p>
             </div>
             
@@ -114,7 +114,7 @@
                     <a href="https://youtube.com/@ktvdi_id" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition text-white border border-slate-700"><i class="fa-brands fa-youtube"></i></a>
                 </div>
                 <div class="mt-6">
-                    <p class="text-xs text-slate-500">Email: kom.tvdigitalid@gmail.com</p>
+                    <p class="text-xs text-slate-500">Email: admin@ktvdi.id</p>
                 </div>
             </div>
         </div>
@@ -185,6 +185,7 @@
         function toggleProfile() { document.getElementById('profile-dropdown').classList.toggle('hidden'); }
         function toggleChat() { document.getElementById('chat-window').classList.toggle('hidden'); }
         setInterval(() => { const n = new Date(); document.getElementById('clock').innerText = n.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }, 1000);
+        
         async function updateTicker() {
             try { const res=await fetch('/api/news-ticker'); const d=await res.json(); 
             const h = [...new Set(d)].map(n=>`<span class="mx-4 text-brand-blue font-bold">INFO:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('');
@@ -205,8 +206,42 @@
             });
         });
 
-        async function handleChat(e){ e.preventDefault(); const i=document.getElementById('chat-input'); if(!i.value.trim())return; addMsg(i.value,'user'); i.value=''; setTimeout(()=>addMsg("Maaf, saya sedang offline.",'bot'),1000); }
+        // --- PERBAIKAN CHATBOT (KONEK KE SERVER) ---
+        async function handleChat(e){ 
+            e.preventDefault(); 
+            const inp = document.getElementById('chat-input'); 
+            const txt = inp.value.trim(); 
+            if(!txt) return; 
+            
+            addMsg(txt, 'user'); 
+            inp.value = ''; 
+            
+            // Loading
+            const loadDiv = document.createElement('div');
+            loadDiv.className = "flex gap-2 bot-loading";
+            loadDiv.innerHTML = `<div class="bg-white p-2.5 rounded-lg text-xs border shadow-sm text-slate-500 italic"><i class="fa-solid fa-circle-notch fa-spin"></i></div>`;
+            document.getElementById('chat-messages').appendChild(loadDiv);
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+
+            try {
+                // Fetch ke Server
+                const res = await fetch('/', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({prompt: txt})
+                });
+                const d = await res.json();
+                
+                document.querySelector('.bot-loading').remove();
+                addMsg(d.response || "Maaf, saya sedang gangguan.", 'bot');
+            } catch {
+                document.querySelector('.bot-loading').remove();
+                addMsg("Gagal terhubung ke server.", 'bot');
+            }
+        }
+
         function addMsg(t,s){ const d=document.createElement('div'); d.className=s=='user'?"flex justify-end":"flex gap-2"; d.innerHTML=`<div class="${s=='user'?'bg-brand-blue text-white':'bg-white text-slate-700 border'} p-2 rounded-lg max-w-[85%] shadow-sm">${t}</div>`; document.getElementById('chat-messages').append(d); }
+        
         window.onclick = function(e) {
             if (!e.target.closest('button[onclick="toggleProfile()"]') && !e.target.closest('#profile-dropdown')) {
                 document.getElementById('profile-dropdown').classList.add('hidden');
@@ -216,5 +251,3 @@
     </script>
 </body>
 </html>
-
-
