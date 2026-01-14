@@ -18,12 +18,12 @@
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
                     colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
                     animation: { 
-                        'marquee': 'marquee 150s linear infinite', 
+                        'marquee': 'marquee 120s linear infinite', /* Kecepatan Stabil (120 Detik) */
                     },
                     keyframes: { 
                         marquee: { 
                             '0%': { transform: 'translateX(0%)' }, 
-                            '100%': { transform: 'translateX(-50%)' } 
+                            '100%': { transform: 'translateX(-50%)' } /* Geser 50% lalu reset (Seamless) */
                         } 
                     }
                 }
@@ -32,34 +32,36 @@
     </script>
     <style>
         .glass-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.08); }
-        .chat-bubble-user { background-color: #dbeafe; color: #1e3a8a; border-radius: 12px 0 12px 12px; margin-left: auto; border: 1px solid #bfdbfe; font-size: 13px; }
-        .chat-bubble-bot { background-color: #ffffff; color: #334155; border-radius: 0 12px 12px 12px; border: 1px solid #e2e8f0; font-size: 13px; }
         
+        /* Chat Bubble Style */
+        .chat-bubble-user { background-color: #dbeafe; color: #1e3a8a; border-radius: 12px 0 12px 12px; margin-left: auto; border: 1px solid #bfdbfe; font-size: 13px; max-width: 85%; word-wrap: break-word; }
+        .chat-bubble-bot { background-color: #ffffff; color: #334155; border-radius: 0 12px 12px 12px; border: 1px solid #e2e8f0; font-size: 13px; max-width: 85%; word-wrap: break-word; }
+        .chat-bg { background-color: #f1f5f9; }
+
+        /* Mobile Chat Fullscreen Fix */
         @media (max-width: 640px) {
             #chat-window:not(.hidden) { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; border-radius: 0 !important; z-index: 9999 !important; display: flex; flex-direction: column; }
-            #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
+            #chat-messages { flex: 1; height: auto !important; padding-bottom: 80px; /* Space untuk input */ }
         }
         
-        .marquee-container { overflow: hidden; white-space: nowrap; position: relative; display: flex; }
-        .marquee-content { display: flex; align-items: center; white-space: nowrap; animation: marquee 150s linear infinite; will-change: transform; }
+        /* Ticker Container Wajib Flex & Hidden Overflow */
+        .marquee-container { display: flex; overflow: hidden; white-space: nowrap; position: relative; width: 100%; height: 100%; align-items: center; }
+        .marquee-content { display: flex; align-items: center; white-space: nowrap; animation: marquee 120s linear infinite; will-change: transform; flex-shrink: 0; }
         .marquee-container:hover .marquee-content { animation-play-state: paused; }
         
         .footer-link { transition: all 0.3s ease; display: inline-block; }
         .footer-link:hover { transform: translateX(5px); color: #38bdf8; }
-        
-        /* Highlight Menu Aktif */
         .nav-active { color: #38bdf8 !important; font-weight: 700; }
     </style>
 </head>
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[120px] lg:pb-0">
 
-    <nav class="fixed top-0 w-full z-50 glass-nav transition-all duration-300 shadow-lg">
+    <nav class="fixed top-0 w-full z-50 glass-nav transition-all duration-300 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16 md:h-20">
                 <a href="{{ url_for('home') }}" class="flex items-center gap-3 group shrink-0">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-9 md:h-10 w-auto filter drop-shadow-md brightness-200">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-9 w-auto filter drop-shadow-md brightness-200">
                 </a>
-                
                 <div class="hidden lg:flex items-center space-x-8">
                     <a href="{{ url_for('home') }}" class="text-sm font-medium text-slate-300 hover:text-white transition-colors {% if request.endpoint == 'home' %}nav-active{% endif %}">Beranda</a>
                     <a href="{{ url_for('cctv_page') }}" class="text-sm font-medium text-slate-300 hover:text-white transition-colors {% if request.endpoint == 'cctv_page' %}nav-active{% endif %}">CCTV</a>
@@ -67,27 +69,26 @@
                     <a href="{{ url_for('daftar_siaran') }}" class="text-sm font-medium text-slate-300 hover:text-white transition-colors {% if request.endpoint == 'daftar_siaran' %}nav-active{% endif %}">Database</a>
                     <a href="{{ url_for('berita_page') }}" class="text-sm font-medium text-slate-300 hover:text-white transition-colors {% if request.endpoint == 'berita_page' %}nav-active{% endif %}">Berita</a>
                 </div>
-
                 <div class="flex items-center gap-3 md:gap-4">
                     <a href="{{ url_for('about') }}" class="text-slate-400 hover:text-brand-sky mr-2 p-2"><i class="fa-solid fa-circle-info text-xl"></i></a>
                     {% if session.get('user') %}
                         <div class="relative group">
-                            <button class="flex items-center gap-2 focus:outline-none">
+                            <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none">
                                 <div class="hidden md:block text-right">
                                     <div class="text-xs font-bold text-white">{{ session.get('nama') }}</div>
-                                    <div class="text-[10px] text-brand-sky">Member</div>
+                                    <div class="text-[10px] text-slate-400">Member</div>
                                 </div>
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-9 w-9 rounded-full border-2 border-slate-700">
                             </button>
-                            <div class="hidden group-hover:block absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
+                            <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
                                 <a href="{{ url_for('dashboard') }}" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Dashboard</a>
                                 <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Keluar</a>
                             </div>
                         </div>
                     {% else %}
                         <div class="flex items-center gap-2">
-                            <a href="{{ url_for('login') }}" class="text-xs font-bold text-slate-300 hover:text-white px-3 py-2">Masuk</a>
-                            <a href="{{ url_for('register') }}" class="px-5 py-2 bg-white text-brand-navy text-xs font-bold rounded-full hover:bg-brand-sky hover:text-white transition shadow-md">Daftar</a>
+                            <a href="{{ url_for('login') }}" class="text-xs font-bold text-slate-300 hover:text-white px-3">Masuk</a>
+                            <a href="{{ url_for('register') }}" class="px-4 py-1.5 bg-white text-brand-navy text-xs font-bold rounded-full hover:bg-brand-sky hover:text-white transition">Daftar</a>
                         </div>
                     {% endif %}
                 </div>
@@ -95,9 +96,7 @@
         </div>
     </nav>
 
-    <main class="flex-grow pt-16 md:pt-20">
-        {% block content %}{% endblock %}
-    </main>
+    <main class="flex-grow pt-16 md:pt-20">{% block content %}{% endblock %}</main>
 
     <footer class="bg-[#0f172a] text-white pt-20 pb-32 lg:pb-16 border-t border-slate-800 font-['Plus_Jakarta_Sans']">
         <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
@@ -107,14 +106,14 @@
                     <span class="text-xl font-extrabold tracking-tight">KTVDI</span>
                 </div>
                 <p class="text-slate-400 text-sm leading-relaxed">
-                    Platform komunitas independen terdepan di Indonesia yang mendedikasikan diri untuk pemerataan informasi penyiaran digital dan edukasi teknologi.
+                    Platform komunitas independen terdepan di Indonesia yang mendedikasikan diri untuk pemerataan informasi penyiaran digital.
                 </p>
                 <div class="flex gap-4 pt-2">
-                    <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
+                    <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
+                    <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-sky-500 transition border border-slate-700"><i class="fa-brands fa-telegram text-sm"></i></a>
                     <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition border border-slate-700"><i class="fa-brands fa-instagram text-sm"></i></a>
                 </div>
             </div>
-            
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Menu Utama</h4>
                 <ul class="space-y-3 text-sm text-slate-400">
@@ -124,7 +123,6 @@
                     <li><a href="{{ url_for('berita_page') }}" class="footer-link">Berita Terkini</a></li>
                 </ul>
             </div>
-            
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Dukungan</h4>
                 <ul class="space-y-3 text-sm text-slate-400">
@@ -133,13 +131,12 @@
                     <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
                 </ul>
             </div>
-            
             <div>
                 <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Hubungi Kami</h4>
                 <ul class="space-y-4 text-sm text-slate-400">
                     <li class="flex items-start gap-3">
                         <i class="fa-solid fa-envelope mt-1 text-brand-sky"></i>
-                        <span>kom.tvdigitalid@gmail.com<br><span class="text-xs text-slate-500">Respon Cepat</span></span>
+                        <span>kom.tvdigitalid@gmail.com</span>
                     </li>
                 </ul>
             </div>
@@ -162,12 +159,14 @@
 
     <div class="fixed bottom-[65px] lg:bottom-0 w-full z-40 bg-white border-t border-slate-200 h-9 lg:h-10 flex items-center justify-between px-0 select-none shadow-sm">
         <div class="bg-brand-blue h-full flex items-center px-3 z-20 shrink-0"><span class="text-white text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE INFO</span></div>
+        
         <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50 marquee-container">
             <div id="unified-ticker" class="marquee-content text-[10px] font-semibold text-slate-700 flex items-center gap-0">
-                <span class="px-4 text-slate-400">Memuat Berita Terkini...</span>
+                <span class="px-4">Memuat Berita Terkini...</span>
             </div>
         </div>
-        <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20 shrink-0"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00</div></div>
+        
+        <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20 shrink-0"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00:00</div></div>
     </div>
 
     <div class="fixed bottom-[110px] lg:bottom-20 left-4 z-[60] group">
@@ -187,7 +186,7 @@
             </div>
             <div id="chat-messages" class="h-80 sm:h-80 chat-bg p-4 overflow-y-auto flex flex-col chat-scroll text-sm space-y-3 relative z-10">
                 <div class="flex gap-2">
-                    <div class="chat-bubble-bot p-3 shadow-sm max-w-[85%] text-slate-800 leading-relaxed relative">
+                    <div class="chat-bubble-bot p-3 shadow-sm relative">
                         Halo Kak! 👋 Ada yang bisa Modi bantu hari ini? 😊
                     </div>
                 </div>
@@ -212,12 +211,26 @@
             win.classList.toggle('hidden');
             if(!win.classList.contains('hidden')){ setTimeout(() => document.getElementById('chat-messages').scrollTop = 9999, 100); }
         }
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}).replace('.',':'); }, 1000);
+
+        // JAM DIGITAL (00:00:00 - Local)
+        setInterval(() => { 
+            const now = new Date();
+            // Menggunakan toLocaleTimeString dengan locale 'id-ID' (24 jam)
+            const timeString = now.toLocaleTimeString('id-ID', {
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false
+            }).replace(/\./g, ':');
+            document.getElementById('clock').innerText = timeString; 
+        }, 1000);
         
+        // RUNNING TEXT (SEAMLESS 20 BERITA)
         async function updateTicker() {
             try { 
                 const res = await fetch('/api/news-ticker'); 
                 const data = await res.json(); 
+                
                 if (data && data.length > 0) {
                     const content = data.map(n=>`
                         <div class="flex items-center mx-6">
@@ -226,16 +239,19 @@
                         </div>
                         <span class="text-slate-300 opacity-50 text-[10px]">|</span>
                     `).join('');
+                    
+                    // Duplikat konten 4x agar seamless loop (tidak putus)
                     document.getElementById('unified-ticker').innerHTML = content + content + content + content;
                 } else {
                     document.getElementById('unified-ticker').innerHTML = '<span class="mx-6 text-slate-500 text-[10px]">Selamat Datang di KTVDI</span>';
                 }
             } catch(e) {
-                console.log('Ticker:', e);
+                console.log("Ticker Error");
             }
         }
         updateTicker();
         
+        // CHATBOT
         async function handleChat(e){ 
             e.preventDefault(); const i=document.getElementById('chat-input'), t=i.value.trim(); if(!t)return;
             addMsg(t,'user'); i.value='';
@@ -248,13 +264,13 @@
                 addMsg(d.response,'bot');
             } catch {
                 document.querySelector('.bot-load').remove();
-                addMsg("Maaf server sibuk, coba lagi nanti.",'bot');
+                addMsg("Maaf server sibuk.",'bot');
             }
         }
         function addMsg(t,s){
             const d=document.createElement('div'); d.className="flex gap-2";
             const tm=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-            d.innerHTML = s=='user' ? `<div class="chat-bubble-user p-3 shadow-sm max-w-[85%] relative">${t}<div class="text-[9px] text-blue-300 text-right mt-1">${tm} ✓✓</div></div>` : `<div class="chat-bubble-bot p-3 shadow-sm max-w-[85%] relative">${t.replace(/\n/g,'<br>')}<div class="text-[9px] text-slate-400 text-right mt-1">${tm}</div></div>`;
+            d.innerHTML = s=='user' ? `<div class="chat-bubble-user p-3 shadow-sm relative">${t}<div class="text-[9px] text-blue-300 text-right mt-1">${tm} ✓✓</div></div>` : `<div class="chat-bubble-bot p-3 shadow-sm relative">${t.replace(/\n/g,'<br>')}<div class="text-[9px] text-slate-400 text-right mt-1">${tm}</div></div>`;
             document.getElementById('chat-messages').appendChild(d);
             document.getElementById('chat-messages').scrollTop = 9999;
         }
