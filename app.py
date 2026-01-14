@@ -40,6 +40,7 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
+        # Fallback untuk development lokal
         cred = credentials.Certificate("credentials.json")
     
     if not firebase_admin._apps:
@@ -200,7 +201,7 @@ def chatbot_api():
 def news_ticker():
     # Route ini DIJAMIN tidak akan error karena fungsi get_news_entries punya fallback
     entries = get_news_entries()
-    titles = [e['title'] for e in entries]
+    titles = [e.get('title', 'Info TV Digital') for e in entries] # Use .get to be safe
     return jsonify(titles)
 
 # --- HALAMAN YANG TADINYA ERROR ---
@@ -265,6 +266,13 @@ def register():
         e = request.form.get("email")
         p = request.form.get("password")
         n = request.form.get("nama")
+        
+        # Cek User Existing
+        users_data = ref.child("users").get()
+        if users_data and u in users_data:
+             flash("Username dipakai", "error")
+             return render_template("register.html")
+
         otp = str(random.randint(100000, 999999))
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp})
         try:
@@ -289,6 +297,61 @@ def verify_register():
         flash("OTP Salah", "error")
     return render_template("verify-register.html", username=u)
 
+# --- ROUTE LUPA PASSWORD (DIPERBAIKI) ---
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("identifier")
+        users = ref.child("users").get() or {}
+        
+        found_uid = None
+        for uid, user_data in users.items():
+            if isinstance(user_data, dict) and user_data.get('email') == email:
+                found_uid = uid
+                break
+        
+        if found_uid:
+            otp = str(random.randint(100000, 999999))
+            ref.child(f"otp/{found_uid}").set({"email": email, "otp": otp})
+            try:
+                msg = Message("Reset Password KTVDI", recipients=[email])
+                msg.body = f"Kode OTP Reset Password: {otp}"
+                mail.send(msg)
+                session["reset_uid"] = found_uid
+                return redirect(url_for("verify_otp"))
+            except Exception as e:
+                print(f"Mail Error: {e}")
+                flash("Gagal kirim email", "error")
+        else:
+            flash("Email tidak ditemukan", "error")
+    return render_template("forgot-password.html")
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    uid = session.get("reset_uid")
+    if not uid: return redirect(url_for("forgot_password"))
+    
+    if request.method == "POST":
+        data = ref.child(f"otp/{uid}").get()
+        if data and str(data.get("otp")) == request.form.get("otp"):
+            session['reset_verified'] = True
+            return redirect(url_for("reset_password"))
+        flash("OTP Salah", "error")
+    return render_template("verify-otp.html")
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    if not session.get('reset_verified'): return redirect(url_for('login'))
+    uid = session.get("reset_uid")
+    if request.method == "POST":
+        pw = request.form.get("password")
+        ref.child(f"users/{uid}").update({"password": hash_password(pw)})
+        ref.child(f"otp/{uid}").delete()
+        session.clear()
+        flash("Sukses", "success")
+        return redirect(url_for('login'))
+    return render_template("reset-password.html")
+
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
@@ -305,7 +368,9 @@ def add_data(): return redirect(url_for('dashboard'))
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux): return redirect(url_for('dashboard'))
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
-def delete_data(provinsi, wilayah, mux): return redirect(url_for('dashboard'))
+def delete_data(provinsi, wilayah, mux):
+    if 'user' in session: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
+    return redirect(url_for('dashboard'))
 
 @app.route("/get_wilayah")
 def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
