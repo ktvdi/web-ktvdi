@@ -57,9 +57,12 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
 # --- KONFIGURASI AI (MODI) ---
-genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
-# Menggunakan model FLASH agar respons CEPAT
-model = genai.GenerativeModel("gemini-1.5-flash") 
+api_key = os.environ.get("GEMINI_APP_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+else:
+    model = None
 
 # --- SYSTEM PROMPT (AGAR RAMAH & MANUSIAWI) ---
 MODI_PROMPT = """
@@ -90,12 +93,10 @@ def time_since_published(published_time):
 # --- FUNGSI BANTUAN CUACA & BERITA ---
 def get_bmkg_weather():
     try:
-        # Mengambil Data XML BMKG
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-DKIJakarta.xml"
         response = requests.get(url, timeout=5)
         if response.status_code == 200:
             root = ET.fromstring(response.content)
-            # Cari Jakarta Pusat
             for area in root.findall(".//area[@description='Jakarta Pusat']"):
                 for parameter in area.findall("parameter[@id='weather']"):
                     timerange = parameter.find("timerange")
@@ -103,7 +104,6 @@ def get_bmkg_weather():
                         val_elem = timerange.find("value")
                         if val_elem is not None:
                             value = val_elem.text
-                            # Kode Cuaca BMKG
                             weather_codes = {
                                 "0": "Cerah ☀️", "1": "Cerah Berawan 🌤️", "2": "Cerah Berawan 🌤️", 
                                 "3": "Berawan ☁️", "4": "Berawan Tebal ☁️", "5": "Udara Kabur 🌫️", 
@@ -115,7 +115,6 @@ def get_bmkg_weather():
             return "Cerah Berawan 🌤️"
         return "Data Cuaca Tidak Tersedia"
     except Exception as e:
-        print(f"BMKG Error: {e}")
         return "Cerah Berawan 🌤️"
 
 def get_daily_news_summary_ai():
@@ -123,10 +122,11 @@ def get_daily_news_summary_ai():
         feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
         titles = [entry.title for entry in feed.entries[:5]]
         text_data = "\n".join(titles)
-        # Pakai AI untuk merangkum agar enak dibaca
-        prompt = f"Buatlah rangkuman berita harian singkat (3 poin) yang santai untuk newsletter komunitas TV Digital dari judul-judul berikut:\n{text_data}"
-        response = model.generate_content(prompt)
-        return response.text if response.text else "Gagal merangkum berita."
+        if model:
+            prompt = f"Buatlah rangkuman berita harian singkat (3 poin) yang santai untuk newsletter komunitas TV Digital dari judul-judul berikut:\n{text_data}"
+            response = model.generate_content(prompt)
+            return response.text if response.text else "Gagal merangkum berita."
+        return "Silakan cek halaman berita untuk update terbaru."
     except: return "Gagal memuat berita harian."
 
 def get_daily_tips():
@@ -196,6 +196,9 @@ Komunitas TV Digital Indonesia
 # --- CHATBOT HANDLER (API) ---
 @app.route('/', methods=['POST'])
 def chatbot():
+    if not model:
+        return jsonify({"response": "Maaf Kak, Modi lagi perbaikan sistem nih. Hubungi admin ya! 🙏"})
+
     data = request.get_json()
     user_msg = data.get("prompt")
     
@@ -203,19 +206,16 @@ def chatbot():
         return jsonify({"response": "Maaf Kak, Modi tidak mendengar pesan Kakak. Bisa diulangi? 👂"})
 
     try:
-        # Gabungkan System Prompt + User Message
         full_prompt = f"{MODI_PROMPT}\n\nUser: {user_msg}\nModi:"
         res = model.generate_content(full_prompt)
-        
         reply = res.text
         if not reply: reply = "Waduh, Modi lagi loading nih Kak. Tanya lagi ya? 😅"
-        
         return jsonify({"response": reply})
     except Exception as e:
         print(f"AI Error: {e}")
         return jsonify({"response": "Maaf Kak, server Modi lagi sibuk banget nih. Coba beberapa saat lagi ya 🙏"})
 
-# --- ROUTES HALAMAN ---
+# --- ROUTES UTAMA ---
 @app.route("/")
 def home():
     siaran_data = ref.child('siaran').get() if ref else {}
@@ -254,7 +254,18 @@ def cctv_page(): return render_template("cctv.html")
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    daftar_kota = ["Jakarta", "Surabaya", "Bandung", "Semarang", "Yogyakarta", "Medan", "Makassar", "Denpasar", "Palembang", "Pekalongan"]
+    # LIST KOTA LENGKAP DIKEMBALIKAN
+    daftar_kota = [
+        "Jakarta", "Surabaya", "Bandung", "Semarang", "Medan", "Makassar", 
+        "Palembang", "Bekasi", "Tangerang", "Depok", "Pekalongan", "Grobogan", 
+        "Malang", "Surakarta", "Yogyakarta", "Denpasar", "Balikpapan", 
+        "Samarinda", "Banda Aceh", "Banjarmasin", "Bandar Lampung", "Pontianak", 
+        "Manado", "Jayapura", "Kupang", "Mataram", "Padang", "Tegal", "Bogor", 
+        "Sidoarjo", "Cirebon", "Demak", "Ambon", "Gorontalo", "Palu", "Kendari", 
+        "Jambi", "Bengkulu", "Serang", "Mamuju", "Palangkaraya", "Ternate", 
+        "Sorong", "Tasikmalaya", "Cimahi", "Magelang", "Salatiga", "Batu", 
+        "Kediri", "Madiun"
+    ]
     return render_template("jadwal-sholat.html", daftar_kota=sorted(daftar_kota))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -345,8 +356,7 @@ def reset_password():
     if not session.get('reset_verified'): return redirect(url_for('login'))
     if request.method == "POST":
         new_pass = request.form.get("password")
-        conf_pass = request.form.get("confirm_password")
-        if new_pass == conf_pass:
+        if new_pass == request.form.get("confirm_password"):
             uid = session['reset_user']
             ref.child(f'users/{uid}').update({"password": hash_password(new_pass)})
             session.clear()
@@ -355,6 +365,7 @@ def reset_password():
         flash("Password tidak sama.", "error")
     return render_template("reset_password.html")
 
+# --- CRUD DASHBOARD (LENGKAP) ---
 @app.route("/dashboard")
 def dashboard():
     if 'user' not in session: return redirect(url_for('login'))
