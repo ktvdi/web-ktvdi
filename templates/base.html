@@ -1,297 +1,312 @@
-import os
-import hashlib
-import firebase_admin
-import random
-import feedparser
-import requests
-import xml.etree.ElementTree as ET
-import google.generativeai as genai
-from firebase_admin import credentials, db
-from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
-from flask_cors import CORS
-from dotenv import load_dotenv
-from flask_mail import Mail, Message
-from datetime import datetime
-
-load_dotenv()
-
-app = Flask(__name__)
-CORS(app)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
-
-# --- KONEKSI FIREBASE ---
-try:
-    if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        cred = credentials.Certificate({
-            "type": "service_account",
-            "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
-            "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace('\\n', '\n'),
-            "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
-            "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
-            "universe_domain": "googleapis.com"
-        })
-    else:
-        cred = credentials.Certificate("credentials.json")
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}KTVDI - Komunitas TV Digital Indonesia{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
-    ref = db.reference('/')
-    print("✅ Firebase Connected")
-except Exception as e:
-    ref = None
-    print(f"❌ Firebase Error: {e}")
-
-# --- KONFIGURASI EMAIL ---
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get("MAIL_USERNAME") 
-app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD") 
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
-mail = Mail(app)
-
-# --- KONFIGURASI AI (MODI) ---
-genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
-# Menggunakan model FLASH agar respons CEPAT & RAMAH
-model = genai.GenerativeModel("gemini-1.5-flash") 
-
-# --- SYSTEM PROMPT (AGAR RAMAH & MANUSIAWI) ---
-MODI_PROMPT = """
-Kamu adalah MODI, Customer Service & Asisten Virtual dari Komunitas TV Digital Indonesia (KTVDI).
-Karaktermu:
-1. SANGAT RAMAH, CERIA, dan SUPORTIF. Anggap pengguna adalah teman dekat.
-2. Selalu gunakan sapaan "Kak", "Sobat", atau "Bestie".
-3. WAJIB menggunakan emoji di setiap kalimat agar tidak kaku (contoh: 😊, 👋, 📺, ✨).
-4. Jika user bertanya, jawab dengan ringkas tapi solutif.
-5. Jika user menyapa (Halo/Hi), sapa balik dengan antusias.
-6. Di akhir jawaban, SELALU tawarkan bantuan lagi (Contoh: "Ada lagi yang bisa Modi bantu, Kak?").
-7. Topikmu seputar: TV Digital, STB, Antena, Sinyal Hilang, dan Info Komunitas.
-8. Jangan terlalu kaku/baku seperti robot.
-"""
-
-def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
-
-def time_since_published(published_time):
-    try:
-        now = datetime.now()
-        pt = datetime(*published_time[:6])
-        diff = now - pt
-        if diff.days > 0: return f"{diff.days} hari lalu"
-        if diff.seconds > 3600: return f"{diff.seconds//3600} jam lalu"
-        return "Baru saja"
-    except: return ""
-
-def get_bmkg_weather():
-    try:
-        url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-DKIJakarta.xml"
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            root = ET.fromstring(response.content)
-            for area in root.findall(".//area[@description='Jakarta Pusat']"):
-                for parameter in area.findall("parameter[@id='weather']"):
-                    timerange = parameter.find("timerange")
-                    if timerange is not None:
-                        val_elem = timerange.find("value")
-                        if val_elem is not None:
-                            value = val_elem.text
-                            weather_codes = {"0": "Cerah ☀️", "1": "Cerah Berawan 🌤️", "3": "Berawan ☁️", "60": "Hujan 🌧️", "61": "Hujan 🌧️"}
-                            return f"Jakarta Pusat: {weather_codes.get(value, 'Berawan ☁️')}"
-            return "Cerah Berawan 🌤️"
-        return "Data Cuaca Tidak Tersedia"
-    except: return "Cerah Berawan 🌤️"
-
-def get_daily_news_summary_ai():
-    try:
-        feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
-        titles = [entry.title for entry in feed.entries[:5]]
-        text_data = "\n".join(titles)
-        prompt = f"Buat rangkuman berita santai & ramah dari judul ini:\n{text_data}"
-        response = model.generate_content(prompt)
-        return response.text if response.text else "Gagal merangkum."
-    except: return "Gagal memuat berita."
-
-# --- CHATBOT HANDLER (API) ---
-@app.route('/', methods=['POST'])
-def chatbot():
-    data = request.get_json()
-    user_msg = data.get("prompt")
-    
-    if not user_msg:
-        return jsonify({"response": "Maaf Kak, Modi tidak mendengar pesan Kakak. Bisa diulangi? 👂"})
-
-    try:
-        # Chat Session agar konteks nyambung (Opsional, disini pakai one-shot prompt dulu biar ringan)
-        full_prompt = f"{MODI_PROMPT}\n\nUser: {user_msg}\nModi:"
-        res = model.generate_content(full_prompt)
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: { brand: { navy: '#0f172a', blue: '#2563eb', sky: '#38bdf8', surface: '#f8fafc' } },
+                    animation: { 'marquee': 'marquee 120s linear infinite' },
+                    keyframes: { marquee: { '0%': { transform: 'translateX(0%)' }, '100%': { transform: 'translateX(-100%)' } } }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .profile-menu { transition: all 0.2s ease-in-out; transform-origin: top right; }
+        .profile-menu.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
+        .profile-menu.show { opacity: 1; transform: scale(1); pointer-events: auto; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
         
-        reply = res.text
-        # Safety fallback jika AI error generate teks
-        if not reply: reply = "Waduh, Modi lagi loading nih Kak. Tanya lagi ya? 😅"
+        /* Chatbot Style */
+        .chat-bubble-user { background-color: #dbeafe; color: #1e3a8a; border-radius: 12px 0 12px 12px; margin-left: auto; border: 1px solid #bfdbfe; font-size: 13px; }
+        .chat-bubble-bot { background-color: #ffffff; color: #334155; border-radius: 0 12px 12px 12px; border: 1px solid #e2e8f0; font-size: 13px; }
+        .chat-bg { background-color: #f8fafc; background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px; }
         
-        return jsonify({"response": reply})
-    except Exception as e:
-        print(f"AI Error: {e}")
-        return jsonify({"response": "Maaf Kak, server Modi lagi sibuk banget nih. Coba beberapa saat lagi ya 🙏"})
+        /* Mobile Chat Fullscreen */
+        @media (max-width: 640px) {
+            #chat-window {
+                position: fixed !important; top: 0; left: 0; right: 0; bottom: 0;
+                width: 100% !important; max-width: none !important; height: 100% !important;
+                border-radius: 0 !important; z-index: 9999 !important; margin: 0 !important;
+                transform: none !important; display: flex; flex-direction: column;
+            }
+            #chat-messages { flex: 1; height: auto !important; padding-bottom: 80px; }
+        }
+    </style>
+</head>
+<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[120px] lg:pb-0">
 
-# --- ROUTES HALAMAN ---
-@app.route("/")
-def home():
-    siaran_data = ref.child('siaran').get() if ref else {}
-    stats = {'wilayah': 0, 'mux': 0, 'channel': 0}
-    if siaran_data:
-        for prov in siaran_data.values():
-            if isinstance(prov, dict):
-                stats['wilayah'] += len(prov)
-                for wil in prov.values():
-                    if isinstance(wil, dict):
-                        stats['mux'] += len(wil)
-                        for mux in wil.values():
-                            if 'siaran' in mux: stats['channel'] += len(mux['siaran'])
-    return render_template('index.html', stats=stats)
+    <nav class="fixed top-0 w-full z-50 glass-nav transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16 md:h-20">
+                <a href="/" class="flex items-center gap-3 group shrink-0">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-8 md:h-9 w-auto filter drop-shadow-md brightness-200 group-hover:scale-105 transition">
+                </a>
+                <div class="hidden lg:flex items-center space-x-8">
+                    <a href="/" class="text-sm font-bold text-slate-300 hover:text-white transition-colors">Beranda</a>
+                    <a href="/cctv" class="text-sm font-bold text-slate-300 hover:text-white transition-colors">CCTV</a>
+                    <a href="/jadwal-sholat" class="text-sm font-bold text-slate-300 hover:text-white transition-colors">Religi</a>
+                    <a href="/daftar-siaran" class="text-sm font-bold text-slate-300 hover:text-white transition-colors">Database</a>
+                    <a href="/berita" class="text-sm font-bold text-slate-300 hover:text-white transition-colors">Berita</a>
+                </div>
+                <div class="flex items-center gap-3 md:gap-4">
+                    <a href="/about" class="hidden lg:block text-sm font-bold text-slate-300 hover:text-brand-sky transition-colors mr-2">Tentang</a>
+                    <a href="/about" class="lg:hidden text-slate-400 hover:text-white transition-colors p-2"><i class="fa-solid fa-circle-info text-lg"></i></a>
+                    {% if session.get('user') %}
+                        <div class="relative">
+                            <button onclick="toggleProfile()" class="flex items-center gap-2 focus:outline-none group">
+                                <div class="hidden md:flex flex-col items-end text-right mr-1">
+                                    <span class="text-xs font-bold text-white group-hover:text-brand-sky transition">{{ session.get('nama') }}</span>
+                                    <span class="text-[10px] text-slate-400">Member</span>
+                                </div>
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=2563eb&color=fff&bold=true" class="h-8 w-8 md:h-10 md:w-10 rounded-full border-2 border-slate-700 shadow-lg">
+                            </button>
+                            <div id="profile-dropdown" class="profile-menu hidden absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 border border-slate-100 z-50">
+                                <div class="px-4 py-3 border-b border-slate-100 md:hidden"><p class="text-sm font-bold text-brand-navy truncate">{{ session.get('nama') }}</p></div>
+                                <a href="/dashboard" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-blue"><i class="fa-solid fa-gauge mr-2"></i> Dashboard</a>
+                                <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50"><i class="fa-solid fa-arrow-right-from-bracket mr-2"></i> Keluar</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="flex items-center gap-2">
+                            <a href="/login" class="text-xs md:text-sm font-bold text-slate-300 hover:text-white px-2 py-2 transition">Masuk</a>
+                            <a href="/register" class="px-4 py-1.5 bg-white text-brand-navy text-xs md:text-sm font-bold rounded-full hover:bg-brand-sky hover:text-white transition shadow-lg">Daftar</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
 
-@app.route("/api/news-ticker")
-def news_ticker():
-    try:
-        feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
-        news_list = []
-        for entry in feed.entries[:15]:
-            title = entry.title
-            if ' - ' in title:
-                parts = title.rsplit(' - ', 1)
-                judul = parts[0]
-                sumber = parts[1]
-                clean_title = f"<span class='text-brand-blue font-black'>[{sumber}]</span> {judul}"
-                news_list.append(clean_title)
-            else:
-                news_list.append(title)
-        return jsonify(news_list)
-    except: return jsonify([])
+    <main class="flex-grow pt-16 md:pt-20">{% block content %}{% endblock %}</main>
 
-@app.route("/cctv")
-def cctv_page(): return render_template("cctv.html")
+    <footer class="bg-brand-navy text-white pt-16 pb-32 lg:pb-16 border-t border-slate-800 font-['Plus_Jakarta_Sans']">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12 text-center md:text-left">
+            <div class="col-span-1 md:col-span-2">
+                <div class="flex items-center justify-center md:justify-start gap-3 mb-6">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-10 w-auto brightness-200">
+                    <span class="text-lg font-extrabold tracking-tight">KTVDI</span>
+                </div>
+                <p class="text-slate-400 text-sm leading-relaxed max-w-md mx-auto md:mx-0">
+                    Komunitas TV Digital Indonesia adalah wadah independen untuk berbagi informasi frekuensi, solusi teknis, dan database MUX. Mari wujudkan penyiaran yang merata, jernih, dan canggih bagi seluruh rakyat Indonesia.
+                </p>
+            </div>
+            <div>
+                <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Navigasi Cepat</h4>
+                <ul class="space-y-3 text-sm text-slate-400">
+                    <li><a href="/daftar-siaran" class="hover:text-brand-sky transition">Cek Frekuensi MUX</a></li>
+                    <li><a href="/cctv" class="hover:text-brand-sky transition">Pantauan CCTV Live</a></li>
+                    <li><a href="/jadwal-sholat" class="hover:text-brand-sky transition">Jadwal Sholat & Imsak</a></li>
+                    <li><a href="/berita" class="hover:text-brand-sky transition">Berita Digital Terbaru</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold mb-6 text-white uppercase tracking-wider text-xs">Media Sosial</h4>
+                <div class="flex gap-3 justify-center md:justify-start">
+                    <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition text-white border border-slate-700"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="https://www.instagram.com/ktvdi.id" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-pink-600 transition text-white border border-slate-700"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="https://youtube.com/@ktvdi_id" target="_blank" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition text-white border border-slate-700"><i class="fa-brands fa-youtube"></i></a>
+                </div>
+                <div class="mt-6">
+                    <p class="text-xs text-slate-500">Email: kom.tvdigitalid@gmail.com</p>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-slate-800 pt-8 text-center text-xs text-slate-500">
+            &copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.
+        </div>
+    </footer>
 
-@app.route("/jadwal-sholat")
-def jadwal_sholat_page():
-    daftar_kota = ["Jakarta", "Surabaya", "Bandung", "Semarang", "Yogyakarta", "Medan", "Makassar", "Denpasar", "Palembang", "Pekalongan"] # Diperpendek biar rapi
-    return render_template("jadwal-sholat.html", daftar_kota=sorted(daftar_kota))
+    <nav class="lg:hidden fixed bottom-0 w-full bg-white z-[60] pb-safe border-t border-slate-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <div class="grid grid-cols-5 h-[65px] items-center px-2">
+            <a href="/" class="nav-item flex flex-col items-center justify-center gap-1.5 p-1 text-slate-400 hover:text-brand-blue transition-colors group" data-path="/">
+                <i class="fa-solid fa-house text-lg mb-0.5 transition-transform duration-300"></i><span class="text-[9px] font-bold tracking-wide">Beranda</span>
+            </a>
+            <a href="/cctv" class="nav-item flex flex-col items-center justify-center gap-1.5 p-1 text-slate-400 hover:text-brand-blue transition-colors group" data-path="/cctv">
+                <i class="fa-solid fa-video text-lg mb-0.5 transition-transform duration-300"></i><span class="text-[9px] font-bold tracking-wide">CCTV</span>
+            </a>
+            <a href="/jadwal-sholat" class="nav-item -mt-6 flex flex-col items-center justify-center group" data-path="/jadwal-sholat">
+                <div class="w-12 h-12 rounded-full bg-brand-blue text-white flex items-center justify-center shadow-lg shadow-blue-500/30 border-4 border-white"><i class="fa-solid fa-mosque text-lg"></i></div>
+                <span class="text-[9px] font-bold text-slate-500 mt-1">Religi</span>
+            </a>
+            <a href="/daftar-siaran" class="nav-item flex flex-col items-center justify-center gap-1.5 p-1 text-slate-400 hover:text-brand-blue transition-colors group" data-path="/daftar-siaran">
+                <i class="fa-solid fa-database text-lg mb-0.5 transition-transform duration-300"></i><span class="text-[9px] font-bold tracking-wide">Database</span>
+            </a>
+            <a href="/berita" class="nav-item flex flex-col items-center justify-center gap-1.5 p-1 text-slate-400 hover:text-brand-blue transition-colors group" data-path="/berita">
+                <i class="fa-solid fa-newspaper text-lg mb-0.5 transition-transform duration-300"></i><span class="text-[9px] font-bold tracking-wide">Berita</span>
+            </a>
+        </div>
+    </nav>
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        user, pw = request.form.get('username'), hash_password(request.form.get('password'))
-        u = ref.child(f'users/{user}').get() if ref else None
-        if u and u.get('password') == pw:
-            session['user'], session['nama'] = user, u.get('nama')
-            return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Username atau Password Salah")
-    return render_template('login.html')
+    <div class="fixed bottom-[65px] lg:bottom-0 w-full z-40 bg-white border-t border-slate-200 h-9 lg:h-10 flex items-center justify-between px-0 select-none shadow-sm">
+        <div class="bg-brand-blue h-full flex items-center px-3 z-20">
+            <span class="text-white text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> LIVE INFO</span>
+        </div>
+        <div class="flex-1 overflow-hidden h-full flex items-center relative bg-slate-50">
+            <div class="animate-marquee whitespace-nowrap text-[10px] font-semibold text-slate-700 flex items-center gap-0" id="unified-ticker">...</div>
+        </div>
+        <div class="bg-white h-full flex items-center px-3 border-l border-slate-200 z-20"><div class="text-[10px] font-mono font-bold text-slate-800" id="clock">00:00</div></div>
+    </div>
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        u = request.form.get("username")
-        e = request.form.get("email")
-        p = request.form.get("password")
-        n = request.form.get("nama")
-        if ref.child(f'users/{u}').get():
-            flash("Username sudah digunakan", "error")
-            return render_template("register.html")
-        otp = str(random.randint(100000, 999999))
-        ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp})
-        try:
-            msg = Message("Kode OTP Pendaftaran KTVDI", recipients=[e])
-            msg.body = f"Halo {n}, Kode OTP Anda: {otp}"
-            mail.send(msg)
-            session['pending_username'] = u
-            return redirect(url_for("verify_register"))
-        except: flash("Gagal kirim email", "error")
-    return render_template("register.html")
+    <div class="fixed bottom-[110px] lg:bottom-20 left-4 z-[60] group">
+        <a href="tel:112" class="flex items-center gap-2 bg-red-600/90 backdrop-blur-sm hover:bg-red-700 text-white p-3 rounded-full shadow-lg ring-2 ring-red-500/20 w-10 group-hover:w-auto overflow-hidden transition-all duration-300">
+            <i class="fa-solid fa-phone-volume text-sm animate-pulse"></i><span class="font-bold text-[10px] whitespace-nowrap hidden group-hover:inline pl-1">DARURAT 112</span>
+        </a>
+    </div>
 
-@app.route("/verify-register", methods=["GET", "POST"])
-def verify_register():
-    u = session.get('pending_username')
-    if not u: return redirect(url_for('register'))
-    if request.method == "POST":
-        p = ref.child(f'pending_users/{u}').get()
-        if p and str(p['otp']) == request.form.get("otp"):
-            ref.child(f'users/{u}').set({"nama":p['nama'], "email":p['email'], "password":p['password'], "points":0})
-            ref.child(f'pending_users/{u}').delete()
-            session.pop('pending_username', None)
-            flash("Registrasi Berhasil!", "success")
-            return redirect(url_for('login'))
-        flash("OTP Salah!", "error")
-    return render_template("verify-register.html", username=u)
+    <div class="fixed bottom-[110px] lg:bottom-20 right-4 z-[60]">
+        <div id="chat-window" class="hidden w-[90vw] max-w-[350px] bg-white rounded-2xl shadow-2xl overflow-hidden mb-2 transform origin-bottom-right transition-all border border-slate-200">
+            <div class="bg-brand-blue p-3 flex justify-between items-center text-white shadow-md relative z-20">
+                <div class="flex items-center gap-3">
+                    <img src="https://iili.io/f87Ctjt.md.png" class="h-9 w-9 rounded-full bg-white p-0.5 border border-white/50">
+                    <div>
+                        <div class="font-bold text-sm">Modi - AI KTVDI</div>
+                        <div class="text-[10px] text-blue-100 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> Online</div>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="hover:bg-white/10 p-2 rounded-full transition"><i class="fa-solid fa-chevron-down text-lg"></i></button>
+            </div>
+            <div id="chat-messages" class="h-80 sm:h-80 chat-bg p-4 overflow-y-auto flex flex-col chat-scroll text-sm space-y-3 relative z-10 pb-20">
+                <div class="flex gap-2">
+                    <div class="chat-bubble-bot p-3 shadow-sm max-w-[85%] text-slate-800 leading-relaxed relative">
+                        Halo Kak! 👋 Selamat datang di KTVDI.<br>Ada yang bisa Modi bantu hari ini? 😊
+                        <div class="text-[9px] text-slate-400 text-right mt-1" id="chat-time"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-2 bg-white border-t border-slate-200 relative z-20">
+                <form onsubmit="handleChat(event)" class="flex gap-2 items-center">
+                    <input type="text" id="chat-input" placeholder="Ketik pesan..." class="w-full bg-slate-50 text-sm px-4 py-3 rounded-full focus:outline-none border border-slate-200 focus:border-brand-blue/50 focus:ring-1 focus:ring-brand-blue/30 shadow-sm" autocomplete="off">
+                    <button type="submit" class="bg-brand-blue text-white w-10 h-10 rounded-full flex items-center justify-center hover:bg-blue-700 transition shadow-md transform active:scale-90"><i class="fa-solid fa-paper-plane text-sm"></i></button>
+                </form>
+            </div>
+        </div>
+        <button onclick="toggleChat()" class="w-14 h-14 bg-brand-blue text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition active:scale-95 border-2 border-white p-1 overflow-hidden relative group">
+             <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover rounded-full">
+             <span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[9px] flex items-center justify-center font-bold animate-bounce">1</span>
+        </button>
+    </div>
 
-@app.route("/dashboard")
-def dashboard():
-    if 'user' not in session: return redirect(url_for('login'))
-    return render_template("dashboard.html", name=session.get('nama'), provinsi_list=list((ref.child('provinsi').get() or {}).values()))
+    <script>
+        function toggleProfile() { document.getElementById('profile-dropdown').classList.toggle('hidden'); }
+        function toggleChat() { 
+            const win = document.getElementById('chat-window');
+            win.classList.toggle('hidden');
+            if(!win.classList.contains('hidden')){
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+                const chatTime = document.getElementById('chat-time');
+                if(chatTime) chatTime.innerText = timeStr;
+                setTimeout(() => scrollToBottom(), 100);
+            }
+        }
+        setInterval(() => { const n = new Date(); document.getElementById('clock').innerText = n.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }, 1000);
+        
+        async function updateTicker() {
+            try { const res=await fetch('/api/news-ticker'); const d=await res.json(); 
+            const h = [...new Set(d)].map(n=>`<span class="mx-4 text-brand-blue font-bold">TERKINI:</span> <span class="uppercase text-slate-800 font-semibold">${n}</span>`).join('');
+            document.getElementById('unified-ticker').innerHTML=h||'<span class="ml-4">Selamat Datang...</span>'; }catch{}
+        }
+        updateTicker();
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.nav-item').forEach(item => {
+                const itemPath = item.getAttribute('data-path');
+                if (itemPath === currentPath || (itemPath !== '/' && currentPath.startsWith(itemPath))) {
+                    item.classList.remove('text-slate-400');
+                    item.classList.add('text-brand-blue');
+                    const icon = item.querySelector('i');
+                    if(icon) icon.classList.add('scale-110');
+                }
+            });
+        });
 
-@app.route("/daftar-siaran")
-def daftar_siaran(): return render_template("daftar-siaran.html", provinsi_list=list((ref.child('provinsi').get() or {}).values()))
+        async function handleChat(e){ 
+            e.preventDefault(); 
+            const inp = document.getElementById('chat-input'); 
+            const txt = inp.value.trim(); 
+            if(!txt) return; 
+            
+            addMsg(txt, 'user'); 
+            inp.value = ''; 
+            
+            const loadDiv = document.createElement('div');
+            loadDiv.className = "flex gap-2 bot-loading";
+            loadDiv.innerHTML = `<div class="chat-bubble-bot p-3 shadow-sm text-slate-500 italic text-xs"><i class="fa-solid fa-circle-notch fa-spin"></i> Modi sedang mengetik...</div>`;
+            document.getElementById('chat-messages').appendChild(loadDiv);
+            scrollToBottom();
 
-@app.route("/add_data", methods=["GET", "POST"])
-def add_data():
-    if 'user' not in session: return redirect(url_for('login'))
-    if request.method == 'POST':
-        p, w, m, s = request.form['provinsi'], request.form['wilayah'].replace(' ', ''), request.form['mux'], request.form['siaran']
-        sl = sorted([x.strip() for x in s.split(',') if x.strip()])
-        ref.child(f'siaran/{p}/{w}/{m}').set({"siaran": sl, "last_updated_by": session['user'], "last_updated_date": datetime.now().strftime("%d-%m-%Y")})
-        return redirect(url_for('dashboard'))
-    return render_template('add_data_form.html', provinsi_list=list((ref.child('provinsi').get() or {}).values()))
+            try {
+                const res = await fetch('/', {
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'}, 
+                    body: JSON.stringify({prompt: txt})
+                });
+                const d = await res.json();
+                
+                document.querySelector('.bot-loading').remove();
+                addMsg(d.response, 'bot');
+                
+                setTimeout(() => {
+                    addMsg("Ada lagi yang bisa Modi bantu, Kak? 😊", 'bot');
+                }, 2000);
 
-@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
-def edit_data(provinsi, wilayah, mux):
-    if 'user' not in session: return redirect(url_for('login'))
-    if request.method == 'POST':
-        sl = sorted([x.strip() for x in request.form['siaran'].split(',') if x.strip()])
-        ref.child(f'siaran/{provinsi}/{wilayah}/{mux}').update({"siaran": sl, "last_updated_date": datetime.now().strftime("%d-%m-%Y")})
-        return redirect(url_for('dashboard'))
-    return render_template('edit_data_form.html', provinsi=provinsi, wilayah=wilayah, mux=mux)
+            } catch {
+                document.querySelector('.bot-loading').remove();
+                addMsg("Maaf kak, koneksi Modi sedang gangguan nih. Coba lagi nanti ya 🙏", 'bot');
+            }
+        }
 
-@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
-def delete_data(provinsi, wilayah, mux):
-    if 'user' not in session: return redirect(url_for('login'))
-    ref.child(f'siaran/{provinsi}/{wilayah}/{mux}').delete()
-    return redirect(url_for('dashboard'))
+        function addMsg(t,s){ 
+            const d=document.createElement('div'); 
+            const time = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+            d.className = "flex gap-2";
+            let fmt = t.replace(/\n/g, '<br>');
 
-@app.route("/get_wilayah")
-def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
-@app.route("/get_mux")
-def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}").get() or {}).keys())})
-@app.route("/get_siaran")
-def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
+            if(s == 'user') {
+                d.innerHTML = `
+                    <div class="chat-bubble-user p-3 shadow-sm max-w-[85%] leading-relaxed relative">
+                        ${fmt}
+                        <div class="text-[9px] text-blue-300 text-right mt-1 flex justify-end items-center gap-1">
+                            ${time} <i class="fa-solid fa-check-double"></i>
+                        </div>
+                    </div>`;
+            } else {
+                d.innerHTML = `
+                    <div class="chat-bubble-bot p-3 shadow-sm max-w-[85%] leading-relaxed relative">
+                        ${fmt}
+                        <div class="text-[9px] text-slate-400 text-right mt-1">${time}</div>
+                    </div>`;
+            }
+            document.getElementById('chat-messages').appendChild(d);
+            scrollToBottom();
+        }
 
-@app.route('/berita')
-def berita():
-    feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
-    articles = feed.entries
-    page = request.args.get('page', 1, type=int)
-    per_page = 6
-    start = (page - 1) * per_page
-    end = start + per_page
-    current = articles[start:end]
-    for a in current: 
-        if hasattr(a,'published_parsed'): a.time_since_published = time_since_published(a.published_parsed)
-    return render_template('berita.html', articles=current, page=page, total_pages=(len(articles)//per_page)+1)
-
-@app.route('/about')
-def about(): return render_template('about.html')
-@app.route('/logout')
-def logout(): session.clear(); return redirect(url_for('login'))
-@app.route('/sitemap.xml')
-def sitemap(): return send_from_directory('static', 'sitemap.xml')
-
-# Route CRON JOB (Wajib ada untuk Vercel Cron)
-@app.route("/api/cron/daily-blast", methods=['GET'])
-def daily_blast_trigger():
-    return trigger_daily_blast()
-
-if __name__ == "__main__":
-    app.run(debug=True)
+        function scrollToBottom() {
+            const chat = document.getElementById('chat-messages');
+            chat.scrollTop = chat.scrollHeight;
+        }
+        
+        window.onclick = function(e) {
+            if (!e.target.closest('button[onclick="toggleProfile()"]') && !e.target.closest('#profile-dropdown')) {
+                document.getElementById('profile-dropdown').classList.add('hidden');
+                document.getElementById('profile-dropdown').classList.remove('show');
+            }
+        }
+    </script>
+</body>
+</html>
