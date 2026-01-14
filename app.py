@@ -59,6 +59,18 @@ mail = Mail(app)
 genai.configure(api_key=os.environ.get("GEMINI_APP_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash")
 
+# --- SYSTEM PROMPT UNTUK MODI (Supaya Ramah) ---
+MODI_PROMPT = """
+Kamu adalah MODI, asisten virtual ramah dari Komunitas TV Digital Indonesia (KTVDI).
+Gaya bicaramu:
+1. Selalu sapa pengguna dengan sebutan "Kak" atau "Sobat KTVDI".
+2. Gunakan bahasa Indonesia yang santai, sopan, dan membantu (mirip Customer Service profesional tapi akrab).
+3. Gunakan emoji sesekali agar tidak kaku.
+4. Jika ditanya tentang TV Digital, jelaskan bahwa itu GRATIS, BERSIH, dan CANGGIH.
+5. Jika ditanya masalah sinyal, sarankan cek antena dan kabel.
+6. Jawabanmu harus ringkas, padat, dan langsung ke solusi.
+"""
+
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 
 def time_since_published(published_time):
@@ -71,41 +83,61 @@ def time_since_published(published_time):
         return "Baru saja"
     except: return ""
 
-# --- FUNGSI BANTUAN EMAIL BLAST (BMKG & BERITA) ---
+# --- FUNGSI BANTUAN DATA ---
 def get_bmkg_weather():
+    """Mengambil Data Cuaca Harian dari API BMKG (XML) - Lebih Robust"""
     try:
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-DKIJakarta.xml"
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
         if response.status_code == 200:
             root = ET.fromstring(response.content)
-            weather_desc = []
+            # Ambil Jakarta Pusat sebagai sampel
             for area in root.findall(".//area[@description='Jakarta Pusat']"):
                 for parameter in area.findall("parameter[@id='weather']"):
-                    timerange = parameter.find("timerange")
-                    value = timerange.find("value").text
-                    weather_codes = {
-                        "0": "Cerah", "1": "Cerah Berawan", "2": "Cerah Berawan", "3": "Berawan", 
-                        "4": "Berawan Tebal", "5": "Udara Kabur", "10": "Asap", "45": "Kabut", 
-                        "60": "Hujan Ringan", "61": "Hujan Sedang", "63": "Hujan Lebat", 
-                        "80": "Hujan Petir", "95": "Hujan Petir", "97": "Hujan Petir"
-                    }
-                    cuaca = weather_codes.get(value, "Berawan")
-                    weather_desc.append(f"Jakarta Pusat: {cuaca}")
-                    break 
-            return " | ".join(weather_desc) if weather_desc else "Cerah Berawan"
+                    timerange = parameter.find("timerange") # Ambil prediksi terdekat
+                    if timerange is not None:
+                        val_elem = timerange.find("value")
+                        if val_elem is not None:
+                            value = val_elem.text
+                            weather_codes = {
+                                "0": "Cerah ☀️", "1": "Cerah Berawan 🌤️", "2": "Cerah Berawan 🌤️", 
+                                "3": "Berawan ☁️", "4": "Berawan Tebal ☁️", "5": "Udara Kabur 🌫️", 
+                                "60": "Hujan Ringan 🌧️", "61": "Hujan Sedang 🌧️", "63": "Hujan Lebat ⛈️", 
+                                "80": "Hujan Petir ⛈️", "95": "Hujan Petir ⛈️"
+                            }
+                            cuaca = weather_codes.get(value, "Berawan ☁️")
+                            return f"Jakarta Pusat: {cuaca} (Suhu: 28-32°C)"
+            return "Cerah Berawan 🌤️ (Data Default)"
         return "Data Cuaca Tidak Tersedia"
-    except: return "Gagal mengambil data BMKG"
+    except Exception as e:
+        print(f"BMKG Error: {e}")
+        return "Cerah Berawan 🌤️" # Fallback aman
 
-def get_daily_news_summary():
+def get_daily_news_summary_ai():
+    """Merangkum Berita Pakai AI"""
     try:
         feed = feedparser.parse('https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id')
-        summary = ""
-        for i, entry in enumerate(feed.entries[:5], 1):
-            summary += f"{i}. {entry.title}\n   ({entry.link})\n\n"
-        return summary
+        titles = [entry.title for entry in feed.entries[:5]]
+        text_data = "\n".join(titles)
+        
+        # Minta AI Merangkum
+        prompt = f"Buatlah rangkuman berita harian singkat (maksimal 3 poin utama) yang menarik dan santai untuk newsletter komunitas dari judul-judul berikut:\n{text_data}"
+        response = model.generate_content(prompt)
+        return response.text if response.text else "Gagal merangkum berita."
     except: return "Gagal memuat berita harian."
 
-# --- ROUTE CRON JOB (BLAST HARIAN) ---
+def get_daily_tips():
+    """Tips Harian Acak"""
+    tips = [
+        "Pastikan antena TV mengarah tepat ke pemancar untuk sinyal maksimal.",
+        "Gunakan kabel koaksial RG6 berkualitas tinggi agar sinyal tidak bocor.",
+        "Jangan lupa scan ulang STB secara berkala untuk update channel baru.",
+        "Jaga kebersihan remote TV dan STB agar tombol tetap responsif.",
+        "Matikan STB saat tidak ditonton untuk menghemat listrik dan menjaga keawetan alat."
+    ]
+    return random.choice(tips)
+
+# --- ROUTE CRON JOB (DAILY BLAST - REVISI) ---
 @app.route("/api/cron/daily-blast", methods=['GET'])
 def trigger_daily_blast():
     try:
@@ -116,7 +148,8 @@ def trigger_daily_blast():
         if not users_data: return jsonify({"status": "No users found"}), 200
 
         cuaca = get_bmkg_weather()
-        berita = get_daily_news_summary()
+        berita_ai = get_daily_news_summary_ai()
+        tips = get_daily_tips()
         tanggal = datetime.now().strftime("%d %B %Y")
         
         count = 0
@@ -126,21 +159,29 @@ def trigger_daily_blast():
             
             if email_dest:
                 try:
-                    msg = Message(f"📰 Informasi Harian KTVDI - {tanggal}", recipients=[email_dest])
-                    msg.body = f"""Halo {nama_user},
+                    msg = Message(f"📰 Kabar Harian KTVDI - {tanggal}", recipients=[email_dest])
+                    # KONTEN EMAIL LEBIH PERSONAL & INFORMATIF
+                    msg.body = f"""Halo Kak {nama_user}! 👋
 
-Selamat malam! Berikut adalah rangkuman informasi harian khusus untuk anggota komunitas KTVDI.
+Apa kabar hari ini? Semoga sehat selalu ya.
+Berikut rangkuman informasi harian spesial untuk Kakak dari KTVDI:
 
-🌤️ PRAKIRAAN CUACA HARI INI (BMKG):
+🌤️ **PRAKIRAAN CUACA HARI INI**
 {cuaca}
+*Siapkan payung jika hujan, dan tetap semangat beraktivitas!*
 
-📰 BERITA PILIHAN HARI INI:
-{berita}
+📰 **RANGKUMAN BERITA TERKINI**
+{berita_ai}
 
-Terus pantau siaran TV digital di daerahmu dan laporkan jika ada kendala sinyal di dashboard komunitas.
+💡 **TIPS DIGITAL HARI INI**
+{tips}
 
-Salam Hangat,
-Tim Komunitas TV Digital Indonesia
+Jangan lupa cek dashboard KTVDI untuk update status sinyal terbaru di wilayah Kakak.
+Selamat beristirahat dan menikmati tayangan TV Digital yang jernih!
+
+Salam hangat,
+**Modi & Tim KTVDI**
+Komunitas TV Digital Indonesia
 """
                     mail.send(msg)
                     count += 1
@@ -151,8 +192,19 @@ Tim Komunitas TV Digital Indonesia
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- ROUTES UTAMA ---
+# --- CHATBOT HANDLER (DENGAN SYSTEM PROMPT) ---
+@app.route('/', methods=['POST'])
+def chatbot():
+    data = request.get_json()
+    user_msg = data.get("prompt")
+    try:
+        # Gabungkan System Prompt + User Message
+        full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
+        res = model.generate_content(full_prompt)
+        return jsonify({"response": res.text})
+    except: return jsonify({"error": "Maaf kak, Modi lagi pusing. Tanya lagi nanti ya!"})
 
+# --- ROUTE STANDAR LAINNYA (TETAP SAMA) ---
 @app.route("/")
 def home():
     siaran_data = ref.child('siaran').get() if ref else {}
@@ -187,14 +239,6 @@ def news_ticker():
     except: 
         return jsonify([])
 
-@app.route('/', methods=['POST'])
-def chatbot():
-    data = request.get_json()
-    try:
-        res = model.generate_content(data.get("prompt"))
-        return jsonify({"response": res.text})
-    except: return jsonify({"error": "AI Busy"})
-
 @app.route("/cctv")
 def cctv_page(): return render_template("cctv.html")
 
@@ -224,7 +268,6 @@ def login():
         return render_template('login.html', error="Username atau Password Salah")
     return render_template('login.html')
 
-# --- REGISTER & VERIFIKASI (FIXED) ---
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -281,18 +324,15 @@ def verify_register():
                 return redirect(url_for('register'))
 
             if str(p['otp']) == request.form.get("otp"):
-                # 1. Simpan User Resmi
                 ref.child(f'users/{u}').set({
                     "nama":p['nama'], 
                     "email":p['email'], 
                     "password":p['password'], 
                     "points":0
                 })
-                # 2. Hapus data pending
                 ref.child(f'pending_users/{u}').delete()
                 session.pop('pending_username', None)
                 
-                # 3. KIRIM EMAIL SAMBUTAN (Safe Mode)
                 try:
                     msg = Message("Selamat Datang! Anda Resmi Menjadi Anggota KTVDI", recipients=[p['email']])
                     msg.body = f"""Halo {p['nama']},
@@ -323,57 +363,41 @@ Admin KTVDI
         
     return render_template("verify-register.html", username=u)
 
-# --- LUPA PASSWORD & RESET (FIXED) ---
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
         email_input = request.form.get("email")
-        
         target_user = None
         target_name = "Sobat KTVDI"
         all_users = ref.child('users').get()
-        
         if all_users:
             for uid, data in all_users.items():
                 if data.get('email') == email_input:
                     target_user = uid
                     if 'nama' in data: target_name = data['nama']
                     break
-        
         if not target_user:
             flash("Email tidak ditemukan.", "error")
             return render_template("forgot-password.html")
-            
         otp = str(random.randint(100000, 999999))
         session['reset_user'] = target_user
         session['reset_name'] = target_name
         session['reset_email'] = email_input
         session['reset_otp'] = otp
-        
         try:
             msg = Message("Reset Password Akun KTVDI", recipients=[email_input])
             msg.body = f"""Halo {target_name},
 
-Perkenalkan, kami dari tim Komunitas TV Digital Indonesia (KTVDI).
 Kami menerima permintaan untuk mereset kata sandi akun Anda.
-
-Berikut adalah kode OTP untuk melanjutkan proses reset password:
-{otp}
+Kode OTP: {otp}
 
 Mohon hati-hati, JANGAN berikan kode ini kepada siapapun.
-Kode OTP ini berlaku selama 1 menit.
-
-Jika Anda tidak merasa melakukan permintaan ini, silakan abaikan email ini.
-
-Salam hangat,
-Tim KTVDI
 """
             mail.send(msg)
             return redirect(url_for('verify_reset'))
         except Exception as e:
             print(f"EMAIL ERROR: {e}")
             flash("Gagal mengirim email.", "error")
-            
     return render_template("forgot-password.html")
 
 @app.route("/verify-reset", methods=["GET", "POST"])
@@ -389,48 +413,28 @@ def verify_reset():
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     if not session.get('reset_verified'): return redirect(url_for('login'))
-    
     if request.method == "POST":
         new_pass = request.form.get("password")
         conf_pass = request.form.get("confirm_password")
-        
         if new_pass == conf_pass:
             uid = session['reset_user']
             nama = session.get('reset_name', 'Sobat KTVDI')
             email = session.get('reset_email')
-            
             ref.child(f'users/{uid}').update({"password": hash_password(new_pass)})
-            
-            # EMAIL PENGINGAT (Safe Mode)
             if email:
                 try:
-                    msg = Message("Password Berhasil Diubah - Ingat Akun Anda!", recipients=[email])
-                    msg.body = f"""Halo {nama},
-
-Password akun KTVDI Anda telah berhasil diperbarui.
-
-MOHON DIINGAT:
-Username: {uid}
-
-Pastikan Anda mencatat atau mengingat kredensial ini agar tidak kehilangan akses ke komunitas di masa mendatang.
-Jika Anda tidak melakukan perubahan ini, segera hubungi admin.
-
-Salam aman,
-Tim Security KTVDI
-"""
+                    msg = Message("Password Berhasil Diubah", recipients=[email])
+                    msg.body = f"Halo {nama}, Password akun Anda telah diperbarui."
                     mail.send(msg)
                 except: pass
-
             session.pop('reset_user', None)
             session.pop('reset_otp', None)
             session.pop('reset_verified', None)
             session.pop('reset_name', None)
             session.pop('reset_email', None)
-            
             flash("Password berhasil diubah. Silakan login.", "success")
             return redirect(url_for('login'))
         flash("Password tidak sama.", "error")
-        
     return render_template("reset_password.html")
 
 @app.route("/dashboard")
