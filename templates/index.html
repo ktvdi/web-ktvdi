@@ -1,3 +1,194 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
+    .font-broadcast { font-family: 'Roboto', sans-serif; }
+    
+    /* GLOSSY TEXT ANIMATION */
+    .tv-glossy {
+        font-weight: 900;
+        background: linear-gradient(110deg, #1e293b 20%, #475569 35%, #ffffff 50%, #475569 65%, #1e293b 80%);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: shine 4s linear infinite;
+        text-shadow: 0px 2px 10px rgba(255,255,255,0.1);
+    }
+    @keyframes shine { to { background-position: 200% center; } }
+
+    /* OTT CARD STYLE */
+    .ott-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+    .ott-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3); }
+    
+    /* MARQUEE IN CARD */
+    .card-ticker-wrap { overflow: hidden; white-space: nowrap; width: 100%; position: relative; }
+    .card-ticker-content { display: inline-block; animation: cardMarquee 15s linear infinite; padding-left: 100%; }
+    @keyframes cardMarquee { 100% { transform: translateX(-100%); } }
+</style>
+
+<section class="relative bg-white pt-24 md:pt-32 pb-24 overflow-hidden border-b border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 relative z-10">
+        <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            <div class="flex-1 text-center lg:text-left space-y-6">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 text-blue-600 text-[10px] md:text-xs font-bold rounded-full shadow-sm">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Komunitas Televisi & Jaringan Digital
+                </div>
+                <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                    Selamat Datang di <br> <span class="tv-glossy">Komunitas TV Digital Indonesia</span>
+                </h1>
+                <p class="text-slate-500 text-base md:text-lg leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                    Wadah independen berbagi informasi frekuensi MUX akurat, panduan teknis, dan nonton siaran televisi nasional yang bersih, jernih, dan canggih secara gratis.
+                </p>
+                <div class="flex flex-wrap gap-4 justify-center lg:justify-start pt-4">
+                    <a href="{{ url_for('daftar_siaran') }}" class="px-6 py-3 md:px-8 md:py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center gap-2 transform hover:-translate-y-1 text-sm md:text-base">
+                        <i class="fa-solid fa-tower-broadcast"></i> Cek Sinyal
+                    </a>
+                    {% if not session.get('user') %}
+                    <a href="{{ url_for('register') }}" class="px-6 py-3 md:px-8 md:py-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:border-blue-600 hover:text-blue-600 transition flex items-center gap-2 text-sm md:text-base">
+                        <i class="fa-solid fa-user-plus"></i> Gabung
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="flex-1 w-full max-w-md">
+                <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-2xl border border-slate-100 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-50 -mr-10 -mt-10"></div>
+                    <div class="grid grid-cols-2 gap-6 text-center mb-8 relative z-10">
+                        <div>
+                            <div class="text-3xl md:text-4xl font-broadcast font-black text-slate-800">{{ stats.wilayah if stats else 0 }}</div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Wilayah</div>
+                        </div>
+                        <div>
+                            <div class="text-3xl md:text-4xl font-broadcast font-black text-slate-800">{{ stats.mux if stats else 0 }}</div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Total MUX</div>
+                        </div>
+                    </div>
+                    <div class="bg-slate-900 p-6 md:p-8 rounded-2xl text-center text-white relative overflow-hidden shadow-lg">
+                        <div class="relative z-10">
+                            <div class="text-5xl md:text-6xl font-broadcast font-black text-blue-400">{{ stats.channel if stats else 0 }}</div>
+                            <div class="text-xs text-slate-400 font-bold uppercase mt-2 tracking-[0.3em]">Channel Terdata</div>
+                        </div>
+                        <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                    </div>
+                    <div class="text-center mt-6 text-[10px] text-slate-400 font-medium">
+                        Update: <span class="text-blue-600">{{ last_updated_time }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-24 bg-[#0f172a] relative overflow-hidden">
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-blue-600/10 blur-[100px] rounded-full"></div>
+    <div class="max-w-7xl mx-auto px-4 relative z-10">
+        <div class="text-center mb-16">
+            <span class="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] bg-blue-900/30 px-3 py-1.5 rounded-full border border-blue-500/30 backdrop-blur-sm">Official Stream</span>
+            <h2 class="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight font-broadcast">TV Nasional</h2>
+            <p class="text-slate-400 mt-4 max-w-2xl mx-auto text-sm md:text-base">Streaming legal & gratis saluran TV Nasional Indonesia.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="tv-grid">
+            </div>
+    </div>
+</section>
+
+<section class="py-24 bg-slate-50 border-t border-slate-200 font-['Plus_Jakarta_Sans']">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition duration-300 group hover:shadow-xl">
+                <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><i class="fa-solid fa-tv text-2xl"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Gambar Bersih</h3>
+                <p class="text-slate-500 text-sm leading-relaxed">Teknologi digital menjamin gambar diterima jernih tanpa semut atau bayangan.</p>
+            </div>
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition duration-300 group hover:shadow-xl">
+                <div class="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition"><i class="fa-solid fa-tower-cell text-2xl"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Suara Jernih</h3>
+                <p class="text-slate-500 text-sm leading-relaxed">Kualitas audio Stereo (Dolby Supported), memberikan pengalaman menonton yang lebih hidup.</p>
+            </div>
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition duration-300 group hover:shadow-xl">
+                <div class="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition"><i class="fa-solid fa-microchip text-2xl"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Teknologi Canggih</h3>
+                <p class="text-slate-500 text-sm leading-relaxed">Dilengkapi EWS (Peringatan Dini Bencana) dan Panduan Program Elektronik (EPG).</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            <div class="space-y-8">
+                <div class="bg-gradient-to-br from-blue-900 to-slate-900 rounded-[2rem] p-8 text-white relative overflow-hidden shadow-2xl group">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-500/30 transition"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="bg-yellow-500 text-slate-900 text-[10px] font-bold px-2 py-1 rounded">OFFICIAL BROADCASTER</span>
+                            <i class="fa-solid fa-futbol text-yellow-400 animate-bounce"></i>
+                        </div>
+                        <h3 class="text-3xl font-extrabold mb-4 font-broadcast">FIFA World Cup 2026</h3>
+                        <p class="text-slate-300 text-sm leading-relaxed mb-6">
+                            Hak siar Piala Dunia 2026 Free-To-Air (Gratis) dipegang oleh <strong>LPP TVRI</strong>. Anda bisa menyaksikan seluruh pertandingan secara GRATIS dan HD melalui siaran TV Digital tanpa perlu kuota internet atau biaya langganan bulanan.
+                        </p>
+                        <div class="flex items-center gap-4 text-xs font-bold text-slate-400">
+                            <span class="flex items-center gap-1"><i class="fa-solid fa-check text-green-400"></i> TVRI Nasional</span>
+                            <span class="flex items-center gap-1"><i class="fa-solid fa-check text-green-400"></i> TVRI Sport</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                    <h4 class="text-xl font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-blue-600"></i> Apa itu MUX?
+                    </h4>
+                    <p class="text-slate-600 text-sm leading-relaxed text-justify">
+                        MUX (Multiplekser) adalah kanal digital yang bisa memuat banyak saluran TV dalam satu frekuensi. 
+                        Jika dulu 1 frekuensi UHF hanya untuk 1 TV (Analog), kini 1 frekuensi MUX bisa membawa hingga 12 Channel TV Digital sekaligus dengan kualitas HD. 
+                        Inilah mengapa siaran digital jauh lebih efisien.
+                    </p>
+                </div>
+            </div>
+
+            <div class="space-y-8">
+                <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm h-full">
+                    <h4 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                        <i class="fa-solid fa-screwdriver-wrench text-slate-400"></i> Panduan Teknis & STB
+                    </h4>
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">1</div>
+                            <div>
+                                <h5 class="font-bold text-slate-800 text-sm">Cek Perangkat TV</h5>
+                                <p class="text-slate-500 text-xs mt-1">Pastikan TV Anda sudah support DVB-T2. Jika belum (TV Tabung/LED Lama), Anda wajib menggunakan <strong>Set Top Box (STB)</strong>.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">2</div>
+                            <div>
+                                <h5 class="font-bold text-slate-800 text-sm">Gunakan Antena UHF Outdoor</h5>
+                                <p class="text-slate-500 text-xs mt-1">Siaran digital tetap menggunakan antena UHF biasa. Disarankan menggunakan antena luar (Outdoor) dan kabel berkualitas (RG6) agar sinyal maksimal.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">3</div>
+                            <div>
+                                <h5 class="font-bold text-slate-800 text-sm">Scan Ulang Berkala</h5>
+                                <p class="text-slate-500 text-xs mt-1">Channel sering bertambah atau berpindah MUX. Lakukan Scan Ulang (Auto Scan) melalui menu pencarian di TV/STB minimal sebulan sekali.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl mt-20">
+            <div class="relative z-10 max-w-lg text-center md:text-left">
+                <h2 class="text-2xl font-bold mb-3">Butuh Bantuan Sinyal?</h2>
+                <p class="text-slate-400 leading-relaxed text-sm">Gabung ke grup Facebook kami. Ribuan teknisi dan pegiat TV Digital siap membantu Anda mendapatkan sinyal terbaik.</p>
+            </div>
+            <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="relative z-10 px-8 py-4 bg-white text-slate-900 font-bold rounded-xl hover:bg-blue-50 transition shadow-lg flex items-center gap-3 transform hover:scale-105">
+                <i class="fa-brands fa-facebook text-xl text-blue-600"></i> Gabung Grup KTVDI
+            </a>
+        </div>
+    </div>
+</section>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const channels = [
@@ -154,29 +345,15 @@
         loadHLS(cover, url, id);
     }
 
-    // --- PERBAIKAN FUNGSI FULL SCREEN (SUPPORT SEMUA DEVICE) ---
+    // --- FULL SCREEN (SUPPORT iOS & Android) ---
     function toggleFullScreen(id) {
         const video = document.getElementById(id);
         
-        // 1. Khusus iOS (iPhone/iPad)
-        if (video.webkitEnterFullscreen) {
-            video.webkitEnterFullscreen();
-        } 
-        // 2. Standard API (Chrome/Android/Edge Terbaru)
-        else if (video.requestFullscreen) {
-            video.requestFullscreen();
-        } 
-        // 3. Safari/Chrome Lama
-        else if (video.webkitRequestFullscreen) {
-            video.webkitRequestFullscreen();
-        } 
-        // 4. Firefox
-        else if (video.mozRequestFullScreen) {
-            video.mozRequestFullScreen();
-        } 
-        // 5. IE/Edge Lama
-        else if (video.msRequestFullscreen) {
-            video.msRequestFullscreen();
-        }
+        if (video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); } /* iOS */
+        else if (video.requestFullscreen) { video.requestFullscreen(); }
+        else if (video.webkitRequestFullscreen) { video.webkitRequestFullscreen(); }
+        else if (video.mozRequestFullScreen) { video.mozRequestFullScreen(); }
+        else if (video.msRequestFullscreen) { video.msRequestFullscreen(); }
     }
 </script>
+{% endblock %}
