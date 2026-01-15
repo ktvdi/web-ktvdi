@@ -2,100 +2,81 @@
 
 {% block content %}
 <style>
-    /* Font Khusus untuk Kesan TV Modern */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap');
     .font-broadcast { font-family: 'Roboto', sans-serif; }
     
-    /* Efek Teks Mengkilap (Glossy) */
-    .text-glossy { 
-        background: linear-gradient(to right, #1e293b 0%, #2563eb 20%, #93c5fd 50%, #2563eb 80%, #1e293b 100%); 
-        background-size: 200% auto; 
-        -webkit-background-clip: text; 
-        -webkit-text-fill-color: transparent; 
-        animation: shine 4s linear infinite; 
-        font-weight: 900; 
-    }
-    @keyframes shine { to { background-position: 200% center; } }
-    
-    /* Animasi Marquee Lokal di Kartu TV */
-    .card-marquee { 
-        white-space: nowrap; 
-        display: inline-block; 
-        animation: marquee-card 20s linear infinite; 
-        padding-left: 100%;
-    }
-    @keyframes marquee-card { 100% { transform: translateX(-100%); } }
-    
-    /* Tombol Play Berdenyut */
-    .play-pulse { 
-        box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); 
-        animation: pulse-blue 2s infinite; 
-    }
-    @keyframes pulse-blue { 
-        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); } 
-        70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(37, 99, 235, 0); } 
-        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); } 
+    /* Modern Gradient Text */
+    .text-gradient-main {
+        background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 
-    /* Video Control Bar yang Rapi */
-    .video-controls {
-        background: linear-gradient(to top, #000 0%, transparent 100%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
+    /* OTT CARD STYLE */
+    .ott-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    .group:hover .video-controls { opacity: 1; }
+    .ott-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Marquee Text Inside Card */
+    .card-ticker-wrap { overflow: hidden; white-space: nowrap; width: 100%; position: relative; }
+    .card-ticker-content { display: inline-block; animation: cardMarquee 15s linear infinite; padding-left: 100%; }
+    @keyframes cardMarquee { 100% { transform: translateX(-100%); } }
 </style>
 
-<section class="relative bg-white pt-32 pb-24 overflow-hidden font-['Plus_Jakarta_Sans'] border-b border-slate-100">
+<section class="relative bg-white pt-24 md:pt-32 pb-24 overflow-hidden border-b border-slate-100">
     <div class="max-w-7xl mx-auto px-4 relative z-10">
-        <div class="flex flex-col lg:flex-row items-center gap-16">
+        <div class="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             <div class="flex-1 text-center lg:text-left space-y-6">
-                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 text-blue-600 text-xs font-bold rounded-full shadow-sm">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Komunitas Televisi dengan jaringan terbesar
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 border border-blue-100 text-blue-600 text-[10px] md:text-xs font-bold rounded-full shadow-sm">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Komunitas Televisi & Jaringan Digital
                 </div>
                 <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 leading-tight tracking-tight">
-                    Selamat Datang di <br> <span class="text-glossy">Komunitas TV Digital Indonesia</span>
+                    Selamat Datang di <br> <span class="text-gradient-main">TV Digital Indonesia</span>
                 </h1>
-                <p class="text-slate-500 text-lg leading-relaxed text-justify lg:text-left max-w-2xl">
-                    Sebuah wadah independen masyarakat Indonesia untuk berbagi informasi frekuensi MUX akurat, panduan teknis, dan forum diskusi solutif. Nikmati siaran televisi yang bersih, jernih, dan canggih secara gratis.
+                <p class="text-slate-500 text-base md:text-lg leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                    Wadah independen berbagi informasi frekuensi MUX akurat, panduan teknis, dan nonton siaran televisi nasional yang bersih, jernih, dan canggih secara gratis.
                 </p>
                 <div class="flex flex-wrap gap-4 justify-center lg:justify-start pt-4">
-                    <a href="{{ url_for('daftar_siaran') }}" class="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center gap-2 transform hover:-translate-y-1">
-                        <i class="fa-solid fa-tower-broadcast"></i> Cek Jangkauan Sinyal
+                    <a href="{{ url_for('daftar_siaran') }}" class="px-6 py-3 md:px-8 md:py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center gap-2 transform hover:-translate-y-1 text-sm md:text-base">
+                        <i class="fa-solid fa-tower-broadcast"></i> Cek Sinyal
                     </a>
                     {% if not session.get('user') %}
-                    <a href="{{ url_for('register') }}" class="px-8 py-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:border-blue-600 hover:text-blue-600 transition flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus"></i> Gabung Sekarang
+                    <a href="{{ url_for('register') }}" class="px-6 py-3 md:px-8 md:py-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:border-blue-600 hover:text-blue-600 transition flex items-center gap-2 text-sm md:text-base">
+                        <i class="fa-solid fa-user-plus"></i> Gabung
                     </a>
                     {% endif %}
                 </div>
             </div>
             
             <div class="flex-1 w-full max-w-md">
-                <div class="bg-white p-8 rounded-[2rem] shadow-2xl border border-slate-100 relative overflow-hidden">
+                <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-2xl border border-slate-100 relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-50 -mr-10 -mt-10"></div>
                     
-                    <div class="grid grid-cols-2 gap-8 text-center mb-8 relative z-10">
+                    <div class="grid grid-cols-2 gap-6 text-center mb-8 relative z-10">
                         <div>
-                            <div class="text-4xl font-broadcast font-black text-slate-800">{{ stats.wilayah if stats else 0 }}</div>
-                            <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Wilayah Layanan</div>
+                            <div class="text-3xl md:text-4xl font-broadcast font-black text-slate-800">{{ stats.wilayah if stats else 0 }}</div>
+                            <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Wilayah</div>
                         </div>
                         <div>
-                            <div class="text-4xl font-broadcast font-black text-slate-800">{{ stats.mux if stats else 0 }}</div>
+                            <div class="text-3xl md:text-4xl font-broadcast font-black text-slate-800">{{ stats.mux if stats else 0 }}</div>
                             <div class="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-wider">Total MUX</div>
                         </div>
                     </div>
                     
-                    <div class="bg-slate-900 p-8 rounded-2xl text-center text-white relative overflow-hidden shadow-lg">
+                    <div class="bg-slate-900 p-6 md:p-8 rounded-2xl text-center text-white relative overflow-hidden shadow-lg">
                         <div class="relative z-10">
-                            <div class="text-6xl font-broadcast font-black text-blue-400">{{ stats.channel if stats else 0 }}</div>
+                            <div class="text-5xl md:text-6xl font-broadcast font-black text-blue-400">{{ stats.channel if stats else 0 }}</div>
                             <div class="text-xs text-slate-400 font-bold uppercase mt-2 tracking-[0.3em]">Channel Terdata</div>
                         </div>
                         <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500"></div>
                     </div>
                     
                     <div class="text-center mt-6 text-[10px] text-slate-400 font-medium">
-                        Data Terakhir Diperbarui: <span class="text-blue-600">{{ last_updated_time }}</span>
+                        Update: <span class="text-blue-600">{{ last_updated_time }}</span>
                     </div>
                 </div>
             </div>
@@ -104,13 +85,13 @@
 </section>
 
 <section class="py-24 bg-[#0f172a] relative overflow-hidden">
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-blue-600/20 blur-[100px] rounded-full"></div>
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-blue-600/10 blur-[100px] rounded-full"></div>
 
     <div class="max-w-7xl mx-auto px-4 relative z-10">
         <div class="text-center mb-16">
             <span class="text-blue-400 font-bold text-[10px] uppercase tracking-[0.2em] bg-blue-900/30 px-3 py-1.5 rounded-full border border-blue-500/30 backdrop-blur-sm">Official Stream</span>
-            <h2 class="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight font-broadcast">Nonton Siaran TV Nasional</h2>
-            <p class="text-slate-400 mt-4 max-w-2xl mx-auto">Tonton pilihan LIVE TV Nasional disini secara GRATIS, Darimana saja Kapan saja dalam satu genggaman.</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold text-white mt-4 tracking-tight font-broadcast">TV Nasional</h2>
+            <p class="text-slate-400 mt-4 max-w-2xl mx-auto text-sm md:text-base">Streaming legal & gratis saluran TV Nasional Indonesia.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="tv-grid">
@@ -118,70 +99,15 @@
     </div>
 </section>
 
-<section class="py-24 bg-slate-50 border-t border-slate-200 font-['Plus_Jakarta_Sans']">
+<section class="py-24 bg-slate-50 border-t border-slate-200">
     <div class="max-w-6xl mx-auto px-4">
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition duration-300 group hover:shadow-lg">
-                <div class="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><i class="fa-solid fa-tv text-2xl"></i></div>
-                <h3 class="text-xl font-bold text-slate-800">Gambar Bersih</h3>
-                <p class="text-slate-500 text-sm leading-relaxed">Teknologi digital menjamin gambar diterima jernih tanpa semut atau bayangan.</p>
-            </div>
-            
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition duration-300 group hover:shadow-lg">
-                <div class="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition"><i class="fa-solid fa-tower-cell text-2xl"></i></div>
-                <h3 class="text-xl font-bold text-slate-800">Suara Jernih</h3>
-                <p class="text-slate-500 text-sm leading-relaxed">Kualitas audio Stereo (Dolby Supported), memberikan pengalaman menonton yang lebih hidup.</p>
-            </div>
-
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center gap-4 hover:-translate-y-2 transition duration-300 group hover:shadow-lg">
-                <div class="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition"><i class="fa-solid fa-wallet text-2xl"></i></div>
-                <h3 class="text-xl font-bold text-slate-800">Gratis Selamanya</h3>
-                <p class="text-slate-500 text-sm leading-relaxed">Bukan streaming internet berlangganan. Cukup pakai antena UHF biasa.</p>
-            </div>
-        </div>
-
-        <div class="space-y-6 max-w-3xl mx-auto">
-            <div class="text-center mb-10">
-                <h3 class="text-2xl font-bold text-slate-900">Pertanyaan Populer</h3>
-            </div>
-            
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition cursor-help">
-                <h4 class="font-bold text-blue-600 text-lg mb-2 flex items-center gap-2"><i class="fa-solid fa-trophy"></i> Cara Nonton Piala Dunia 2026?</h4>
-                <p class="text-slate-600 text-sm leading-relaxed">
-                    Hak siar Fifa World Cup 2026 dipegang oleh <strong>TVRI via TVRI Nasional dan TVRI SPORT</strong>. Anda bisa menonton seluruh pertandingan secara <strong>GRATIS</strong> dan <strong>HD</strong> melalui siaran TV Digital (MUX TVRI). Tidak perlu kuota internet, cukup arahkan antena ke pemancar TVRI terdekat.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h4 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="fa-solid fa-wrench text-slate-400"></i> Tips Antena</h4>
-                    <ul class="text-slate-500 text-sm list-disc pl-4 space-y-1">
-                        <li>Gunakan antena UHF Outdoor (Luar).</li>
-                        <li>Pakai kabel koaksial RG6 (Kitani) yang berkualitas.</li>
-                        <li>Arahkan antena agar tegak lurus ke pemancar terdekat.</li>
-                        <li>Hindari halangan pohon ataupun gedung.</li>
-                    </ul>
-                </div>
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h4 class="font-bold text-slate-800 mb-3 flex items-center gap-2"><i class="fa-solid fa-rotate text-slate-400"></i> Cara Scan Ulang</h4>
-                    <ol class="text-slate-500 text-sm list-decimal pl-4 space-y-1">
-                        <li>Tekan MENU di remote STB atau TV Digital.</li>
-                        <li>Pilih Pencarian (Search).</li>
-                        <li>Pilih Auto Scan (Otomatis).</li>
-                        <li>Tunggu hingga 100% selesai.</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-slate-900 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl mt-20">
+        <div class="bg-slate-900 rounded-3xl p-8 md:p-12 text-white relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
             <div class="relative z-10 max-w-lg text-center md:text-left">
                 <h2 class="text-2xl font-bold mb-3">Gabung Komunitas Kami</h2>
-                <p class="text-slate-400 leading-relaxed">Dapatkan bantuan teknis real-time dari ribuan anggota komunitas di seluruh Indonesia.</p>
+                <p class="text-slate-400 leading-relaxed text-sm">Dapatkan bantuan teknis real-time dari ribuan anggota.</p>
             </div>
             <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="relative z-10 px-8 py-4 bg-white text-slate-900 font-bold rounded-xl hover:bg-blue-50 transition shadow-lg flex items-center gap-3 transform hover:scale-105">
-                <i class="fa-brands fa-facebook text-xl text-blue-600"></i> Grup Facebook KTVDI
+                <i class="fa-brands fa-facebook text-xl text-blue-600"></i> Grup Facebook
             </a>
         </div>
     </div>
@@ -190,27 +116,26 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const channels = [
-            {name: "Caruban TV", url: "https://stream.carubantv.id/hls/stream.m3u8", logo: "https://iili.io/f8YnXh7.png"},
-            {name: "Rasika USA TV", url: "https://rasika.siar.us/live/rasika.m3u8", logo: "https://rasika.siar.us/assets/img/logo.png"},
             {name: "Stara TV Malang", url: "https://malang.staratv.id/hls/stream.m3u8", logo: "https://iili.io/f8YVekl.md.png"},
             {name: "TVRI Nasional", url: "https://ott-balancer.tvri.go.id/live/eds/Nasional/hls/Nasional.m3u8", logo: "https://iili.io/f87NRoB.md.png"},
+            {name: "Kompas TV HD", url: "https://www.youtube.com/embed/live_stream?channel=UC7tV3Qv0K6z7q9Z7X1x9x9g", type: "youtube", logo: "https://iili.io/f8YFc1R.jpg"},
             {name: "RTV HD-2", url: "https://rtvstream.rtv.co.id:4555/hls/rtv.m3u8", logo: "https://iili.io/f876F44.md.png"},
-            {name: "Kompas TV", url: "https://www.youtube.com/embed/live_stream?channel=UC7tV3Qv0K6z7q9Z7X1x9x9g", type: "youtube", logo: "https://iili.io/f8YFc1R.jpg"},
             {name: "Garuda TV", url: "https://hgmtv.com:19360/garudatvlivestreaming/garudatvlivestreaming.m3u8", logo: "https://iili.io/f8Y7QV4.png"},
             {name: "Nusantara TV", url: "https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8", logo: "https://iili.io/f8YIZPt.jpg"},
             {name: "Berita Satu", url: "https://beritasatu.secureswiftcontent.com/han/beritasatu/bsatu10008/srtoutput/manifest.m3u8", logo: "https://iili.io/f878bP2.jpg"},
             {name: "Matrix TV Yogyakarta", url: "https://stream.matrixtv.id/hls/stream.m3u8", logo: "https://iili.io/f87LXWX.md.png"},
-            {name: "Semarang TV", url: "http://36.94.24.229/0.m3u8", logo: "https://iili.io/f87yF6P.png"}
+            {name: "Semarang TV", url: "36.94.24.229/0.m3u8", logo: "https://iili.io/f87yF6P.png"},
+            {name: "Caruban TV", url: "https://stream.carubantv.id/hls/stream.m3u8", logo: "https://iili.io/f8YnXh7.png"},
+            {name: "Rasika USA TV", url: "https://rasika.siar.us/live/rasika.m3u8", logo: "https://rasika.siar.us/assets/img/logo.png"},
         ];
 
         const grid = document.getElementById('tv-grid');
         
         channels.forEach((ch, idx) => {
             const div = document.createElement('div');
-            div.className = "bg-transparent group"; // Group untuk hover effect
+            div.className = "ott-card bg-slate-800 rounded-2xl overflow-hidden border border-slate-700/50 flex flex-col h-full";
             
             let playerHtml = '';
-            
             // Logic YouTube vs HLS
             if (ch.type === "youtube") {
                 playerHtml = `
@@ -220,65 +145,66 @@
                     </iframe>`;
             } else {
                 playerHtml = `
-                    <div class="absolute inset-0 z-20 flex items-center justify-center bg-black/50 cursor-pointer transition-opacity duration-300 group-hover:opacity-0" onclick="loadHLS(this, '${ch.url}', 'vid-${idx}')">
-                        <div class="w-14 h-14 rounded-full bg-blue-600/90 backdrop-blur-md flex items-center justify-center shadow-2xl ring-4 ring-white/10 play-btn-pulse">
-                            <i class="fa-solid fa-play text-white text-xl ml-1"></i>
+                    <div id="cover-${idx}" class="absolute inset-0 z-20 flex items-center justify-center bg-slate-900 cursor-pointer" onclick="loadHLS(this, '${ch.url}', 'vid-${idx}')">
+                        <div class="relative z-10 w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center shadow-lg hover:bg-blue-500 transition-colors group">
+                            <i class="fa-solid fa-play text-white text-xl pl-1 group-hover:scale-110 transition-transform"></i>
                         </div>
+                        <div class="absolute inset-0 bg-cover bg-center opacity-30 blur-sm" style="background-image: url('${ch.logo}')"></div>
                     </div>
                     
-                    <div class="loading-spinner absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10 hidden">
+                    <div class="loading-spinner absolute inset-0 flex flex-col items-center justify-center bg-black z-10 hidden">
                         <i class="fa-solid fa-circle-notch fa-spin text-blue-500 text-3xl"></i>
                     </div>
                     
-                    <video id="vid-${idx}" class="w-full h-full object-cover" muted playsinline></video>
-                    
-                    <div class="absolute bottom-0 left-0 right-0 z-30 flex justify-between items-center p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <div class="flex gap-2">
-                            <button onclick="toggleMute('vid-${idx}', this)" class="w-8 h-8 rounded-full bg-white/10 hover:bg-blue-600 text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition"><i class="fa-solid fa-volume-high text-xs"></i></button>
-                            <button onclick="stopVideo('vid-${idx}')" class="w-8 h-8 rounded-full bg-white/10 hover:bg-red-500 text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition"><i class="fa-solid fa-stop text-xs"></i></button>
-                            <button onclick="reloadVideo('vid-${idx}', '${ch.url}')" class="w-8 h-8 rounded-full bg-white/10 hover:bg-green-500 text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition"><i class="fa-solid fa-rotate-right text-xs"></i></button>
+                    <video id="vid-${idx}" class="w-full h-full object-contain bg-black" muted playsinline></video>
+                `;
+            }
+
+            // OTT Style Layout
+            let controlBarHtml = '';
+            if (ch.type !== "youtube") {
+                controlBarHtml = `
+                    <div class="h-10 bg-slate-900 border-t border-slate-700 flex items-center px-4 justify-between gap-2">
+                        <button onclick="reloadVideo('vid-${idx}', '${ch.url}')" class="text-slate-400 hover:text-green-400" title="Reload"><i class="fa-solid fa-rotate-right"></i></button>
+                        <div class="flex items-center gap-4">
+                            <button onclick="toggleMute('vid-${idx}', this)" class="text-slate-400 hover:text-white"><i class="fa-solid fa-volume-high"></i></button>
+                            <button onclick="stopVideo('vid-${idx}', 'cover-${idx}')" class="text-slate-400 hover:text-red-400" title="Stop"><i class="fa-solid fa-stop"></i></button>
+                            <button onclick="toggleFullScreen('vid-${idx}')" class="text-slate-400 hover:text-blue-400"><i class="fa-solid fa-expand"></i></button>
                         </div>
-                        <button onclick="toggleFullScreen('vid-${idx}')" class="w-8 h-8 rounded-full bg-white/10 hover:bg-blue-600 text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition"><i class="fa-solid fa-expand text-xs"></i></button>
                     </div>
                 `;
             }
 
-            // Struktur Kartu TV
             div.innerHTML = `
-                <div class="relative bg-slate-800 rounded-2xl overflow-hidden shadow-xl border border-slate-700/50 hover:border-blue-500/50 transition duration-300">
-                    <div class="relative aspect-video bg-slate-900">
-                        ${playerHtml}
+                <div class="relative aspect-video bg-black w-full">
+                    ${playerHtml}
+                </div>
+                ${controlBarHtml}
+                <div class="p-4 bg-slate-800 flex items-start gap-4 h-full">
+                    <div class="w-12 h-12 bg-white rounded-xl p-1 flex-shrink-0 flex items-center justify-center shadow-md">
+                        <img src="${ch.logo}" class="max-w-full max-h-full object-contain" onerror="this.src='{{ url_for('static', filename='icons/icon-192.png') }}'">
                     </div>
-                    
-                    <div class="bg-slate-900 p-4 border-t border-slate-700/50 flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-full bg-white p-1 flex-shrink-0">
-                            <img src="${ch.logo}" class="w-full h-full object-contain" onerror="this.src='{{ url_for('static', filename='icons/icon-192.png') }}'">
-                        </div>
-                        <div class="flex-1 overflow-hidden">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h3 class="text-white text-sm font-bold font-broadcast tracking-wide">${ch.name}</h3>
-                                <span class="bg-red-600 text-white text-[9px] font-bold px-1.5 rounded animate-pulse">LIVE</span>
-                            </div>
-                            <div class="w-full overflow-hidden relative h-4">
-                                <div class="card-marquee text-[10px] text-slate-400">
-                                    Saksikan tayangan ${ch.name} kualitas Digital HD Jernih. Dukung migrasi TV Digital Indonesia! 
-                                </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-white font-bold text-base truncate mb-1">${ch.name}</h3>
+                        <div class="card-ticker-wrap">
+                            <div class="card-ticker-content text-[10px] text-slate-400 font-mono">
+                                • Streaming Digital HD • Resolusi Tinggi • Stereo Audio • ${ch.name} •
                             </div>
                         </div>
                     </div>
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse mt-2"></span>
                 </div>
             `;
             grid.appendChild(div);
         });
     });
 
-    // --- FUNGSI VIDEO PLAYER (HLS) ---
-    function loadHLS(placeholder, url, vidId) {
+    function loadHLS(cover, url, vidId) {
         const video = document.getElementById(vidId);
-        const spinner = placeholder.nextElementSibling;
+        const spinner = cover.nextElementSibling;
         
-        placeholder.style.display = 'none'; // Sembunyikan tombol play besar
-        spinner.classList.remove('hidden'); // Tampilkan loading
+        cover.style.display = 'none';
+        spinner.classList.remove('hidden');
 
         if(Hls.isSupported()) {
             const hls = new Hls();
@@ -286,7 +212,7 @@
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play();
-                spinner.classList.add('hidden'); // Sembunyikan loading saat main
+                spinner.classList.add('hidden');
             });
             window['hls_'+vidId] = hls;
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -296,36 +222,39 @@
                 spinner.classList.add('hidden');
             });
         }
-        video.muted = false; // Unmute saat play manual
+        video.muted = false;
+    }
+
+    function stopVideo(vidId, coverId) {
+        const v = document.getElementById(vidId);
+        const cover = document.getElementById(coverId);
+        v.pause();
+        // Destroy HLS instance to stop downloading data
+        if(window['hls_'+vidId]) {
+            window['hls_'+vidId].destroy();
+            delete window['hls_'+vidId];
+        }
+        v.removeAttribute('src'); // clear source
+        v.load();
+        cover.style.display = 'flex'; // Show cover again
     }
 
     function toggleMute(id, btn) {
         const v = document.getElementById(id);
         v.muted = !v.muted;
-        btn.innerHTML = v.muted ? '<i class="fa-solid fa-volume-xmark text-xs"></i>' : '<i class="fa-solid fa-volume-high text-xs"></i>';
-    }
-
-    function stopVideo(id) {
-        const v = document.getElementById(id);
-        v.pause();
+        btn.innerHTML = v.muted ? '<i class="fa-solid fa-volume-xmark"></i>' : '<i class="fa-solid fa-volume-high"></i>';
     }
 
     function reloadVideo(id, url) {
         const v = document.getElementById(id);
-        v.pause();
-        if(window['hls_'+id]) {
-            window['hls_'+id].loadSource(url);
-            window['hls_'+id].attachMedia(v);
-            v.play();
-        }
+        const cover = v.previousElementSibling.previousElementSibling; 
+        loadHLS(cover, url, id);
     }
 
     function toggleFullScreen(id) {
         const v = document.getElementById(id);
         if (v.requestFullscreen) v.requestFullscreen();
-        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen(); // Safari
-        else if (v.msRequestFullscreen) v.msRequestFullscreen(); // IE11
+        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
     }
 </script>
 {% endblock %}
-
