@@ -3,73 +3,70 @@
 {% block title %}Berita TV Digital - KTVDI{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-brand-surface py-20 px-4 font-['Plus_Jakarta_Sans']">
+<div class="min-h-screen bg-slate-50 py-24 px-4 font-['Plus_Jakarta_Sans']">
     <div class="max-w-7xl mx-auto">
         
         <div class="text-center mb-16">
-            <span class="inline-block py-1.5 px-4 rounded-full bg-blue-100 text-brand-blue text-xs font-extrabold uppercase tracking-widest mb-4 shadow-sm">
-                <i class="fa-solid fa-bolt mr-2"></i> Update Terkini
+            <span class="inline-block py-1.5 px-4 rounded-full bg-blue-100 text-brand-blue text-xs font-extrabold uppercase tracking-widest mb-4 shadow-sm animate-pulse">
+                <i class="fa-solid fa-rss mr-2"></i> Live Updates
             </span>
-            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-navy mb-6 tracking-tight">
-                Berita & Informasi Digital
+            <h1 class="text-3xl md:text-5xl font-extrabold text-brand-navy mb-4 tracking-tight">
+                Berita Penyiaran Digital
             </h1>
             <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed">
-                Dapatkan informasi terbaru seputar perkembangan TV Digital, frekuensi, dan teknologi penyiaran di Indonesia yang dikurasi khusus untuk Anda.
+                Informasi terkini seputar TV Digital, frekuensi, dan teknologi dari berbagai sumber terpercaya.
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for article in articles %}
-            <article class="bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-slate-100 flex flex-col h-full group hover:-translate-y-2">
-                
-                {% if article.image %}
-                <div class="relative h-48 overflow-hidden">
-                    <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute top-4 left-4">
-                        <span class="bg-white/90 backdrop-blur-sm text-brand-blue text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                            {{ article.source_name if article.source_name else 'Berita' }}
+            <article class="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-300 border border-slate-100 flex flex-col h-full group hover:-translate-y-2 relative">
+                <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="absolute inset-0 z-20"></a>
+
+                <div class="relative h-52 overflow-hidden bg-slate-200">
+                    {% if article.image %}
+                        <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-in-out">
+                    {% else %}
+                        <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-100">
+                            <i class="fa-solid fa-newspaper text-5xl mb-2"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider">Berita KTVDI</span>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="absolute top-4 left-4 z-30">
+                        <span class="bg-white/95 backdrop-blur-md text-brand-blue text-[10px] font-extrabold px-3 py-1.5 rounded-lg uppercase tracking-wider shadow-md flex items-center gap-2 border border-blue-50">
+                            <span class="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                            {{ article.source_name if article.source_name else 'NEWS' }}
                         </span>
                     </div>
                 </div>
-                {% else %}
-                <div class="relative h-48 bg-slate-100 flex items-center justify-center overflow-hidden">
-                    <i class="fa-regular fa-newspaper text-4xl text-slate-300 group-hover:scale-110 transition-transform duration-500"></i>
-                    <div class="absolute top-4 left-4">
-                        <span class="bg-white/90 backdrop-blur-sm text-brand-blue text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                            {{ article.source_name if article.source_name else 'Berita' }}
-                        </span>
-                    </div>
-                </div>
-                {% endif %}
 
-                <div class="p-6 flex flex-col flex-grow">
-                    <div class="flex items-center gap-3 mb-3 text-xs text-slate-400 font-medium">
-                        <span class="flex items-center gap-1">
-                            <i class="fa-regular fa-calendar"></i>
-                            {{ article.time_since_published }}
-                        </span>
+                <div class="p-6 flex flex-col flex-grow relative z-30 pointer-events-none">
+                    
+                    <div class="flex items-center gap-2 mb-3 text-[11px] text-slate-500 font-bold uppercase tracking-wide">
+                        <i class="fa-regular fa-calendar-check text-brand-blue"></i>
+                        {{ article.formatted_date }}
                     </div>
 
-                    <h3 class="text-xl font-bold text-brand-navy mb-3 line-clamp-3 leading-snug group-hover:text-brand-blue transition-colors">
-                        <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer">
-                            {{ article.title }}
-                        </a>
+                    <h3 class="text-lg font-bold text-brand-navy mb-3 line-clamp-3 leading-snug group-hover:text-brand-blue transition-colors">
+                        {{ article.title }}
                     </h3>
 
-                    <div class="text-slate-500 text-sm line-clamp-2 mb-4 leading-relaxed">
+                    <div class="text-slate-500 text-sm line-clamp-3 mb-6 leading-relaxed">
                         {% if article.summary %}
-                            {{ article.summary | striptags | truncate(100) }}
+                            {{ article.summary | striptags | truncate(150) }}
                         {% else %}
-                            Klik untuk membaca berita selengkapnya...
+                            Klik untuk membaca informasi selengkapnya terkait berita ini...
                         {% endif %}
                     </div>
 
-                    <div class="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
-                        <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-sm font-bold text-brand-blue hover:text-blue-700 transition-colors group/link">
-                            Baca Selengkapnya 
-                            <i class="fa-solid fa-arrow-right ml-2 transform group-hover/link:translate-x-1 transition-transform text-xs"></i>
-                        </a>
-                        <button class="text-slate-300 hover:text-brand-blue transition"><i class="fa-regular fa-bookmark"></i></button>
+                    <div class="mt-auto pt-5 border-t border-slate-50 flex items-center justify-between">
+                        <span class="inline-flex items-center text-xs font-bold text-brand-blue group-hover:underline">
+                            BACA SELENGKAPNYA <i class="fa-solid fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+                        </span>
+                        <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-brand-blue group-hover:text-white transition-colors">
+                            <i class="fa-solid fa-share-nodes text-xs"></i>
+                        </div>
                     </div>
                 </div>
             </article>
@@ -77,43 +74,32 @@
         </div>
 
         {% if total_pages > 1 %}
-        <div class="mt-20 flex justify-center items-center gap-3">
+        <div class="mt-20 flex justify-center items-center gap-4">
             {% if page > 1 %}
-            <a href="{{ url_for('berita_page', page=page-1) }}" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-full font-bold shadow-sm hover:bg-brand-blue hover:text-white hover:border-brand-blue transition-all">
-                <i class="fa-solid fa-chevron-left text-xs"></i>
+            <a href="{{ url_for('berita_page', page=page-1) }}" class="w-12 h-12 flex items-center justify-center bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-bold shadow-sm hover:bg-brand-blue hover:text-white hover:border-brand-blue hover:-translate-y-1 transition-all z-30">
+                <i class="fa-solid fa-chevron-left"></i>
             </a>
-            {% else %}
-            <button disabled class="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-300 rounded-full font-bold border border-slate-200 cursor-not-allowed">
-                <i class="fa-solid fa-chevron-left text-xs"></i>
-            </button>
             {% endif %}
 
-            <span class="text-sm font-bold text-slate-500 bg-white px-6 py-2.5 rounded-full border border-slate-200 shadow-sm tracking-wide">
-                Halaman <span class="text-brand-blue">{{ page }}</span> dari {{ total_pages }}
-            </span>
+            <div class="px-6 py-3 bg-white border-2 border-slate-100 rounded-2xl shadow-sm text-sm font-bold text-slate-600 z-30">
+                Halaman <span class="text-brand-blue">{{ page }}</span> / {{ total_pages }}
+            </div>
 
             {% if page < total_pages %}
-            <a href="{{ url_for('berita_page', page=page+1) }}" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-full font-bold shadow-sm hover:bg-brand-blue hover:text-white hover:border-brand-blue transition-all">
-                <i class="fa-solid fa-chevron-right text-xs"></i>
+            <a href="{{ url_for('berita_page', page=page+1) }}" class="w-12 h-12 flex items-center justify-center bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-bold shadow-sm hover:bg-brand-blue hover:text-white hover:border-brand-blue hover:-translate-y-1 transition-all z-30">
+                <i class="fa-solid fa-chevron-right"></i>
             </a>
-            {% else %}
-            <button disabled class="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-300 rounded-full font-bold border border-slate-200 cursor-not-allowed">
-                <i class="fa-solid fa-chevron-right text-xs"></i>
-            </button>
             {% endif %}
         </div>
         {% endif %}
 
         {% if not articles %}
-        <div class="text-center py-32 bg-white rounded-3xl shadow-sm border border-slate-100 mt-8">
-            <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fa-regular fa-newspaper text-4xl text-slate-300"></i>
+        <div class="text-center py-32 bg-white rounded-[2rem] shadow-sm border border-slate-100 mt-8">
+            <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <i class="fa-solid fa-satellite-dish text-4xl text-brand-blue"></i>
             </div>
-            <h3 class="text-xl font-bold text-brand-navy mb-2">Belum ada berita terbaru</h3>
-            <p class="text-slate-500 text-sm max-w-md mx-auto">Kami sedang mengumpulkan informasi terkini untuk Anda. Silakan cek kembali beberapa saat lagi.</p>
-            <a href="/" class="mt-8 inline-flex items-center px-6 py-3 bg-brand-blue text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg">
-                Kembali ke Beranda
-            </a>
+            <h3 class="text-2xl font-bold text-brand-navy mb-2">Memuat Berita...</h3>
+            <p class="text-slate-500 max-w-md mx-auto mb-8">Kami sedang mengambil informasi terbaru dari satelit. Mohon tunggu sebentar.</p>
         </div>
         {% endif %}
 
