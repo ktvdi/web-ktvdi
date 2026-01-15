@@ -35,12 +35,11 @@
             #chat-messages { flex: 1; height: auto !important; padding-bottom: 20px; }
         }
         
-        /* NEW ROBUST TICKER CSS */
+        /* TICKER CSS */
         .ticker-wrap { width: 100%; overflow: hidden; background-color: #f8fafc; height: 100%; display: flex; align-items: center; position: relative; }
         .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 60s linear infinite; will-change: transform; }
         .ticker-item { display: inline-flex; align-items: center; padding: 0 2rem; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        /* Pause on hover */
         .ticker-wrap:hover .ticker-move { animation-play-state: paused; }
 
         .footer-link { transition: all 0.3s ease; display: inline-block; }
@@ -102,9 +101,7 @@
                     <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-10 w-auto brightness-200">
                     <span class="text-xl font-extrabold tracking-tight">KTVDI</span>
                 </div>
-                <p class="text-slate-400 text-sm leading-relaxed">
-                    Platform komunitas independen terdepan di Indonesia.
-                </p>
+                <p class="text-slate-400 text-sm leading-relaxed">Platform komunitas independen terdepan di Indonesia.</p>
                 <div class="flex gap-4 pt-2">
                     <a href="https://www.facebook.com/share/g/18CKU4FayC/" target="_blank" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-blue-600 transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
                     <a href="#" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-red-600 transition border border-slate-700"><i class="fa-brands fa-youtube text-sm"></i></a>
@@ -259,7 +256,7 @@
         }
         updateTicker();
         
-        // CHATBOT WITH CS OFFLINE MODE
+        // CHATBOT LOGIC (CS MODE)
         async function handleChat(e){ 
             e.preventDefault(); const i=document.getElementById('chat-input'), t=i.value.trim(); if(!t)return;
             addMsg(t,'user'); i.value='';
@@ -268,17 +265,14 @@
             document.getElementById('chat-messages').appendChild(load);
             
             try {
-                // Simulasi fetch API
+                // Fetch API Real
                 const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:t})});
-                
-                if (!r.ok) throw new Error("Offline"); // Force catch if server error
-                
+                if (!r.ok) throw new Error("Offline"); 
                 const d=await r.json();
                 document.querySelector('.bot-load').remove();
                 addMsg(d.response,'bot');
-                
             } catch (err) {
-                // OFFLINE MODE RESPONSE
+                // OFFLINE FALLBACK
                 document.querySelector('.bot-load').remove();
                 const offlineMsg = `
                     <strong><i class="fa-solid fa-store-slash"></i> Admin Sedang Offline</strong><br>
@@ -287,8 +281,6 @@
                     Silakan tinggalkan nomor WA atau email, kami akan hubungi nanti! 🙏
                 `;
                 addMsg(offlineMsg, 'bot');
-                
-                // Ubah status jadi offline visual
                 document.getElementById('chat-status').innerHTML = '<span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span> Offline';
             }
         }
