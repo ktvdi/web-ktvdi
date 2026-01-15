@@ -63,13 +63,18 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# --- 4. AI GEMINI ---
+# --- 4. AI GEMINI (KEY BARU) ---
+GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU"
 try:
-    genai.configure(api_key=os.environ.get("GEMINI_APP_KEY")) 
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    genai.configure(api_key=GEMINI_KEY) 
+    model = genai.GenerativeModel("gemini-1.5-flash") # Menggunakan 1.5 Flash (Stabil & Cepat)
 except: model = None
 
-MODI_PROMPT = "Anda adalah MODI, Sahabat KTVDI. Jawab dengan sangat ramah, penuh perhatian, dan gunakan emoji."
+MODI_PROMPT = """
+Anda adalah MODI, Sahabat Digital KTVDI. 
+Gaya bicara: Sangat ramah, peduli, menggunakan emoji, dan memanggil user dengan 'Kak'.
+Fokus: TV Digital, Teknologi, dan Kebaikan.
+"""
 
 # --- 5. HELPERS ---
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
@@ -100,19 +105,20 @@ def time_since_published(published_time):
     except: return ""
 
 def get_quote_religi():
-    """Mengambil pesan penyejuk hati"""
+    """Pesan Penyejuk Hati (Updated: Jujur & Anti Korupsi)"""
     quotes = {
         "muslim": [
-            "Jangan lupa, sholat adalah tiang agama. Tetap istiqomah ya, Kak! 🕌",
-            "Rezeki sudah diatur Allah, tugas kita hanya berusaha dan berdoa. Semangat! ✨",
-            "Sesungguhnya sesudah kesulitan itu ada kemudahan. (QS. Al-Insyirah: 6) 🤲",
-            "Dunia hanya sementara, akhirat selamanya. Mari perbanyak amal jariyah."
+            "Dan janganlah sebagian kamu memakan harta sebagian yang lain dengan jalan yang batil. (QS. Al-Baqarah: 188) ✨",
+            "Sholat adalah tiang agama. Barangsiapa menegakkannya, ia menegakkan agama. Istiqomah ya Kak! 🕌",
+            "Kejujuran membawa ketenangan, sedangkan kebohongan membawa keraguan. (HR. Tirmidzi) 🤲",
+            "Jauhi korupsi sekecil apapun, karena setiap daging yang tumbuh dari yang haram, neraka lebih pantas baginya. (HR. Tirmidzi) 🔥",
+            "Sesungguhnya shalat itu mencegah dari (perbuatan-perbuatan) keji dan mungkar. (QS. Al-Ankabut: 45)"
         ],
         "universal": [
-            "Kebaikan yang kamu tanam hari ini akan berbuah manis di masa depan. 🌱",
-            "Tuhan tidak pernah tidur, Dia melihat setiap tetes keringat perjuanganmu. 💪",
-            "Damai di hati, damai di bumi. Mari saling mengasihi sesama manusia. ❤️",
-            "Setiap hari adalah kesempatan baru untuk menjadi pribadi yang lebih baik."
+            "Integritas adalah melakukan hal yang benar, bahkan ketika tidak ada orang yang melihat. ❤️",
+            "Kejujuran adalah bab pertama dalam buku kebijaksanaan. Hidup tenang tanpa beban. 🌱",
+            "Rezeki yang berkah berawal dari cara yang bersih. Tetap semangat mencari yang halal! 💪",
+            "Damai di hati dimulai dengan kejujuran pada diri sendiri dan orang lain. 🕊️"
         ]
     }
     return quotes
@@ -264,10 +270,12 @@ def forgot_password():
         email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
         found_uid = None
+        target_name = "Sahabat"
         
         for uid, user_data in users.items():
             if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
                 found_uid = uid
+                target_name = user_data.get('nama', 'Sahabat')
                 break
         
         if found_uid:
@@ -276,7 +284,7 @@ def forgot_password():
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
                 msg = Message("🔑 Reset Password KTVDI", recipients=[email_input])
-                msg.body = f"""Halo Kak,
+                msg.body = f"""Halo Kak {target_name},
 
 Kami mendengar Kakak kesulitan masuk akun. Jangan panik ya, kami di sini membantu.
 
@@ -345,42 +353,58 @@ def jadwal_sholat_page():
     quotes = get_quote_religi()
     return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=quotes)
 
-# --- EMAIL BLAST HARIAN (PERSONAL) ---
+# --- EMAIL BLAST CERDAS (AI GENERATED) ---
+# Endpoint ini dipanggil Cron Job setiap jam 19.00
 @app.route("/api/cron/daily-blast", methods=['GET'])
 def trigger_daily_blast():
     try:
         users = ref.child('users').get() or {}
-        # Ambil berita aktual
-        news = get_news_entries()
-        top_news = news[0]['title'] if news else "Update TV Digital Terkini"
         
+        # 1. Ambil Berita RSS
+        feed = get_news_entries()
+        news_titles = [f"- {item['title']}" for item in feed[:3]]
+        news_text = "\n".join(news_titles)
+        
+        # 2. Generate Konten via Gemini (Analisis Cuaca & Pesan Peduli)
         date_str = datetime.now().strftime("%d %B %Y")
         
+        prompt = f"""
+        Buatkan isi email harian yang hangat, peduli, dan menyentuh hati untuk pengguna "KTVDI" (Komunitas TV Digital Indonesia).
+        
+        Data Berita Hari Ini:
+        {news_text}
+        
+        Instruksi:
+        1. Buat rangkuman singkat dari berita di atas.
+        2. Berikan prediksi cuaca umum untuk besok di kota-kota besar Indonesia (analisis singkat saja, misal: waspada hujan).
+        3. Tambahkan pesan motivasi/religi tentang kejujuran, istirahat yang cukup, dan rasa syukur.
+        4. Gunakan bahasa yang sangat personal, gunakan kata "Sobat KTVDI" atau "Kakak".
+        5. Tutup dengan salam hangat.
+        """
+        
+        email_content = "Konten sedang disiapkan..."
+        if model:
+            response = model.generate_content(prompt)
+            email_content = response.text
+        else:
+            email_content = f"Halo Kak!\n\nBerikut berita hari ini:\n{news_text}\n\nJangan lupa istirahat ya!"
+
+        # 3. Kirim ke Semua User
+        count = 0
         for uid, user in users.items():
             if isinstance(user, dict) and user.get('email'):
                 try:
-                    nama = user.get('nama', 'Sahabat KTVDI')
-                    msg = Message(f"📰 Kabar Hari Ini untuk Kak {nama} - {date_str}", recipients=[user['email']])
-                    msg.body = f"""Halo Kak {nama},
-
-Semoga hari ini menyenangkan ya! ⛅
-
-Kami ingin berbagi sedikit update untuk menemani waktu santai Kakak:
-
-📺 **Berita Utama Hari Ini:**
-"{top_news}"
-
-🕌 **Pengingat Kecil:**
-Jangan lupa istirahat yang cukup dan luangkan waktu untuk beribadah ya Kak. Kesehatan dan ketenangan hati itu mahal harganya.
-
-Terima kasih sudah setia bersama KTVDI. Kami senang Kakak ada di sini.
-
-Salam sayang,
-KTVDI Team
-"""
+                    nama = user.get('nama', 'Sahabat')
+                    # Personalize sedikit di awal
+                    final_body = f"Halo Kak {nama},\n\n" + email_content.replace("**", "")
+                    
+                    msg = Message(f"🌙 Rangkuman Hari Ini untuk Kak {nama} - {date_str}", recipients=[user['email']])
+                    msg.body = final_body
                     mail.send(msg)
-                except: pass # Lanjut ke user berikutnya jika gagal
-        return jsonify({"status": "Emails Sent"}), 200
+                    count += 1
+                except: pass
+                
+        return jsonify({"status": "Success", "sent_count": count}), 200
     except Exception as e: return jsonify({"error": str(e)}), 500
 
 # --- ROUTES LAIN ---
