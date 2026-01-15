@@ -493,8 +493,8 @@ def dashboard():
 def daftar_siaran():
     data = ref.child("provinsi").get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
-@app.route("/add_data", methods=["GET", "POST"])
-def add_data(): return redirect(url_for('dashboard'))
+@app.route("/add_data_form", methods=["GET", "POST"])
+def add_data_form(): return redirect(url_for('dashboard'))
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
 def edit_data(provinsi, wilayah, mux): return redirect(url_for('dashboard'))
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
