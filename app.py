@@ -63,17 +63,20 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# --- 4. AI GEMINI (KEY BARU) ---
+# --- 4. AI GEMINI (FIXED MODEL) ---
+# Menggunakan API Key KTVDI yang baru
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU"
 try:
-    genai.configure(api_key=GEMINI_KEY) 
-    model = genai.GenerativeModel("gemini-1.5-flash") # Menggunakan 1.5 Flash (Stabil & Cepat)
+    genai.configure(api_key=GEMINI_KEY)
+    # Menggunakan model 1.5-flash yang stabil dan cepat (2.5 belum tersedia publik umum di library standar)
+    model = genai.GenerativeModel("gemini-1.5-flash") 
 except: model = None
 
 MODI_PROMPT = """
-Anda adalah MODI, Sahabat Digital KTVDI. 
-Gaya bicara: Sangat ramah, peduli, menggunakan emoji, dan memanggil user dengan 'Kak'.
-Fokus: TV Digital, Teknologi, dan Kebaikan.
+Anda adalah MODI, Sahabat Digital KTVDI.
+Tugas: Membantu masyarakat Indonesia memahami TV Digital.
+Gaya Bahasa: Ramah, Peduli, Sopan, Menggunakan Emoji, Memanggil user dengan 'Kak'.
+Topik: TV Digital, STB, Antena, dan Solusi Masalah Siaran.
 """
 
 # --- 5. HELPERS ---
@@ -105,20 +108,20 @@ def time_since_published(published_time):
     except: return ""
 
 def get_quote_religi():
-    """Pesan Penyejuk Hati (Updated: Jujur & Anti Korupsi)"""
+    """Pesan Penyejuk Hati (Sumber Al-Quran/Hadits & Universal)"""
     quotes = {
         "muslim": [
-            "Dan janganlah sebagian kamu memakan harta sebagian yang lain dengan jalan yang batil. (QS. Al-Baqarah: 188) ✨",
-            "Sholat adalah tiang agama. Barangsiapa menegakkannya, ia menegakkan agama. Istiqomah ya Kak! 🕌",
-            "Kejujuran membawa ketenangan, sedangkan kebohongan membawa keraguan. (HR. Tirmidzi) 🤲",
-            "Jauhi korupsi sekecil apapun, karena setiap daging yang tumbuh dari yang haram, neraka lebih pantas baginya. (HR. Tirmidzi) 🔥",
-            "Sesungguhnya shalat itu mencegah dari (perbuatan-perbuatan) keji dan mungkar. (QS. Al-Ankabut: 45)"
+            "Maka dirikanlah shalat, sesungguhnya shalat itu adalah kewajiban yang ditentukan waktunya. (QS. An-Nisa: 103) 🕌",
+            "Dan janganlah kamu memakan harta sesamamu dengan jalan yang batil. Hidup jujur tanpa korupsi itu berkah. (QS. Al-Baqarah: 188) ✨",
+            "Kejujuran membawa ketenangan, sedangkan kebohongan membawa keraguan. Tetap amanah ya Kak! (HR. Tirmidzi) 🤲",
+            "Barangsiapa yang bertaqwa kepada Allah, niscaya Dia akan mengadakan baginya jalan keluar. (QS. At-Talaq: 2)",
+            "Jagalah sholatmu. Karena saat kamu kehilangannya, kamu akan kehilangan segalanya."
         ],
         "universal": [
             "Integritas adalah melakukan hal yang benar, bahkan ketika tidak ada orang yang melihat. ❤️",
-            "Kejujuran adalah bab pertama dalam buku kebijaksanaan. Hidup tenang tanpa beban. 🌱",
-            "Rezeki yang berkah berawal dari cara yang bersih. Tetap semangat mencari yang halal! 💪",
-            "Damai di hati dimulai dengan kejujuran pada diri sendiri dan orang lain. 🕊️"
+            "Kebahagiaan sejati dimulai dari hati yang jujur dan pikiran yang bersih. 🌱",
+            "Rezeki yang berkah berawal dari cara yang bersih. Tetap semangat mencari nafkah yang halal! 💪",
+            "Damai di bumi dimulai dari damai di hati. Mari saling mengasihi sesama manusia. 🕊️"
         ]
     }
     return quotes
@@ -146,7 +149,7 @@ def home():
         except: pass
     return render_template('index.html', stats=stats, last_updated_time=last_str)
 
-# --- LOGIN (ROBUST) ---
+# --- LOGIN (ROBUST & CASE INSENSITIVE) ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -270,8 +273,9 @@ def forgot_password():
         email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
         found_uid = None
-        target_name = "Sahabat"
+        target_name = "Sahabat" # Default jika nama tidak ketemu
         
+        # Cari User & Ambil Namanya
         for uid, user_data in users.items():
             if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
                 found_uid = uid
@@ -334,7 +338,7 @@ def reset_password():
         return redirect(url_for('login'))
     return render_template("reset-password.html")
 
-# --- FITUR RELIGI & JADWAL SHOLAT (70 KOTA +) ---
+# --- FITUR RELIGI & JADWAL SHOLAT (70+ KOTA) ---
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
     kota = [
@@ -353,33 +357,32 @@ def jadwal_sholat_page():
     quotes = get_quote_religi()
     return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=quotes)
 
-# --- EMAIL BLAST CERDAS (AI GENERATED) ---
-# Endpoint ini dipanggil Cron Job setiap jam 19.00
+# --- EMAIL BLAST CERDAS (AI GENERATED - JAM 19.00) ---
 @app.route("/api/cron/daily-blast", methods=['GET'])
 def trigger_daily_blast():
     try:
         users = ref.child('users').get() or {}
         
-        # 1. Ambil Berita RSS
+        # 1. Ambil Berita RSS Terbaru
         feed = get_news_entries()
-        news_titles = [f"- {item['title']}" for item in feed[:3]]
+        news_titles = [f"- {item['title']}" for item in feed[:5]]
         news_text = "\n".join(news_titles)
         
-        # 2. Generate Konten via Gemini (Analisis Cuaca & Pesan Peduli)
+        # 2. Generate Konten Personal via Gemini
         date_str = datetime.now().strftime("%d %B %Y")
         
         prompt = f"""
-        Buatkan isi email harian yang hangat, peduli, dan menyentuh hati untuk pengguna "KTVDI" (Komunitas TV Digital Indonesia).
+        Buatkan isi email harian (Daily Digest) untuk pengguna "KTVDI" (Komunitas TV Digital Indonesia).
         
-        Data Berita Hari Ini:
+        BERITA HARI INI:
         {news_text}
         
-        Instruksi:
-        1. Buat rangkuman singkat dari berita di atas.
-        2. Berikan prediksi cuaca umum untuk besok di kota-kota besar Indonesia (analisis singkat saja, misal: waspada hujan).
-        3. Tambahkan pesan motivasi/religi tentang kejujuran, istirahat yang cukup, dan rasa syukur.
-        4. Gunakan bahasa yang sangat personal, gunakan kata "Sobat KTVDI" atau "Kakak".
-        5. Tutup dengan salam hangat.
+        TUGAS:
+        1. Buat ringkasan berita di atas yang mudah dibaca.
+        2. Berikan "Prakiraan Cuaca Umum" untuk 12 Kota Besar Indonesia besok (analisis singkat saja, misal: mayoritas cerah/hujan).
+        3. Tambahkan "Pesan Kebaikan" hari ini (ingatkan tentang kejujuran, anti-korupsi, istirahat, dan ibadah).
+        4. Gunakan bahasa yang SANGAT PEDULI, HANGAT, dan SAHABAT (Panggil "Sobat KTVDI").
+        5. Format output rapi (gunakan poin-poin).
         """
         
         email_content = "Konten sedang disiapkan..."
@@ -387,7 +390,7 @@ def trigger_daily_blast():
             response = model.generate_content(prompt)
             email_content = response.text
         else:
-            email_content = f"Halo Kak!\n\nBerikut berita hari ini:\n{news_text}\n\nJangan lupa istirahat ya!"
+            email_content = f"Halo Sobat KTVDI!\n\nBerikut update hari ini:\n{news_text}\n\nTetap semangat dan jaga kesehatan ya!"
 
         # 3. Kirim ke Semua User
         count = 0
@@ -395,8 +398,8 @@ def trigger_daily_blast():
             if isinstance(user, dict) and user.get('email'):
                 try:
                     nama = user.get('nama', 'Sahabat')
-                    # Personalize sedikit di awal
-                    final_body = f"Halo Kak {nama},\n\n" + email_content.replace("**", "")
+                    # Header Personal
+                    final_body = f"Halo Kak {nama} yang baik,\n\nSelamat malam! Apa kabar hari ini? Semoga lelahnya menjadi berkah ya.\n\n" + email_content.replace("**", "") + "\n\nSalam sayang,\nTim KTVDI"
                     
                     msg = Message(f"🌙 Rangkuman Hari Ini untuk Kak {nama} - {date_str}", recipients=[user['email']])
                     msg.body = final_body
@@ -407,7 +410,7 @@ def trigger_daily_blast():
         return jsonify({"status": "Success", "sent_count": count}), 200
     except Exception as e: return jsonify({"error": str(e)}), 500
 
-# --- ROUTES LAIN ---
+# --- ROUTES LAIN & API ---
 @app.route("/cctv")
 def cctv_page(): return render_template("cctv.html")
 
@@ -443,6 +446,7 @@ def daftar_siaran():
     data = ref.child("provinsi").get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
 
+# CRUD & API
 @app.route("/add_data", methods=["GET", "POST"])
 def add_data(): return redirect(url_for('dashboard'))
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
@@ -466,14 +470,15 @@ def logout(): session.clear(); return redirect(url_for('login'))
 @app.route('/sitemap.xml')
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
+# API CHATBOT (GEMINI 1.5 FLASH)
 @app.route('/api/chat', methods=['POST'])
 def chatbot_api():
-    if not model: return jsonify({"response": "Maaf Kak, AI sedang istirahat."})
+    if not model: return jsonify({"response": "Maaf Kak, AI sedang istirahat sebentar."})
     data = request.get_json()
     try:
         response = model.generate_content(f"{MODI_PROMPT}\nUser: {data.get('prompt')}\nModi:")
         return jsonify({"response": response.text})
-    except: return jsonify({"response": "Maaf Kak, Modi lagi sibuk."})
+    except: return jsonify({"response": "Maaf Kak, Modi lagi sibuk melayani yang lain. Coba lagi ya."})
 
 @app.route("/api/news-ticker")
 def news_ticker():
