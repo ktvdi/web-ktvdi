@@ -214,7 +214,9 @@ Guna menjamin keamanan data dan menyelesaikan proses registrasi, mohon masukkan 
 
 ⚠️ PENTING: Kode ini bersifat rahasia dan hanya berlaku selama 1 MENIT. Mohon tidak memberikannya kepada siapapun, termasuk pihak yang mengatasnamakan KTVDI.
 
-Kami menantikan partisipasi aktif Kakak dalam memajukan penyiaran digital di Indonesia.
+Kami menantikan partisipasi aktif Kakak dalam bergabung di Komunitas TV Digital Indonesia.
+
+Jika ada ada yang ingin ditanyakan bisa DM instagram kami di @ktvdi.id ya Kak :)
 
 Salam hangat dan hormat,
 Tim Admin KTVDI
@@ -254,8 +256,8 @@ Kami sangat bangga menyambut Anda sebagai bagian dari keluarga besar Komunitas T
 
 Jangan ragu untuk mulai menjelajah fitur-fitur kami. Semoga hari Kakak selalu menyenangkan dan penuh berkah.
 
-Salam persahabatan,
-Tim Manajemen KTVDI
+Best Regards,
+Tim KTVDI
 """
                 mail.send(msg)
             except: pass
@@ -290,10 +292,10 @@ def forgot_password():
 
 Kami menerima permintaan untuk mengatur ulang kata sandi akun KTVDI Anda. Keamanan akun Kakak adalah prioritas utama kami.
 
-Silakan gunakan kode berikut untuk melanjutkan proses (Berlaku 1 Menit):
+Silakan gunakan kode berikut untuk melanjutkan proses (Berlaku hanya 1 Menit):
 🔒 {otp}
 
-Jika Anda tidak merasa melakukan permintaan ini, mohon abaikan email ini dan pastikan akun Anda tetap aman.
+Jika Anda tidak merasa melakukan permintaan perubahan akun ini, mohon supaya diabaikan email ini dan pastikan akun Anda tetap aman.
 
 Hormat kami,
 Tim Keamanan & Dukungan KTVDI
@@ -342,8 +344,8 @@ def jadwal_sholat_page():
         "Jayapura", "Kediri", "Kendari", "Kotamobagu", "Kupang", "Langsa", "Lhokseumawe", "Lubuklinggau", "Madiun", "Magelang",
         "Makassar", "Malang", "Manado", "Mataram", "Medan", "Metro", "Mojokerto", "Padang", "Padangpanjang", "Padangsidempuan",
         "Pagar Alam", "Palangkaraya", "Palembang", "Palopo", "Palu", "Pangkal Pinang", "Parepare", "Pariaman", "Pasuruan", "Payakumbuh",
-        "Pekalongan", "Pekanbaru", "Pematangsiantar", "Pontianak", "Prabumulih", "Probolinggo", "Purwokerto", "Purwodadi", "Sabang", "Salatiga",
-        "Samarinda", "Sawahlunto", "Semarang", "Serang", "Sibolga", "Singkawang", "Solok", "Sorong", "Subulussalam", "Sukabumi",
+        "Pekalongan", "Pekanbaru", "Pematangsiantar", "Pontianak", "Prabumulih", "Probolinggo", "Purwokerto", "Purwodadi (Grobogan)", "Sabang", "Salatiga",
+        "Samarinda", "Sawahlunto", "Semarang (Kota)", "Serang", "Sibolga", "Singkawang", "Solok", "Sorong", "Subulussalam", "Sukabumi",
         "Surabaya", "Surakarta (Solo)", "Tangerang", "Tangerang Selatan", "Tanjungbalai", "Tanjungpinang", "Tarakan", "Tasikmalaya", "Tebing Tinggi", "Tegal",
         "Ternate", "Tidore Kepulauan", "Tomohon", "Tual", "Yogyakarta"
     ]
@@ -360,7 +362,7 @@ def jadwal_sholat_page():
                 msg.body = f"""Assalamualaikum Wr. Wb.
 Yth. Kak {nama},
 
-Terima kasih telah menyempatkan waktu untuk memeriksa jadwal ibadah hari ini. Ini adalah langkah kecil namun mulia untuk tetap istiqomah.
+Terima kasih telah menyempatkan waktu untuk memeriksa jadwal ibadah atau religi hari ini. Ini adalah langkah kecil namun mulia untuk tetap istiqomah.
 
 "Jadikanlah sabar dan shalat sebagai penolongmu. Dan sesungguhnya yang demikian itu sungguh berat, kecuali bagi orang-orang yang khusyu'." (QS. Al-Baqarah: 45)
 
@@ -398,7 +400,7 @@ def trigger_daily_blast():
            - Info Tambahan: Himbauan kesehatan/cuaca secara umum dengan nada perhatian.
            - Mutiara Hikmah: Pesan kuat tentang INTEGRITAS, KEJUJURAN, dan ANTI-KORUPSI sebagai pilar bangsa.
            - Penutup: Doa untuk kesuksesan anggota dan salam hormat.
-        3. Gunakan Bahasa Indonesia yang baik dan benar (EYD).
+        3. Gunakan Bahasa Indonesia yang baik dan benar (PUEBI).
         """
         
         email_content = "Konten sedang disiapkan."
@@ -453,18 +455,33 @@ def berita_page():
         start = (page - 1) * per_page
         end = start + per_page
         current = entries[start:end]
+        
         for a in current:
+            # 1. Format Tanggal Indo Lengkap (Jam Hari Tanggal)
             if isinstance(a, dict) and 'published_parsed' in a:
+                 a['formatted_date'] = format_indo_date(a['published_parsed'])
                  a['time_since_published'] = time_since_published(a['published_parsed'])
-            else: a['time_since_published'] = ""
+            else:
+                 # Jika tanggal RSS error, pakai waktu sekarang
+                 a['formatted_date'] = datetime.now().strftime("%A, %d %B %Y | %H:%M WIB")
+                 a['time_since_published'] = "Baru saja"
+            
+            # 2. Ekstrak Gambar (Prioritaskan Media Content)
             a['image'] = None
-            if 'media_content' in a: a['image'] = a['media_content'][0]['url']
+            if 'media_content' in a: 
+                a['image'] = a['media_content'][0]['url']
             elif 'links' in a:
                 for link in a['links']:
                     if 'image' in link.get('type',''): a['image'] = link.get('href')
-        return render_template('berita.html', articles=current, page=page, total_pages=(len(entries)//per_page)+1)
-    except: return render_template('berita.html', articles=[], page=1, total_pages=1)
+            
+            # 3. Fallback Sumber jika masih kosong
+            if not a.get('source_name'): a['source_name'] = 'Berita Terkini'
 
+        total_pages = (len(entries)//per_page) + 1
+        return render_template('berita.html', articles=current, page=page, total_pages=total_pages)
+    except Exception as e:
+        print(f"Berita Error: {e}")
+        return render_template('berita.html', articles=[], page=1, total_pages=1)
 @app.route("/cctv")
 def cctv_page(): return render_template("cctv.html")
 @app.route("/dashboard")
