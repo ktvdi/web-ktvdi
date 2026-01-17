@@ -17,22 +17,26 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 import urllib3
 
-# Matikan warning SSL
+# Matikan warning SSL agar request ke server pemerintah lancar
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# --- KONFIGURASI AWAL ---
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# 1. KONFIGURASI SESI
+# ==========================================
+# 1. KONFIGURASI SYSTEM & SECURITY
+# ==========================================
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
 # 2. KONEKSI FIREBASE
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
+        # Konfigurasi Cloud (Vercel)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -47,6 +51,7 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
+        # Konfigurasi Lokal
         if os.path.exists("credentials.json"):
             cred = credentials.Certificate("credentials.json")
         else:
@@ -66,7 +71,7 @@ except Exception as e:
     ref = None
     print(f"⚠️ STATUS: Mode Offline (DB Error: {e})")
 
-# 3. EMAIL
+# 3. KONFIGURASI EMAIL (SMTP GMAIL)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -75,7 +80,7 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# 4. AI GEMINI
+# 4. KONFIGURASI AI (GEMINI)
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
@@ -83,13 +88,14 @@ try:
 except: model = None
 
 MODI_PROMPT = """
-Anda adalah MODI, Asisten Virtual Resmi dari KTVDI.
-Tugas: Menjawab pertanyaan seputar TV Digital, STB, dan EWS Bendungan Jawa Tengah.
-Gunakan data real-time yang diberikan untuk menjawab status bendungan.
+Anda adalah MODI, Asisten Virtual Resmi dari KTVDI (Komunitas TV Digital Indonesia).
+Karakter: Profesional, Ramah, Solutif, dan Menggunakan Bahasa Indonesia Baku namun hangat.
+Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah Siaran.
+Jika ditanya soal bendungan, gunakan data EWS yang diberikan.
 """
 
 # ==========================================
-# 5. FUNGSI BANTUAN
+# 5. FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
@@ -117,7 +123,7 @@ def get_news_entries():
         ]
         for url in sources:
             try:
-                response = requests.get(url, headers=headers, timeout=3)
+                response = requests.get(url, headers=headers, timeout=4)
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
@@ -145,166 +151,148 @@ def time_since_published(published_time):
     except: return "Baru saja"
 
 def get_quote_religi():
-    return {"muslim": ["Maka dirikanlah shalat..."], "universal": ["Integritas adalah kunci..."]}
+    return {
+        "muslim": [
+            "Maka dirikanlah shalat... (QS. An-Nisa: 103)",
+            "Jauhi korupsi sekecil apapun..."
+        ],
+        "universal": [
+            "Integritas adalah melakukan hal yang benar...",
+            "Damai di dunia dimulai dari damai di hati..."
+        ]
+    }
 
 def get_smart_fallback_response(text):
-    return "Siap Ndan! Monitor 86. Data sedang diproses."
+    text = text.lower()
+    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo']):
+        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu? <b>Ganti!</b> 👮‍♂️"
+    
+    defaults = [
+        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah. <b>Ganti!</b> 👮‍♂️",
+        "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem istirahat di tempat. Siap 86! 🫡",
+        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮"
+    ]
+    return random.choice(defaults)
 
 # ==========================================
-# 6. LOGIKA CUACA BARU (OPEN-METEO)
+# 6. LOGIKA EWS & CUACA (CORE FEATURES)
 # ==========================================
 
 def get_cuaca_10_kota():
-    """Menggunakan Open-Meteo untuk 10 Kota Jateng (Pasti Update & Lengkap)"""
-    
+    """Mengambil Data Cuaca 10 Kota Jateng dari Open-Meteo (Stabil & Gratis)"""
     cities = [
         {"name": "Semarang", "lat": -6.9667, "lon": 110.4167},
         {"name": "Surakarta", "lat": -7.5761, "lon": 110.8294},
-        {"name": "Magelang", "lat": -7.4706, "lon": 110.2178},
-        {"name": "Pekalongan", "lat": -6.8886, "lon": 109.6753},
         {"name": "Tegal", "lat": -6.8694, "lon": 109.1403},
+        {"name": "Pekalongan", "lat": -6.8886, "lon": 109.6753},
         {"name": "Salatiga", "lat": -7.3305, "lon": 110.5084},
+        {"name": "Magelang", "lat": -7.4706, "lon": 110.2178},
         {"name": "Purwokerto", "lat": -7.4245, "lon": 109.2302},
         {"name": "Cilacap", "lat": -7.7279, "lon": 109.0077},
         {"name": "Kudus", "lat": -6.8048, "lon": 110.8405},
         {"name": "Pati", "lat": -6.7550, "lon": 111.0380}
     ]
     
-    # Buat URL Request Sekaligus (Batch)
     lats = ",".join([str(c['lat']) for c in cities])
     lons = ",".join([str(c['lon']) for c in cities])
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lats}&longitude={lons}&current=temperature_2m,weather_code&timezone=Asia%2FBangkok"
     
     results = []
-    
     try:
         r = requests.get(url, timeout=5)
         if r.status_code == 200:
             data = r.json()
+            data_list = data if isinstance(data, list) else [data] if 'current' in data else []
             
-            # Open-Meteo mengembalikan list jika multiple coords
-            if isinstance(data, list):
-                for i, item in enumerate(data):
-                    code = item['current']['weather_code']
-                    temp = item['current']['temperature_2m']
-                    
-                    # WMO Weather Code Mapping
-                    status = "Berawan"
-                    icon = "fa-cloud"
-                    if code in [0, 1]: status="Cerah"; icon="fa-sun"
-                    elif code in [2, 3]: status="Berawan"; icon="fa-cloud-sun"
-                    elif code in [45, 48]: status="Kabut"; icon="fa-smog"
-                    elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]: status="Hujan"; icon="fa-cloud-rain"
-                    elif code in [95, 96, 99]: status="Badai Petir"; icon="fa-bolt"
-                    
-                    results.append({
-                        "kota": cities[i]['name'],
-                        "suhu": round(temp),
-                        "cuaca": status,
-                        "icon": icon
-                    })
-            else:
-                # Fallback single location (jarang terjadi dgn kode di atas)
-                pass
-    except Exception as e:
-        print(f"Weather API Error: {e}")
-        
-    # Fallback Data Dummy Jika API Mati Total
+            for i, item in enumerate(data_list):
+                if i >= len(cities): break
+                code = item['current']['weather_code']
+                temp = item['current']['temperature_2m']
+                
+                status, icon = "Berawan", "fa-cloud"
+                if code in [0, 1]: status, icon = "Cerah", "fa-sun"
+                elif code in [2, 3]: status, icon = "Berawan", "fa-cloud-sun"
+                elif code in [45, 48]: status, icon = "Kabut", "fa-smog"
+                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]: status, icon = "Hujan", "fa-cloud-rain"
+                elif code >= 95: status, icon = "Badai", "fa-bolt"
+                
+                results.append({"kota": cities[i]['name'], "suhu": round(temp), "cuaca": status, "icon": icon})
+    except: pass
+    
     if not results:
-        for c in cities:
-            results.append({"kota": c['name'], "suhu": "--", "cuaca": "Tidak Tersedia", "icon": "fa-circle-question"})
-            
+        for c in cities: results.append({"kota": c['name'], "suhu": "-", "cuaca": "N/A", "icon": "fa-cloud"})
+    
     return results
 
-# ==========================================
-# 7. LOGIKA EWS (NORMALISASI CM)
-# ==========================================
-
-def normalize_dam_data(raw_data, source_type):
-    """Normalisasi Data Bendungan (Convert Meter to CM otomatis)"""
+def normalize_dam_data(raw_data):
+    """
+    Normalisasi Data Bendungan:
+    1. Ambil Nama & Lokasi
+    2. Konversi Meter -> CM (Real CM)
+    3. Ambil Status & Waktu Update
+    """
     clean_data = []
     
     for item in raw_data:
         try:
-            # 1. Ambil Nama
+            # 1. Deteksi Struktur Data
+            latest = item.get('latest_debit_report', {})
+            if not isinstance(latest, dict): latest = {}
+
+            # 2. Nama Bendungan
             name = item.get('dam_name') or item.get('nama') or item.get('name') or "Bendungan"
             
-            # 2. Ambil TMA / Limpas / Water Level
-            # Prioritas: latest_debit_report -> tma -> limpas -> water_level
-            tma_val = 0
-            
-            # Cek di latest_debit_report (biasa di EWS Jateng)
-            latest = item.get('latest_debit_report')
-            if latest and isinstance(latest, dict):
-                # EWS Jateng biasanya pakai 'limpas' (meter)
-                tma_val = latest.get('limpas', 0)
-                # Ambil status update dari latest report
-                update_time = latest.get('created_at', '-')
-                inflow = latest.get('debit', 0)
-                outflow = latest.get('debit_ke_saluran_induk', 0)
-                status_alert = latest.get('status', 'Normal')
-            else:
-                # Fallback ke root object (biasa di Siaga Kranji)
-                tma_val = item.get('tma') or item.get('tinggi_muka_air') or item.get('water_level') or 0
-                update_time = item.get('updated_at', '-')
-                inflow = item.get('inflow') or item.get('debit_masuk') or 0
-                outflow = item.get('outflow') or item.get('debit_keluar') or 0
-                status_alert = item.get('status') or item.get('status_siaga') or 'Normal'
-
-            # 3. KONVERSI METER KE CM (LOGIKA PINTAR)
-            # Jika nilai TMA kecil (misal < 50), asumsikan itu Meter -> kali 100
-            # Jika nilai TMA besar (misal > 50), asumsikan itu CM -> biarkan
+            # 3. TMA (Tinggi Muka Air) - Auto Convert to CM
+            raw_tma = latest.get('limpas') if latest else (item.get('tma') or item.get('siap') or 0)
             try:
-                val_float = float(tma_val)
-                if val_float < 50: # Asumsi Meter
-                    display_tma = f"{int(val_float * 100)}" # Jadi CM
-                else: # Asumsi sudah CM
-                    display_tma = f"{int(val_float)}"
-            except:
-                display_tma = "0"
+                tma_float = float(raw_tma)
+                # Jika nilai kecil (< 50), asumsi Meter -> konversi ke CM
+                if tma_float < 50 and tma_float != 0:
+                    tma_cm = f"{tma_float * 100:.0f}" 
+                else:
+                    tma_cm = f"{tma_float:.0f}"
+            except: tma_cm = "0"
 
-            # 4. Format Waktu Update
+            # 4. Status & Waktu
+            status = latest.get('status') or item.get('status_alert') or 'Aman'
+            raw_time = latest.get('created_at') or item.get('updated_at')
             try:
-                # Coba parse ISO format: 2026-01-17T16:08:11.000000Z
-                dt = datetime.strptime(str(update_time).split('.')[0], "%Y-%m-%dT%H:%M:%S")
-                formatted_time = dt.strftime("%d-%m-%Y %H:%M")
+                dt = datetime.strptime(str(raw_time).split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                waktu = dt.strftime("%d-%m-%Y %H:%M")
             except:
-                formatted_time = str(update_time)[:16].replace('T', ' ') # Fallback string slice
+                waktu = str(raw_time)[:16].replace('T', ' ') if raw_time else "Hari ini"
+
+            # 5. Petugas
+            pob = latest.get('pob_id')
+            petugas = f"Kode: {pob}" if pob else "Tim Piket"
 
             dam = {
                 'name': name,
-                'tma': display_tma, # Sudah dalam CM string
-                'inflow': inflow,
-                'outflow': outflow,
-                'status_alert': status_alert,
-                'updated_at_wib': formatted_time,
-                'regency_name': item.get('kabupaten') or item.get('river_name') or 'Jateng'
+                'tma': tma_cm, # Output sudah CM
+                'inflow': latest.get('debit', 0),
+                'outflow': latest.get('debit_ke_saluran_induk', 0),
+                'status': status,
+                'petugas': petugas,
+                'updated_at': waktu,
+                'lokasi': item.get('river_name') or item.get('regency_name') or 'Jateng'
             }
             clean_data.append(dam)
-        except Exception as e:
-            continue # Skip item error
-            
+        except: continue
+        
     return clean_data
 
 def fetch_ews_data():
     headers = {'User-Agent': 'Mozilla/5.0'}
     
-    # 1. UTAMA: SIAGA KRANJI (Data JSON Bersih)
+    # 1. PRIORITAS UTAMA: SIAGA KRANJI (Data JSON Bersih & Cepat)
     try:
         ts = int(time.time() * 1000)
         url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
         r = requests.get(url, headers=headers, timeout=5, verify=False)
         if r.status_code == 200:
             data = r.json()
-            # Handle berbagai kemungkinan struktur JSON
-            raw_list = []
-            if isinstance(data, list): raw_list = data
-            elif isinstance(data, dict):
-                if 'result' in data: raw_list = data['result']
-                elif 'data' in data: raw_list = data['data']
-            
-            if raw_list:
-                return normalize_dam_data(raw_list, 'kranji')
+            raw_list = data.get('data') or data.get('result') or (data if isinstance(data, list) else [])
+            if raw_list: return normalize_dam_data(raw_list)
     except: pass
 
     # 2. BACKUP: EWS JATENG (Official)
@@ -312,14 +300,15 @@ def fetch_ews_data():
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
         r = requests.get(url, headers=headers, timeout=8, verify=False)
         if r.status_code == 200:
-            raw = r.json().get('data', [])
-            return normalize_dam_data(raw, 'ews')
+            data = r.json()
+            raw_list = data.get('data', [])
+            return normalize_dam_data(raw_list)
     except: pass
 
     return []
 
 # ==========================================
-# 8. ROUTES
+# 7. ROUTES (SEMUA HALAMAN)
 # ==========================================
 
 @app.route("/", methods=['GET'])
@@ -441,7 +430,7 @@ def verify_otp():
         data = ref.child(f"otp/{uid}").get()
         if not data: return redirect(url_for("forgot_password"))
         if time.time() > data.get('expiry', 0):
-            flash("Kode Expired.", "error")
+            flash("Kode OTP Expired.", "error")
             return redirect(url_for("forgot_password"))
         if str(data.get("otp")).strip() == request.form.get("otp").strip():
             session['reset_verified'] = True
@@ -551,12 +540,10 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN ---
+# --- EWS BENDUNGAN (FITUR UTAMA) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
-    # 1. Ambil Data Bendungan (Prioritas Kranji, Fallback EWS)
     dams = fetch_ews_data()
-    # 2. Ambil Cuaca (Open-Meteo 10 Kota)
     cuaca_list = get_cuaca_10_kota()
     return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
@@ -565,6 +552,14 @@ def chatbot_api():
     data = request.get_json()
     user_msg = data.get('prompt', '')
     
+    if "bendungan" in user_msg.lower():
+        dams = fetch_ews_data()
+        bahaya = [d['name'] for d in dams if 'awas' in d['status'].lower() or 'siaga' in d['status'].lower()]
+        count = len(bahaya)
+        if count > 0:
+            return jsonify({"response": f"🚨 PERHATIAN! Ada {count} bendungan status BAHAYA: {', '.join(bahaya)}."})
+        return jsonify({"response": f"Pantauan {len(dams)} bendungan aman terkendali."})
+
     if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
     try:
         response = model.generate_content(f"{MODI_PROMPT}\nUser: {user_msg}\nModi:")
@@ -573,7 +568,17 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    kota = ["Jakarta", "Semarang", "Surabaya", "Bandung", "Yogyakarta"] # (Isi lengkap 70 kota disini agar ringkas)
+    kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
+        "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi",
+        "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
+        "Jayapura", "Kediri", "Kendari", "Kotamobagu", "Kupang", "Langsa", "Lhokseumawe", "Lubuklinggau", "Madiun", "Magelang",
+        "Makassar", "Malang", "Manado", "Mataram", "Medan", "Metro", "Mojokerto", "Padang", "Padangpanjang", "Padangsidempuan",
+        "Pagar Alam", "Palangkaraya", "Palembang", "Palopo", "Palu", "Pangkal Pinang", "Parepare", "Pariaman", "Pasuruan", "Payakumbuh",
+        "Pekalongan", "Pekanbaru", "Pematangsiantar", "Pontianak", "Prabumulih", "Probolinggo", "Purwokerto", "Purwodadi", "Sabang", "Salatiga",
+        "Samarinda", "Sawahlunto", "Semarang", "Serang", "Sibolga", "Singkawang", "Solok", "Sorong", "Subulussalam", "Sukabumi",
+        "Surabaya", "Surakarta", "Tangerang", "Tangerang Selatan", "Tanjungbalai", "Tanjungpinang", "Tarakan", "Tasikmalaya", "Tebing Tinggi", "Tegal",
+        "Ternate", "Tidore Kepulauan", "Tomohon", "Tual", "Yogyakarta"
+    ]
     quotes = get_quote_religi()
     return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=quotes)
 
