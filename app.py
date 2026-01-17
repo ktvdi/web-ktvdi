@@ -91,7 +91,7 @@ MODI_PROMPT = """
 Anda adalah MODI, Asisten Virtual Resmi dari KTVDI (Komunitas TV Digital Indonesia).
 Karakter: Profesional, Ramah, Solutif, dan Menggunakan Bahasa Indonesia Baku namun hangat.
 Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah Siaran.
-Jika ditanya soal bendungan, gunakan data EWS yang diberikan.
+Jika ditanya soal bendungan, gunakan data EWS yang diberikan secara akurat.
 """
 
 # ==========================================
@@ -209,18 +209,18 @@ def get_cuaca_10_kota():
                 code = item['current']['weather_code']
                 temp = item['current']['temperature_2m']
                 
-                status, icon = "Berawan", "fa-cloud"
-                if code in [0, 1]: status, icon = "Cerah", "fa-sun"
-                elif code in [2, 3]: status, icon = "Berawan", "fa-cloud-sun"
-                elif code in [45, 48]: status, icon = "Kabut", "fa-smog"
-                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]: status, icon = "Hujan", "fa-cloud-rain"
-                elif code >= 95: status, icon = "Badai", "fa-bolt"
+                status, icon, anim = "Berawan", "fa-cloud", "float"
+                if code in [0, 1]: status, icon, anim = "Cerah", "fa-sun", "spin-slow"
+                elif code in [2, 3]: status, icon, anim = "Berawan", "fa-cloud-sun", "float"
+                elif code in [45, 48]: status, icon, anim = "Kabut", "fa-smog", "pulse"
+                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]: status, icon, anim = "Hujan", "fa-cloud-rain", "bounce"
+                elif code >= 95: status, icon, anim = "Badai", "fa-bolt", "flash"
                 
-                results.append({"kota": cities[i]['name'], "suhu": round(temp), "cuaca": status, "icon": icon})
+                results.append({"kota": cities[i]['name'], "suhu": round(temp), "cuaca": status, "icon": icon, "anim": anim})
     except: pass
     
     if not results:
-        for c in cities: results.append({"kota": c['name'], "suhu": "-", "cuaca": "N/A", "icon": "fa-cloud"})
+        for c in cities: results.append({"kota": c['name'], "suhu": "-", "cuaca": "N/A", "icon": "fa-cloud", "anim": ""})
     
     return results
 
@@ -229,7 +229,7 @@ def normalize_dam_data(raw_data):
     Normalisasi Data Bendungan:
     1. Ambil Nama & Lokasi
     2. Konversi Meter -> CM (Real CM)
-    3. Ambil Status & Waktu Update
+    3. Ambil Status & Waktu Update (+7 Jam)
     """
     clean_data = []
     
@@ -253,14 +253,20 @@ def normalize_dam_data(raw_data):
                     tma_cm = f"{tma_float:.0f}"
             except: tma_cm = "0"
 
-            # 4. Status & Waktu
+            # 4. Status & Waktu (FIX TIMEZONE WIB +7)
             status = latest.get('status') or item.get('status_alert') or 'Aman'
             raw_time = latest.get('created_at') or item.get('updated_at')
-            try:
-                dt = datetime.strptime(str(raw_time).split('.')[0], "%Y-%m-%dT%H:%M:%S")
-                waktu = dt.strftime("%d-%m-%Y %H:%M")
-            except:
-                waktu = str(raw_time)[:16].replace('T', ' ') if raw_time else "Hari ini"
+            waktu_display = "Hari ini"
+            
+            if raw_time:
+                try:
+                    # Clean string (remove milliseconds if any)
+                    clean_str = str(raw_time).split('.')[0].replace('Z', '')
+                    dt_utc = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
+                    dt_wib = dt_utc + timedelta(hours=7) # +7 Jam
+                    waktu_display = dt_wib.strftime("%d-%m-%Y %H:%M")
+                except:
+                    waktu_display = str(raw_time)[:16].replace('T', ' ')
 
             # 5. Petugas
             pob = latest.get('pob_id')
@@ -273,7 +279,7 @@ def normalize_dam_data(raw_data):
                 'outflow': latest.get('debit_ke_saluran_induk', 0),
                 'status': status,
                 'petugas': petugas,
-                'updated_at': waktu,
+                'updated_at': waktu_display + " WIB", 
                 'lokasi': item.get('river_name') or item.get('regency_name') or 'Jateng'
             }
             clean_data.append(dam)
@@ -291,6 +297,7 @@ def fetch_ews_data():
         r = requests.get(url, headers=headers, timeout=5, verify=False)
         if r.status_code == 200:
             data = r.json()
+            # Handle variasi struktur JSON
             raw_list = data.get('data') or data.get('result') or (data if isinstance(data, list) else [])
             if raw_list: return normalize_dam_data(raw_list)
     except: pass
@@ -308,7 +315,7 @@ def fetch_ews_data():
     return []
 
 # ==========================================
-# 7. ROUTES (SEMUA HALAMAN)
+# 7. ROUTE LENGKAP
 # ==========================================
 
 @app.route("/", methods=['GET'])
