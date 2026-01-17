@@ -26,9 +26,9 @@ CORS(app)
 # 1. KONFIGURASI SESI
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
 
-# 2. KONEKSI FIREBASE
+# 2. KONEKSI FIREBASE (SAFE MODE)
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -45,15 +45,25 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        cred = credentials.Certificate("credentials.json")
+        # Cek apakah file ada sebelum load untuk menghindari crash lokal
+        if os.path.exists("credentials.json"):
+            cred = credentials.Certificate("credentials.json")
+        else:
+            cred = None
     
-    if not firebase_admin._apps:
+    if cred and not firebase_admin._apps:
         firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
-    ref = db.reference('/')
-    print("✅ STATUS: Database KTVDI Terhubung & Aman.")
+    
+    if firebase_admin._apps:
+        ref = db.reference('/')
+        print("✅ STATUS: Database KTVDI Terhubung.")
+    else:
+        ref = None
+        print("⚠️ STATUS: Firebase credentials tidak ditemukan.")
+
 except Exception as e:
     ref = None
-    print(f"⚠️ STATUS: Mode Offline (Database Error: {e})")
+    print(f"⚠️ STATUS: Mode Offline (DB Error: {e})")
 
 # 3. EMAIL
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -81,11 +91,8 @@ Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah S
 # 5. FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
-def hash_password(pw): 
-    return hashlib.sha256(pw.encode()).hexdigest()
-
-def normalize_input(text): 
-    return text.strip().lower() if text else ""
+def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
+def normalize_input(text): return text.strip().lower() if text else ""
 
 def format_indo_date(time_struct):
     if not time_struct: return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
@@ -107,13 +114,14 @@ def get_news_entries():
             'https://www.cnnindonesia.com/nasional/rss',
             'https://www.antaranews.com/rss/top-news.xml'
         ]
+        # Timeout dipercepat agar tidak crash Vercel
         for url in sources:
             try:
-                response = requests.get(url, headers=headers, timeout=5)
+                response = requests.get(url, headers=headers, timeout=3)
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        for entry in feed.entries[:8]: 
+                        for entry in feed.entries[:6]: 
                             if 'cnn' in url: entry['source_name'] = 'CNN Indonesia'
                             elif 'antara' in url: entry['source_name'] = 'Antara News'
                             else: entry['source_name'] = entry.get('source', {}).get('title', 'Google News')
@@ -137,64 +145,43 @@ def time_since_published(published_time):
     except: return "Baru saja"
 
 def get_quote_religi():
-    return {
-        "muslim": [
-            "Maka dirikanlah shalat... (QS. An-Nisa: 103)",
-            "Jauhi korupsi sekecil apapun..."
-        ],
-        "universal": [
-            "Integritas adalah melakukan hal yang benar...",
-            "Damai di dunia dimulai dari damai di hati..."
-        ]
-    }
+    return {"muslim": ["Maka dirikanlah shalat..."], "universal": ["Integritas adalah kunci..."]}
 
 def get_smart_fallback_response(text):
     text = text.lower()
-    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'assalam']):
-        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu seputar TV Digital atau sekadar teman ngobrol? <b>Ganti!</b> 👮‍♂️"
-    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat', 'sedih', 'galau', 'bosan']):
-        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami di sini standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! Cerita saja, kami monitor. Kopi mana kopi? ☕📻"
-    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman', 'selamat']):
-        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan, bukan hiasan! <i>Klik</i>, aman, selamat sampai tujuan. Keluarga menunggu di rumah. Utamakan keselamatan sebagai kebutuhan. <b>Salam Presisi!</b> 🚗"
-    if any(x in text for x in ['digital', 'analog', 'bersih', 'semut', 'pindah']):
-        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih, teknologi canggih. Segera migrasi, tinggalkan semut di masa lalu! Jangan lupa pasang STB kalau TV belum support. <b>Laksanakan!</b> 📺"
-    if any(x in text for x in ['antena', 'sinyal', 'arah', 'hilang']):
-        return "<b>Siap Ndan!</b> Untuk hasil maksimal, gunakan <b>Antena Luar (Outdoor)</b> dengan kabel berkualitas (RG6). Arahkan tegak lurus ke pemancar terdekat. Jangan pakai kaleng biskuit ya Ndan! <b>Ganti.</b> 📡"
-    if any(x in text for x in ['kanal', 'mux', 'frekuensi', 'channel', 'siaran']):
-        return "<b>Monitor!</b> Untuk data kanal/MUX lengkap, silakan cek menu <b>Database</b> di aplikasi ini Ndan. Pastikan scan ulang (Auto Scan) secara berkala untuk update frekuensi terbaru. <b>86?</b>"
-    if any(x in text for x in ['modi', 'siapa', 'kamu', 'robot', 'admin']):
-        return "<b>Siap!</b> Perkenalkan, saya <b>Modi</b>. Asisten Virtual KTVDI siap perintah! Tugas saya membantu Ndan mendapatkan informasi penyiaran yang akurat. <b>Salam hormat!</b> 🫡"
-    if any(x in text for x in ['makasih', 'thanks', 'suwun', 'terima']):
-        return "<b>Siap! Sama-sama Ndan.</b> Senang bisa membantu. Jaga kesehatan dan tetap patuhi protokol. Jika butuh bantuan lagi, panggil saja. <b>8-1-3</b> (Selamat bertugas/beraktivitas)! 👋"
-
+    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo']):
+        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu? <b>Ganti!</b> 👮‍♂️"
+    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat']):
+        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! ☕📻"
+    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman']):
+        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan! <i>Klik</i>, aman, selamat sampai tujuan. Salam Presisi! 🚗"
+    if any(x in text for x in ['digital', 'analog', 'semut']):
+        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih. Segera migrasi, tinggalkan semut di masa lalu! 📺"
+    if any(x in text for x in ['kanal', 'mux', 'frekuensi']):
+        return "<b>Monitor!</b> Data kanal lengkap ada di menu <b>Database</b>. Pastikan scan ulang secara berkala ya Ndan. <b>86?</b>"
+    
     defaults = [
-        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando AI sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah atau cek menu manual. <b>Ganti!</b> 👮‍♂️",
+        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah. <b>Ganti!</b> 👮‍♂️",
         "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem istirahat di tempat. Siap 86! 🫡",
         "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮",
         "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut. <b>Kijang satu ganti.</b> 📻"
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG (SAFE & ROBUST MODE) ---
+# --- HELPERS EWS & BMKG (SAFE MODE) ---
 def get_bmkg_jateng_multi():
-    """Mengambil Cuaca 10 Kota Besar di Jateng (SAFE MODE)"""
-    target_cities = [
-        "Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", 
-        "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"
-    ]
+    target_cities = ["Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"]
     results = []
     try:
-        # Timeout dinaikkan ke 10 detik agar tidak putus jika BMKG lambat
+        # Timeout max 5 detik agar tidak crash
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
-        response = requests.get(url, timeout=10) 
+        response = requests.get(url, timeout=5) 
         if response.status_code == 200:
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
                 name = area.get("description")
-                # Mapping nama kota
                 if name in target_cities or (name == "Kota Semarang" and "Semarang" in target_cities):
                     data = {"kota": name.replace("Kota ", ""), "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
-                    
                     for param in area.findall("parameter"):
                         timerange = param.find("timerange")
                         if timerange is not None:
@@ -209,7 +196,6 @@ def get_bmkg_jateng_multi():
                                     elif code in ["5", "10", "45"]: data.update({"cuaca": "Kabut", "icon": "fa-smog"})
                                     elif code in ["60", "61", "63"]: data.update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
                                     elif code in ["80", "95", "97"]: data.update({"cuaca": "Petir", "icon": "fa-bolt"})
-                    
                     results.append(data)
     except Exception as e:
         print(f"BMKG Error: {e}") 
@@ -219,15 +205,14 @@ def get_bmkg_jateng_multi():
     return results[:10]
 
 def get_ews_summary():
-    """Mengambil Ringkasan EWS untuk AI"""
     try:
-        # Timeout 15 detik, PageSize 10000 agar dapat semua data
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=10000"
-        r = requests.get(url, timeout=15)
+        # Timeout 8 detik. Jika >10 detik Vercel akan kill process (Crash).
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
+        r = requests.get(url, timeout=8)
         if r.status_code == 200:
             data = r.json().get('data', {}).get('result', [])
             siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-            return f"Pantauan EWS (Total {len(data)} bendungan). {len(siaga)} bendungan status SIAGA/AWAS."
+            return f"Pantauan EWS: {len(data)} bendungan. {len(siaga)} status SIAGA/AWAS."
     except: return "Data EWS sedang gangguan."
 
 # ==========================================
@@ -463,19 +448,21 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN & BMKG ---
+# --- EWS BENDUNGAN & BMKG (ROUTE FIX) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
     dams = []
     try:
-        # Timeout dinaikkan ke 20s dan pageSize 10.000 agar dapat semua data
+        # Timeout 9 Detik (Agar tidak crash di Vercel 10s limit)
+        # PageSize 10000 (Sesuai permintaan)
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=10000"
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=9)
         if r.status_code == 200:
             dams = r.json().get('data', {}).get('result', [])
     except Exception as e: print(f"EWS Error: {e}")
+    
     cuaca_list = get_bmkg_jateng_multi()
-    # Pastikan nama file template sesuai (ews-jateng.html)
+    # PENTING: Nama file harus sesuai ews-jateng.html (pake strip)
     return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
 @app.route('/api/chat', methods=['POST'])
@@ -499,7 +486,7 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # LIST LENGKAP 70+ KOTA
+    # LIST 70+ KOTA
     kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
         "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi",
         "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
@@ -529,18 +516,3 @@ def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 if __name__ == "__main__":
     app.run(debug=True)
-``` ```json
-{
-  "builds": [
-    {
-      "src": "app.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "app.py"
-    }
-  ]
-}
