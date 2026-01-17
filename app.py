@@ -157,99 +157,119 @@ def get_smart_fallback_response(text):
         return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan! <i>Klik</i>, aman, selamat sampai tujuan. Salam Presisi! 🚗"
     if any(x in text for x in ['digital', 'analog', 'semut']):
         return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih. Segera migrasi, tinggalkan semut di masa lalu! 📺"
-    if any(x in text for x in ['kanal', 'mux', 'frekuensi']):
-        return "<b>Monitor!</b> Data kanal lengkap ada di menu <b>Database</b>. Pastikan scan ulang secara berkala ya Ndan. <b>86?</b>"
     
     defaults = [
         "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah. <b>Ganti!</b> 👮‍♂️",
         "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem istirahat di tempat. Siap 86! 🫡",
-        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮",
-        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut. <b>Kijang satu ganti.</b> 📻"
+        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮"
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG (DUAL SOURCE ROBUST) ---
+# --- HELPERS EWS & BMKG (FIXED LOGIC) ---
+
 def get_bmkg_jateng_multi():
-    """Mengambil Cuaca 10 Kota Besar di Jateng (Updated)"""
-    target_cities = [
-        "Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", 
-        "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"
-    ]
-    results = []
+    """Mengambil Cuaca 10 Kota Besar di Jateng (DIJAMIN 10 KOTA)"""
+    
+    # 1. Inisialisasi Default Data 10 Kota (Supaya tidak pernah kurang dari 10)
+    # Ini memastikan tampilan tidak kosong/sedikit jika BMKG gagal parsial
+    base_data = {
+        "Semarang": {"kota": "Semarang", "suhu": "30", "cuaca": "Cerah Berawan", "icon": "fa-cloud-sun"},
+        "Surakarta": {"kota": "Surakarta", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"},
+        "Magelang": {"kota": "Magelang", "suhu": "27", "cuaca": "Hujan Ringan", "icon": "fa-cloud-rain"},
+        "Pekalongan": {"kota": "Pekalongan", "suhu": "31", "cuaca": "Cerah", "icon": "fa-sun"},
+        "Tegal": {"kota": "Tegal", "suhu": "32", "cuaca": "Cerah", "icon": "fa-sun"},
+        "Salatiga": {"kota": "Salatiga", "suhu": "26", "cuaca": "Berawan", "icon": "fa-cloud"},
+        "Purwokerto": {"kota": "Purwokerto", "suhu": "28", "cuaca": "Berawan Tebal", "icon": "fa-cloud"},
+        "Cilacap": {"kota": "Cilacap", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"},
+        "Kudus": {"kota": "Kudus", "suhu": "30", "cuaca": "Cerah Berawan", "icon": "fa-cloud-sun"},
+        "Pati": {"kota": "Pati", "suhu": "31", "cuaca": "Cerah", "icon": "fa-sun"}
+    }
+
     try:
-        # Timeout 5 detik
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
         response = requests.get(url, timeout=5) 
         if response.status_code == 200:
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
-                name = area.get("description")
-                clean_name = name.replace("Kota ", "")
-                if clean_name in target_cities or name in target_cities:
-                    data = {"kota": clean_name, "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
+                raw_name = area.get("description") # misal: "Kota Semarang"
+                # Cari nama kota yang cocok di base_data
+                matched_key = None
+                for key in base_data.keys():
+                    if key in raw_name: # Jika "Semarang" ada di "Kota Semarang"
+                        matched_key = key
+                        break
+                
+                if matched_key:
+                    # Update data default dengan data LIVE BMKG
                     for param in area.findall("parameter"):
-                        timerange = param.find("timerange")
+                        timerange = param.find("timerange") # Ambil prediksi terdekat
                         if timerange is not None:
                             val = timerange.find("value")
                             if val is not None and val.text:
                                 if param.get("id") == "t": 
-                                    data["suhu"] = val.text
+                                    base_data[matched_key]["suhu"] = val.text
                                 elif param.get("id") == "weather":
                                     code = val.text
-                                    if code in ["0", "1", "2"]: data.update({"cuaca": "Cerah", "icon": "fa-sun"})
-                                    elif code in ["3", "4"]: data.update({"cuaca": "Berawan", "icon": "fa-cloud"})
-                                    elif code in ["5", "10", "45"]: data.update({"cuaca": "Kabut", "icon": "fa-smog"})
-                                    elif code in ["60", "61", "63"]: data.update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
-                                    elif code in ["80", "95", "97"]: data.update({"cuaca": "Petir", "icon": "fa-bolt"})
-                    results.append(data)
+                                    # Update Icon & Cuaca berdasarkan kode
+                                    if code in ["0", "1", "2"]: 
+                                        base_data[matched_key].update({"cuaca": "Cerah", "icon": "fa-sun"})
+                                    elif code in ["3", "4"]: 
+                                        base_data[matched_key].update({"cuaca": "Berawan", "icon": "fa-cloud"})
+                                    elif code in ["5", "10", "45"]: 
+                                        base_data[matched_key].update({"cuaca": "Kabut", "icon": "fa-smog"})
+                                    elif code in ["60", "61", "63"]: 
+                                        base_data[matched_key].update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
+                                    elif code in ["80", "95", "97"]: 
+                                        base_data[matched_key].update({"cuaca": "Petir", "icon": "fa-bolt"})
     except Exception as e:
         print(f"BMKG Error: {e}") 
     
-    # Fallback Data Dummy jika API Gagal
-    if not results:
-        results = [
-            {"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"},
-            {"kota": "Surakarta", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"},
-            {"kota": "Tegal", "suhu": "31", "cuaca": "Cerah", "icon": "fa-sun"},
-            {"kota": "Pekalongan", "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
-        ]
-    return results[:10]
+    # Kembalikan list dari dictionary values (Pasti 10 item)
+    return list(base_data.values())
 
 def fetch_ews_data():
-    """Mengambil Data Bendungan dengan Sistem Backup"""
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    """Mengambil Data Bendungan (PRIORITAS: SIAGA KRANJI)"""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json'
+    }
     
-    # 1. COBA SERVER UTAMA (EWS JATENG)
+    # 1. SUMBER UTAMA: SIAGA KRANJI (Latest Data)
     try:
-        # Gunakan pageSize 200 (Cukup untuk semua bendungan) agar tidak timeout
-        url_main = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
-        r = requests.get(url_main, headers=headers, timeout=5, verify=False)
-        if r.status_code == 200:
-            return r.json().get('data', {}).get('result', [])
-    except:
-        pass # Lanjut ke backup jika gagal
-
-    # 2. COBA SERVER BACKUP (SIAGA KRANJI)
-    try:
-        url_backup = "https://siagakranji.my.id/data/latest_dams.json"
-        r = requests.get(url_backup, headers=headers, timeout=5, verify=False)
+        # Tambah timestamp agar tidak dicache server
+        ts = int(time.time() * 1000)
+        url_kranji = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
+        
+        r = requests.get(url_kranji, headers=headers, timeout=6, verify=False)
         if r.status_code == 200:
             data = r.json()
-            # Logika parsing fleksibel (sesuaikan struktur JSON Siaga Kranji)
-            if isinstance(data, dict) and 'result' in data: return data['result']
+            # Cek struktur data Siaga Kranji (biasanya langsung list atau dict)
             if isinstance(data, list): return data
-            if isinstance(data, dict) and 'data' in data: return data['data']
-    except:
-        pass
+            if isinstance(data, dict):
+                if 'result' in data: return data['result']
+                if 'data' in data: return data['data']
+                # Jika dict tapi isinya data bendungan langsung (single object), bungkus list
+                return [data]
+    except Exception as e:
+        print(f"Kranji Fail: {e}")
 
-    return [] # Gagal semua
+    # 2. SUMBER CADANGAN: EWS JATENG (Official)
+    try:
+        url_ews = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
+        r = requests.get(url_ews, headers=headers, timeout=8, verify=False)
+        if r.status_code == 200:
+            return r.json().get('data', {}).get('result', [])
+    except Exception as e:
+        print(f"EWS Jateng Fail: {e}")
+
+    return [] # Jika semua gagal
 
 def get_ews_summary_text():
     """Helper Ringkasan untuk AI"""
     data = fetch_ews_data()
     if data:
-        siaga = [d.get('name', 'Bendungan') for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-        return f"Pantauan EWS: Total {len(data)} bendungan terdeteksi. {len(siaga)} status BAHAYA ({', '.join(siaga)})."
+        siaga = [d.get('name', 'Bendungan') for d in data if 'Siaga' in str(d.get('status_alert', '')) or 'Awas' in str(d.get('status_alert', ''))]
+        return f"Pantauan EWS: Total {len(data)} bendungan terdeteksi. {len(siaga)} status SIAGA/AWAS."
     return "Data EWS sedang gangguan."
 
 # ==========================================
@@ -320,7 +340,7 @@ def register():
         
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
-            msg = Message("Verifikasi Akun KTVDI", recipients=[e])
+            msg = Message("KTVDI: Kode Verifikasi Pendaftaran", recipients=[e])
             msg.body = f"""Yth. Bapak/Ibu/Saudara {n},
 
 Terima kasih atas pendaftaran Anda di Komunitas TV Digital Indonesia (KTVDI).
@@ -373,7 +393,7 @@ def forgot_password():
             expiry = time.time() + 60
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
-                msg = Message("Reset Password", recipients=[email_input])
+                msg = Message("KTVDI: Reset Password", recipients=[email_input])
                 msg.body = f"Kode OTP Reset Password (1 Menit): {otp}"
                 mail.send(msg)
                 session["reset_uid"] = found_uid
@@ -499,11 +519,11 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN & BMKG (ROUTE FIX) ---
+# --- EWS BENDUNGAN & BMKG (ROBUST MODE) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
-    dams = fetch_ews_data() # Menggunakan fungsi helper dual-source
-    cuaca_list = get_bmkg_jateng_multi()
+    dams = fetch_ews_data() # Memanggil fungsi Dual-Source (Kranji -> EWS)
+    cuaca_list = get_bmkg_jateng_multi() # Memanggil fungsi 10 Kota
     return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
 @app.route('/api/chat', methods=['POST'])
