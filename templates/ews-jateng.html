@@ -4,43 +4,52 @@
 
 {% block content %}
 <style>
-    /* 1. GLASSMORPHISM CARD */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .glass-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        border-color: #38bdf8;
+    /* KONSEP VISUAL: MIRIP SIAGA KRANJI TAPI LEBIH MODERN */
+    
+    .dashboard-container {
+        background-color: #f8fafc;
+        min-height: 100vh;
+        padding-top: 6rem;
+        padding-bottom: 4rem;
     }
 
-    /* 2. CARD ALERT STYLE (BAHAYA) */
-    .card-awas {
-        border: 2px solid #ef4444 !important;
-        background: linear-gradient(to bottom right, #fff1f2, #fff);
-        animation: pulse-border 2s infinite;
-    }
-    @keyframes pulse-border {
-        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-    }
-
-    /* 3. ANIMASI AIR (WATER WAVE) */
-    .water-container {
-        position: relative;
-        height: 120px;
-        width: 100%;
-        overflow: hidden;
+    .info-card {
+        background: white;
         border-radius: 16px;
-        background: #f1f5f9;
-        margin-top: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         border: 1px solid #e2e8f0;
+        transition: transform 0.2s, box-shadow 0.2s;
+        overflow: hidden;
     }
+    
+    .info-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: #3b82f6;
+    }
+
+    /* STATUS BADGE */
+    .status-badge {
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 4px 12px;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    /* ANIMASI AIR (Water Wave) */
+    .wave-box {
+        position: relative;
+        height: 100px;
+        width: 100%;
+        background: #e0f2fe; /* Langit biru muda */
+        overflow: hidden;
+        border-radius: 12px;
+        margin-top: 12px;
+        border: 1px solid #bae6fd;
+    }
+    
     .wave {
         position: absolute;
         bottom: 0;
@@ -52,166 +61,151 @@
         opacity: 0.8;
         transform-origin: center bottom;
     }
-    .wave.normal { background: linear-gradient(to top, #3b82f6 0%, #93c5fd 100%); opacity: 0.6; height: 35%; animation: wave-move 8s linear infinite; }
-    .wave.waspada { background: linear-gradient(to top, #eab308 0%, #fde047 100%); opacity: 0.75; height: 55%; animation: wave-move 6s linear infinite; }
-    .wave.siaga { background: linear-gradient(to top, #f97316 0%, #fdba74 100%); opacity: 0.85; height: 70%; animation: wave-move 4s linear infinite; }
-    .wave.awas { background: linear-gradient(to top, #ef4444 0%, #fca5a5 100%); opacity: 0.95; height: 90%; animation: wave-move 2s linear infinite; }
     
-    @keyframes wave-move {
+    /* Variasi Warna Air Sesuai Status */
+    .wave.normal { background: linear-gradient(to top, #2563eb, #60a5fa); height: 40%; animation: moveWave 8s linear infinite; }
+    .wave.waspada { background: linear-gradient(to top, #ca8a04, #facc15); height: 60%; animation: moveWave 6s linear infinite; }
+    .wave.siaga { background: linear-gradient(to top, #ea580c, #fb923c); height: 75%; animation: moveWave 4s linear infinite; }
+    .wave.awas { background: linear-gradient(to top, #dc2626, #f87171); height: 90%; animation: moveWave 2s linear infinite; }
+
+    @keyframes moveWave {
         0% { transform: translateX(0) scaleY(1); }
         50% { transform: translateX(-25%) scaleY(1.1); }
         100% { transform: translateX(-50%) scaleY(1); }
     }
 
-    /* SCROLLBAR HIDING */
+    .tma-text {
+        position: absolute;
+        bottom: 8px; right: 10px;
+        font-weight: 900;
+        font-size: 1.5rem;
+        color: #1e293b;
+        text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+        z-index: 10;
+    }
+
+    /* SCROLL HIDE */
     .hide-scroll::-webkit-scrollbar { display: none; }
     .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-
-    /* TEXT OVERLAY */
-    .water-text {
-        position: absolute;
-        bottom: 10px; right: 10px; text-align: right; z-index: 20;
-        text-shadow: 0 2px 4px rgba(255,255,255,0.8);
-    }
 </style>
 
-<div class="min-h-screen bg-[#f0f9ff] py-24 px-4 font-['Plus_Jakarta_Sans']">
-    <div class="max-w-7xl mx-auto">
+<div class="dashboard-container font-['Plus_Jakarta_Sans']">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
         
         <div class="text-center mb-10">
-            <div class="inline-flex items-center gap-2 bg-white border border-blue-200 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm mb-4">
-                <span class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
-                LIVE DATA CENTER
+            <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold border border-blue-100 mb-3">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                LIVE MONITORING SYSTEM
             </div>
-            <h1 class="text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight mb-2">
-                Monitoring <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500">Bendungan Jateng</span>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+                Pantauan Bendungan & Cuaca
             </h1>
-            <p class="text-slate-500 text-sm">Menampilkan data real-time dari ribuan sensor EWS.</p>
+            <p class="text-slate-500 mt-2 text-sm">Data real-time EWS Jawa Tengah & BMKG</p>
         </div>
 
         <div class="mb-10">
-            <div class="flex justify-between items-center mb-4 px-2">
-                <h3 class="font-bold text-slate-800"><i class="fa-solid fa-cloud-sun text-orange-400 mr-2"></i>Cuaca 10 Kota Utama</h3>
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-slate-700"><i class="fa-solid fa-cloud-sun text-orange-500 mr-2"></i>Cuaca 10 Kota</h3>
                 <span class="text-xs text-slate-400">Geser &rarr;</span>
             </div>
-            
-            <div class="hide-scroll flex gap-4 overflow-x-auto pb-4 snap-x cursor-grab active:cursor-grabbing">
+            <div class="hide-scroll flex gap-3 overflow-x-auto pb-2 snap-x">
                 {% if cuaca_list %}
                     {% for c in cuaca_list %}
-                    <div class="min-w-[140px] bg-white p-5 rounded-2xl border border-slate-100 shadow-sm snap-center flex flex-col items-center text-center group hover:border-blue-400 transition-all">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ c.kota }}</p>
-                        <div class="text-4xl text-blue-500 my-2 transform group-hover:scale-110 transition-transform duration-300">
-                            <i class="fa-solid {{ c.icon }}"></i>
-                        </div>
-                        <div class="text-2xl font-black text-slate-800">{{ c.suhu }}°C</div>
-                        <div class="text-[10px] font-bold text-slate-500 bg-slate-50 px-3 py-1 rounded-full mt-2 w-full">{{ c.cuaca }}</div>
+                    <div class="min-w-[120px] bg-white p-4 rounded-xl border border-slate-200 snap-center text-center">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">{{ c.kota }}</p>
+                        <i class="fa-solid {{ c.icon }} text-2xl text-blue-500 my-1"></i>
+                        <p class="text-lg font-black text-slate-800">{{ c.suhu }}°C</p>
+                        <p class="text-[10px] text-slate-500">{{ c.cuaca }}</p>
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="w-full text-center py-4 text-slate-400 italic">Data cuaca sedang memuat...</div>
+                    <div class="w-full text-center py-4 text-slate-400 italic bg-white rounded-xl border border-slate-200">
+                        Memuat data cuaca...
+                    </div>
                 {% endif %}
             </div>
         </div>
 
-        <div class="sticky top-20 z-40 mb-10">
-            <div class="relative max-w-2xl mx-auto">
-                <div class="absolute inset-0 bg-blue-400 rounded-full blur-md opacity-20"></div>
-                <div class="relative bg-white rounded-full shadow-xl border border-slate-100 flex items-center px-6 py-4">
-                    <i class="fa-solid fa-magnifying-glass text-blue-500 text-xl mr-4"></i>
-                    <input type="text" id="searchDam" placeholder="Cari nama bendungan atau lokasi..." class="w-full bg-transparent focus:outline-none text-slate-700 font-bold placeholder:font-normal placeholder:text-slate-400 text-sm md:text-base">
-                </div>
+        <div class="sticky top-20 z-30 mb-8">
+            <div class="relative shadow-lg rounded-full">
+                <input type="text" id="searchDam" placeholder="Cari nama bendungan..." class="w-full pl-12 pr-6 py-3.5 rounded-full border-0 focus:ring-2 focus:ring-blue-500 text-sm font-semibold text-slate-700 bg-white/90 backdrop-blur-md">
+                <i class="fa-solid fa-magnifying-glass absolute left-5 top-4 text-slate-400"></i>
             </div>
-        </div>
-
-        <div id="loadingIndicator" class="hidden text-center py-10">
-            <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
-            <p class="mt-2 text-slate-500">Memuat ribuan data bendungan...</p>
         </div>
 
         {% if dams and dams|length > 0 %}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="damContainer">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="damContainer">
             {% for dam in dams %}
-            
-            {% set status_raw = dam.status_alert|default('Normal') %}
-            {% set color = 'blue' %}
-            {% set wave_class = 'normal' %}
-            {% set card_class = '' %}
-            {% set icon_status = 'fa-circle-check' %}
-            
-            {% if 'Awas' in status_raw or 'Siaga 1' in status_raw %}
-                {% set color = 'red' %} {% set wave_class = 'awas' %} {% set card_class = 'card-awas' %} {% set icon_status = 'fa-triangle-exclamation' %}
-            {% elif 'Siaga' in status_raw or 'Siaga 2' in status_raw %}
-                {% set color = 'orange' %} {% set wave_class = 'siaga' %} {% set icon_status = 'fa-bell' %}
-            {% elif 'Waspada' in status_raw or 'Siaga 3' in status_raw %}
-                {% set color = 'yellow' %} {% set wave_class = 'waspada' %} {% set icon_status = 'fa-circle-exclamation' %}
-            {% else %}
-                {% set color = 'green' %} {% endif %}
-
-            <div class="glass-card rounded-3xl p-5 dam-item group {{ card_class }} flex flex-col h-full">
                 
-                <div class="flex justify-between items-start mb-2">
-                    <div class="w-full">
-                        <div class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                            <i class="fa-solid fa-location-dot text-{{ color }}-500"></i> {{ dam.regency_name if dam.regency_name else 'Jateng' }}
+                {% set raw_status = dam.status_alert|default('Normal') %}
+                {% set theme = 'blue' %}
+                {% set wave = 'normal' %}
+                {% set status_label = 'AMAN' %}
+                {% set icon = 'fa-check-circle' %}
+
+                {% if 'Awas' in raw_status or 'Siaga 1' in raw_status %}
+                    {% set theme = 'red' %} {% set wave = 'awas' %} {% set status_label = 'BAHAYA' %} {% set icon = 'fa-triangle-exclamation' %}
+                {% elif 'Siaga' in raw_status or 'Siaga 2' in raw_status %}
+                    {% set theme = 'orange' %} {% set wave = 'siaga' %} {% set status_label = 'SIAGA' %} {% set icon = 'fa-bell' %}
+                {% elif 'Waspada' in raw_status or 'Siaga 3' in raw_status %}
+                    {% set theme = 'yellow' %} {% set wave = 'waspada' %} {% set status_label = 'WASPADA' %} {% set icon = 'fa-circle-exclamation' %}
+                {% else %}
+                    {% set theme = 'green' %} {% endif %}
+
+                <div class="info-card p-5 dam-item group border-l-4 border-l-{{ theme }}-500">
+                    
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-base leading-tight dam-name">{{ dam.name }}</h3>
+                            <p class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                                <i class="fa-solid fa-map-pin"></i> {{ dam.regency_name if dam.regency_name else 'Jawa Tengah' }}
+                            </p>
                         </div>
-                        <h3 class="text-lg font-extrabold text-slate-800 leading-tight line-clamp-2 dam-name">{{ dam.name }}</h3>
+                        <span class="status-badge bg-{{ theme }}-100 text-{{ theme }}-700">
+                            {{ status_label }}
+                        </span>
                     </div>
-                    <span class="shrink-0 ml-2 status-badge bg-{{ color }}-100 text-{{ color }}-700 border border-{{ color }}-200 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase">
-                        <i class="fa-solid {{ icon_status }}"></i> {{ status_raw }}
-                    </span>
-                </div>
 
-                <div class="water-container">
-                    <div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(#000 1px, transparent 1px); background-size: 100% 20px;"></div>
-                    <div class="wave {{ wave_class }}"></div>
-                    <div class="water-text">
-                        <p class="text-[10px] font-bold text-slate-600 uppercase mb-0.5">Tinggi Muka Air</p>
-                        <p class="text-3xl font-black text-slate-800 leading-none drop-shadow-sm">
-                            {{ dam.tma if dam.tma else '0' }}<span class="text-sm font-bold text-slate-500 ml-1">m</span>
-                        </p>
+                    <div class="wave-box">
+                        <div class="wave {{ wave }}"></div>
+                        <div class="tma-text">
+                            {{ dam.tma if dam.tma else '0' }} <span class="text-xs font-bold text-slate-600">m</span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-3 mt-4">
-                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
-                        <p class="text-[9px] text-slate-400 uppercase font-bold mb-1">Outflow</p>
-                        <p class="text-sm font-bold text-blue-600">{{ dam.outflow_q if dam.outflow_q else '0' }} <span class="text-[8px]">m³/s</span></p>
+                    <div class="grid grid-cols-2 gap-2 mt-3 text-center">
+                        <div class="bg-slate-50 rounded-lg p-2">
+                            <p class="text-[8px] text-slate-400 font-bold uppercase">Outflow</p>
+                            <p class="text-xs font-bold text-blue-600">{{ dam.outflow_q if dam.outflow_q else '0' }} m³/s</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-lg p-2">
+                            <p class="text-[8px] text-slate-400 font-bold uppercase">Inflow</p>
+                            <p class="text-xs font-bold text-green-600">{{ dam.inflow_q if dam.inflow_q else '0' }} m³/s</p>
+                        </div>
                     </div>
-                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
-                        <p class="text-[9px] text-slate-400 uppercase font-bold mb-1">Inflow</p>
-                        <p class="text-sm font-bold text-green-600">{{ dam.inflow_q if dam.inflow_q else '0' }} <span class="text-[8px]">m³/s</span></p>
-                    </div>
-                </div>
 
-                <div class="mt-auto pt-4">
-                    <div class="mt-3 flex justify-between items-center text-[9px] text-slate-400 border-t border-slate-100 pt-2">
-                        <span><i class="fa-regular fa-clock"></i> {{ dam.updated_at_wib if dam.updated_at_wib else 'Hari ini' }}</span>
-                        <span class="font-bold text-brand-navy">EWS DATA</span>
+                    <div class="mt-3 pt-2 border-t border-slate-100 flex justify-between items-center">
+                        <span class="text-[9px] text-slate-400 italic">
+                            <i class="fa-regular fa-clock"></i> {{ dam.updated_at_wib if dam.updated_at_wib else '-' }}
+                        </span>
+                        <span class="text-[9px] font-bold text-slate-300">EWS JATENG</span>
                     </div>
-                </div>
 
-            </div>
+                </div>
             {% endfor %}
         </div>
         
-        <div id="noResult" class="hidden text-center py-20">
-            <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-magnifying-glass text-slate-400 text-2xl"></i>
-            </div>
-            <p class="text-slate-500">Tidak ditemukan bendungan dengan nama tersebut.</p>
+        <div id="noResult" class="hidden text-center py-12">
+            <p class="text-slate-400">Bendungan tidak ditemukan.</p>
         </div>
 
         {% else %}
-        <div class="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] shadow-sm border border-slate-100 text-center p-8">
-            <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-6">
-                <i class="fa-solid fa-server text-red-400 text-3xl animate-pulse"></i>
-            </div>
-            <h3 class="text-xl font-bold text-slate-800">Tidak Ada Data Diterima</h3>
-            <p class="text-slate-500 text-sm mb-6 max-w-md">
-                Server EWS mungkin sedang sibuk atau data belum tersedia. Mohon coba lagi beberapa saat lagi.
-            </p>
-            <button onclick="location.reload()" class="px-8 py-3 bg-brand-navy text-white rounded-full font-bold shadow-lg hover:bg-brand-blue transition transform hover:scale-105">
-                <i class="fa-solid fa-rotate-right mr-2"></i> Muat Ulang Halaman
+        <div class="text-center py-20 bg-white rounded-2xl border border-slate-200">
+            <i class="fa-solid fa-server text-4xl text-slate-300 mb-4"></i>
+            <h3 class="font-bold text-slate-700">Data Tidak Tersedia</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-4">Server EWS sedang sibuk atau dalam perbaikan.</p>
+            <button onclick="location.reload()" class="px-5 py-2 bg-blue-600 text-white rounded-full text-xs font-bold shadow-lg hover:bg-blue-700 transition">
+                Coba Lagi
             </button>
         </div>
         {% endif %}
@@ -220,7 +214,7 @@
 </div>
 
 <script>
-    // Search Functionality (Optimized for Performance)
+    // Search Functionality
     const searchInput = document.getElementById('searchDam');
     const container = document.getElementById('damContainer');
     const noResult = document.getElementById('noResult');
@@ -229,23 +223,20 @@
         searchInput.addEventListener('keyup', function() {
             let filter = this.value.toLowerCase();
             let items = container.querySelectorAll('.dam-item');
-            let visibleCount = 0;
+            let visible = 0;
             
             items.forEach(function(item) {
                 let text = item.innerText.toLowerCase();
                 if (text.includes(filter)) {
                     item.style.display = "";
-                    visibleCount++;
+                    visible++;
                 } else {
                     item.style.display = "none";
                 }
             });
-
-            if(visibleCount === 0) {
-                noResult.classList.remove('hidden');
-            } else {
-                noResult.classList.add('hidden');
-            }
+            
+            if(visible === 0) noResult.classList.remove('hidden');
+            else noResult.classList.add('hidden');
         });
     }
 </script>
