@@ -16,6 +16,10 @@ from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 from collections import Counter
+import urllib3
+
+# Matikan warning SSL untuk API EWS (Biar koneksi lancar)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- KONFIGURASI AWAL ---
 load_dotenv()
@@ -45,12 +49,21 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        cred = credentials.Certificate("credentials.json")
+        if os.path.exists("credentials.json"):
+            cred = credentials.Certificate("credentials.json")
+        else:
+            cred = None
     
-    if not firebase_admin._apps:
+    if cred and not firebase_admin._apps:
         firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
-    ref = db.reference('/')
-    print("✅ STATUS: Database KTVDI Terhubung.")
+    
+    if firebase_admin._apps:
+        ref = db.reference('/')
+        print("✅ STATUS: Database KTVDI Terhubung.")
+    else:
+        ref = None
+        print("⚠️ STATUS: Firebase credentials tidak ditemukan.")
+
 except Exception as e:
     ref = None
     print(f"⚠️ STATUS: Mode Offline (DB Error: {e})")
@@ -110,7 +123,7 @@ def get_news_entries():
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        for entry in feed.entries[:8]: 
+                        for entry in feed.entries[:6]: 
                             if 'cnn' in url: entry['source_name'] = 'CNN Indonesia'
                             elif 'antara' in url: entry['source_name'] = 'Antara News'
                             else: entry['source_name'] = entry.get('source', {}).get('title', 'Google News')
@@ -157,7 +170,7 @@ def get_smart_fallback_response(text):
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG (OPTIMIZED FOR VERCEL) ---
+# --- HELPERS EWS & BMKG (OPTIMAL MODE) ---
 def get_bmkg_jateng_multi():
     """Mengambil Cuaca 10 Kota Besar di Jateng"""
     target_cities = [
@@ -166,14 +179,12 @@ def get_bmkg_jateng_multi():
     ]
     results = []
     try:
-        # Timeout 5 detik agar tidak menghabiskan waktu Vercel
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
         response = requests.get(url, timeout=5) 
         if response.status_code == 200:
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
                 name = area.get("description")
-                # Normalize names (e.g., "Kota Semarang" -> "Semarang")
                 clean_name = name.replace("Kota ", "")
                 if clean_name in target_cities or name in target_cities:
                     data = {"kota": clean_name, "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
@@ -195,23 +206,21 @@ def get_bmkg_jateng_multi():
     except Exception as e:
         print(f"BMKG Error: {e}") 
     
-    # Fallback jika gagal (agar tampilan tidak kosong)
     if not results:
-        results = [
-            {"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"},
-            {"kota": "Surakarta", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"}
-        ]
+        results = [{"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"}]
     return results[:10]
 
 def get_ews_summary():
-    """Versi ringan untuk AI Context"""
+    """Mengambil Data EWS untuk AI (Ringkas)"""
     try:
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
-        r = requests.get(url, timeout=5) # Timeout pendek untuk AI
+        # PageSize 200 sudah cukup untuk seluruh Jateng
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
+        # Verify False untuk menghindari error SSL
+        r = requests.get(url, timeout=5, verify=False) 
         if r.status_code == 200:
             data = r.json().get('data', {}).get('result', [])
             siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-            return f"Pantauan EWS: Total {len(data)} bendungan terdeteksi. {len(siaga)} status SIAGA/AWAS."
+            return f"Pantauan EWS: Total {len(data)} bendungan. {len(siaga)} status BAHAYA."
     except: return "Data EWS sedang gangguan."
 
 # ==========================================
@@ -282,18 +291,18 @@ def register():
         
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
-            msg = Message("KTVDI: Verifikasi Pendaftaran Akun", recipients=[e])
-            msg.body = f"""Yth. Calon Anggota KTVDI,
+            msg = Message("Verifikasi Akun KTVDI", recipients=[e])
+            msg.body = f"""Yth. Bapak/Ibu/Saudara {n},
 
-Terima kasih telah mendaftar. Berikut adalah kode verifikasi (OTP) Anda:
+Terima kasih atas pendaftaran Anda di Komunitas TV Digital Indonesia (KTVDI).
 
+Kode Verifikasi (OTP) Anda:
 [ {otp} ]
 
-⚠️ PENTING: Kode ini hanya berlaku selama 1 MENIT demi keamanan data Anda.
-Mohon tidak membagikan kode ini kepada siapa pun.
+⚠️ PENTING: Kode ini hanya BERLAKU 1 MENIT. Mohon segera masukkan.
 
 Hormat Kami,
-Tim IT KTVDI
+Tim Admin KTVDI
 """
             mail.send(msg)
             session["pending_username"] = u
@@ -308,17 +317,15 @@ def verify_register():
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
         if not p: return redirect(url_for("register"))
-        
         if time.time() > p.get('expiry', 0):
-            flash("Kode OTP telah kedaluwarsa (Lebih dari 1 Menit). Silakan daftar ulang.", "error")
+            flash("Kode OTP telah kedaluwarsa (Lewat 1 Menit).", "error")
             ref.child(f'pending_users/{u}').delete()
             return redirect(url_for("register"))
-
         if str(p.get('otp')).strip() == request.form.get("otp").strip():
             ref.child(f'users/{u}').set({"nama": p['nama'], "email": p['email'], "password": p['password']})
             ref.child(f'pending_users/{u}').delete()
             session.pop('pending_username', None)
-            flash("Registrasi Berhasil. Silakan Login.", "success")
+            flash("Registrasi Berhasil.", "success")
             return redirect(url_for('login'))
         flash("Kode OTP Salah.", "error")
     return render_template("verify-register.html", username=u)
@@ -329,36 +336,20 @@ def forgot_password():
         email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
         found_uid = None
-        
         for uid, user_data in users.items():
             if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
                 found_uid = uid; break
-        
         if found_uid:
             otp = str(random.randint(100000, 999999))
-            expiry = time.time() + 60 # 1 MENIT
+            expiry = time.time() + 60
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
-                msg = Message("KTVDI: Reset Password", recipients=[email_input])
-                msg.body = f"""Yth. Pengguna KTVDI,
-
-Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.
-
-Kode OTP Anda:
-[ {otp} ]
-
-⚠️ PENTING: Kode ini hanya berlaku 1 MENIT.
-
-Jika Anda tidak melakukan permintaan ini, abaikan email ini.
-
-Tim Keamanan KTVDI
-"""
+                msg = Message("Reset Password", recipients=[email_input])
+                msg.body = f"Kode OTP Reset Password (1 Menit): {otp}"
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
-            except: flash("Gagal kirim email.", "error")
-        else:
-            flash("Email tidak ditemukan.", "error")
+            except: pass
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -368,11 +359,9 @@ def verify_otp():
     if request.method == "POST":
         data = ref.child(f"otp/{uid}").get()
         if not data: return redirect(url_for("forgot_password"))
-        
         if time.time() > data.get('expiry', 0):
-            flash("Kode OTP Kedaluwarsa (Lewat 1 Menit).", "error")
+            flash("Kode OTP Kedaluwarsa.", "error")
             return redirect(url_for("forgot_password"))
-
         if str(data.get("otp")).strip() == request.form.get("otp").strip():
             session['reset_verified'] = True
             return redirect(url_for("reset_password"))
@@ -382,13 +371,12 @@ def verify_otp():
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     if not session.get('reset_verified'): return redirect(url_for('login'))
-    uid = session.get("reset_uid")
     if request.method == "POST":
+        uid = session.get("reset_uid")
         pw = request.form.get("password")
         ref.child(f"users/{uid}").update({"password": hash_password(pw)})
         ref.child(f"otp/{uid}").delete()
         session.clear()
-        flash("Password berhasil diubah. Silakan login.", "success")
         return redirect(url_for('login'))
     return render_template("reset-password.html")
 
@@ -482,18 +470,22 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN & BMKG (ROBUST MODE) ---
+# --- EWS BENDUNGAN & BMKG ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
     dams = []
     try:
-        # Timeout 9s agar Vercel tidak mematikan proses (Limit 10s)
-        # PageSize 10000 untuk ambil SEMUA data
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=10000"
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=9)
+        # OPTIMASI: pageSize=200 cukup untuk seluruh Jateng.
+        # verify=False penting untuk menembus SSL API EWS yg kadang bermasalah.
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        r = requests.get(url, headers=headers, timeout=9, verify=False)
         if r.status_code == 200:
             dams = r.json().get('data', {}).get('result', [])
-    except Exception as e: print(f"EWS Error: {e}")
+    except Exception as e: 
+        print(f"EWS Error: {e}")
     
     cuaca_list = get_bmkg_jateng_multi()
     return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
