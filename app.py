@@ -17,7 +17,7 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 import urllib3
 
-# PENTING: Matikan peringatan SSL agar data EWS bisa masuk
+# Matikan warning SSL untuk API Pemerintah
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 load_dotenv()
@@ -168,23 +168,25 @@ def get_smart_fallback_response(text):
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG (OPTIMIZED FOR VERCEL) ---
+# --- HELPERS EWS & BMKG (DUAL SOURCE ROBUST) ---
 def get_bmkg_jateng_multi():
-    """Mengambil Cuaca 10 Kota Besar di Jateng"""
+    """Mengambil Cuaca 10 Kota Besar di Jateng (Updated)"""
     target_cities = [
         "Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", 
         "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"
     ]
     results = []
     try:
-        # Timeout 5 detik agar tidak menghabiskan waktu Vercel
+        # Timeout 5 detik
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
         response = requests.get(url, timeout=5) 
         if response.status_code == 200:
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
                 name = area.get("description")
+                # Normalize names (e.g., "Kota Semarang" -> "Semarang")
                 clean_name = name.replace("Kota ", "")
+                # Cek apakah nama kota ada di target list
                 if clean_name in target_cities or name in target_cities:
                     data = {"kota": clean_name, "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
                     for param in area.findall("parameter"):
@@ -205,24 +207,55 @@ def get_bmkg_jateng_multi():
     except Exception as e:
         print(f"BMKG Error: {e}") 
     
-    # Fallback
+    # Fallback Data Dummy jika API Gagal
     if not results:
         results = [
             {"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"},
-            {"kota": "Surakarta", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"}
+            {"kota": "Surakarta", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"},
+            {"kota": "Tegal", "suhu": "31", "cuaca": "Cerah", "icon": "fa-sun"},
+            {"kota": "Pekalongan", "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
         ]
     return results[:10]
 
-def get_ews_summary():
-    """Versi ringan untuk AI Context"""
+def fetch_ews_data():
+    """Mengambil Data Bendungan dengan Sistem Backup"""
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    # 1. COBA SERVER UTAMA (EWS JATENG)
     try:
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
-        r = requests.get(url, timeout=5, verify=False)
+        # Gunakan pageSize 200 (Cukup untuk semua bendungan) agar tidak timeout
+        url_main = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
+        r = requests.get(url_main, headers=headers, timeout=5, verify=False)
         if r.status_code == 200:
-            data = r.json().get('data', {}).get('result', [])
-            siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-            return f"Pantauan EWS: Total {len(data)} bendungan terdeteksi. {len(siaga)} status BAHAYA."
-    except: return "Data EWS sedang gangguan."
+            return r.json().get('data', {}).get('result', [])
+    except:
+        pass # Lanjut ke backup jika gagal
+
+    # 2. COBA SERVER BACKUP (SIAGA KRANJI)
+    try:
+        url_backup = "https://siagakranji.my.id/data/latest_dams.json"
+        r = requests.get(url_backup, headers=headers, timeout=5, verify=False)
+        if r.status_code == 200:
+            data = r.json()
+            # Jika formatnya dict dengan key 'result', ambil itu. Jika list langsung, pakai list.
+            if isinstance(data, dict) and 'result' in data:
+                return data['result']
+            elif isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and 'data' in data: # Kemungkinan struktur lain
+                 return data['data']
+    except:
+        pass
+
+    return [] # Gagal semua
+
+def get_ews_summary_text():
+    """Helper Ringkasan untuk AI"""
+    data = fetch_ews_data()
+    if data:
+        siaga = [d.get('name', 'Bendungan') for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
+        return f"Pantauan EWS: Total {len(data)} bendungan terdeteksi. {len(siaga)} status BAHAYA ({', '.join(siaga)})."
+    return "Data EWS sedang gangguan."
 
 # ==========================================
 # 6. ROUTE UTAMA
@@ -474,19 +507,7 @@ def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi'
 # --- EWS BENDUNGAN & BMKG (ROUTE FIX) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
-    dams = []
-    try:
-        # OPTIMASI: pageSize=200 & verify=False
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        r = requests.get(url, headers=headers, timeout=9, verify=False)
-        if r.status_code == 200:
-            dams = r.json().get('data', {}).get('result', [])
-    except Exception as e: 
-        print(f"EWS Error: {e}")
-    
+    dams = fetch_ews_data() # Menggunakan fungsi helper dual-source
     cuaca_list = get_bmkg_jateng_multi()
     return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
@@ -497,7 +518,7 @@ def chatbot_api():
     
     system_context = MODI_PROMPT
     if any(k in user_msg.lower() for k in ['bendungan', 'waduk', 'air', 'banjir', 'sungai', 'ews', 'siaga']):
-        ews_data = get_ews_summary()
+        ews_data = get_ews_summary_text()
         system_context += f"\n[DATA REAL-TIME EWS JATENG]: {ews_data}\nInstruksi: Gunakan data di atas untuk menjawab kondisi lapangan."
 
     if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
