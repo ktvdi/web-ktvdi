@@ -17,9 +17,10 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 import urllib3
 
-# Matikan warning SSL
+# Matikan warning SSL agar request ke server pemerintah lancar
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# --- KONFIGURASI AWAL ---
 load_dotenv()
 
 app = Flask(__name__)
@@ -28,11 +29,12 @@ CORS(app)
 # 1. KONFIGURASI SESI
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
 # 2. KONEKSI FIREBASE
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
+        # Konfigurasi Cloud (Vercel)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -47,6 +49,7 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
+        # Konfigurasi Lokal
         if os.path.exists("credentials.json"):
             cred = credentials.Certificate("credentials.json")
         else:
@@ -66,7 +69,7 @@ except Exception as e:
     ref = None
     print(f"⚠️ STATUS: Mode Offline (DB Error: {e})")
 
-# 3. EMAIL
+# 3. KONFIGURASI EMAIL (SMTP GMAIL)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -75,7 +78,7 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# 4. AI GEMINI
+# 4. KONFIGURASI AI (GEMINI)
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
@@ -86,14 +89,18 @@ MODI_PROMPT = """
 Anda adalah MODI, Asisten Virtual Resmi dari KTVDI (Komunitas TV Digital Indonesia).
 Karakter: Profesional, Ramah, Solutif, dan Menggunakan Bahasa Indonesia Baku namun hangat.
 Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah Siaran.
+Jika ditanya soal bendungan, gunakan data EWS yang diberikan.
 """
 
 # ==========================================
 # 5. FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
-def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
-def normalize_input(text): return text.strip().lower() if text else ""
+def hash_password(pw): 
+    return hashlib.sha256(pw.encode()).hexdigest()
+
+def normalize_input(text): 
+    return text.strip().lower() if text else ""
 
 def format_indo_date(time_struct):
     if not time_struct: return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
@@ -117,11 +124,11 @@ def get_news_entries():
         ]
         for url in sources:
             try:
-                response = requests.get(url, headers=headers, timeout=3)
+                response = requests.get(url, headers=headers, timeout=4)
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        for entry in feed.entries[:8]: 
+                        for entry in feed.entries[:6]: 
                             if 'cnn' in url: entry['source_name'] = 'CNN Indonesia'
                             elif 'antara' in url: entry['source_name'] = 'Antara News'
                             else: entry['source_name'] = entry.get('source', {}).get('title', 'Google News')
@@ -145,38 +152,41 @@ def time_since_published(published_time):
     except: return "Baru saja"
 
 def get_quote_religi():
-    return {"muslim": ["Maka dirikanlah shalat..."], "universal": ["Integritas adalah kunci..."]}
+    return {
+        "muslim": [
+            "Maka dirikanlah shalat... (QS. An-Nisa: 103)",
+            "Jauhi korupsi sekecil apapun..."
+        ],
+        "universal": [
+            "Integritas adalah melakukan hal yang benar...",
+            "Damai di dunia dimulai dari damai di hati..."
+        ]
+    }
 
 def get_smart_fallback_response(text):
     text = text.lower()
     if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo']):
         return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu? <b>Ganti!</b> 👮‍♂️"
-    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat']):
-        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! ☕📻"
-    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman']):
-        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan! <i>Klik</i>, aman, selamat sampai tujuan. Salam Presisi! 🚗"
-    if any(x in text for x in ['digital', 'analog', 'semut']):
-        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih. Segera migrasi, tinggalkan semut di masa lalu! 📺"
-    if any(x in text for x in ['kanal', 'mux', 'frekuensi']):
-        return "<b>Monitor!</b> Data kanal lengkap ada di menu <b>Database</b>. Pastikan scan ulang secara berkala ya Ndan. <b>86?</b>"
     
     defaults = [
         "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah. <b>Ganti!</b> 👮‍♂️",
         "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem istirahat di tempat. Siap 86! 🫡",
-        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮",
-        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut. <b>Kijang satu ganti.</b> 📻"
+        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮"
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG (FIX PARSING JSON) ---
+# ==========================================
+# 6. LOGIKA EWS & BMKG (ROBUST & NORMALIZED)
+# ==========================================
 
 def get_bmkg_jateng_multi():
-    """Mengambil Cuaca 10 Kota Besar di Jateng"""
+    """Mengambil Cuaca 10 Kota Besar di Jateng (Pasti Tampil 10)"""
     target_cities = [
         "Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", 
         "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"
     ]
-    base_data = {city: {"kota": city, "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"} for city in target_cities}
+    # Default Data (Agar tidak kosong jika BMKG error)
+    base_data = {city: {"kota": city, "suhu": "30", "cuaca": "Cerah Berawan", "icon": "fa-cloud-sun"} for city in target_cities}
 
     try:
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
@@ -185,9 +195,11 @@ def get_bmkg_jateng_multi():
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
                 raw_name = area.get("description")
+                
+                # Cari kota yang cocok
                 matched_key = None
                 for key in base_data.keys():
-                    if key in raw_name:
+                    if key in raw_name: # misal "Semarang" in "Kota Semarang"
                         matched_key = key
                         break
                 
@@ -211,77 +223,104 @@ def get_bmkg_jateng_multi():
     
     return list(base_data.values())
 
-def fetch_ews_data():
+def normalize_dam_data(raw_data, source_type):
     """
-    Mengambil Data Bendungan dengan Struktur JSON yang Benar
-    Prioritas 1: API EWS Jateng (Struktur: { "data": [ ... ] })
-    Prioritas 2: Siaga Kranji (Struktur bisa bervariasi)
+    Menormalkan format data dari EWS Jateng dan Siaga Kranji
+    agar output ke HTML selalu konsisten.
     """
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept': 'application/json'
-    }
+    clean_data = []
     
-    # 1. SUMBER UTAMA: API EWS JATENG (FIX PARSING)
-    try:
-        # Gunakan pageSize kecil (200) agar cepat & tidak timeout
-        url_main = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
-        r = requests.get(url_main, headers=headers, timeout=8, verify=False)
-        
-        if r.status_code == 200:
-            json_response = r.json()
-            
-            # --- FIX LOGIKA PARSING BERDASARKAN CONTOH JSON NDAN ---
-            # Struktur JSON Ndan: { "data": [ {id:..}, {id:..} ], "total": ... }
-            # Jadi BUKAN json['data']['result'], TAPI LANGSUNG json['data']
-            
-            if 'data' in json_response:
-                data_list = json_response['data']
-                
-                # Cek jika data_list ternyata dictionary yang punya key 'result' (kasus lain)
-                if isinstance(data_list, dict) and 'result' in data_list:
-                    return data_list['result']
-                
-                # Jika langsung list, kembalikan langsung
-                if isinstance(data_list, list):
-                    return data_list
-                    
-    except Exception as e:
-        print(f"EWS Main Fail: {e}")
+    if source_type == 'kranji':
+        # Mapping untuk Siaga Kranji
+        for item in raw_data:
+            dam = {
+                'name': item.get('dam_name') or item.get('nama') or item.get('name') or "Bendungan",
+                'tma': item.get('tma') or item.get('tinggi_muka_air') or item.get('water_level') or 0,
+                'inflow': item.get('inflow') or item.get('debit_masuk') or 0,
+                'outflow': item.get('outflow') or item.get('debit_keluar') or 0,
+                'status_alert': item.get('status') or item.get('status_siaga') or 'Normal',
+                'updated_at_wib': item.get('updated_at') or datetime.now().strftime('%d-%m-%Y %H:%M'),
+                'regency_name': item.get('kabupaten') or 'Jawa Tengah'
+            }
+            clean_data.append(dam)
 
-    # 2. SUMBER CADANGAN: SIAGA KRANJI
+    elif source_type == 'ews':
+        # Mapping untuk EWS Jateng (Struktur JSON yg Ndan kasih)
+        for item in raw_data:
+            latest = item.get('latest_debit_report')
+            
+            # Ambil nilai limpas/TMA. Jika latest ada, ambil dari situ. Jika tidak, ambil default.
+            tma_val = 0
+            if latest: tma_val = latest.get('limpas', 0)
+            
+            # Ambil status
+            status_val = 'Normal'
+            if latest: status_val = latest.get('status', 'Normal')
+            
+            # Ambil waktu
+            waktu = datetime.now().strftime('%d-%m-%Y %H:%M')
+            if latest and latest.get('created_at'):
+                try:
+                    # Format EWS biasanya ISO 8601
+                    dt = datetime.strptime(latest['created_at'].split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                    waktu = dt.strftime("%d-%m-%Y %H:%M")
+                except: pass
+
+            dam = {
+                'name': item.get('dam_name') or item.get('river_name') or "Bendungan",
+                'tma': tma_val,
+                'inflow': latest.get('debit', 0) if latest else 0,
+                'outflow': latest.get('debit_ke_saluran_induk', 0) if latest else 0,
+                'status_alert': status_val,
+                'updated_at_wib': waktu,
+                'regency_name': item.get('river_name') or 'Jawa Tengah' # Pakai nama sungai sbg lokasi jika kab kosong
+            }
+            clean_data.append(dam)
+            
+    return clean_data
+
+def fetch_ews_data():
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    
+    # 1. PRIORITAS UTAMA: SIAGA KRANJI (BACKUP JADI UTAMA)
+    # Karena Ndan bilang ini lebih update
     try:
         ts = int(time.time() * 1000)
-        url_backup = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
-        r = requests.get(url_backup, headers=headers, timeout=6, verify=False)
+        url_kranji = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
         
+        r = requests.get(url_kranji, headers=headers, timeout=6, verify=False)
         if r.status_code == 200:
-            data = r.json()
-            # Parsing fleksibel untuk backup
-            if isinstance(data, list): return data
-            if isinstance(data, dict):
-                if 'data' in data: return data['data']
-                if 'result' in data: return data['result']
-                # Jika dict tunggal, bungkus list
-                return [data]
+            raw = r.json()
+            data_list = raw.get('result', []) if isinstance(raw, dict) else raw
+            if data_list:
+                return normalize_dam_data(data_list, 'kranji')
     except Exception as e:
         print(f"Kranji Fail: {e}")
 
-    return [] # Jika semua gagal
+    # 2. PRIORITAS KEDUA: EWS JATENG (OFFICIAL)
+    try:
+        # Gunakan pageSize 200 (Bukan 10 juta) agar tidak timeout
+        url_ews = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
+        r = requests.get(url_ews, headers=headers, timeout=9, verify=False)
+        if r.status_code == 200:
+            json_data = r.json()
+            if 'data' in json_data:
+                # EWS Jateng mengembalikan list di dalam key 'data'
+                return normalize_dam_data(json_data['data'], 'ews')
+    except Exception as e:
+        print(f"EWS Jateng Fail: {e}")
+
+    return []
 
 def get_ews_summary_text():
     data = fetch_ews_data()
     if data:
-        # Perbaikan deteksi status (case insensitive)
-        siaga = [
-            d.get('name', 'Bendungan') for d in data 
-            if any(s in str(d.get('status_alert', '')).lower() for s in ['siaga', 'awas'])
-        ]
+        siaga = [d['name'] for d in data if 'Siaga' in d['status_alert'] or 'Awas' in d['status_alert']]
         return f"Pantauan EWS: Total {len(data)} bendungan. {len(siaga)} status BAHAYA."
     return "Data EWS sedang gangguan."
 
 # ==========================================
-# 6. ROUTE UTAMA
+# 7. ROUTE LENGKAP
 # ==========================================
 
 @app.route("/", methods=['GET'])
@@ -349,17 +388,16 @@ def register():
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
             msg = Message("Verifikasi Akun KTVDI", recipients=[e])
-            msg.body = f"""Yth. Bapak/Ibu/Saudara {n},
+            msg.body = f"""Yth. Calon Anggota KTVDI,
 
-Terima kasih atas pendaftaran Anda di Komunitas TV Digital Indonesia (KTVDI).
+Terima kasih telah mendaftar. Berikut adalah kode verifikasi (OTP) Anda:
 
-Kode Verifikasi (OTP) Anda:
 [ {otp} ]
 
-⚠️ PENTING: Kode ini hanya BERLAKU 1 MENIT. Mohon segera masukkan.
+⚠️ PENTING: Kode ini hanya berlaku selama 1 MENIT demi keamanan data Anda.
 
 Hormat Kami,
-Tim Admin KTVDI
+Tim IT KTVDI
 """
             mail.send(msg)
             session["pending_username"] = u
@@ -527,11 +565,15 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN & BMKG (ROUTE FIX) ---
+# --- EWS BENDUNGAN & BMKG (ROBUST MODE) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
-    dams = fetch_ews_data() # Memanggil fungsi Dual-Source (Utama -> Backup)
-    cuaca_list = get_bmkg_jateng_multi() # Memanggil fungsi 10 Kota
+    # 1. Ambil Data Bendungan (Prioritas: Kranji -> EWS Jateng)
+    dams = fetch_ews_data()
+    
+    # 2. Ambil Data Cuaca (10 Kota)
+    cuaca_list = get_bmkg_jateng_multi()
+    
     return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
 @app.route('/api/chat', methods=['POST'])
@@ -555,7 +597,7 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # LIST 70+ KOTA
+    # LIST 70+ KOTA (LENGKAP)
     kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
         "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi",
         "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
