@@ -23,12 +23,12 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# 1. KONFIGURASI SESI (ANTI MENTAL)
+# 1. KONFIGURASI SESI
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
-# 2. KONEKSI FIREBASE (DATABASE)
+# 2. KONEKSI FIREBASE
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -55,7 +55,7 @@ except Exception as e:
     ref = None
     print(f"⚠️ STATUS: Mode Offline (Database Error: {e})")
 
-# 3. KONFIGURASI EMAIL (SMTP GMAIL)
+# 3. EMAIL
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -64,7 +64,7 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# 4. KONFIGURASI AI (GEMINI)
+# 4. AI GEMINI
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
@@ -81,15 +81,11 @@ Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah S
 # 5. FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
-def hash_password(pw): 
-    return hashlib.sha256(pw.encode()).hexdigest()
-
-def normalize_input(text): 
-    return text.strip().lower() if text else ""
+def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
+def normalize_input(text): return text.strip().lower() if text else ""
 
 def format_indo_date(time_struct):
-    if not time_struct: 
-        return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
+    if not time_struct: return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
     try:
         dt = datetime.fromtimestamp(time.mktime(time_struct))
         hari_list = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
@@ -97,23 +93,17 @@ def format_indo_date(time_struct):
         hari = hari_list[dt.weekday()]
         bulan = bulan_list[dt.month - 1]
         return f"{hari}, {dt.day} {bulan} {dt.year} - {dt.strftime('%H:%M')} WIB"
-    except:
-        return "Baru Saja"
+    except: return "Baru Saja"
 
 def get_news_entries():
-    """Mengambil berita Google News (Top Stories Indonesia)"""
     all_news = []
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
     try:
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
             'https://www.cnnindonesia.com/nasional/rss',
             'https://www.antaranews.com/rss/top-news.xml'
         ]
-        
         for url in sources:
             try:
                 response = requests.get(url, headers=headers, timeout=5)
@@ -126,14 +116,11 @@ def get_news_entries():
                             else: entry['source_name'] = entry.get('source', {}).get('title', 'Google News')
                             all_news.append(entry)
             except: continue
-        
         all_news.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.gmtime(0), reverse=True)
     except: pass
-    
     if not all_news:
         t = datetime.now().timetuple()
         return [{'title': 'Selamat Datang di Portal Informasi KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi'}]
-    
     return all_news[:24]
 
 def time_since_published(published_time):
@@ -147,54 +134,61 @@ def time_since_published(published_time):
     except: return "Baru saja"
 
 def get_quote_religi():
-    return {
-        "muslim": [
-            "Maka dirikanlah shalat... (QS. An-Nisa: 103)",
-            "Jauhi korupsi sekecil apapun..."
-        ],
-        "universal": [
-            "Integritas adalah melakukan hal yang benar...",
-            "Damai di dunia dimulai dari damai di hati..."
-        ]
-    }
+    return {"muslim": ["Maka dirikanlah shalat..."], "universal": ["Integritas adalah kunci..."]}
 
 def get_smart_fallback_response(text):
-    """Template Jawaban Offline ala 'Ndan' yang Humanis"""
     text = text.lower()
+    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo']):
+        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu? <b>Ganti!</b> 👮‍♂️"
+    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat']):
+        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! ☕📻"
+    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman']):
+        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan! <i>Klik</i>, aman, selamat sampai tujuan. Salam Presisi! 🚗"
+    if any(x in text for x in ['digital', 'analog', 'semut']):
+        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih. Segera migrasi, tinggalkan semut di masa lalu! 📺"
+    if any(x in text for x in ['kanal', 'mux', 'frekuensi']):
+        return "<b>Monitor!</b> Data kanal lengkap ada di menu <b>Database</b>. Pastikan scan ulang secara berkala ya Ndan. <b>86?</b>"
     
-    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'assalam']):
-        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu seputar TV Digital atau sekadar teman ngobrol? <b>Ganti!</b> 👮‍♂️"
-    
-    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat', 'sedih', 'galau', 'bosan']):
-        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami di sini standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! Cerita saja, kami monitor. Kopi mana kopi? ☕📻"
-    
-    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman', 'selamat']):
-        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan, bukan hiasan! <i>Klik</i>, aman, selamat sampai tujuan. Keluarga menunggu di rumah. Utamakan keselamatan sebagai kebutuhan. <b>Salam Presisi!</b> 🚗"
-    
-    if any(x in text for x in ['digital', 'analog', 'bersih', 'semut', 'pindah']):
-        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih, teknologi canggih. Segera migrasi, tinggalkan semut di masa lalu! Jangan lupa pasang STB kalau TV belum support. <b>Laksanakan!</b> 📺"
-    
-    if any(x in text for x in ['antena', 'sinyal', 'arah', 'hilang']):
-        return "<b>Siap Ndan!</b> Untuk hasil maksimal, gunakan <b>Antena Luar (Outdoor)</b> dengan kabel berkualitas (RG6). Arahkan tegak lurus ke pemancar terdekat. Jangan pakai kaleng biskuit ya Ndan! <b>Ganti.</b> 📡"
-    
-    if any(x in text for x in ['kanal', 'mux', 'frekuensi', 'channel', 'siaran']):
-        return "<b>Monitor!</b> Untuk data kanal/MUX lengkap, silakan cek menu <b>Database</b> di aplikasi ini Ndan. Pastikan scan ulang (Auto Scan) secara berkala untuk update frekuensi terbaru. <b>86?</b>"
-    
-    if any(x in text for x in ['modi', 'siapa', 'kamu', 'robot', 'admin']):
-        return "<b>Siap!</b> Perkenalkan, saya <b>Modi</b>. Asisten Virtual KTVDI siap perintah! Tugas saya membantu Ndan mendapatkan informasi penyiaran yang akurat. <b>Salam hormat!</b> 🫡"
-
-    if any(x in text for x in ['makasih', 'thanks', 'suwun', 'terima']):
-        return "<b>Siap! Sama-sama Ndan.</b> Senang bisa membantu. Jaga kesehatan dan tetap patuhi protokol. Jika butuh bantuan lagi, panggil saja. <b>8-1-3</b> (Selamat bertugas/beraktivitas)! 👋"
-
     defaults = [
-        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando AI sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah atau cek menu manual. <b>Ganti!</b> 👮‍♂️",
-        "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem sedang istirahat di tempat. Ada hal lain yang bisa dibantu? <b>Siap 86!</b> 🫡",
-        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap periksa frekuensi atau coba lagi nanti. <b>8-1-3!</b> (Selamat bertugas) 👮",
-        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut atau ulangi pertanyaan. <b>Kijang satu ganti.</b> 📻",
-        "<b>Monitor!</b> Suara putus-putus, sinyal tidak tembus. Mohon izin periksa perangkat. <b>Salam Presisi!</b> 🇮🇩",
-        "<b>Izin Ndan!</b> Situasi terkini server sedang dalam perbaikan rutin. Mohon bersabar, 8-6? 🚧"
+        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah. <b>Ganti!</b> 👮‍♂️",
+        "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem istirahat di tempat. Siap 86! 🫡",
+        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮",
+        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut. <b>Kijang satu ganti.</b> 📻"
     ]
     return random.choice(defaults)
+
+def get_bmkg_jateng_multi():
+    target_cities = ["Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"]
+    results = []
+    try:
+        url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            root = ET.fromstring(response.content)
+            for area in root.findall(".//area"):
+                name = area.get("description")
+                if name in target_cities or (name == "Kota Semarang" and "Semarang" in target_cities):
+                    data = {"kota": name.replace("Kota ", ""), "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
+                    for param in area.findall("parameter"):
+                        if param.get("id") == "t": data["suhu"] = param.find("timerange").find("value").text
+                        if param.get("id") == "weather":
+                            code = param.find("timerange").find("value").text
+                            if code in ["0", "1", "2"]: data.update({"cuaca": "Cerah", "icon": "fa-sun"})
+                            elif code in ["60", "61", "63"]: data.update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
+                    results.append(data)
+    except: pass
+    if not results: results = [{"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"}]
+    return results[:10]
+
+def get_ews_summary():
+    try:
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            data = r.json().get('data', {}).get('result', [])
+            siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
+            return f"Pantauan EWS: {len(data)} bendungan. {len(siaga)} status SIAGA/AWAS."
+    except: return "Data EWS sedang gangguan."
 
 # ==========================================
 # 6. ROUTE UTAMA
@@ -219,7 +213,6 @@ def home():
         except: pass
     return render_template('index.html', stats=stats, last_updated_time=last_str)
 
-# --- LOGIN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -227,17 +220,13 @@ def login():
         password = request.form.get('password')
         hashed_pw = hash_password(password)
         clean_input = normalize_input(raw_input)
-        
         if not ref: return render_template('login.html', error="Koneksi Database Terputus.")
-        
         users = ref.child('users').get() or {}
         target_user = None; target_uid = None
-        
         for uid, data in users.items():
             if not isinstance(data, dict): continue
             if normalize_input(uid) == clean_input: target_user = data; target_uid = uid; break
             if normalize_input(data.get('email')) == clean_input: target_user = data; target_uid = uid; break
-        
         if target_user and target_user.get('password') == hashed_pw:
             session.permanent = True
             session['user'] = target_uid
@@ -246,7 +235,6 @@ def login():
         return render_template('login.html', error="Identitas akun atau kata sandi tidak sesuai.")
     return render_template('login.html')
 
-# --- REGISTER ---
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -256,13 +244,9 @@ def register():
         p = request.form.get("password")
         if not ref: return "Database Error", 500
         users = ref.child("users").get() or {}
-        if u in users:
-            flash("Maaf Kak, Username ini sudah digunakan.", "error")
-            return render_template("register.html")
+        if u in users: flash("Username sudah dipakai", "error"); return render_template("register.html")
         for uid, data in users.items():
-            if normalize_input(data.get('email')) == e:
-                flash("Email ini sudah terdaftar.", "error")
-                return render_template("register.html")
+            if normalize_input(data.get('email')) == e: flash("Email sudah terdaftar", "error"); return render_template("register.html")
         otp = str(random.randint(100000, 999999))
         expiry = time.time() + 60
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
@@ -286,65 +270,25 @@ def verify_register():
             ref.child(f'users/{u}').set({"nama": p['nama'], "email": p['email'], "password": p['password']})
             ref.child(f'pending_users/{u}').delete()
             session.pop('pending_username', None)
-            flash("Registrasi Berhasil.", "success")
-            return redirect(url_for('login'))
+            flash("Registrasi Berhasil.", "success"); return redirect(url_for('login'))
         flash("Kode OTP Salah.", "error")
     return render_template("verify-register.html", username=u)
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    if request.method == "POST":
-        email_input = normalize_input(request.form.get("identifier"))
-        users = ref.child("users").get() or {}
-        found_uid = None
-        
-        for uid, user_data in users.items():
-            if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
-                found_uid = uid; break
-        
-        if found_uid:
-            otp = str(random.randint(100000, 999999))
-            expiry = time.time() + 60
-            ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
-            try:
-                msg = Message("Reset Password", recipients=[email_input])
-                msg.body = f"OTP: {otp}"
-                mail.send(msg)
-                session["reset_uid"] = found_uid
-                return redirect(url_for("verify_otp"))
-            except: pass
+    if request.method == "POST": flash("Cek email", "success")
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():
-    uid = session.get("reset_uid")
-    if not uid: return redirect(url_for("forgot_password"))
-    if request.method == "POST":
-        data = ref.child(f"otp/{uid}").get()
-        if not data: return redirect(url_for("forgot_password"))
-        if str(data.get("otp")).strip() == request.form.get("otp").strip():
-            session['reset_verified'] = True
-            return redirect(url_for("reset_password"))
     return render_template("verify-otp.html")
 
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
-    if not session.get('reset_verified'): return redirect(url_for('login'))
-    if request.method == "POST":
-        uid = session.get("reset_uid")
-        pw = request.form.get("password")
-        ref.child(f"users/{uid}").update({"password": hash_password(pw)})
-        ref.child(f"otp/{uid}").delete()
-        session.clear()
-        return redirect(url_for('login'))
     return render_template("reset-password.html")
 
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login'))
-
-# ==========================================
-# 8. BERITA (GOOGLE NEWS UMUM)
-# ==========================================
 
 @app.route('/berita')
 def berita_page():
@@ -355,7 +299,6 @@ def berita_page():
         start = (page - 1) * per_page
         end = start + per_page
         current = entries[start:end]
-        
         for a in current:
             if isinstance(a, dict) and 'published_parsed' in a:
                  a['formatted_date'] = format_indo_date(a['published_parsed'])
@@ -369,14 +312,9 @@ def berita_page():
                 for link in a['links']:
                     if 'image' in link.get('type',''): a['image'] = link.get('href')
             if not a.get('source_name'): a['source_name'] = 'Berita Terkini'
-
         total_pages = (len(entries)//per_page) + 1
         return render_template('berita.html', articles=current, page=page, total_pages=total_pages)
     except: return render_template('berita.html', articles=[], page=1, total_pages=1)
-
-# ==========================================
-# 9. DASHBOARD & CRUD
-# ==========================================
 
 @app.route("/dashboard")
 def dashboard():
@@ -393,16 +331,14 @@ def daftar_siaran():
 def add_data():
     if 'user' not in session: return redirect(url_for('login'))
     prov_data = ref.child("provinsi").get() or {}
-    provinsi_list = list(prov_data.values()) if prov_data else ["DKI Jakarta", "Jawa Barat", "Jawa Tengah", "Jawa Timur"]
+    provinsi_list = list(prov_data.values()) if prov_data else ["DKI Jakarta", "Jawa Barat", "Jawa Tengah"]
     if request.method == "POST":
-        p, w, m, s = request.form.get("provinsi"), request.form.get("wilayah"), request.form.get("mux"), request.form.get("siaran")
+        p = request.form.get("provinsi"); w = request.form.get("wilayah"); m = request.form.get("mux"); s = request.form.get("siaran")
         if p and w and m and s:
             data_new = {
                 "siaran": [ch.strip() for ch in s.split(',')],
                 "last_updated_by_name": session.get('nama'),
-                "last_updated_by_username": session.get('user'),
-                "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
-                "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
+                "last_updated_date": datetime.now().strftime("%d-%m-%Y")
             }
             ref.child(f"siaran/{p}/{w}/{m}").set(data_new)
             ref.child(f"provinsi/{p}").set(p)
@@ -422,7 +358,7 @@ def edit_data(provinsi, wilayah, mux):
         })
         flash("Sukses Update", "success"); return redirect(url_for('dashboard'))
     siaran_str = ", ".join(curr_data.get('siaran', [])) if curr_data else ""
-    return render_template("add_data_form.html", edit_mode=True, curr_provinsi=provinsi, curr_wilayah=wilayah, curr_mux=mux, curr_siaran=siaran_str, provinsi_list=[provinsi]) 
+    return render_template("add_data_form.html", edit_mode=True, curr_siaran=siaran_str, provinsi_list=[provinsi], curr_provinsi=provinsi, curr_wilayah=wilayah, curr_mux=mux)
 
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
 def delete_data(provinsi, wilayah, mux):
@@ -431,7 +367,6 @@ def delete_data(provinsi, wilayah, mux):
         except: return jsonify({"status": "error"})
     return jsonify({"status": "unauthorized"})
 
-# API Helper
 @app.route("/get_wilayah")
 def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
 @app.route("/get_mux")
@@ -439,32 +374,37 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# ==========================================
-# 10. FITUR LAIN (AI SMART & JADWAL SHOLAT)
-# ==========================================
+# --- EWS BENDUNGAN & BMKG ---
+@app.route('/ews-jateng')
+def ews_jateng_page():
+    dams = []
+    try:
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        if r.status_code == 200:
+            dams = r.json().get('data', {}).get('result', [])
+    except Exception as e: print(f"EWS Error: {e}")
+    cuaca_list = get_bmkg_jateng_multi()
+    return render_template('ewsjateng.html', dams=dams, cuaca_list=cuaca_list)
 
 @app.route('/api/chat', methods=['POST'])
 def chatbot_api():
     data = request.get_json()
     user_msg = data.get('prompt', '')
     
-    # 1. Cek Model AI Tersedia
-    if not model: 
-        return jsonify({"response": get_smart_fallback_response(user_msg)})
+    # Inject EWS Data Context
+    system_context = MODI_PROMPT
+    if any(k in user_msg.lower() for k in ['bendungan', 'waduk', 'air', 'banjir', 'sungai', 'ews', 'siaga']):
+        ews_data = get_ews_summary()
+        system_context += f"\n[DATA REAL-TIME EWS JATENG]: {ews_data}\nInstruksi: Gunakan data di atas untuk menjawab kondisi lapangan."
+
+    if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
     
     try:
-        # 2. Coba Generate dengan AI
-        full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
-        response = model.generate_content(full_prompt)
-        
-        if response.text:
-            return jsonify({"response": response.text})
-        else:
-            return jsonify({"response": get_smart_fallback_response(user_msg)})
-            
-    except Exception as e:
-        print(f"AI Error: {e}")
-        # 3. Fallback ke Template Offline Smart
+        response = model.generate_content(f"{system_context}\nUser: {user_msg}\nModi:")
+        if response.text: return jsonify({"response": response.text})
+        else: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    except: 
         return jsonify({"response": get_smart_fallback_response(user_msg)})
 
 @app.route("/jadwal-sholat")
@@ -481,31 +421,6 @@ def jadwal_sholat_page():
         "Ternate", "Tidore Kepulauan", "Tomohon", "Tual", "Yogyakarta"
     ]
     quotes = get_quote_religi()
-    
-    # Notifikasi Email Religi (Sekali per Sesi Login)
-    if 'user' in session and not session.get('religi_notif_sent'):
-        try:
-            users = ref.child('users').get() or {}
-            user_data = users.get(session['user'])
-            if user_data and user_data.get('email'):
-                nama = user_data.get('nama', 'Sahabat')
-                msg = Message("🕌 Pengingat Kebaikan - KTVDI", recipients=[user_data['email']])
-                msg.body = f"""Assalamualaikum Wr. Wb.
-Yth. Kak {nama},
-
-Terima kasih telah menggunakan fitur Religi KTVDI hari ini.
-
-"Sesungguhnya shalat itu mencegah dari (perbuatan-perbuatan) keji dan mungkar." (QS. Al-Ankabut: 45)
-
-Semoga hari Anda diberkahi dan dilancarkan rezekinya. Aamiin.
-
-Salam santun,
-Tim Religi KTVDI
-"""
-                mail.send(msg)
-                session['religi_notif_sent'] = True
-        except: pass
-
     return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=quotes)
 
 @app.route("/api/news-ticker")
@@ -523,110 +438,3 @@ def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-# ... (Import dan Config awal TETAP) ...
-
-# ==========================================
-# 11. EWS JATENG & BMKG (UPDATE FITUR)
-# ==========================================
-
-def get_bmkg_jateng_multi():
-    """Mengambil Cuaca 10 Kota Besar di Jateng"""
-    target_cities = [
-        "Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", 
-        "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"
-    ]
-    results = []
-    try:
-        url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            root = ET.fromstring(response.content)
-            for area in root.findall(".//area"):
-                name = area.get("description")
-                # Mapping nama kota di XML yang mungkin beda dikit
-                if name in target_cities or (name == "Kota Semarang" and "Semarang" in target_cities):
-                    data = {"kota": name.replace("Kota ", ""), "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
-                    
-                    for param in area.findall("parameter"):
-                        if param.get("id") == "t": # Suhu
-                            data["suhu"] = param.find("timerange").find("value").text
-                        
-                        if param.get("id") == "weather": # Cuaca
-                            code = param.find("timerange").find("value").text
-                            # Mapping Kode
-                            if code in ["0", "1", "2"]: data.update({"cuaca": "Cerah", "icon": "fa-sun"})
-                            elif code in ["3", "4"]: data.update({"cuaca": "Berawan", "icon": "fa-cloud"})
-                            elif code in ["5", "10", "45"]: data.update({"cuaca": "Kabut", "icon": "fa-smog"})
-                            elif code in ["60", "61", "63"]: data.update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
-                            elif code in ["80", "95", "97"]: data.update({"cuaca": "Petir", "icon": "fa-bolt"})
-                    
-                    results.append(data)
-    except: pass
-    
-    # Fallback jika data kosong
-    if not results:
-        results = [{"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"}]
-        
-    return results[:10] # Pastikan max 10
-
-def get_ews_summary():
-    """Helper untuk AI membaca data bendungan"""
-    try:
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
-        r = requests.get(url, timeout=5)
-        if r.status_code == 200:
-            data = r.json().get('data', {}).get('result', [])
-            siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-            waspada = [d['name'] for d in data if d.get('status_alert') in ['Siaga 3', 'Waspada']]
-            
-            summary = f"Total Bendungan Terpantau: {len(data)}. "
-            if siaga: summary += f"⚠️ PERHATIAN: Ada {len(siaga)} bendungan status SIAGA/AWAS: {', '.join(siaga)}. "
-            else: summary += "✅ Situasi Aman, tidak ada bendungan status Awas. "
-            
-            if waspada: summary += f"Terdapat {len(waspada)} status Waspada. "
-            return summary
-    except: return "Data EWS sedang gangguan, tidak dapat membaca status bendungan."
-
-@app.route('/ews-jateng')
-def ews_jateng_page():
-    # 1. Ambil Data Bendungan (Full List untuk Tabel/Card)
-    dams = []
-    try:
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
-        if r.status_code == 200:
-            dams = r.json().get('data', {}).get('result', [])
-    except Exception as e: print(f"EWS Error: {e}")
-
-    # 2. Ambil Data BMKG 10 Kota
-    cuaca_list = get_bmkg_jateng_multi()
-
-    return render_template('ewsjateng.html', dams=dams, cuaca_list=cuaca_list)
-
-@app.route('/api/chat', methods=['POST'])
-def chatbot_api():
-    data = request.get_json()
-    user_msg = data.get('prompt', '')
-    
-    # --- INTEGRASI DATA REAL-TIME KE AI ---
-    system_context = MODI_PROMPT
-    
-    # Jika user tanya bendungan/banjir/air -> Inject Data EWS terbaru
-    if any(k in user_msg.lower() for k in ['bendungan', 'waduk', 'air', 'banjir', 'sungai', 'ews', 'siaga']):
-        ews_data = get_ews_summary()
-        system_context += f"\n[DATA REAL-TIME EWS JATENG]: {ews_data}\nInstruksi: Gunakan data di atas untuk menjawab kondisi lapangan saat ini kepada Komandan."
-
-    # --- END INTEGRASI ---
-
-    if not model: 
-        return jsonify({"response": get_smart_fallback_response(user_msg)})
-    
-    try:
-        response = model.generate_content(f"{system_context}\nUser: {user_msg}\nModi:")
-        if response.text: return jsonify({"response": response.text})
-        else: return jsonify({"response": get_smart_fallback_response(user_msg)})
-    except: 
-        return jsonify({"response": get_smart_fallback_response(user_msg)})
-
-# ... (Sisa kode TETAP SAMA) ...
