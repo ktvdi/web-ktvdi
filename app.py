@@ -28,7 +28,7 @@ app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
 
-# 2. KONEKSI FIREBASE (SAFE MODE)
+# 2. KONEKSI FIREBASE
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
         cred = credentials.Certificate({
@@ -45,22 +45,12 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        # Cek apakah file ada sebelum load untuk menghindari crash lokal
-        if os.path.exists("credentials.json"):
-            cred = credentials.Certificate("credentials.json")
-        else:
-            cred = None
+        cred = credentials.Certificate("credentials.json")
     
-    if cred and not firebase_admin._apps:
+    if not firebase_admin._apps:
         firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
-    
-    if firebase_admin._apps:
-        ref = db.reference('/')
-        print("✅ STATUS: Database KTVDI Terhubung.")
-    else:
-        ref = None
-        print("⚠️ STATUS: Firebase credentials tidak ditemukan.")
-
+    ref = db.reference('/')
+    print("✅ STATUS: Database KTVDI Terhubung.")
 except Exception as e:
     ref = None
     print(f"⚠️ STATUS: Mode Offline (DB Error: {e})")
@@ -114,14 +104,13 @@ def get_news_entries():
             'https://www.cnnindonesia.com/nasional/rss',
             'https://www.antaranews.com/rss/top-news.xml'
         ]
-        # Timeout dipercepat agar tidak crash Vercel
         for url in sources:
             try:
                 response = requests.get(url, headers=headers, timeout=3)
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        for entry in feed.entries[:6]: 
+                        for entry in feed.entries[:8]: 
                             if 'cnn' in url: entry['source_name'] = 'CNN Indonesia'
                             elif 'antara' in url: entry['source_name'] = 'Antara News'
                             else: entry['source_name'] = entry.get('source', {}).get('title', 'Google News')
@@ -168,20 +157,26 @@ def get_smart_fallback_response(text):
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG (SAFE MODE) ---
+# --- HELPERS EWS & BMKG (OPTIMIZED FOR VERCEL) ---
 def get_bmkg_jateng_multi():
-    target_cities = ["Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"]
+    """Mengambil Cuaca 10 Kota Besar di Jateng"""
+    target_cities = [
+        "Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", 
+        "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"
+    ]
     results = []
     try:
-        # Timeout max 5 detik agar tidak crash
+        # Timeout 5 detik agar tidak menghabiskan waktu Vercel
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
         response = requests.get(url, timeout=5) 
         if response.status_code == 200:
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
                 name = area.get("description")
-                if name in target_cities or (name == "Kota Semarang" and "Semarang" in target_cities):
-                    data = {"kota": name.replace("Kota ", ""), "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
+                # Normalize names (e.g., "Kota Semarang" -> "Semarang")
+                clean_name = name.replace("Kota ", "")
+                if clean_name in target_cities or name in target_cities:
+                    data = {"kota": clean_name, "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
                     for param in area.findall("parameter"):
                         timerange = param.find("timerange")
                         if timerange is not None:
@@ -200,19 +195,23 @@ def get_bmkg_jateng_multi():
     except Exception as e:
         print(f"BMKG Error: {e}") 
     
+    # Fallback jika gagal (agar tampilan tidak kosong)
     if not results:
-        results = [{"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"}]
+        results = [
+            {"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"},
+            {"kota": "Surakarta", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"}
+        ]
     return results[:10]
 
 def get_ews_summary():
+    """Versi ringan untuk AI Context"""
     try:
-        # Timeout 8 detik. Jika >10 detik Vercel akan kill process (Crash).
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
-        r = requests.get(url, timeout=8)
+        r = requests.get(url, timeout=5) # Timeout pendek untuk AI
         if r.status_code == 200:
             data = r.json().get('data', {}).get('result', [])
             siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-            return f"Pantauan EWS: {len(data)} bendungan. {len(siaga)} status SIAGA/AWAS."
+            return f"Pantauan EWS: Total {len(data)} bendungan terdeteksi. {len(siaga)} status SIAGA/AWAS."
     except: return "Data EWS sedang gangguan."
 
 # ==========================================
@@ -276,16 +275,30 @@ def register():
             if normalize_input(data.get('email')) == e:
                 flash("Email ini sudah terdaftar.", "error")
                 return render_template("register.html")
+        
+        # OTP 1 MENIT
         otp = str(random.randint(100000, 999999))
-        expiry = time.time() + 60
+        expiry = time.time() + 60 
+        
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
-            msg = Message("Verifikasi Akun KTVDI", recipients=[e])
-            msg.body = f"Kode OTP Anda: {otp}"
+            msg = Message("KTVDI: Verifikasi Pendaftaran Akun", recipients=[e])
+            msg.body = f"""Yth. Calon Anggota KTVDI,
+
+Terima kasih telah mendaftar. Berikut adalah kode verifikasi (OTP) Anda:
+
+[ {otp} ]
+
+⚠️ PENTING: Kode ini hanya berlaku selama 1 MENIT demi keamanan data Anda.
+Mohon tidak membagikan kode ini kepada siapa pun.
+
+Hormat Kami,
+Tim IT KTVDI
+"""
             mail.send(msg)
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
-        except: flash("Gagal kirim email.", "error")
+        except: flash("Gagal kirim email. Pastikan email aktif.", "error")
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
@@ -295,15 +308,17 @@ def verify_register():
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
         if not p: return redirect(url_for("register"))
+        
         if time.time() > p.get('expiry', 0):
-            flash("Kode OTP telah kedaluwarsa (Lewat 1 Menit).", "error")
+            flash("Kode OTP telah kedaluwarsa (Lebih dari 1 Menit). Silakan daftar ulang.", "error")
             ref.child(f'pending_users/{u}').delete()
             return redirect(url_for("register"))
+
         if str(p.get('otp')).strip() == request.form.get("otp").strip():
             ref.child(f'users/{u}').set({"nama": p['nama'], "email": p['email'], "password": p['password']})
             ref.child(f'pending_users/{u}').delete()
             session.pop('pending_username', None)
-            flash("Registrasi Berhasil.", "success")
+            flash("Registrasi Berhasil. Silakan Login.", "success")
             return redirect(url_for('login'))
         flash("Kode OTP Salah.", "error")
     return render_template("verify-register.html", username=u)
@@ -314,20 +329,36 @@ def forgot_password():
         email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
         found_uid = None
+        
         for uid, user_data in users.items():
             if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
                 found_uid = uid; break
+        
         if found_uid:
             otp = str(random.randint(100000, 999999))
-            expiry = time.time() + 60
+            expiry = time.time() + 60 # 1 MENIT
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
-                msg = Message("Reset Password", recipients=[email_input])
-                msg.body = f"OTP: {otp}"
+                msg = Message("KTVDI: Reset Password", recipients=[email_input])
+                msg.body = f"""Yth. Pengguna KTVDI,
+
+Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.
+
+Kode OTP Anda:
+[ {otp} ]
+
+⚠️ PENTING: Kode ini hanya berlaku 1 MENIT.
+
+Jika Anda tidak melakukan permintaan ini, abaikan email ini.
+
+Tim Keamanan KTVDI
+"""
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
-            except: pass
+            except: flash("Gagal kirim email.", "error")
+        else:
+            flash("Email tidak ditemukan.", "error")
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -337,9 +368,11 @@ def verify_otp():
     if request.method == "POST":
         data = ref.child(f"otp/{uid}").get()
         if not data: return redirect(url_for("forgot_password"))
+        
         if time.time() > data.get('expiry', 0):
-            flash("Kode OTP Kedaluwarsa.", "error")
+            flash("Kode OTP Kedaluwarsa (Lewat 1 Menit).", "error")
             return redirect(url_for("forgot_password"))
+
         if str(data.get("otp")).strip() == request.form.get("otp").strip():
             session['reset_verified'] = True
             return redirect(url_for("reset_password"))
@@ -349,12 +382,13 @@ def verify_otp():
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     if not session.get('reset_verified'): return redirect(url_for('login'))
+    uid = session.get("reset_uid")
     if request.method == "POST":
-        uid = session.get("reset_uid")
         pw = request.form.get("password")
         ref.child(f"users/{uid}").update({"password": hash_password(pw)})
         ref.child(f"otp/{uid}").delete()
         session.clear()
+        flash("Password berhasil diubah. Silakan login.", "success")
         return redirect(url_for('login'))
     return render_template("reset-password.html")
 
@@ -448,13 +482,13 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN & BMKG (ROUTE FIX) ---
+# --- EWS BENDUNGAN & BMKG (ROBUST MODE) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
     dams = []
     try:
-        # Timeout 9 Detik (Agar tidak crash di Vercel 10s limit)
-        # PageSize 10000 (Sesuai permintaan)
+        # Timeout 9s agar Vercel tidak mematikan proses (Limit 10s)
+        # PageSize 10000 untuk ambil SEMUA data
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=10000"
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=9)
         if r.status_code == 200:
@@ -462,7 +496,6 @@ def ews_jateng_page():
     except Exception as e: print(f"EWS Error: {e}")
     
     cuaca_list = get_bmkg_jateng_multi()
-    # PENTING: Nama file harus sesuai ews-jateng.html (pake strip)
     return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
 @app.route('/api/chat', methods=['POST'])
@@ -486,7 +519,6 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # LIST 70+ KOTA
     kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
         "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi",
         "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
