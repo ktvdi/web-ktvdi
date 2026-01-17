@@ -17,7 +17,7 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 import urllib3
 
-# Matikan warning SSL untuk API Pemerintah
+# Matikan warning SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 load_dotenv()
@@ -184,9 +184,7 @@ def get_bmkg_jateng_multi():
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
                 name = area.get("description")
-                # Normalize names (e.g., "Kota Semarang" -> "Semarang")
                 clean_name = name.replace("Kota ", "")
-                # Cek apakah nama kota ada di target list
                 if clean_name in target_cities or name in target_cities:
                     data = {"kota": clean_name, "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
                     for param in area.findall("parameter"):
@@ -237,13 +235,10 @@ def fetch_ews_data():
         r = requests.get(url_backup, headers=headers, timeout=5, verify=False)
         if r.status_code == 200:
             data = r.json()
-            # Jika formatnya dict dengan key 'result', ambil itu. Jika list langsung, pakai list.
-            if isinstance(data, dict) and 'result' in data:
-                return data['result']
-            elif isinstance(data, list):
-                return data
-            elif isinstance(data, dict) and 'data' in data: # Kemungkinan struktur lain
-                 return data['data']
+            # Logika parsing fleksibel (sesuaikan struktur JSON Siaga Kranji)
+            if isinstance(data, dict) and 'result' in data: return data['result']
+            if isinstance(data, list): return data
+            if isinstance(data, dict) and 'data' in data: return data['data']
     except:
         pass
 
