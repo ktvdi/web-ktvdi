@@ -23,15 +23,14 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# 1. KONFIGURASI SESI (ANTI MENTAL)
+# 1. KONFIGURASI SESI
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
-app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400 
 
-# 2. KONEKSI FIREBASE (DATABASE)
+# 2. KONEKSI FIREBASE
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Konfigurasi Cloud (Vercel)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -46,18 +45,17 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        # Konfigurasi Lokal
         cred = credentials.Certificate("credentials.json")
     
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred, {'databaseURL': os.environ.get('DATABASE_URL')})
     ref = db.reference('/')
-    print("✅ STATUS: Database KTVDI Terhubung & Aman.")
+    print("✅ STATUS: Database KTVDI Terhubung.")
 except Exception as e:
     ref = None
-    print(f"⚠️ STATUS: Mode Offline (Database Error: {e})")
+    print(f"⚠️ STATUS: Mode Offline (DB Error: {e})")
 
-# 3. KONFIGURASI EMAIL (SMTP GMAIL)
+# 3. EMAIL
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -66,7 +64,7 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# 4. KONFIGURASI AI (GEMINI)
+# 4. AI GEMINI
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
@@ -83,15 +81,11 @@ Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah S
 # 5. FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
-def hash_password(pw): 
-    return hashlib.sha256(pw.encode()).hexdigest()
-
-def normalize_input(text): 
-    return text.strip().lower() if text else ""
+def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
+def normalize_input(text): return text.strip().lower() if text else ""
 
 def format_indo_date(time_struct):
-    if not time_struct: 
-        return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
+    if not time_struct: return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
     try:
         dt = datetime.fromtimestamp(time.mktime(time_struct))
         hari_list = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
@@ -99,14 +93,11 @@ def format_indo_date(time_struct):
         hari = hari_list[dt.weekday()]
         bulan = bulan_list[dt.month - 1]
         return f"{hari}, {dt.day} {bulan} {dt.year} - {dt.strftime('%H:%M')} WIB"
-    except:
-        return "Baru Saja"
+    except: return "Baru Saja"
 
 def get_news_entries():
     all_news = []
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
     try:
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
@@ -143,86 +134,80 @@ def time_since_published(published_time):
     except: return "Baru saja"
 
 def get_quote_religi():
-    return {
-        "muslim": [
-            "Maka dirikanlah shalat... (QS. An-Nisa: 103)",
-            "Jauhi korupsi sekecil apapun..."
-        ],
-        "universal": [
-            "Integritas adalah melakukan hal yang benar...",
-            "Damai di dunia dimulai dari damai di hati..."
-        ]
-    }
+    return {"muslim": ["Maka dirikanlah shalat..."], "universal": ["Integritas adalah kunci..."]}
 
 def get_smart_fallback_response(text):
     text = text.lower()
-    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'assalam']):
-        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu seputar TV Digital atau sekadar teman ngobrol? <b>Ganti!</b> 👮‍♂️"
-    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat', 'sedih', 'galau', 'bosan']):
-        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami di sini standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! Cerita saja, kami monitor. Kopi mana kopi? ☕📻"
-    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman', 'selamat']):
-        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan, bukan hiasan! <i>Klik</i>, aman, selamat sampai tujuan. Keluarga menunggu di rumah. Utamakan keselamatan sebagai kebutuhan. <b>Salam Presisi!</b> 🚗"
-    if any(x in text for x in ['digital', 'analog', 'bersih', 'semut', 'pindah']):
-        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih, teknologi canggih. Segera migrasi, tinggalkan semut di masa lalu! Jangan lupa pasang STB kalau TV belum support. <b>Laksanakan!</b> 📺"
-    if any(x in text for x in ['antena', 'sinyal', 'arah', 'hilang']):
-        return "<b>Siap Ndan!</b> Untuk hasil maksimal, gunakan <b>Antena Luar (Outdoor)</b> dengan kabel berkualitas (RG6). Arahkan tegak lurus ke pemancar terdekat. Jangan pakai kaleng biskuit ya Ndan! <b>Ganti.</b> 📡"
-    if any(x in text for x in ['kanal', 'mux', 'frekuensi', 'channel', 'siaran']):
-        return "<b>Monitor!</b> Untuk data kanal/MUX lengkap, silakan cek menu <b>Database</b> di aplikasi ini Ndan. Pastikan scan ulang (Auto Scan) secara berkala untuk update frekuensi terbaru. <b>86?</b>"
-    if any(x in text for x in ['modi', 'siapa', 'kamu', 'robot', 'admin']):
-        return "<b>Siap!</b> Perkenalkan, saya <b>Modi</b>. Asisten Virtual KTVDI siap perintah! Tugas saya membantu Ndan mendapatkan informasi penyiaran yang akurat. <b>Salam hormat!</b> 🫡"
-    if any(x in text for x in ['makasih', 'thanks', 'suwun', 'terima']):
-        return "<b>Siap! Sama-sama Ndan.</b> Senang bisa membantu. Jaga kesehatan dan tetap patuhi protokol. Jika butuh bantuan lagi, panggil saja. <b>8-1-3</b> (Selamat bertugas/beraktivitas)! 👋"
-
+    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo']):
+        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu? <b>Ganti!</b> 👮‍♂️"
+    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat']):
+        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! ☕📻"
+    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman']):
+        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan! <i>Klik</i>, aman, selamat sampai tujuan. Salam Presisi! 🚗"
+    if any(x in text for x in ['digital', 'analog', 'semut']):
+        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih. Segera migrasi, tinggalkan semut di masa lalu! 📺"
+    if any(x in text for x in ['kanal', 'mux', 'frekuensi']):
+        return "<b>Monitor!</b> Data kanal lengkap ada di menu <b>Database</b>. Pastikan scan ulang secara berkala ya Ndan. <b>86?</b>"
+    
     defaults = [
-        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando AI sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah atau cek menu manual. <b>Ganti!</b> 👮‍♂️",
-        "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem sedang istirahat di tempat. Ada hal lain yang bisa dibantu? <b>Siap 86!</b> 🫡",
-        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap periksa frekuensi atau coba lagi nanti. <b>8-1-3!</b> (Selamat bertugas) 👮",
-        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut atau ulangi pertanyaan. <b>Kijang satu ganti.</b> 📻",
-        "<b>Monitor!</b> Suara putus-putus, sinyal tidak tembus. Mohon izin periksa perangkat. <b>Salam Presisi!</b> 🇮🇩",
-        "<b>Izin Ndan!</b> Situasi terkini server sedang dalam perbaikan rutin. Mohon bersabar, 8-6? 🚧"
+        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah. <b>Ganti!</b> 👮‍♂️",
+        "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem istirahat di tempat. Siap 86! 🫡",
+        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap standby. <b>8-1-3!</b> 👮",
+        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut. <b>Kijang satu ganti.</b> 📻"
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG ---
+# --- HELPERS EWS & BMKG (SAFE MODE) ---
 def get_bmkg_jateng_multi():
+    """Mengambil Cuaca 10 Kota Besar di Jateng (SAFE MODE)"""
     target_cities = ["Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"]
     results = []
     try:
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=4) # Timeout dipercepat agar tidak loading lama
         if response.status_code == 200:
             root = ET.fromstring(response.content)
             for area in root.findall(".//area"):
                 name = area.get("description")
                 if name in target_cities or (name == "Kota Semarang" and "Semarang" in target_cities):
                     data = {"kota": name.replace("Kota ", ""), "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
+                    
                     for param in area.findall("parameter"):
-                        if param.get("id") == "t": data["suhu"] = param.find("timerange").find("value").text
-                        if param.get("id") == "weather":
-                            code = param.find("timerange").find("value").text
-                            if code in ["0", "1", "2"]: data.update({"cuaca": "Cerah", "icon": "fa-sun"})
-                            elif code in ["3", "4"]: data.update({"cuaca": "Berawan", "icon": "fa-cloud"})
-                            elif code in ["5", "10", "45"]: data.update({"cuaca": "Kabut", "icon": "fa-smog"})
-                            elif code in ["60", "61", "63"]: data.update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
-                            elif code in ["80", "95", "97"]: data.update({"cuaca": "Petir", "icon": "fa-bolt"})
+                        # SAFE PARSING: Cek apakah timerange dan value ada
+                        timerange = param.find("timerange")
+                        if timerange is not None:
+                            val = timerange.find("value")
+                            if val is not None and val.text:
+                                if param.get("id") == "t": 
+                                    data["suhu"] = val.text
+                                elif param.get("id") == "weather":
+                                    code = val.text
+                                    if code in ["0", "1", "2"]: data.update({"cuaca": "Cerah", "icon": "fa-sun"})
+                                    elif code in ["3", "4"]: data.update({"cuaca": "Berawan", "icon": "fa-cloud"})
+                                    elif code in ["5", "10", "45"]: data.update({"cuaca": "Kabut", "icon": "fa-smog"})
+                                    elif code in ["60", "61", "63"]: data.update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
+                                    elif code in ["80", "95", "97"]: data.update({"cuaca": "Petir", "icon": "fa-bolt"})
+                    
                     results.append(data)
-    except: pass
-    if not results: results = [{"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"}]
+    except Exception as e:
+        print(f"BMKG Error: {e}") # Log error di server console
+    
+    # FALLBACK DATA (Agar tidak Internal Server Error jika BMKG Down)
+    if not results:
+        results = [
+            {"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"},
+            {"kota": "Solo", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"}
+        ]
     return results[:10]
 
 def get_ews_summary():
     try:
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
-        r = requests.get(url, timeout=5)
+        r = requests.get(url, timeout=4)
         if r.status_code == 200:
             data = r.json().get('data', {}).get('result', [])
             siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-            waspada = [d['name'] for d in data if d.get('status_alert') in ['Siaga 3', 'Waspada']]
-            summary = f"Total Bendungan Terpantau: {len(data)}. "
-            if siaga: summary += f"⚠️ PERHATIAN: Ada {len(siaga)} bendungan status SIAGA/AWAS: {', '.join(siaga)}. "
-            else: summary += "✅ Situasi Aman, tidak ada bendungan status Awas. "
-            if waspada: summary += f"Terdapat {len(waspada)} status Waspada. "
-            return summary
+            return f"Pantauan EWS: {len(data)} bendungan. {len(siaga)} status SIAGA/AWAS."
     except: return "Data EWS sedang gangguan."
 
 # ==========================================
@@ -286,31 +271,16 @@ def register():
             if normalize_input(data.get('email')) == e:
                 flash("Email ini sudah terdaftar.", "error")
                 return render_template("register.html")
-        
-        # OTP 1 MENIT
         otp = str(random.randint(100000, 999999))
-        expiry = time.time() + 60 
-        
+        expiry = time.time() + 60
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
-            msg = Message("KTVDI: Kode Verifikasi Pendaftaran", recipients=[e])
-            msg.body = f"""Yth. Bapak/Ibu/Saudara {n},
-
-Terima kasih atas keinginan Anda untuk bergabung dengan Komunitas TV Digital Indonesia (KTVDI).
-
-Guna menjamin keamanan data, mohon masukkan Kode Verifikasi (OTP) berikut:
-
-👉 {otp}
-
-⚠️ PENTING: Kode ini BERLAKU 1 MENIT saja. Mohon segera masukkan sebelum kedaluwarsa.
-
-Hormat Kami,
-Tim Admin KTVDI
-"""
+            msg = Message("Verifikasi Akun KTVDI", recipients=[e])
+            msg.body = f"Kode OTP Anda: {otp}"
             mail.send(msg)
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
-        except: flash("Gagal kirim email. Pastikan email aktif.", "error")
+        except: flash("Gagal kirim email.", "error")
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
@@ -320,13 +290,6 @@ def verify_register():
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
         if not p: return redirect(url_for("register"))
-        
-        # Cek Expired 1 Menit
-        if time.time() > p.get('expiry', 0):
-            flash("Kode OTP telah kedaluwarsa (Lewat 1 Menit). Silakan daftar ulang.", "error")
-            ref.child(f'pending_users/{u}').delete()
-            return redirect(url_for("register"))
-
         if str(p.get('otp')).strip() == request.form.get("otp").strip():
             ref.child(f'users/{u}').set({"nama": p['nama'], "email": p['email'], "password": p['password']})
             ref.child(f'pending_users/{u}').delete()
@@ -342,38 +305,20 @@ def forgot_password():
         email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
         found_uid = None
-        target_name = "Sahabat"
-        
         for uid, user_data in users.items():
             if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
-                found_uid = uid
-                target_name = user_data.get('nama', 'Sahabat')
-                break
-        
+                found_uid = uid; break
         if found_uid:
             otp = str(random.randint(100000, 999999))
-            expiry = time.time() + 60 # 1 Menit
+            expiry = time.time() + 60
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
-                msg = Message("KTVDI: Kode Reset Password", recipients=[email_input])
-                msg.body = f"""Yth. Kak {target_name},
-
-Kami menerima permintaan reset password. 
-
-Kode OTP Anda:
-🔒 {otp}
-
-⚠️ PENTING: Kode ini hanya BERLAKU 1 MENIT.
-
-Hormat kami,
-Tim Keamanan KTVDI
-"""
+                msg = Message("Reset Password", recipients=[email_input])
+                msg.body = f"OTP: {otp}"
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
-            except: flash("Gagal kirim email.", "error")
-        else:
-            flash("Email tidak ditemukan.", "error")
+            except: pass
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -383,22 +328,16 @@ def verify_otp():
     if request.method == "POST":
         data = ref.child(f"otp/{uid}").get()
         if not data: return redirect(url_for("forgot_password"))
-        
-        if time.time() > data.get('expiry', 0):
-            flash("Kode OTP Kedaluwarsa (Lewat 1 Menit).", "error")
-            return redirect(url_for("forgot_password"))
-
         if str(data.get("otp")).strip() == request.form.get("otp").strip():
             session['reset_verified'] = True
             return redirect(url_for("reset_password"))
-        flash("Kode OTP Salah.", "error")
     return render_template("verify-otp.html")
 
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     if not session.get('reset_verified'): return redirect(url_for('login'))
-    uid = session.get("reset_uid")
     if request.method == "POST":
+        uid = session.get("reset_uid")
         pw = request.form.get("password")
         ref.child(f"users/{uid}").update({"password": hash_password(pw)})
         ref.child(f"otp/{uid}").delete()
@@ -407,9 +346,7 @@ def reset_password():
     return render_template("reset-password.html")
 
 @app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
+def logout(): session.clear(); return redirect(url_for('login'))
 
 @app.route('/berita')
 def berita_page():
@@ -504,7 +441,7 @@ def ews_jateng_page():
     dams = []
     try:
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=5)
         if r.status_code == 200:
             dams = r.json().get('data', {}).get('result', [])
     except Exception as e: print(f"EWS Error: {e}")
@@ -516,7 +453,6 @@ def chatbot_api():
     data = request.get_json()
     user_msg = data.get('prompt', '')
     
-    # Inject EWS Data Context
     system_context = MODI_PROMPT
     if any(k in user_msg.lower() for k in ['bendungan', 'waduk', 'air', 'banjir', 'sungai', 'ews', 'siaga']):
         ews_data = get_ews_summary()
@@ -533,7 +469,6 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # LIST LENGKAP 70+ KOTA
     kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
         "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi",
         "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
