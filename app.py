@@ -17,12 +17,13 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 from collections import Counter
 
+# --- KONFIGURASI AWAL ---
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# 1. KEAMANAN SESI (ANTI MENTAL)
+# 1. KONFIGURASI SESI (ANTI MENTAL)
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
@@ -30,6 +31,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # 2. KONEKSI FIREBASE (DATABASE)
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
+        # Konfigurasi untuk Vercel (Environment Variable)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -44,6 +46,7 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
+        # Konfigurasi Lokal
         cred = credentials.Certificate("credentials.json")
     
     if not firebase_admin._apps:
@@ -63,8 +66,9 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# 4. KONFIGURASI AI (GEMINI SMART FALLBACK)
-GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU"
+# 4. KONFIGURASI AI (GEMINI)
+# Menggunakan Gemini Free Tier (Terbaik untuk gratisan)
+GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
     model = genai.GenerativeModel("gemini-2.0-flash") 
@@ -77,7 +81,7 @@ Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah S
 """
 
 # ==========================================
-# 5. FUNGSI BANTUAN (HELPERS)
+# BAGIAN 5: FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
 def hash_password(pw): 
@@ -89,19 +93,23 @@ def normalize_input(text):
 def format_indo_date(time_struct):
     """Mengubah format waktu RSS menjadi format Indonesia Lengkap"""
     if not time_struct: 
+        # Fallback ke waktu server saat ini
         return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
     try:
         dt = datetime.fromtimestamp(time.mktime(time_struct))
         hari_list = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
         bulan_list = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+        
         hari = hari_list[dt.weekday()]
         bulan = bulan_list[dt.month - 1]
+        
+        # Contoh: Jumat, 16 Januari 2026 - 10:30 WIB
         return f"{hari}, {dt.day} {bulan} {dt.year} - {dt.strftime('%H:%M')} WIB"
     except:
         return "Baru Saja"
 
 def get_news_entries():
-    """Mengambil berita Google News (Top Stories Indonesia)"""
+    """Mengambil berita dari berbagai sumber RSS dengan Header Anti-Blokir"""
     all_news = []
     
     # Header browser palsu agar tidak diblokir server berita
@@ -110,23 +118,25 @@ def get_news_entries():
     }
 
     try:
-        # Sumber: Google News Indonesia (Top Stories - Umum)
         sources = [
-            'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
+            'https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo&hl=id&gl=ID&ceid=ID:id',
             'https://www.cnnindonesia.com/nasional/rss',
-            'https://www.antaranews.com/rss/top-news.xml'
+            'https://www.antaranews.com/rss/tekno.xml',
+            'https://www.suara.com/rss/tekno'
         ]
         
         for url in sources:
             try:
+                # Request manual dengan headers
                 response = requests.get(url, headers=headers, timeout=5)
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        for entry in feed.entries[:8]: # Ambil 8 berita per sumber
-                            # Labeling Sumber Media
+                        for entry in feed.entries[:6]: # Batasi 6 berita per sumber
+                            # Labeling Sumber Media Otomatis
                             if 'cnn' in url: entry['source_name'] = 'CNN Indonesia'
                             elif 'antara' in url: entry['source_name'] = 'Antara News'
+                            elif 'suara' in url: entry['source_name'] = 'Suara.com'
                             else: entry['source_name'] = entry.get('source', {}).get('title', 'Google News')
                             
                             all_news.append(entry)
@@ -140,7 +150,7 @@ def get_news_entries():
         t = datetime.now().timetuple()
         return [{'title': 'Selamat Datang di Portal Informasi KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi'}]
     
-    return all_news[:24]
+    return all_news[:24] # Tampilkan maksimal 24 berita
 
 def time_since_published(published_time):
     try:
@@ -205,6 +215,7 @@ def login():
         users = ref.child('users').get() or {}
         target_user = None; target_uid = None
         
+        # Cek apakah input adalah Username ATAU Email
         for uid, data in users.items():
             if not isinstance(data, dict): continue
             if normalize_input(uid) == clean_input: # Cek ID/Username
@@ -500,22 +511,43 @@ def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi'
 @app.route('/api/chat', methods=['POST'])
 def chatbot_api():
     data = request.get_json()
+    user_msg = data.get('prompt', '')
     
-    # FALLBACK JIKA API GEMINI RUSAK/LIMIT
-    fallback_response = "Maaf Kak, saat ini Modi sedang mengalami gangguan koneksi ke server pusat. Namun Kakak bisa mencari informasi manual di menu 'Database MUX' atau hubungi admin di WA jika mendesak."
+    # KUMPULAN JAWABAN OFFLINE (GAYA POLRI/DISHUB)
+    # Dipakai jika API Error atau Model tidak merespons
+    offline_responses = [
+        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon standby sejenak. <b>Ganti!</b> 👮‍♂️",
+        "<b>Lapor!</b> Jaringan monitor terpantau padat merayap. Sistem AI sedang istirahat di tempat. Mohon izin mencoba kembali nanti. <b>Siap 86!</b> 🫡",
+        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap periksa frekuensi atau coba lagi. <b>8-1-3!</b> (Selamat bertugas) 👮",
+        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut atau ulangi pertanyaan. <b>Kijang satu ganti.</b> 📻",
+        "<b>Monitor!</b> Suara putus-putus, sinyal tidak tembus. Mohon izin periksa perangkat. <b>Salam Presisi!</b> 🇮🇩",
+        "<b>Izin Ndan!</b> Situasi terkini server sedang dalam perbaikan rutin. Mohon bersabar, 8-6? 🚧",
+        "<b>Siap!</b> Perintah tidak dapat diproses. Jalur komunikasi sedang gangguan. Harap gunakan jalur alternatif atau coba sesaat lagi. <b>Over.</b>"
+    ]
 
-    if not model: return jsonify({"response": fallback_response})
+    # Cek apakah Model AI tersedia
+    if not model: 
+        return jsonify({"response": random.choice(offline_responses)})
     
     try:
         full_prompt = f"""
         {MODI_PROMPT}
-        Pertanyaan User: {data.get('prompt')}
-        Jawaban (Jelas, Sopan, Solutif):
+        User: {user_msg}
+        Modi:
         """
         response = model.generate_content(full_prompt)
-        return jsonify({"response": response.text})
-    except: 
-        return jsonify({"response": fallback_response})
+        
+        # Validasi output AI
+        if response.text:
+            return jsonify({"response": response.text})
+        else:
+            # Jika AI merespons kosong, pakai template
+            return jsonify({"response": random.choice(offline_responses)})
+            
+    except Exception as e:
+        print(f"AI Error: {e}")
+        # Jika API Error/Limit Habis, pakai template
+        return jsonify({"response": random.choice(offline_responses)})
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
