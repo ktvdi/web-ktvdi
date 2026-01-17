@@ -15,13 +15,11 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta
-from collections import Counter
 import urllib3
 
-# Matikan warning SSL untuk API EWS (Biar koneksi lancar)
+# PENTING: Matikan peringatan SSL agar data EWS bisa masuk
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# --- KONFIGURASI AWAL ---
 load_dotenv()
 
 app = Flask(__name__)
@@ -170,7 +168,7 @@ def get_smart_fallback_response(text):
     ]
     return random.choice(defaults)
 
-# --- HELPERS EWS & BMKG (OPTIMAL MODE) ---
+# --- HELPERS EWS & BMKG (OPTIMIZED FOR VERCEL) ---
 def get_bmkg_jateng_multi():
     """Mengambil Cuaca 10 Kota Besar di Jateng"""
     target_cities = [
@@ -179,6 +177,7 @@ def get_bmkg_jateng_multi():
     ]
     results = []
     try:
+        # Timeout 5 detik agar tidak menghabiskan waktu Vercel
         url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
         response = requests.get(url, timeout=5) 
         if response.status_code == 200:
@@ -206,21 +205,23 @@ def get_bmkg_jateng_multi():
     except Exception as e:
         print(f"BMKG Error: {e}") 
     
+    # Fallback
     if not results:
-        results = [{"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"}]
+        results = [
+            {"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"},
+            {"kota": "Surakarta", "suhu": "29", "cuaca": "Berawan", "icon": "fa-cloud"}
+        ]
     return results[:10]
 
 def get_ews_summary():
-    """Mengambil Data EWS untuk AI (Ringkas)"""
+    """Versi ringan untuk AI Context"""
     try:
-        # PageSize 200 sudah cukup untuk seluruh Jateng
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
-        # Verify False untuk menghindari error SSL
-        r = requests.get(url, timeout=5, verify=False) 
+        r = requests.get(url, timeout=5, verify=False)
         if r.status_code == 200:
             data = r.json().get('data', {}).get('result', [])
             siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
-            return f"Pantauan EWS: Total {len(data)} bendungan. {len(siaga)} status BAHAYA."
+            return f"Pantauan EWS: Total {len(data)} bendungan terdeteksi. {len(siaga)} status BAHAYA."
     except: return "Data EWS sedang gangguan."
 
 # ==========================================
@@ -470,13 +471,12 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN & BMKG ---
+# --- EWS BENDUNGAN & BMKG (ROUTE FIX) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
     dams = []
     try:
-        # OPTIMASI: pageSize=200 cukup untuk seluruh Jateng.
-        # verify=False penting untuk menembus SSL API EWS yg kadang bermasalah.
+        # OPTIMASI: pageSize=200 & verify=False
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -511,6 +511,7 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
+    # LIST 70+ KOTA
     kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
         "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi",
         "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
