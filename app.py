@@ -31,7 +31,6 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # 2. KONEKSI FIREBASE (DATABASE)
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Konfigurasi untuk Vercel (Environment Variable)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -46,7 +45,6 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        # Konfigurasi Lokal
         cred = credentials.Certificate("credentials.json")
     
     if not firebase_admin._apps:
@@ -67,7 +65,6 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
 # 4. KONFIGURASI AI (GEMINI)
-# Menggunakan Gemini Free Tier (Terbaik untuk gratisan)
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
@@ -81,7 +78,7 @@ Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah S
 """
 
 # ==========================================
-# BAGIAN 5: FUNGSI BANTUAN (HELPERS)
+# 5. FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
 def hash_password(pw): 
@@ -91,58 +88,45 @@ def normalize_input(text):
     return text.strip().lower() if text else ""
 
 def format_indo_date(time_struct):
-    """Mengubah format waktu RSS menjadi format Indonesia Lengkap"""
     if not time_struct: 
-        # Fallback ke waktu server saat ini
         return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
     try:
         dt = datetime.fromtimestamp(time.mktime(time_struct))
         hari_list = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
         bulan_list = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-        
         hari = hari_list[dt.weekday()]
         bulan = bulan_list[dt.month - 1]
-        
-        # Contoh: Jumat, 16 Januari 2026 - 10:30 WIB
         return f"{hari}, {dt.day} {bulan} {dt.year} - {dt.strftime('%H:%M')} WIB"
     except:
         return "Baru Saja"
 
 def get_news_entries():
-    """Mengambil berita dari berbagai sumber RSS dengan Header Anti-Blokir"""
+    """Mengambil berita Google News (Top Stories Indonesia)"""
     all_news = []
-    
-    # Header browser palsu agar tidak diblokir server berita
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
 
     try:
         sources = [
-            'https://news.google.com/rss/search?q=tv+digital+indonesia+kominfo&hl=id&gl=ID&ceid=ID:id',
+            'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
             'https://www.cnnindonesia.com/nasional/rss',
-            'https://www.antaranews.com/rss/tekno.xml',
-            'https://www.suara.com/rss/tekno'
+            'https://www.antaranews.com/rss/top-news.xml'
         ]
         
         for url in sources:
             try:
-                # Request manual dengan headers
                 response = requests.get(url, headers=headers, timeout=5)
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        for entry in feed.entries[:6]: # Batasi 6 berita per sumber
-                            # Labeling Sumber Media Otomatis
+                        for entry in feed.entries[:8]: 
                             if 'cnn' in url: entry['source_name'] = 'CNN Indonesia'
                             elif 'antara' in url: entry['source_name'] = 'Antara News'
-                            elif 'suara' in url: entry['source_name'] = 'Suara.com'
                             else: entry['source_name'] = entry.get('source', {}).get('title', 'Google News')
-                            
                             all_news.append(entry)
             except: continue
         
-        # Sorting: Berita terbaru paling atas (Descending)
         all_news.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.gmtime(0), reverse=True)
     except: pass
     
@@ -150,7 +134,7 @@ def get_news_entries():
         t = datetime.now().timetuple()
         return [{'title': 'Selamat Datang di Portal Informasi KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi'}]
     
-    return all_news[:24] # Tampilkan maksimal 24 berita
+    return all_news[:24]
 
 def time_since_published(published_time):
     try:
@@ -165,18 +149,52 @@ def time_since_published(published_time):
 def get_quote_religi():
     return {
         "muslim": [
-            "Maka dirikanlah shalat, sesungguhnya shalat itu adalah kewajiban yang ditentukan waktunya. (QS. An-Nisa: 103) 🕌",
-            "Dan janganlah kamu memakan harta sesamamu dengan jalan yang batil. Hidup jujur tanpa korupsi itu berkah. (QS. Al-Baqarah: 188) ✨",
-            "Kejujuran membawa ketenangan, sedangkan kebohongan membawa keraguan. Tetap amanah ya Kak! (HR. Tirmidzi) 🤲",
-            "Jauhi korupsi sekecil apapun, karena setiap daging yang tumbuh dari yang haram, neraka lebih pantas baginya. 🔥"
+            "Maka dirikanlah shalat... (QS. An-Nisa: 103)",
+            "Jauhi korupsi sekecil apapun..."
         ],
         "universal": [
-            "Integritas adalah melakukan hal yang benar, bahkan ketika tidak ada orang yang melihat. ❤️",
-            "Kebahagiaan sejati dimulai dari hati yang jujur dan pikiran yang bersih. 🌱",
-            "Kebaikan yang Anda tanam hari ini akan menjadi pohon peneduh bagi Anda di masa depan.",
-            "Damai di dunia dimulai dari damai di hati dan kejujuran dalam perbuatan."
+            "Integritas adalah melakukan hal yang benar...",
+            "Damai di dunia dimulai dari damai di hati..."
         ]
     }
+
+def get_smart_fallback_response(text):
+    """Template Jawaban Offline ala 'Ndan' yang Humanis"""
+    text = text.lower()
+    
+    if any(x in text for x in ['pagi', 'siang', 'sore', 'malam', 'halo', 'hai', 'assalam']):
+        return "<b>Siap! Selamat Pagi/Siang/Malam Ndan!</b> Monitor situasi aman terkendali. Ada yang bisa kami bantu seputar TV Digital atau sekadar teman ngobrol? <b>Ganti!</b> 👮‍♂️"
+    
+    if any(x in text for x in ['sepi', 'sendiri', 'teman', 'curhat', 'sedih', 'galau', 'bosan']):
+        return "<b>Izin masuk Ndan!</b> Jangan merasa sendiri. Kami di sini standby 24 jam siap menemani. Tetap semangat, jaga hati tetap <b>86</b>! Cerita saja, kami monitor. Kopi mana kopi? ☕📻"
+    
+    if any(x in text for x in ['sabuk', 'belt', 'safety', 'aman', 'selamat']):
+        return "<b>Siap! Izin mengingatkan Ndan.</b> Safety belt itu kebutuhan, bukan hiasan! <i>Klik</i>, aman, selamat sampai tujuan. Keluarga menunggu di rumah. Utamakan keselamatan sebagai kebutuhan. <b>Salam Presisi!</b> 🚗"
+    
+    if any(x in text for x in ['digital', 'analog', 'bersih', 'semut', 'pindah']):
+        return "<b>Lapor!</b> TV Digital adalah masa depan Ndan. Gambar bersih, suara jernih, teknologi canggih. Segera migrasi, tinggalkan semut di masa lalu! Jangan lupa pasang STB kalau TV belum support. <b>Laksanakan!</b> 📺"
+    
+    if any(x in text for x in ['antena', 'sinyal', 'arah', 'hilang']):
+        return "<b>Siap Ndan!</b> Untuk hasil maksimal, gunakan <b>Antena Luar (Outdoor)</b> dengan kabel berkualitas (RG6). Arahkan tegak lurus ke pemancar terdekat. Jangan pakai kaleng biskuit ya Ndan! <b>Ganti.</b> 📡"
+    
+    if any(x in text for x in ['kanal', 'mux', 'frekuensi', 'channel', 'siaran']):
+        return "<b>Monitor!</b> Untuk data kanal/MUX lengkap, silakan cek menu <b>Database</b> di aplikasi ini Ndan. Pastikan scan ulang (Auto Scan) secara berkala untuk update frekuensi terbaru. <b>86?</b>"
+    
+    if any(x in text for x in ['modi', 'siapa', 'kamu', 'robot', 'admin']):
+        return "<b>Siap!</b> Perkenalkan, saya <b>Modi</b>. Asisten Virtual KTVDI siap perintah! Tugas saya membantu Ndan mendapatkan informasi penyiaran yang akurat. <b>Salam hormat!</b> 🫡"
+
+    if any(x in text for x in ['makasih', 'thanks', 'suwun', 'terima']):
+        return "<b>Siap! Sama-sama Ndan.</b> Senang bisa membantu. Jaga kesehatan dan tetap patuhi protokol. Jika butuh bantuan lagi, panggil saja. <b>8-1-3</b> (Selamat bertugas/beraktivitas)! 👋"
+
+    defaults = [
+        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando AI sedang <b>8-1-0</b> (Offline). Mohon ulangi perintah atau cek menu manual. <b>Ganti!</b> 👮‍♂️",
+        "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem sedang istirahat di tempat. Ada hal lain yang bisa dibantu? <b>Siap 86!</b> 🫡",
+        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap periksa frekuensi atau coba lagi nanti. <b>8-1-3!</b> (Selamat bertugas) 👮",
+        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut atau ulangi pertanyaan. <b>Kijang satu ganti.</b> 📻",
+        "<b>Monitor!</b> Suara putus-putus, sinyal tidak tembus. Mohon izin periksa perangkat. <b>Salam Presisi!</b> 🇮🇩",
+        "<b>Izin Ndan!</b> Situasi terkini server sedang dalam perbaikan rutin. Mohon bersabar, 8-6? 🚧"
+    ]
+    return random.choice(defaults)
 
 # ==========================================
 # 6. ROUTE UTAMA
@@ -210,25 +228,21 @@ def login():
         hashed_pw = hash_password(password)
         clean_input = normalize_input(raw_input)
         
-        if not ref: return render_template('login.html', error="Koneksi Database Terputus. Silakan coba lagi.")
+        if not ref: return render_template('login.html', error="Koneksi Database Terputus.")
         
         users = ref.child('users').get() or {}
         target_user = None; target_uid = None
         
-        # Cek apakah input adalah Username ATAU Email
         for uid, data in users.items():
             if not isinstance(data, dict): continue
-            if normalize_input(uid) == clean_input: # Cek ID/Username
-                target_user = data; target_uid = uid; break
-            if normalize_input(data.get('email')) == clean_input: # Cek Email
-                target_user = data; target_uid = uid; break
+            if normalize_input(uid) == clean_input: target_user = data; target_uid = uid; break
+            if normalize_input(data.get('email')) == clean_input: target_user = data; target_uid = uid; break
         
         if target_user and target_user.get('password') == hashed_pw:
             session.permanent = True
             session['user'] = target_uid
             session['nama'] = target_user.get('nama', 'Pengguna')
             return redirect(url_for('dashboard'))
-        
         return render_template('login.html', error="Identitas akun atau kata sandi tidak sesuai.")
     return render_template('login.html')
 
@@ -240,130 +254,65 @@ def register():
         e = normalize_input(request.form.get("email"))
         n = request.form.get("nama")
         p = request.form.get("password")
-        
         if not ref: return "Database Error", 500
         users = ref.child("users").get() or {}
-        
         if u in users:
-            flash("Maaf Kak, Username ini sudah digunakan pengguna lain.", "error")
+            flash("Maaf Kak, Username ini sudah digunakan.", "error")
             return render_template("register.html")
         for uid, data in users.items():
             if normalize_input(data.get('email')) == e:
-                flash("Email ini sudah terdaftar dalam sistem kami.", "error")
+                flash("Email ini sudah terdaftar.", "error")
                 return render_template("register.html")
-
         otp = str(random.randint(100000, 999999))
-        expiry = time.time() + 60 # 1 Menit
-        
-        ref.child(f'pending_users/{u}').set({
-            "nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry
-        })
-        
+        expiry = time.time() + 60
+        ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
-            msg = Message("Verifikasi Pendaftaran Akun KTVDI", recipients=[e])
-            msg.body = f"""Yth. Bapak/Ibu/Saudara {n},
-
-Terima kasih atas keinginan Anda untuk bergabung dengan Komunitas TV Digital Indonesia (KTVDI).
-
-Guna menjamin keamanan data dan menyelesaikan proses registrasi, mohon masukkan Kode Verifikasi (OTP) berikut:
-
-👉 {otp}
-
-⚠️ PENTING: Kode ini bersifat rahasia dan hanya berlaku selama 1 MENIT. Mohon tidak memberikannya kepada siapapun.
-
-Hormat Kami,
-Tim Admin KTVDI
-"""
+            msg = Message("Verifikasi Akun KTVDI", recipients=[e])
+            msg.body = f"Kode OTP Anda: {otp}"
             mail.send(msg)
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
-        except: 
-            flash("Gagal mengirim email verifikasi. Pastikan email Anda aktif.", "error")
-            
+        except: flash("Gagal kirim email.", "error")
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
 def verify_register():
     u = session.get("pending_username")
     if not u: return redirect(url_for("register"))
-    
     if request.method == "POST":
         p = ref.child(f'pending_users/{u}').get()
-        if not p:
-            flash("Sesi pendaftaran habis. Silakan daftar ulang.", "error")
-            return redirect(url_for("register"))
-
-        if time.time() > p.get('expiry', 0):
-            flash("Kode OTP telah kedaluwarsa (Lewat 1 Menit).", "error")
-            ref.child(f'pending_users/{u}').delete()
-            return redirect(url_for("register"))
-
+        if not p: return redirect(url_for("register"))
         if str(p.get('otp')).strip() == request.form.get("otp").strip():
-            ref.child(f'users/{u}').set({
-                "nama": p['nama'], "email": p['email'], "password": p['password'], "points": 0, "join_date": datetime.now().strftime("%d-%m-%Y")
-            })
+            ref.child(f'users/{u}').set({"nama": p['nama'], "email": p['email'], "password": p['password']})
             ref.child(f'pending_users/{u}').delete()
             session.pop('pending_username', None)
-            
-            try:
-                msg = Message("Selamat Datang di Ekosistem KTVDI", recipients=[p['email']])
-                msg.body = f"""Yth. Kak {p['nama']},
-
-Selamat! Akun KTVDI Anda telah berhasil diaktifkan sepenuhnya.
-
-Kami sangat bangga menyambut Anda sebagai bagian dari keluarga besar Komunitas TV Digital Indonesia. Mari bersama-sama kita wujudkan penyiaran yang lebih baik.
-
-Salam persahabatan,
-Tim Manajemen KTVDI
-"""
-                mail.send(msg)
-            except: pass
-            
-            flash("Registrasi Berhasil. Silakan Login.", "success")
+            flash("Registrasi Berhasil.", "success")
             return redirect(url_for('login'))
-        else:
-            flash("Kode OTP yang dimasukkan salah.", "error")
+        flash("Kode OTP Salah.", "error")
     return render_template("verify-register.html", username=u)
 
-# --- FORGOT PASSWORD ---
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
         email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
         found_uid = None
-        target_name = "Sahabat KTVDI"
         
         for uid, user_data in users.items():
             if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
-                found_uid = uid
-                target_name = user_data.get('nama', 'Sahabat')
-                break
+                found_uid = uid; break
         
         if found_uid:
             otp = str(random.randint(100000, 999999))
-            expiry = time.time() + 60 # 1 Menit
+            expiry = time.time() + 60
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
-                msg = Message("Keamanan Akun: Kode Reset Kata Sandi", recipients=[email_input])
-                msg.body = f"""Yth. Kak {target_name},
-
-Kami menerima permintaan untuk mengatur ulang kata sandi akun KTVDI Anda.
-
-Silakan gunakan kode berikut (Berlaku 1 Menit):
-🔒 {otp}
-
-Jika Anda tidak merasa melakukan permintaan ini, mohon abaikan email ini.
-
-Hormat kami,
-Tim Keamanan KTVDI
-"""
+                msg = Message("Reset Password", recipients=[email_input])
+                msg.body = f"OTP: {otp}"
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
-            except: flash("Gagal kirim email.", "error")
-        else:
-            flash("Email tidak ditemukan dalam sistem kami.", "error")
+            except: pass
     return render_template("forgot-password.html")
 
 @app.route("/verify-otp", methods=["GET", "POST"])
@@ -372,32 +321,26 @@ def verify_otp():
     if not uid: return redirect(url_for("forgot_password"))
     if request.method == "POST":
         data = ref.child(f"otp/{uid}").get()
-        if not data or time.time() > data.get('expiry', 0):
-            flash("Kode verifikasi telah kedaluwarsa.", "error")
-            return redirect(url_for("forgot_password"))
+        if not data: return redirect(url_for("forgot_password"))
         if str(data.get("otp")).strip() == request.form.get("otp").strip():
             session['reset_verified'] = True
             return redirect(url_for("reset_password"))
-        flash("Kode OTP tidak valid.", "error")
     return render_template("verify-otp.html")
 
 @app.route("/reset-password", methods=["GET", "POST"])
 def reset_password():
     if not session.get('reset_verified'): return redirect(url_for('login'))
-    uid = session.get("reset_uid")
     if request.method == "POST":
+        uid = session.get("reset_uid")
         pw = request.form.get("password")
         ref.child(f"users/{uid}").update({"password": hash_password(pw)})
         ref.child(f"otp/{uid}").delete()
         session.clear()
-        flash("Kata sandi berhasil diperbarui. Silakan login.", "success")
         return redirect(url_for('login'))
     return render_template("reset-password.html")
 
 @app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('login'))
+def logout(): session.clear(); return redirect(url_for('login'))
 
 # ==========================================
 # 8. BERITA (GOOGLE NEWS UMUM)
@@ -429,9 +372,7 @@ def berita_page():
 
         total_pages = (len(entries)//per_page) + 1
         return render_template('berita.html', articles=current, page=page, total_pages=total_pages)
-    except Exception as e: 
-        print(f"Error Berita: {e}")
-        return render_template('berita.html', articles=[], page=1, total_pages=1)
+    except: return render_template('berita.html', articles=[], page=1, total_pages=1)
 
 # ==========================================
 # 9. DASHBOARD & CRUD
@@ -465,9 +406,7 @@ def add_data():
             }
             ref.child(f"siaran/{p}/{w}/{m}").set(data_new)
             ref.child(f"provinsi/{p}").set(p)
-            flash("Data berhasil ditambahkan!", "success")
-            return redirect(url_for('dashboard'))
-        else: flash("Mohon lengkapi semua data.", "error")
+            flash("Sukses", "success"); return redirect(url_for('dashboard'))
     return render_template("add_data_form.html", provinsi_list=sorted(provinsi_list))
 
 @app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
@@ -479,22 +418,18 @@ def edit_data(provinsi, wilayah, mux):
         ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").update({
             "siaran": [ch.strip() for ch in s.split(',')],
             "last_updated_by_name": session.get('nama'),
-            "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
-            "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
+            "last_updated_date": datetime.now().strftime("%d-%m-%Y")
         })
-        flash("Data berhasil diperbarui!", "success")
-        return redirect(url_for('dashboard'))
+        flash("Sukses Update", "success"); return redirect(url_for('dashboard'))
     siaran_str = ", ".join(curr_data.get('siaran', [])) if curr_data else ""
     return render_template("add_data_form.html", edit_mode=True, curr_provinsi=provinsi, curr_wilayah=wilayah, curr_mux=mux, curr_siaran=siaran_str, provinsi_list=[provinsi]) 
 
 @app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
 def delete_data(provinsi, wilayah, mux):
     if 'user' in session: 
-        try:
-            ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete()
-            return jsonify({"status": "success"}), 200
-        except: return jsonify({"status": "error"}), 500
-    return jsonify({"status": "unauthorized"}), 403
+        try: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete(); return jsonify({"status": "success"})
+        except: return jsonify({"status": "error"})
+    return jsonify({"status": "unauthorized"})
 
 # API Helper
 @app.route("/get_wilayah")
@@ -513,41 +448,24 @@ def chatbot_api():
     data = request.get_json()
     user_msg = data.get('prompt', '')
     
-    # KUMPULAN JAWABAN OFFLINE (GAYA POLRI/DISHUB)
-    # Dipakai jika API Error atau Model tidak merespons
-    offline_responses = [
-        "<b>Siap!</b> Mohon izin melaporkan Ndan, koneksi ke pusat komando sedang <b>8-1-0</b> (Offline). Mohon standby sejenak. <b>Ganti!</b> 👮‍♂️",
-        "<b>Lapor!</b> Jaringan monitor terpantau padat merayap. Sistem AI sedang istirahat di tempat. Mohon izin mencoba kembali nanti. <b>Siap 86!</b> 🫡",
-        "<b>Mohon Izin Komandan.</b> Server sedang tidak monitor. Harap periksa frekuensi atau coba lagi. <b>8-1-3!</b> (Selamat bertugas) 👮",
-        "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut atau ulangi pertanyaan. <b>Kijang satu ganti.</b> 📻",
-        "<b>Monitor!</b> Suara putus-putus, sinyal tidak tembus. Mohon izin periksa perangkat. <b>Salam Presisi!</b> 🇮🇩",
-        "<b>Izin Ndan!</b> Situasi terkini server sedang dalam perbaikan rutin. Mohon bersabar, 8-6? 🚧",
-        "<b>Siap!</b> Perintah tidak dapat diproses. Jalur komunikasi sedang gangguan. Harap gunakan jalur alternatif atau coba sesaat lagi. <b>Over.</b>"
-    ]
-
-    # Cek apakah Model AI tersedia
+    # 1. Cek Model AI Tersedia
     if not model: 
-        return jsonify({"response": random.choice(offline_responses)})
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
     
     try:
-        full_prompt = f"""
-        {MODI_PROMPT}
-        User: {user_msg}
-        Modi:
-        """
+        # 2. Coba Generate dengan AI
+        full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
         response = model.generate_content(full_prompt)
         
-        # Validasi output AI
         if response.text:
             return jsonify({"response": response.text})
         else:
-            # Jika AI merespons kosong, pakai template
-            return jsonify({"response": random.choice(offline_responses)})
+            return jsonify({"response": get_smart_fallback_response(user_msg)})
             
     except Exception as e:
         print(f"AI Error: {e}")
-        # Jika API Error/Limit Habis, pakai template
-        return jsonify({"response": random.choice(offline_responses)})
+        # 3. Fallback ke Template Offline Smart
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
