@@ -446,7 +446,7 @@ def ews_jateng_page():
             dams = r.json().get('data', {}).get('result', [])
     except Exception as e: print(f"EWS Error: {e}")
     cuaca_list = get_bmkg_jateng_multi()
-    return render_template('ewsjateng.html', dams=dams, cuaca_list=cuaca_list)
+    return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
 @app.route('/api/chat', methods=['POST'])
 def chatbot_api():
