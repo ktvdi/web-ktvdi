@@ -523,3 +523,110 @@ def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+# ... (Import dan Config awal TETAP) ...
+
+# ==========================================
+# 11. EWS JATENG & BMKG (UPDATE FITUR)
+# ==========================================
+
+def get_bmkg_jateng_multi():
+    """Mengambil Cuaca 10 Kota Besar di Jateng"""
+    target_cities = [
+        "Semarang", "Surakarta", "Magelang", "Pekalongan", "Tegal", 
+        "Salatiga", "Purwokerto", "Cilacap", "Kudus", "Pati"
+    ]
+    results = []
+    try:
+        url = "https://data.bmkg.go.id/DataMKG/MEWS/DigitalForecast/DigitalForecast-JawaTengah.xml"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            root = ET.fromstring(response.content)
+            for area in root.findall(".//area"):
+                name = area.get("description")
+                # Mapping nama kota di XML yang mungkin beda dikit
+                if name in target_cities or (name == "Kota Semarang" and "Semarang" in target_cities):
+                    data = {"kota": name.replace("Kota ", ""), "suhu": "30", "cuaca": "Berawan", "icon": "fa-cloud"}
+                    
+                    for param in area.findall("parameter"):
+                        if param.get("id") == "t": # Suhu
+                            data["suhu"] = param.find("timerange").find("value").text
+                        
+                        if param.get("id") == "weather": # Cuaca
+                            code = param.find("timerange").find("value").text
+                            # Mapping Kode
+                            if code in ["0", "1", "2"]: data.update({"cuaca": "Cerah", "icon": "fa-sun"})
+                            elif code in ["3", "4"]: data.update({"cuaca": "Berawan", "icon": "fa-cloud"})
+                            elif code in ["5", "10", "45"]: data.update({"cuaca": "Kabut", "icon": "fa-smog"})
+                            elif code in ["60", "61", "63"]: data.update({"cuaca": "Hujan", "icon": "fa-cloud-rain"})
+                            elif code in ["80", "95", "97"]: data.update({"cuaca": "Petir", "icon": "fa-bolt"})
+                    
+                    results.append(data)
+    except: pass
+    
+    # Fallback jika data kosong
+    if not results:
+        results = [{"kota": "Semarang", "suhu": "30", "cuaca": "Cerah", "icon": "fa-sun"}]
+        
+    return results[:10] # Pastikan max 10
+
+def get_ews_summary():
+    """Helper untuk AI membaca data bendungan"""
+    try:
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            data = r.json().get('data', {}).get('result', [])
+            siaga = [d['name'] for d in data if d.get('status_alert') in ['Siaga 1', 'Siaga 2', 'Awas', 'Siaga']]
+            waspada = [d['name'] for d in data if d.get('status_alert') in ['Siaga 3', 'Waspada']]
+            
+            summary = f"Total Bendungan Terpantau: {len(data)}. "
+            if siaga: summary += f"⚠️ PERHATIAN: Ada {len(siaga)} bendungan status SIAGA/AWAS: {', '.join(siaga)}. "
+            else: summary += "✅ Situasi Aman, tidak ada bendungan status Awas. "
+            
+            if waspada: summary += f"Terdapat {len(waspada)} status Waspada. "
+            return summary
+    except: return "Data EWS sedang gangguan, tidak dapat membaca status bendungan."
+
+@app.route('/ews-jateng')
+def ews_jateng_page():
+    # 1. Ambil Data Bendungan (Full List untuk Tabel/Card)
+    dams = []
+    try:
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=1000"
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        if r.status_code == 200:
+            dams = r.json().get('data', {}).get('result', [])
+    except Exception as e: print(f"EWS Error: {e}")
+
+    # 2. Ambil Data BMKG 10 Kota
+    cuaca_list = get_bmkg_jateng_multi()
+
+    return render_template('ewsjateng.html', dams=dams, cuaca_list=cuaca_list)
+
+@app.route('/api/chat', methods=['POST'])
+def chatbot_api():
+    data = request.get_json()
+    user_msg = data.get('prompt', '')
+    
+    # --- INTEGRASI DATA REAL-TIME KE AI ---
+    system_context = MODI_PROMPT
+    
+    # Jika user tanya bendungan/banjir/air -> Inject Data EWS terbaru
+    if any(k in user_msg.lower() for k in ['bendungan', 'waduk', 'air', 'banjir', 'sungai', 'ews', 'siaga']):
+        ews_data = get_ews_summary()
+        system_context += f"\n[DATA REAL-TIME EWS JATENG]: {ews_data}\nInstruksi: Gunakan data di atas untuk menjawab kondisi lapangan saat ini kepada Komandan."
+
+    # --- END INTEGRASI ---
+
+    if not model: 
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
+    
+    try:
+        response = model.generate_content(f"{system_context}\nUser: {user_msg}\nModi:")
+        if response.text: return jsonify({"response": response.text})
+        else: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    except: 
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
+
+# ... (Sisa kode TETAP SAMA) ...
