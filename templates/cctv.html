@@ -23,6 +23,27 @@
         0% { transform: translateX(0); }
         100% { transform: translateX(-100%); }
     }
+    
+    /* Group Header Style */
+    .group-header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px);
+        padding: 8px 12px;
+        margin: 4px 0;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #475569;
+        border-bottom: 1px solid #e2e8f0;
+        border-top: 1px solid #e2e8f0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
 </style>
 
 <div class="bg-slate-100 min-h-screen w-full flex flex-col font-['Plus_Jakarta_Sans'] text-slate-800 overflow-x-hidden select-none transition-all duration-300" id="main-body" oncontextmenu="return false;">
@@ -121,7 +142,7 @@
                     </div>
                     <div class="marquee-wrapper w-full h-full flex items-center">
                         <div class="marquee-content text-xs text-red-600 font-bold uppercase tracking-wide">
-                            INFORMASI : Tayangan LIVE Streaming CCTV ini kami ambil dari source player publik dari Diskominfo dan kamera CCTV ini adalah aset milik Pemerintah Kota Pekalongan. -  Mohon pergunakan LIVE Streaming CCTV ini dengan bijak  -  Tayangan dilindungi hak cipta milik Pemerintah Daerah  -  KTVDI Smart City menampilkan LIVE CCTV ini agar memudahkan sobat KTVDI dalam mengakses baik via Android ataupun iOS.
+                            INFORMASI : Tayangan LIVE Streaming CCTV ini kami ambil dari source player publik dari PEMDA dan kamera CCTV ini adalah aset milik Pemerintah Daerah. -  Mohon pergunakan LIVE Streaming CCTV ini dengan bijak  -  Tayangan dilindungi hak cipta milik Pemerintah Daerah  -  KTVDI Smart City menampilkan LIVE CCTV ini agar memudahkan sobat KTVDI dalam mengakses baik via Android ataupun iOS.
                         </div>
                     </div>
                 </div>
@@ -149,61 +170,114 @@
 </div>
 
 <script>
+    // DATA CCTV TERSTRUKTUR (DIKELOMPOKKAN)
     const streams = [
-        {name: "PONOLAWEN", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
-        {name: "ALUN ALUN BARAT", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
-        {name: "DEPAN TASPEN 2", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
-        {name: "DR CIPTO", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
-        {name: "RUANG AMARTA", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
-        {name: "GROSIR SETONO", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
-        {name: "GROGOLAN PTZ", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
-        {name: "DEPAN BALAIKOTA 1", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
-        {name: "GAMBARAN", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
-        {name: "POLSEK TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
-        {name: "ALUN ALUN", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
-        {name: "THR", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
-        {name: "THR SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/4/hls/live/index.m3u8"},
-        {name: "STASIUN", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
-        {name: "KEC PEKALONGAN SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
-        {name: "DEPAN TASPEN 1", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
-        {name: "PEREMPATAN KOMINFO", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
-        {name: "PEREMPATAN KOMINFO 2", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
-        {name: "PUSRI TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
-        {name: "PUSRI BARAT", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8"},
-        {name: "AHMAD YANI", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
-        {name: "PONOLAWEN TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/1/hls/live/index.m3u8"},
-        {name: "PONOLAWEN SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/2/hls/live/index.m3u8"},
-        {name: "PENDOPO MATARAM", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
-        {name: "TIRTO TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
-        {name: "TIRTO SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/2/hls/live/index.m3u8"},
-        {name: "AHMAD YANI TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/3/hls/live/index.m3u8"},
-        {name: "PARKIR DEPAN KOMINFO", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8"},
-        {name: "DHARMA BAKTI TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8"},
-        {name: "DHARMA BAKTI BARAT", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/1/hls/live/index.m3u8"},
-        {name: "DHARMA BAKTI SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8"},
-        {name: "PERTIGAAN PODOSUGIH UTARA", url: "https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8"},
-        {name: "MUHAMMADIYAH BARAT", url: "https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8"},
-        {name: "MATAHARI", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
-        {name: "TERMINAL TENGAH", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
-        {name: "TERMINAL TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8"},
-        {name: "PERTIGAAN PODO SUGIH TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8"},
-        {name: "POLSEK TIMUR (ALT)", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
-        {name: "GROGOLAN TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/1/hls/live/index.m3u8"},
-        {name: "MATARAM POJOK UTARA", url: "https://rtsp.pekalongankota.go.id/stream/4e2c3d4b-7cb1-40fa-9e56-3cfc9693412f/channel/0/hls/live/index.m3u8"},
-        {name: "PERTIGAAN KEL KLEGO", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8"},
-        {name: "PERTIGAAN KEL KLEGO 2", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8"},
-        {name: "AREA SOROGENEN", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
-        {name: "STASIUN TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/1/hlsll/live/index.m3u8"},
-        {name: "PUSRI TIMUR (SUPERINDO)", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hlsll/live/index.m3u8"},
-        {name: "POSIS BARAT", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8"},
-        {name: "POSIS UTARA", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
-        {name: "POSIS TIMUR", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8"},
-        {name: "JALAN KURINCI (ALFAMART)", url: "https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8"},
-        {name: "KEC PEKALONGAN UTARA", url: "https://rtsp.pekalongankota.go.id/stream/097799c5-4130-48b8-8c94-869b1960d0c1/channel/0/hls/live/index.m3u8"},
-        {name: "KALI BREMI", url: "https://rtsp.pekalongankota.go.id/stream/a051a871-44ce-4a0e-9c30-6fc3455904b1/channel/0/hls/live/index.m3u8"},
-        {name: "ALUN ALUN SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8"},
-        {name: "PERTIGAAN ALUN ALUN SELATAN", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"},
-        {name: "MENARA TWL PASIR KENCANA", url: "https://rtsp.pekalongankota.go.id/stream/e1c404e6-19f1-464c-9754-e8d53546ff8b/channel/0/hlsll/live/index.m3u8"}
+        // --- WILAYAH YOGYAKARTA ---
+        {group: "D.I. YOGYAKARTA", name: "Malioboro - Simpang Pajeksan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_22_Simpang_Pajeksan_Suryatmajan.stream/chunklist_w229731190.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Mandala Krida", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Mandala_Krida_PTZ.stream/chunklist_w59646757.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro - Depan Toko Subur", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_2_Depan_Toko_Subur.stream/chunklist_w1876728600.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Bumen", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_bumen.stream/chunklist_w1247100149.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Taman Waniwulang", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/WanaWil.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Pertigaan Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RBA Alun-Alun Sisi Barat", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/RBRA.stream/chunklist_w670553311.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Jl Nyoman Arah Gereja", url: "https://cctvjss.jogjakota.go.id/kotabaru/Jl-Nyoman-Oka.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Demen Glagah", url: "https://mam.jogjaprov.go.id:1937/atcs/DemenGlagah.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Mantrigawen PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Karang Tunggal", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah2.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Condong Catur 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Condongcatur2.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Besi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Besi.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Juadi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Juadi.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Tegalgendu PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Tegalgendu_PTZ.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Tugu PTZ 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewSimpangTugu.stream/chunklist_w1182543842.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "View 0 KM PTZ", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewNolKilo.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "View Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Pandansari Timur", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewPandansariTimur.stream/chunklist_w347333533.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Segoro Tegalrejo 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_segoro_amarto_tegalrejo_2.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Nyai Ageng View Utara", url: "https://mam.jogjaprov.go.id:1937/cctv-kp/Karangnongko.stream/chunklist_w197698033.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Glagahsari PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari_PTZ.stream/chunklist_w609517393.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Glagahsari", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari.stream/chunklist_w1045846334.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Semaki 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_1.stream/chunklist_w1401704022.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Semaki 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_2.stream/chunklist_w1348168339.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Gunung Ketur 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_2.stream/chunklist_w779845700.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RHTP Gunung Ketur 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_1.stream/chunklist_w11536123.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Brontokusuman Belakang 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_2.stream/chunklist_w1107148855.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Terang Bulan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_11_Terang_Bulan.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Mal Selatan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Mutiara Lama", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_8_Mutiara_Lama.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Utara Mall", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_25_Utara_Mall.stream/chunklist_w2134770204.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang BPK", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_bpk.stream/chunklist_w367961555.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_2.stream/chunklist_w331129965.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_1.stream/chunklist_w934333603.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Gayam", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gayam.stream/chunklist_w1124660989.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Sentul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Sentul.stream/chunklist_w109375030.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Alun-Alun Utara", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/AlunAlunUtara1.stream/chunklist_w292300010.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "SP3 Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist_w686073147.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Lapangan Basket", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/LapanganBasket.stream/chunklist_w2123417370.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Depan Plaza Malioboro", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanMall.stream/chunklist_w308264239.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Candi Prambanan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiPrambanan.stream/chunklist_w1877697172.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Candi Ratu Boko", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiBoko.stream/chunklist_w103317346.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Tebing Breksi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewBreksi.stream/chunklist_w870274498.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Museum Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/chunklist_w1260618601.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Depan Pasar Bringharjo", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanBeringharjo.stream/chunklist_w2067964493.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Candi Sambisari", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiSambisari.stream/chunklist_w1703721545.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Embung Tambakboyo", url: "https://mam.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTambakboyo.stream/chunklist_w782093023.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Alun-Alun Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/playlist.m3u8"},
+
+        // --- WILAYAH PEKALONGAN ---
+        {group: "KOTA PEKALONGAN", name: "Ponolawen", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Alun Alun Barat", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Depan Taspen 2", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dr Cipto", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ruang Amarta", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Grosir Setono", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Grogolan PTZ", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Depan Balaikota 1", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Gambaran", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Polsek Timur", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Alun Alun", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "THR", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "THR Selatan", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/4/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Stasiun", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Kec Pekalongan Selatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Depan Taspen 1", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Perempatan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Perempatan Kominfo 2", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pusri Timur", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pusri Barat", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ahmad Yani", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ponolawen Timur", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ponolawen Selatan", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pendopo Mataram", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Tirto Timur", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Tirto Selatan", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ahmad Yani Timur", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/3/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Parkir Depan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dharma Bakti Timur", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dharma Bakti Barat", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dharma Bakti Selatan", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Podosugih Utara", url: "https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Muhammadiyah Barat", url: "https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Matahari", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Terminal Tengah", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Terminal Timur", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Podo Sugih Timur", url: "https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Polsek Timur (Alt)", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Grogolan Timur", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Mataram Pojok Utara", url: "https://rtsp.pekalongankota.go.id/stream/4e2c3d4b-7cb1-40fa-9e56-3cfc9693412f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego 2", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Area Sorogenen", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Stasiun Timur", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/1/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pusri Timur (Superindo)", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Posis Barat", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Posis Utara", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Posis Timur", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Jalan Kurinci (Alfamart)", url: "https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Kec Pekalongan Utara", url: "https://rtsp.pekalongankota.go.id/stream/097799c5-4130-48b8-8c94-869b1960d0c1/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Kali Bremi", url: "https://rtsp.pekalongankota.go.id/stream/a051a871-44ce-4a0e-9c30-6fc3455904b1/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Menara TWL Pasir Kencana", url: "https://rtsp.pekalongankota.go.id/stream/e1c404e6-19f1-464c-9754-e8d53546ff8b/channel/0/hlsll/live/index.m3u8"}
     ];
 
     let hls;
@@ -232,6 +306,7 @@
         activeIndex = index;
         const s = streams[index];
         const displayName = toTitleCase(s.name);
+        const displayGroup = s.group;
         
         document.getElementById('playing-status').innerHTML = `Sedang memutar: <strong>${displayName}</strong>`;
         
@@ -296,8 +371,20 @@
         const listContainer = document.getElementById('cctv-list');
         listContainer.innerHTML = "";
         
+        let currentGroup = "";
+
         streams.forEach((s, i) => {
             if (s.name.toLowerCase().includes(filterText.toLowerCase())) {
+                
+                // Grouping Logic
+                if (s.group !== currentGroup) {
+                    currentGroup = s.group;
+                    const groupHeader = document.createElement('div');
+                    groupHeader.className = "group-header";
+                    groupHeader.innerHTML = `<i class="fa-solid fa-map-location-dot text-blue-500"></i> ${currentGroup}`;
+                    listContainer.appendChild(groupHeader);
+                }
+
                 const isActive = i === activeIndex;
                 const item = document.createElement('div');
                 const displayName = toTitleCase(s.name);
@@ -305,7 +392,7 @@
                 item.id = `cctv-item-${i}`;
                 
                 item.className = `
-                    flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 border
+                    flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200 border ml-2 mr-2 mb-1
                     ${isActive 
                         ? 'bg-blue-50 border-blue-200 shadow-sm ring-1 ring-blue-100' 
                         : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
@@ -319,7 +406,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <h4 class="text-[11px] md:text-xs font-bold ${isActive ? 'text-blue-700' : 'text-slate-700'} truncate">${displayName}</h4>
-                        <p class="text-[9px] md:text-[10px] text-slate-500 truncate">Kota Pekalongan</p>
+                        <p class="text-[9px] md:text-[10px] text-slate-500 truncate">${s.group}</p>
                     </div>
                     ${isActive ? '<i class="fa-solid fa-chevron-right text-blue-500 text-[10px]"></i>' : ''}
                 `;
