@@ -11,7 +11,7 @@
     .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
     .custom-scroll::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
 
-    /* Animasi Marquee (DIPERLAMBAT 30s) */
+    /* Animasi Marquee */
     .marquee-wrapper { position: relative; overflow: hidden; }
     .marquee-content {
         display: inline-block;
@@ -35,7 +35,7 @@
         margin: 0;
         font-size: 0.8rem;
         font-weight: 800;
-        color: #1e40af; /* Blue-800 */
+        color: #1e40af;
         border-bottom: 2px solid #e2e8f0;
         border-top: 1px solid #e2e8f0;
         text-transform: uppercase;
@@ -44,6 +44,25 @@
         align-items: center;
         gap: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    /* PLAYER 16:9 FORCE STRETCH */
+    .video-container {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%; /* Rasio 16:9 (9 / 16 * 100) */
+        background: black;
+        overflow: hidden;
+        border-radius: 0 0 12px 12px; /* Rounded bawah */
+    }
+    
+    .video-player {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill; /* MEMAKSA VIDEO MELEBAR PENUH (STRETCH) */
     }
 </style>
 
@@ -54,7 +73,6 @@
             <div class="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center shadow-blue-200 shadow-lg shrink-0 p-1">
                 <img src="https://iili.io/f87539s.png" alt="Logo CCTV" class="w-full h-full object-contain">
             </div>
-            
             <div class="leading-tight flex-1">
                 <h1 class="text-slate-900 font-extrabold text-lg tracking-tight">KTVDI <span class="text-blue-600">SMART CITY</span></h1>
                 <p class="text-[10px] md:text-[11px] text-slate-500 font-medium leading-snug whitespace-normal max-w-xs md:max-w-md">
@@ -62,10 +80,9 @@
                 </p>
             </div>
         </div>
-        
         <div class="relative w-full md:w-80">
             <input type="text" id="search-cctv" onkeyup="filterCCTV()" 
-                class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-inner placeholder:text-slate-400"
+                class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 transition-all shadow-inner placeholder:text-slate-400"
                 placeholder="Cari lokasi kamera...">
             <i class="fa-solid fa-magnifying-glass absolute left-4 top-3 text-slate-400 text-xs"></i>
         </div>
@@ -89,32 +106,34 @@
                 </div>
             </div>
 
-            <div class="w-full bg-black shadow-2xl relative aspect-video group ring-1 ring-slate-900/5 md:rounded-b-xl overflow-hidden">
-                <video id="main-video" class="w-full h-full object-contain bg-black" autoplay muted playsinline></video>
+            <div class="w-full bg-black shadow-2xl relative md:rounded-b-xl overflow-hidden group">
+                <div class="video-container">
+                    <video id="main-video" class="video-player" autoplay muted playsinline></video>
 
-                <div id="play-overlay" class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] cursor-pointer transition-all hidden" onclick="forcePlay()">
-                    <div class="w-16 h-16 md:w-20 md:h-20 bg-white/20 hover:bg-white/30 border border-white/50 rounded-full flex items-center justify-center backdrop-blur-md shadow-2xl transition-transform hover:scale-105 group/play">
-                        <i class="fa-solid fa-play text-white text-3xl ml-1 group-hover/play:text-blue-400 transition-colors"></i>
-                    </div>
-                </div>
-
-                <div id="loading-overlay" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center">
-                    <div class="flex flex-col items-center">
-                        <div class="relative w-20 h-20 mb-4 flex items-center justify-center">
-                            <div class="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                            <img src="https://iili.io/f87Ctjt.md.png" alt="Loading" class="w-16 h-auto relative z-10 animate-bounce brightness-110 drop-shadow-lg">
+                    <div id="play-overlay" class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] cursor-pointer transition-all hidden" onclick="forcePlay()">
+                        <div class="w-16 h-16 md:w-20 md:h-20 bg-white/20 hover:bg-white/30 border border-white/50 rounded-full flex items-center justify-center backdrop-blur-md shadow-2xl transition-transform hover:scale-105 group/play">
+                            <i class="fa-solid fa-play text-white text-3xl ml-1 group-hover/play:text-blue-400 transition-colors"></i>
                         </div>
-                        <h3 class="text-white font-extrabold text-lg tracking-widest uppercase">KTVDI CCTV</h3>
-                        <p class="text-blue-400 text-xs font-medium mt-1 animate-pulse">Menghubungkan ke Server...</p>
                     </div>
-                </div>
 
-                <div id="error-overlay" class="absolute inset-0 bg-slate-900 z-30 hidden flex flex-col items-center justify-center text-center px-4">
-                    <i class="fa-solid fa-video-slash text-slate-600 text-4xl mb-3"></i>
-                    <p class="text-white text-sm font-semibold">Sinyal Kamera Terputus</p>
-                    <button onclick="reloadStream()" class="mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-lg">
-                        Coba Lagi
-                    </button>
+                    <div id="loading-overlay" class="absolute inset-0 bg-slate-900 z-30 flex flex-col items-center justify-center">
+                        <div class="flex flex-col items-center">
+                            <div class="relative w-20 h-20 mb-4 flex items-center justify-center">
+                                <div class="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                                <img src="https://iili.io/f87Ctjt.md.png" alt="Loading" class="w-16 h-auto relative z-10 animate-bounce brightness-110 drop-shadow-lg">
+                            </div>
+                            <h3 class="text-white font-extrabold text-lg tracking-widest uppercase">KTVDI CCTV</h3>
+                            <p class="text-blue-400 text-xs font-medium mt-1 animate-pulse">Menghubungkan ke Server...</p>
+                        </div>
+                    </div>
+
+                    <div id="error-overlay" class="absolute inset-0 bg-slate-900 z-30 hidden flex flex-col items-center justify-center text-center px-4">
+                        <i class="fa-solid fa-video-slash text-slate-600 text-4xl mb-3"></i>
+                        <p class="text-white text-sm font-semibold">Sinyal Kamera Terputus</p>
+                        <button onclick="reloadStream()" class="mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition shadow-lg">
+                            Coba Lagi
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -153,15 +172,11 @@
         <aside class="lg:col-span-3 flex flex-col h-[60vh] lg:h-[calc(100vh-140px)] bg-white lg:rounded-2xl border-t lg:border border-slate-200 shadow-lg overflow-hidden order-2 mt-0 lg:mt-0 relative">
             <div class="p-3 md:p-4 border-b border-slate-100 bg-white flex justify-between items-center sticky top-0 z-10">
                 <h3 class="font-extrabold text-slate-800 text-xs md:text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-video text-blue-600"></i>
-                    Daftar Kamera
+                    <i class="fa-solid fa-video text-blue-600"></i> Daftar Kamera
                 </h3>
                 <span class="text-[10px] bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full font-bold" id="cam-count">0</span>
             </div>
-
-            <div class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1" id="cctv-list">
-            </div>
-            
+            <div class="flex-1 overflow-y-auto custom-scroll p-2 space-y-1" id="cctv-list"></div>
             <div class="p-2 bg-slate-50 border-t border-slate-200 text-center">
                 <p class="text-[9px] text-slate-400 font-mono">© 2026 KTVDI Network</p>
             </div>
@@ -171,9 +186,10 @@
 </div>
 
 <script>
-    // DATA CCTV TERSTRUKTUR (DIKELOMPOKKAN)
+    // --- DATA CCTV (FULL LENGKAP) ---
     const streams = [
-        // --- KOTA SEMARANG ---
+        // ... (MASUKKAN SEMUA DATA STREAMS YANG TADI, SAYA TULIS ULANG BIAR PASTI) ...
+        // KOTA SEMARANG
         {group: "KOTA SEMARANG", name: "Kyai Saleh", url: "https://livepantau.semarangkota.go.id/0f404a16-9710-4050-be66-4d828d6fb5d7/index.m3u8"},
         {group: "KOTA SEMARANG", name: "Thamrin Pandanaran 360", url: "https://livepantau.semarangkota.go.id/2383c59e-0c10-4b33-8e3a-2fee505c3fcd/index.m3u8"},
         {group: "KOTA SEMARANG", name: "Ki Mangun Sarkoro", url: "https://livepantau.semarangkota.go.id/71d91a9a-4dfa-45d3-acbc-00a1f877a441/index.m3u8"},
@@ -365,7 +381,6 @@
         activeIndex = index;
         const s = streams[index];
         const displayName = toTitleCase(s.name);
-        const displayGroup = s.group;
         
         document.getElementById('playing-status').innerHTML = `Sedang memutar: <strong>${displayName}</strong>`;
         
