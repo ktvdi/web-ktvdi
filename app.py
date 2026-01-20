@@ -232,11 +232,13 @@ def normalize_dam_data(raw_data):
     for item in raw_data:
         try:
             latest = item.get('latest_debit_report', {})
+            # Jika latest null/None, set ke dict kosong
             if not isinstance(latest, dict): latest = {}
 
             name = item.get('dam_name') or item.get('nama') or item.get('name') or "Bendungan"
             
             # --- LOGIKA KONVERSI METER KE CM ---
+            # Prioritas data: Limpas (dari latest report) -> TMA (dari root)
             raw_tma = latest.get('limpas') if latest else (item.get('tma') or item.get('siap') or 0)
             try:
                 val = float(raw_tma)
@@ -250,11 +252,13 @@ def normalize_dam_data(raw_data):
             waktu_display = "Hari ini"
             if raw_time:
                 try:
+                    # Bersihkan string waktu dari 'Z' (UTC marker) atau milidetik
                     clean_str = str(raw_time).split('.')[0].replace('Z', '')
                     dt_utc = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
-                    dt_wib = dt_utc + timedelta(hours=7) # +7 Jam
+                    dt_wib = dt_utc + timedelta(hours=7) # +7 Jam ke WIB
                     waktu_display = dt_wib.strftime("%d-%m-%Y %H:%M")
                 except:
+                    # Fallback jika format tidak dikenali
                     waktu_display = str(raw_time)[:16].replace('T', ' ')
 
             status = latest.get('status') or item.get('status_alert') or 'Aman'
@@ -282,13 +286,15 @@ def fetch_ews_data():
         'Accept': 'application/json'
     }
     
-    # 1. UTAMA: SIAGA KRANJI (Anti-Cache)
+    # 1. UTAMA: SIAGA KRANJI (Anti-Cache & API Baru)
     try:
         ts = int(time.time() * 1000)
+        # Menggunakan API Siaga Kranji yang baru
         url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
         r = requests.get(url, headers=headers, timeout=6, verify=False)
         if r.status_code == 200:
             data = r.json()
+            # Siaga Kranji biasanya langsung mengembalikan list atau dict dengan key 'data'/'result'
             raw_list = data.get('data') or data.get('result') or (data if isinstance(data, list) else [])
             if raw_list: return normalize_dam_data(raw_list)
     except: pass
