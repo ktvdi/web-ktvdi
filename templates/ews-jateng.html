@@ -86,8 +86,9 @@
         color: rgba(255,255,255,0.6);
         padding-left: 8px;
     }
-    .line-siaga { border-color: #f59e0b; top: 40%; } /* Posisi relatif visual */
-    .line-awas { border-color: #ef4444; top: 20%; }
+    /* Posisi garis diatur dinamis lewat inline style di HTML */
+    .line-siaga { border-color: #f59e0b; } 
+    .line-awas { border-color: #ef4444; }
 
     /* Air Bergerak */
     .water-fill {
@@ -205,16 +206,26 @@
                 {% set badge_cls = 'bg-aman' %}
                 {% set label = 'AMAN' %}
                 
-                {% set val_tma = dam.tma|float %} 
-                {% set val_siaga = 200 %} {% set val_awas = 300 %}  {% set percent = (val_tma / val_awas) * 80 if val_awas > 0 else 30 %}
+                {% set val_tma = dam.tma|float %}
+                
+                {% set val_siaga = dam.siaga|float if dam.siaga and dam.siaga|float > 0 else 200 %}
+                {% set val_awas = dam.awas|float if dam.awas and dam.awas|float > 0 else 300 %}
+                
+                {% if val_siaga < 50 %}{% set val_siaga = val_siaga * 100 %}{% endif %}
+                {% if val_awas < 50 %}{% set val_awas = val_awas * 100 %}{% endif %}
+                
+                {% set percent = (val_tma / val_awas) * 85 if val_awas > 0 else 30 %}
                 {% if percent > 95 %}{% set percent = 95 %}{% endif %}
-                {% if percent < 20 %}{% set percent = 20 %}{% endif %} {% if 'Awas' in status or 'Siaga 1' in status %}
+                {% if percent < 15 %}{% set percent = 15 %}{% endif %} {% if 'Awas' in status or 'Siaga 1' in status or val_tma >= val_awas %}
                     {% set theme = 'water-awas' %} {% set badge_cls = 'bg-awas' %} {% set label = 'BAHAYA' %}
-                {% elif 'Siaga' in status or 'Siaga 2' in status %}
+                {% elif 'Siaga' in status or 'Siaga 2' in status or val_tma >= val_siaga %}
                     {% set theme = 'water-siaga' %} {% set badge_cls = 'bg-siaga' %} {% set label = 'SIAGA' %}
                 {% elif 'Waspada' in status %}
                     {% set theme = 'water-siaga' %} {% set badge_cls = 'bg-siaga' %} {% set label = 'WASPADA' %}
                 {% endif %}
+                
+                {% set line_siaga_pos = (val_siaga / val_awas) * 100 if val_awas > 0 else 60 %}
+                {% if line_siaga_pos > 90 %}{% set line_siaga_pos = 90 %}{% endif %}
 
                 <div class="dam-card dam-item group {{ theme }}">
                     
@@ -227,8 +238,9 @@
                     </div>
 
                     <div class="tank-container">
-                        <div class="line-limit line-awas" style="top: 20%;">Batas Awas</div>
-                        <div class="line-limit line-siaga" style="top: 40%;">Batas Siaga</div>
+                        <div class="line-limit line-awas" style="bottom: 90%;">Batas Awas</div>
+                        
+                        <div class="line-limit line-siaga" style="bottom: {{ line_siaga_pos }}%;">Batas Siaga</div>
 
                         <div class="tma-display">
                             <span class="tma-num">{{ dam.tma }}</span>
@@ -254,11 +266,11 @@
                     <div class="limit-info">
                         <div class="limit-row">
                             <span>Batas Siaga:</span>
-                            <span class="val-siaga">> {{ val_siaga }} cm</span>
+                            <span class="val-siaga">> {{ val_siaga|int }} cm</span>
                         </div>
                         <div class="limit-row">
                             <span>Batas Awas:</span>
-                            <span class="val-awas">> {{ val_awas }} cm</span>
+                            <span class="val-awas">> {{ val_awas|int }} cm</span>
                         </div>
                     </div>
 
