@@ -36,7 +36,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # 2. KONEKSI FIREBASE
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Konfigurasi Cloud (Vercel / Production)
+        # Konfigurasi Cloud (Vercel)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -84,7 +84,6 @@ mail = Mail(app)
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
-    # Gunakan model flash yang cepat dan stabil
     model = genai.GenerativeModel("gemini-1.5-flash") 
 except: model = None
 
@@ -245,20 +244,17 @@ def normalize_dam_data(raw_data):
     
     for item in raw_data:
         try:
-            # Deteksi struktur data (bisa bersarang di latest_debit_report atau di root)
             latest = item.get('latest_debit_report', {})
             if not isinstance(latest, dict): latest = {}
 
             name = item.get('dam_name') or item.get('nama') or item.get('name') or "Bendungan"
             
             # 1. THRESHOLD (BATAS WAJAR)
-            # Ambil dari root JSON, lalu konversi ke CM
             siaga_val = item.get('siaga', 0)
             awas_val = item.get('awas', 0)
             siaga_cm = smart_convert_cm(siaga_val)
             awas_cm = smart_convert_cm(awas_val)
             
-            # Fallback jika API mengembalikan 0 atau null
             if float(siaga_cm) == 0: siaga_cm = "200"
             if float(awas_cm) == 0: awas_cm = "300"
 
@@ -267,7 +263,6 @@ def normalize_dam_data(raw_data):
             tma_cm = smart_convert_cm(raw_tma)
 
             # 3. FIX TIMEZONE (UTC -> WIB)
-            # API biasanya UTC (Z), kita perlu +7 jam
             raw_time = latest.get('created_at') or item.get('updated_at')
             waktu_display = "Hari ini"
             if raw_time:
@@ -279,7 +274,7 @@ def normalize_dam_data(raw_data):
                 except:
                     waktu_display = str(raw_time)[:16].replace('T', ' ')
 
-            # 4. DETAIL LAINNYA
+            # 4. DETAIL DATA LAIN
             status = latest.get('status') or item.get('status_alert') or 'Aman'
             pob = latest.get('pob_id')
             petugas = f"Kode: {pob}" if pob else "Tim Piket"
@@ -309,21 +304,19 @@ def fetch_ews_data():
         'Accept': 'application/json'
     }
     
-    # 1. UTAMA: SIAGA KRANJI (Update Cepat & Timestamp Buster)
+    # 1. UTAMA: SIAGA KRANJI (Anti-Cache)
     try:
         ts = int(time.time() * 1000)
         url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
         r = requests.get(url, headers=headers, timeout=6, verify=False)
         if r.status_code == 200:
             data = r.json()
-            # Handle variasi struktur: bisa langsung list, atau dict {'data': ...}, atau {'result': ...}
             raw_list = data.get('data') or data.get('result') or (data if isinstance(data, list) else [])
             if raw_list: return normalize_dam_data(raw_list)
     except: pass
 
     # 2. BACKUP: EWS JATENG (Official)
     try:
-        # Gunakan pageSize 200 agar tidak timeout dan dapat semua data
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
         r = requests.get(url, headers=headers, timeout=9, verify=False)
         if r.status_code == 200:
@@ -335,7 +328,7 @@ def fetch_ews_data():
     return []
 
 # ==========================================
-# 7. ROUTE LENGKAP & OTENTIKASI
+# 7. ROUTE LENGKAP
 # ==========================================
 
 @app.route("/", methods=['GET'])
@@ -365,14 +358,12 @@ def login():
         hashed_pw = hash_password(password)
         clean_input = normalize_input(raw_input)
         if not ref: return render_template('login.html', error="Koneksi Database Terputus.")
-        
         users = ref.child('users').get() or {}
         target_user = None; target_uid = None
         for uid, data in users.items():
             if not isinstance(data, dict): continue
             if normalize_input(uid) == clean_input: target_user = data; target_uid = uid; break
             if normalize_input(data.get('email')) == clean_input: target_user = data; target_uid = uid; break
-            
         if target_user and target_user.get('password') == hashed_pw:
             session.permanent = True
             session['user'] = target_uid
@@ -388,9 +379,7 @@ def register():
         e = normalize_input(request.form.get("email"))
         n = request.form.get("nama")
         p = request.form.get("password")
-        
         if not ref: return "Database Error", 500
-        
         users = ref.child("users").get() or {}
         if u in users:
             flash("Maaf Kak, Username ini sudah digunakan.", "error")
@@ -399,29 +388,16 @@ def register():
             if normalize_input(data.get('email')) == e:
                 flash("Email ini sudah terdaftar.", "error")
                 return render_template("register.html")
-        
-        # OTP 1 MENIT
         otp = str(random.randint(100000, 999999))
-        expiry = time.time() + 60 
-        
+        expiry = time.time() + 60
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
             msg = Message("Verifikasi Akun KTVDI", recipients=[e])
-            msg.body = f"""Yth. Calon Anggota KTVDI,
-
-Terima kasih telah mendaftar. Berikut adalah kode verifikasi (OTP) Anda:
-
-[ {otp} ]
-
-⚠️ PENTING: Kode ini hanya berlaku selama 1 MENIT demi keamanan data Anda.
-
-Hormat Kami,
-Tim Admin KTVDI
-"""
+            msg.body = f"Kode OTP Anda (1 Menit): {otp}"
             mail.send(msg)
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
-        except: flash("Gagal kirim email. Pastikan email aktif.", "error")
+        except: flash("Gagal kirim email.", "error")
     return render_template("register.html")
 
 @app.route("/verify-register", methods=["GET", "POST"])
@@ -432,7 +408,7 @@ def verify_register():
         p = ref.child(f'pending_users/{u}').get()
         if not p: return redirect(url_for("register"))
         if time.time() > p.get('expiry', 0):
-            flash("Kode OTP telah kedaluwarsa (Lewat 1 Menit).", "error")
+            flash("Kode OTP expired.", "error")
             ref.child(f'pending_users/{u}').delete()
             return redirect(url_for("register"))
         if str(p.get('otp')).strip() == request.form.get("otp").strip():
@@ -459,7 +435,7 @@ def forgot_password():
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
                 msg = Message("Reset Password", recipients=[email_input])
-                msg.body = f"Kode OTP Reset Password (1 Menit): {otp}"
+                msg.body = f"Kode OTP: {otp}"
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
@@ -474,7 +450,7 @@ def verify_otp():
         data = ref.child(f"otp/{uid}").get()
         if not data: return redirect(url_for("forgot_password"))
         if time.time() > data.get('expiry', 0):
-            flash("Kode OTP Kedaluwarsa.", "error")
+            flash("Kode OTP Expired.", "error")
             return redirect(url_for("forgot_password"))
         if str(data.get("otp")).strip() == request.form.get("otp").strip():
             session['reset_verified'] = True
@@ -574,35 +550,39 @@ def chatbot_api():
     data = request.get_json()
     user_msg = data.get('prompt', '')
     
-    # Injeksi Data Real-time ke AI
-    if "bendungan" in user_msg.lower() or "banjir" in user_msg.lower():
+    if "bendungan" in user_msg.lower():
         dams = fetch_ews_data()
-        bahaya = [f"{d['name']} ({d['status']})" for d in dams if 'awas' in d['status'].lower() or 'siaga' in d['status'].lower()]
-        
-        if bahaya:
-            context = f"PERINGATAN: Ada bendungan status bahaya saat ini: {', '.join(bahaya)}. "
-        else:
-            context = f"INFO: Saat ini terpantau {len(dams)} bendungan dalam kondisi AMAN. "
-            
-        full_prompt = f"{MODI_PROMPT}\n{context}\nUser: {user_msg}\nModi:"
-    else:
-        full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
+        bahaya = [d['name'] for d in dams if 'awas' in d['status'].lower()]
+        msg = f"🚨 BAHAYA: {', '.join(bahaya)}" if bahaya else f"Semua {len(dams)} bendungan AMAN."
+        return jsonify({"response": msg})
 
     if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
-    
     try:
-        response = model.generate_content(full_prompt)
+        response = model.generate_content(f"{MODI_PROMPT}\nUser: {user_msg}\nModi:")
         return jsonify({"response": response.text})
     except: return jsonify({"response": get_smart_fallback_response(user_msg)})
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    kota = ["Jakarta", "Semarang", "Surabaya", "Bandung", "Medan", "Yogyakarta", "Solo", "Malang", "Makassar", "Palembang"] 
-    return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=get_quote_religi())
+    kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
+        "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi",
+        "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
+        "Jayapura", "Kediri", "Kendari", "Kotamobagu", "Kupang", "Langsa", "Lhokseumawe", "Lubuklinggau", "Madiun", "Magelang",
+        "Makassar", "Malang", "Manado", "Mataram", "Medan", "Metro", "Mojokerto", "Padang", "Padangpanjang", "Padangsidempuan",
+        "Pagar Alam", "Palangkaraya", "Palembang", "Palopo", "Palu", "Pangkal Pinang", "Parepare", "Pariaman", "Pasuruan", "Payakumbuh",
+        "Pekalongan", "Pekanbaru", "Pematangsiantar", "Pontianak", "Prabumulih", "Probolinggo", "Purwokerto", "Purwodadi", "Sabang", "Salatiga",
+        "Samarinda", "Sawahlunto", "Semarang", "Serang", "Sibolga", "Singkawang", "Solok", "Sorong", "Subulussalam", "Sukabumi",
+        "Surabaya", "Surakarta", "Tangerang", "Tangerang Selatan", "Tanjungbalai", "Tanjungpinang", "Tarakan", "Tasikmalaya", "Tebing Tinggi", "Tegal",
+        "Ternate", "Tidore Kepulauan", "Tomohon", "Tual", "Yogyakarta"
+    ]
+    quotes = get_quote_religi()
+    return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=quotes)
 
 @app.route("/api/news-ticker")
 def news_ticker():
-    return jsonify(["Selamat Datang di KTVDI", "Pantau Banjir via EWS Jateng", "Migrasi TV Digital"])
+    entries = get_news_entries()
+    titles = [e.get('title') for e in entries]
+    return jsonify(titles)
 
 @app.route('/about')
 def about(): return render_template('about.html')
