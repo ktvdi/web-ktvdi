@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 
-{% block title %}EWS Bendungan Jateng - KTVDI{% endblock %}
+{% block title %}Pantauan Bendungan Jateng - KTVDI{% endblock %}
 
 {% block content %}
 <style>
-    /* THEME: Deep Ocean Blue */
+    /* THEME: Deep Ocean Blue Premium */
     .ews-bg {
-        background: radial-gradient(circle at 50% 0, #1e293b 0%, #0f172a 80%);
+        background: radial-gradient(circle at 50% 0, #0f172a, #020617);
         min-height: 100vh;
         color: #f8fafc;
         padding-top: 6rem;
@@ -14,127 +14,116 @@
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
+    /* WEATHER ANIMATIONS */
+    .weather-icon { font-size: 2.5rem; margin-bottom: 0.5rem; display: inline-block; }
+    .spin-slow { animation: spin 8s linear infinite; color: #facc15; }
+    .float { animation: float 3s ease-in-out infinite; color: #bae6fd; }
+    .pulse { animation: pulse 2s infinite; color: #cbd5e1; }
+    .bounce { animation: bounce 1s infinite; color: #60a5fa; }
+    .flash { animation: flash 1s infinite; color: #eab308; }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes flash { 0%, 50%, 100% { opacity: 1; } 25%, 75% { opacity: 0.2; } }
+
     /* CARD STYLE */
     .dam-card {
-        background: rgba(30, 41, 59, 0.7);
+        background: rgba(30, 41, 59, 0.4);
         border: 1px solid rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(12px);
-        border-radius: 24px;
+        border-radius: 20px;
         overflow: hidden;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
     .dam-card:hover {
-        transform: translateY(-8px);
+        transform: translateY(-5px);
         box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.4);
-        border-color: rgba(56, 189, 248, 0.4);
+        border-color: rgba(56, 189, 248, 0.5);
     }
 
     /* HEADER KARTU */
     .card-header-dam {
-        padding: 16px 24px;
-        background: rgba(255, 255, 255, 0.03);
+        padding: 16px 20px;
+        background: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
-    .dam-title {
-        font-size: 1.1rem;
-        font-weight: 800;
-        color: white;
-        margin-bottom: 2px;
-    }
-    .dam-loc {
-        font-size: 0.75rem;
-        color: #94a3b8;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
+    .dam-title { font-size: 1rem; font-weight: 800; color: white; letter-spacing: 0.02em; }
+    .dam-loc { font-size: 0.7rem; color: #94a3b8; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 
     /* VISUALISASI AIR (Tank) */
     .water-tank {
         position: relative;
-        height: 200px;
-        background: #0b1120;
+        height: 180px;
+        background: #0f172a;
         overflow: hidden;
-        /* Grid Pattern */
-        background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-        background-size: 20px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     /* BATAS (Threshold) */
     .limit-line {
-        position: absolute;
-        width: 100%;
-        border-top: 2px dashed;
-        z-index: 10;
-        font-size: 0.65rem;
-        font-weight: bold;
-        text-align: right;
-        padding-right: 10px;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        line-height: 0;
+        position: absolute; width: 100%; border-top: 2px dashed; z-index: 10;
+        font-size: 0.65rem; font-weight: bold; text-align: right; padding-right: 10px;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8); line-height: 0;
     }
     .limit-siaga { border-color: #f59e0b; color: #f59e0b; }
     .limit-awas { border-color: #ef4444; color: #ef4444; }
 
-    /* AIR BERGERAK */
+    /* AIR BERGERAK (Realistis) */
     .water-body {
-        position: absolute;
-        bottom: 0; left: 0; width: 100%;
+        position: absolute; bottom: 0; left: 0; width: 100%;
         transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 5;
-        opacity: 0.9;
+        z-index: 5; opacity: 0.9;
     }
     .wave-top {
-        position: absolute; top: -15px; left: 0; width: 200%; height: 30px;
+        position: absolute; top: -12px; left: 0; width: 200%; height: 24px;
         background-repeat: repeat-x; background-size: 50% 100%;
-        animation: waveMove 5s linear infinite;
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1200 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
+        animation: waveMove 6s linear infinite;
+        /* SVG Wave Mask */
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 1200 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23ffffff' fill-opacity='0.2'/%3E%3C/svg%3E");
     }
     
     @keyframes waveMove { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
     /* TEMA WARNA STATUS */
-    .status-aman .water-body { background: linear-gradient(to top, #1e3a8a, #3b82f6); }
-    .status-aman .badge { background: #10b981; color: white; }
+    .status-aman .water-body { background: linear-gradient(to top, #1d4ed8, #3b82f6); }
+    .status-aman .badge { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
     
-    .status-siaga .water-body { background: linear-gradient(to top, #7c2d12, #f97316); }
-    .status-siaga .badge { background: #f97316; color: white; }
+    .status-siaga .water-body { background: linear-gradient(to top, #9a3412, #f97316); }
+    .status-siaga .badge { background: rgba(249, 115, 22, 0.2); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.3); }
     
-    .status-awas .water-body { background: linear-gradient(to top, #7f1d1d, #ef4444); }
-    .status-awas .badge { background: #ef4444; color: white; }
+    .status-awas .water-body { background: linear-gradient(to top, #991b1b, #ef4444); }
+    .status-awas .badge { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); animation: pulse-red 2s infinite; }
+
+    @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
     /* ANGKA TMA BESAR */
     .tma-big {
-        position: absolute;
-        top: 20px; left: 24px;
-        z-index: 20;
-        text-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        z-index: 20; text-align: center; text-shadow: 0 4px 12px rgba(0,0,0,0.8);
     }
-    .tma-val { font-size: 2.5rem; font-weight: 900; line-height: 1; letter-spacing: -0.02em; }
-    .tma-unit { font-size: 0.9rem; font-weight: 700; color: rgba(255,255,255,0.8); }
+    .tma-val { font-size: 2.2rem; font-weight: 900; line-height: 1; letter-spacing: -0.02em; display: block; }
+    .tma-unit { font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.7); text-transform: uppercase; margin-top: 4px; display: block; }
 
-    /* DATA GRID (Detail Teknis) */
+    /* DATA GRID */
     .data-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: grid; grid-template-columns: 1fr 1fr;
         border-top: 1px solid rgba(255,255,255,0.1);
-        background: rgba(15, 23, 42, 0.4);
+        background: rgba(15, 23, 42, 0.6);
     }
-    .data-col {
-        padding: 12px 16px;
-        border-right: 1px solid rgba(255,255,255,0.05);
-    }
+    .data-col { padding: 12px 16px; border-right: 1px solid rgba(255,255,255,0.05); text-align: center; }
     .data-col:last-child { border-right: none; }
-    .data-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .data-label { font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
     .data-val { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; }
 
-    /* ANALISIS BOX (Pesan Pintar) */
+    /* ANALISIS BOX */
     .insight-box {
         padding: 16px;
         background: rgba(255, 255, 255, 0.02);
@@ -143,35 +132,29 @@
     .insight-title {
         font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
     }
-    .insight-text {
-        font-size: 0.85rem; line-height: 1.5; color: #e2e8f0;
-    }
+    .insight-text { font-size: 0.8rem; line-height: 1.5; color: #cbd5e1; }
 
     /* FOOTER KARTU */
     .card-footer {
-        padding: 10px 16px;
-        background: rgba(0,0,0,0.3);
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.7rem;
-        color: #64748b;
-        font-weight: 500;
+        padding: 10px 16px; background: rgba(0,0,0,0.2);
+        display: flex; justify-content: space-between; font-size: 0.65rem; color: #64748b; font-weight: 500;
     }
 
     /* CUACA SCROLL */
     .weather-container {
-        display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem;
-        scroll-snap-type: x mandatory;
+        display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem; scroll-snap-type: x mandatory;
     }
     .weather-container::-webkit-scrollbar { display: none; }
     .weather-card {
-        min-width: 140px;
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(255,255,255,0.1);
-        border-radius: 16px;
-        padding: 16px;
-        text-align: center;
-        scroll-snap-align: center;
+        min-width: 130px; background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px; padding: 16px; text-align: center; scroll-snap-align: center;
+        backdrop-filter: blur(8px);
+    }
+    
+    /* DISCLAIMER BOX */
+    .source-credit {
+        margin-top: 3rem; padding: 1.5rem; text-align: center;
+        border-top: 1px solid rgba(255,255,255,0.1); color: #64748b; font-size: 0.75rem;
     }
 </style>
 
@@ -179,25 +162,34 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6">
         
         <div class="text-center mb-12 animate-fade-in-down">
-            <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-3">
-                Pantauan <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Bendungan Jateng</span>
+            <h1 class="text-4xl md:text-6xl font-black text-white tracking-tight mb-3">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-emerald-400">EWS JATENG</span>
             </h1>
-            <p class="text-slate-400 text-sm md:text-base">
-                Data Real-time Tinggi Muka Air (TMA) & Analisa Hidrologi Terintegrasi
+            <p class="text-slate-400 text-sm md:text-base max-w-2xl mx-auto">
+                Monitoring Ketinggian Air Bendungan (TMA) & Analisis Hidrologi Real-time.
             </p>
         </div>
 
         <div class="mb-12">
             <div class="flex items-center justify-between mb-4 px-2">
-                <h3 class="font-bold text-white text-lg border-l-4 border-cyan-500 pl-3">Cuaca Terkini (10 Kota)</h3>
-                <span class="text-xs text-slate-500 bg-slate-800 px-3 py-1 rounded-full">Geser &rarr;</span>
+                <h3 class="font-bold text-white text-lg border-l-4 border-sky-500 pl-3">Prakiraan Cuaca Terkini</h3>
+                <span class="text-xs text-slate-500 bg-slate-800 px-3 py-1 rounded-full border border-slate-700">Geser &rarr;</span>
             </div>
             <div class="weather-container">
                 {% if cuaca_list %}
                     {% for c in cuaca_list %}
                     <div class="weather-card">
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{{ c.kota }}</p>
-                        <div class="text-3xl my-2 text-cyan-400"><i class="fa-solid {{ c.icon }}"></i></div>
+                        
+                        {% set anim = 'float' %}
+                        {% if 'Cerah' in c.cuaca %}{% set anim = 'spin-slow' %}
+                        {% elif 'Hujan' in c.cuaca %}{% set anim = 'bounce' %}
+                        {% elif 'Petir' in c.cuaca %}{% set anim = 'flash' %}
+                        {% endif %}
+                        
+                        <div class="text-3xl my-2 text-sky-400 {{ anim }}">
+                            <i class="fa-solid {{ c.icon }}"></i>
+                        </div>
                         <p class="text-2xl font-black text-white">{{ c.suhu }}°</p>
                         <p class="text-[10px] text-slate-300 mt-1">{{ c.cuaca }}</p>
                     </div>
@@ -206,10 +198,10 @@
             </div>
         </div>
 
-        <div class="max-w-lg mx-auto mb-10 relative">
-            <input type="text" id="searchDam" placeholder="Cari bendungan (contoh: Gajah Mungkur)..." 
-                class="w-full bg-slate-800/80 border border-slate-700 text-white rounded-full py-3.5 px-6 pl-12 focus:outline-none focus:border-cyan-500 transition shadow-lg">
-            <i class="fa-solid fa-magnifying-glass absolute left-5 top-4 text-slate-500"></i>
+        <div class="max-w-lg mx-auto mb-12 relative">
+            <input type="text" id="searchDam" placeholder="Cari lokasi bendungan..." 
+                class="w-full bg-slate-800/80 border border-slate-700 text-white rounded-full py-4 px-6 pl-12 focus:outline-none focus:border-sky-500 transition shadow-lg text-sm">
+            <i class="fa-solid fa-magnifying-glass absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-500"></i>
         </div>
 
         {% if dams %}
@@ -220,24 +212,23 @@
                 {% set siaga = dam.siaga|float %}
                 {% set awas = dam.awas|float %}
                 
-                {% set max_scale = awas * 1.3 if awas > 0 else 500 %}
+                {% set max_scale = awas * 1.2 if awas > 0 else 500 %}
                 {% set pct_air = (tma / max_scale) * 100 %}
                 {% set pct_siaga = (siaga / max_scale) * 100 %}
                 {% set pct_awas = (awas / max_scale) * 100 %}
                 
                 {% if pct_air > 95 %}{% set pct_air = 95 %}{% endif %}
-                {% if pct_air < 15 %}{% set pct_air = 15 %}{% endif %}
+                {% if pct_air < 10 %}{% set pct_air = 10 %}{% endif %}
 
-                {% set theme = 'status-aman' %}
-                {% set label = 'AMAN' %}
-                {% set message = 'Kondisi air stabil. Aman untuk aktivitas warga di sekitar bantaran sungai.' %}
+                {% set theme = 'status-aman' %} {% set label = 'AMAN' %}
+                {% set message = 'Kondisi air stabil. Aman untuk aktivitas.' %}
                 
                 {% if tma >= awas or 'awas' in dam.status|lower %}
                     {% set theme = 'status-awas' %} {% set label = 'BAHAYA' %}
-                    {% set message = '<span class="text-red-400 font-bold">PERINGATAN:</span> Ketinggian sudah melewati batas. Segera jauhi sungai dan ikuti arahan petugas!' %}
+                    {% set message = '<b class="text-red-400">PERINGATAN:</b> Air sudah mulai meluap! Harap berhati hati, amankan barang berharga dan waspada serta ikuti pantauan informasi dari pemda,BMKG, BBWS, dan BPBD.' %}
                 {% elif tma >= siaga or 'siaga' in dam.status|lower %}
                     {% set theme = 'status-siaga' %} {% set label = 'SIAGA' %}
-                    {% set message = 'Ketinggian air cukup tinggi. Tetap tenang dan pantau informasi resmi dari Pemda dan pihak terkait.' %}
+                    {% set message = 'Ketinggian Air sudah mulai tinggi. Tetap tenang, ikuti selalu update informasi dari Pemerintah Daerah.' %}
                 {% endif %}
 
                 <div class="dam-card group {{ theme }} dam-item">
@@ -245,9 +236,9 @@
                     <div class="card-header-dam">
                         <div>
                             <div class="dam-name">{{ dam.name }}</div>
-                            <div class="dam-loc"><i class="fa-solid fa-location-dot text-cyan-500"></i> {{ dam.lokasi }}</div>
+                            <div class="dam-loc"><i class="fa-solid fa-location-dot text-sky-500"></i> {{ dam.lokasi }}</div>
                         </div>
-                        <span class="badge px-3 py-1 rounded-full text-[10px] font-bold shadow-lg uppercase">{{ label }}</span>
+                        <span class="badge px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">{{ label }}</span>
                     </div>
 
                     <div class="water-tank">
@@ -266,20 +257,20 @@
 
                     <div class="data-grid">
                         <div class="data-col">
-                            <div class="data-label">Inflow (Masuk)</div>
+                            <div class="data-label">Inflow</div>
                             <div class="data-val text-emerald-400">{{ dam.inflow }} <span class="text-[9px] text-slate-500 font-normal">m³/s</span></div>
                         </div>
                         <div class="data-col">
-                            <div class="data-label">Outflow (Keluar)</div>
-                            <div class="data-val text-cyan-400">{{ dam.outflow }} <span class="text-[9px] text-slate-500 font-normal">m³/s</span></div>
+                            <div class="data-label">Outflow</div>
+                            <div class="data-val text-sky-400">{{ dam.outflow }} <span class="text-[9px] text-slate-500 font-normal">m³/s</span></div>
                         </div>
                     </div>
 
                     <div class="insight-box">
-                        <div class="insight-title"><i class="fa-solid fa-circle-info"></i> Analisa Hidrologi</div>
+                        <div class="insight-title"><i class="fa-solid fa-chart-line text-sky-400"></i> Analisa Hidrologi</div>
                         <div class="insight-text">{{ message|safe }}</div>
                         <div class="mt-3 pt-3 border-t border-slate-700 flex justify-between text-xs text-slate-400">
-                            <span>Cuaca: <span class="text-white">{{ dam.cuaca }}</span></span>
+                            <span>Cuaca: <span class="text-white font-bold">{{ dam.cuaca }}</span></span>
                         </div>
                     </div>
 
@@ -292,18 +283,27 @@
             {% endfor %}
         </div>
 
-        <div id="noResult" class="hidden text-center py-20 text-slate-500">Bendungan tidak ditemukan.</div>
+        <div id="noResult" class="hidden text-center py-20 text-slate-500">
+            <i class="fa-solid fa-magnifying-glass text-2xl mb-2"></i>
+            <p>Bendungan tidak ditemukan.</p>
+        </div>
 
         {% else %}
         <div class="text-center py-24 bg-slate-800/30 rounded-3xl border border-slate-700/50 max-w-lg mx-auto">
-            <i class="fa-solid fa-satellite-dish text-5xl text-slate-600 mb-6 animate-pulse"></i>
+            <i class="fa-solid fa-tower-broadcast text-5xl text-sky-600 mb-6 animate-pulse"></i>
             <h3 class="text-xl font-bold text-white">Menghubungkan ke Satelit...</h3>
-            <p class="text-sm text-slate-400 mt-2 mb-8">Mengambil data telemetri dari server pusat EWS.</p>
-            <button onclick="location.reload()" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full font-bold transition shadow-lg shadow-cyan-500/20">
+            <p class="text-sm text-slate-400 mt-2 mb-8">Mengambil data telemetri real-time.</p>
+            <button onclick="location.reload()" class="px-8 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-full font-bold transition shadow-lg">
                 <i class="fa-solid fa-rotate-right mr-2"></i> Muat Ulang
             </button>
         </div>
         {% endif %}
+        
+        <div class="source-credit">
+            <p>Data kami ambil secara langsung (real-time) dari API Resmi Pemerintah:</p>
+            <p class="font-bold text-sky-400 mt-1">ewsjateng.com/map</p>
+            <p class="text-[10px] mt-1">(Rekapitulasi Pantauan Waduk dan Bendung Control Point Provinsi Jawa Tengah)</p>
+        </div>
 
     </div>
 </div>
@@ -318,19 +318,11 @@
             let filter = this.value.toLowerCase();
             let items = container.querySelectorAll('.dam-item');
             let visible = 0;
-            
             items.forEach(function(item) {
                 let text = item.innerText.toLowerCase();
-                if (text.includes(filter)) {
-                    item.style.display = "flex";
-                    visible++;
-                } else {
-                    item.style.display = "none";
-                }
+                if (text.includes(filter)) { item.style.display = "flex"; visible++; } else { item.style.display = "none"; }
             });
-            
-            if(visible === 0) noResult.classList.remove('hidden');
-            else noResult.classList.add('hidden');
+            if(visible === 0) noResult.classList.remove('hidden'); else noResult.classList.add('hidden');
         });
     }
 </script>
