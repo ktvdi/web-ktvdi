@@ -84,14 +84,18 @@ mail = Mail(app)
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-2.0-flash") 
+    # Gunakan model flash yang cepat dan stabil
+    model = genai.GenerativeModel("gemini-1.5-flash") 
 except: model = None
 
 MODI_PROMPT = """
 Anda adalah MODI, Asisten Virtual Resmi dari KTVDI (Komunitas TV Digital Indonesia).
 Karakter: Profesional, Ramah, Solutif, dan Menggunakan Bahasa Indonesia Baku namun hangat.
-Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah Siaran.
-Jika ditanya soal bendungan, gunakan data EWS yang diberikan secara akurat.
+Tugas Utama:
+1. Memberikan informasi status bendungan berdasarkan data yang diberikan.
+2. Menjawab pertanyaan seputar TV Digital, STB, dan Antena.
+
+PENTING: Jika data EWS menunjukkan ada bendungan status 'Siaga' atau 'Awas', peringatkan user!
 """
 
 # ==========================================
@@ -105,11 +109,7 @@ def format_indo_date(time_struct):
     if not time_struct: return datetime.now().strftime("%A, %d %B %Y - %H:%M WIB")
     try:
         dt = datetime.fromtimestamp(time.mktime(time_struct))
-        hari_list = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
-        bulan_list = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-        hari = hari_list[dt.weekday()]
-        bulan = bulan_list[dt.month - 1]
-        return f"{hari}, {dt.day} {bulan} {dt.year} - {dt.strftime('%H:%M')} WIB"
+        return dt.strftime("%A, %d %B %Y - %H:%M WIB")
     except: return "Baru Saja"
 
 def get_news_entries():
@@ -175,11 +175,11 @@ def get_smart_fallback_response(text):
     return random.choice(defaults)
 
 # ==========================================
-# 6. LOGIKA EWS & CUACA (CORE FEATURES)
+# 6. LOGIKA EWS & CUACA (FIXED API & LOGIC)
 # ==========================================
 
 def get_cuaca_10_kota():
-    """Mengambil Data Cuaca 10 Kota Jateng dari Open-Meteo (Stabil & Gratis)"""
+    """Mengambil Data Cuaca 10 Kota Jateng dari Open-Meteo"""
     cities = [
         {"name": "Semarang", "lat": -6.9667, "lon": 110.4167},
         {"name": "Surakarta", "lat": -7.5761, "lon": 110.8294},
@@ -221,46 +221,35 @@ def get_cuaca_10_kota():
     
     if not results:
         for c in cities: results.append({"kota": c['name'], "suhu": "-", "cuaca": "N/A", "icon": "fa-cloud", "anim": ""})
-    
     return results
 
 def normalize_dam_data(raw_data):
     """
-    Normalisasi Data Bendungan:
-    1. Ambil Nama & Lokasi
-    2. Konversi Meter -> CM (Real CM)
-    3. Ambil Status & Waktu Update (+7 Jam)
+    Normalisasi Data Bendungan + FIX CM + FIX TIMEZONE
     """
     clean_data = []
     
     for item in raw_data:
         try:
-            # 1. Deteksi Struktur Data
             latest = item.get('latest_debit_report', {})
             if not isinstance(latest, dict): latest = {}
 
-            # 2. Nama Bendungan
             name = item.get('dam_name') or item.get('nama') or item.get('name') or "Bendungan"
             
-            # 3. TMA (Tinggi Muka Air) - Auto Convert to CM
+            # --- LOGIKA KONVERSI METER KE CM ---
             raw_tma = latest.get('limpas') if latest else (item.get('tma') or item.get('siap') or 0)
             try:
-                tma_float = float(raw_tma)
-                # Jika nilai kecil (< 50), asumsi Meter -> konversi ke CM
-                if tma_float < 50 and tma_float != 0:
-                    tma_cm = f"{tma_float * 100:.0f}" 
-                else:
-                    tma_cm = f"{tma_float:.0f}"
+                val = float(raw_tma)
+                # Jika nilai < 50, asumsi Meter -> konversi ke CM
+                if val < 50 and val != 0: tma_cm = f"{val * 100:.0f}" 
+                else: tma_cm = f"{val:.0f}"
             except: tma_cm = "0"
 
-            # 4. Status & Waktu (FIX TIMEZONE WIB +7)
-            status = latest.get('status') or item.get('status_alert') or 'Aman'
+            # --- LOGIKA TIMEZONE (UTC -> WIB) ---
             raw_time = latest.get('created_at') or item.get('updated_at')
             waktu_display = "Hari ini"
-            
             if raw_time:
                 try:
-                    # Clean string (remove milliseconds if any)
                     clean_str = str(raw_time).split('.')[0].replace('Z', '')
                     dt_utc = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
                     dt_wib = dt_utc + timedelta(hours=7) # +7 Jam
@@ -268,13 +257,13 @@ def normalize_dam_data(raw_data):
                 except:
                     waktu_display = str(raw_time)[:16].replace('T', ' ')
 
-            # 5. Petugas
+            status = latest.get('status') or item.get('status_alert') or 'Aman'
             pob = latest.get('pob_id')
             petugas = f"Kode: {pob}" if pob else "Tim Piket"
 
             dam = {
                 'name': name,
-                'tma': tma_cm, # Output sudah CM
+                'tma': tma_cm,
                 'inflow': latest.get('debit', 0),
                 'outflow': latest.get('debit_ke_saluran_induk', 0),
                 'status': status,
@@ -288,24 +277,27 @@ def normalize_dam_data(raw_data):
     return clean_data
 
 def fetch_ews_data():
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json'
+    }
     
-    # 1. PRIORITAS UTAMA: SIAGA KRANJI (Data JSON Bersih & Cepat)
+    # 1. UTAMA: SIAGA KRANJI (Anti-Cache)
     try:
         ts = int(time.time() * 1000)
         url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
-        r = requests.get(url, headers=headers, timeout=5, verify=False)
+        r = requests.get(url, headers=headers, timeout=6, verify=False)
         if r.status_code == 200:
             data = r.json()
-            # Handle variasi struktur JSON
             raw_list = data.get('data') or data.get('result') or (data if isinstance(data, list) else [])
             if raw_list: return normalize_dam_data(raw_list)
     except: pass
 
     # 2. BACKUP: EWS JATENG (Official)
     try:
+        # Gunakan pageSize 200 agar tidak timeout
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
-        r = requests.get(url, headers=headers, timeout=8, verify=False)
+        r = requests.get(url, headers=headers, timeout=9, verify=False)
         if r.status_code == 200:
             data = r.json()
             raw_list = data.get('data', [])
@@ -547,7 +539,7 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN (FITUR UTAMA) ---
+# --- EWS BENDUNGAN & AI CHAT (INTEGRATED) ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
     dams = fetch_ews_data()
@@ -559,19 +551,33 @@ def chatbot_api():
     data = request.get_json()
     user_msg = data.get('prompt', '')
     
-    if "bendungan" in user_msg.lower():
+    # INJEKSI DATA EWS KE CONTEXT GEMINI
+    system_context = MODI_PROMPT
+    if "bendungan" in user_msg.lower() or "banjir" in user_msg.lower():
         dams = fetch_ews_data()
-        bahaya = [d['name'] for d in dams if 'awas' in d['status'].lower() or 'siaga' in d['status'].lower()]
-        count = len(bahaya)
-        if count > 0:
-            return jsonify({"response": f"🚨 PERHATIAN! Ada {count} bendungan status BAHAYA: {', '.join(bahaya)}."})
-        return jsonify({"response": f"Pantauan {len(dams)} bendungan aman terkendali."})
+        dam_summary = "Data EWS Real-time:\n"
+        bahaya_list = []
+        
+        for d in dams:
+            # Filter hanya yang penting atau diminta
+            if d['status'] in ['Siaga', 'Awas', 'Waspada']:
+                bahaya_list.append(f"{d['name']} ({d['status']}) - TMA: {d['tma']}cm")
+                dam_summary += f"- {d['name']}: Status {d['status']}, TMA {d['tma']}cm\n"
+        
+        if not bahaya_list:
+            dam_summary += "Semua bendungan terpantau AMAN."
+        
+        system_context += f"\n\n[DATA LIVE]\n{dam_summary}\n"
 
     if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    
     try:
-        response = model.generate_content(f"{MODI_PROMPT}\nUser: {user_msg}\nModi:")
-        return jsonify({"response": response.text})
-    except: return jsonify({"response": get_smart_fallback_response(user_msg)})
+        response = model.generate_content(f"{system_context}\nUser: {user_msg}\nModi:")
+        if response.text: return jsonify({"response": response.text})
+        else: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
