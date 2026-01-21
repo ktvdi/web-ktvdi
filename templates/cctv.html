@@ -14,7 +14,7 @@
         --bg-body: #f8fafc;
     }
 
-    body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); }
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); -webkit-tap-highlight-color: transparent; }
 
     /* --- UTILS --- */
     .premium-scroll::-webkit-scrollbar { width: 5px; }
@@ -30,14 +30,34 @@
     }
     @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-    /* --- PLAYER 16:9 FIXED --- */
+    /* --- PLAYER CARD --- */
     .player-card {
         border-radius: 16px; overflow: hidden; background: #000;
         box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
         display: flex; flex-direction: column;
     }
+    
+    /* Header Responsive Mobile */
+    .player-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        padding: 12px 16px; color: white;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .cam-info-mobile {
+        display: flex; flex-direction: column;
+        line-height: 1.2;
+    }
+    .cam-city-label {
+        font-size: 0.65rem; font-weight: 700; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .cam-name-label {
+        font-size: 0.95rem; font-weight: 800; color: white;
+        max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* Video Wrapper (16:9 Fixed) */
     .video-wrapper {
-        position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        position: relative; width: 100%; padding-top: 56.25%;
         background: #020617;
     }
     .video-element {
@@ -64,33 +84,34 @@
     .cam-item:hover { background-color: #f8fafc; padding-left: 20px; }
     .cam-item.active { background-color: #eff6ff; border-left: 4px solid #2563eb; }
     .cam-item.active .cam-name { color: #1e40af; font-weight: 700; }
-    
-    /* Agar teks di HP turun ke bawah (tidak kepotong) */
-    .cam-name { 
-        font-size: 0.85rem; font-weight: 500; color: #475569;
-        white-space: normal; line-height: 1.3;
-    }
+    .cam-name { font-size: 0.85rem; font-weight: 500; color: #475569; white-space: normal; line-height: 1.3; }
 
     /* --- LOADING ANIMATION --- */
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
     @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-    /* --- RESPONSIVE LAYOUT FIX --- */
-    /* Desktop: Side-by-side, Fixed Height List */
+    /* --- SIGNAL BAR --- */
+    .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 12px; }
+    .bar { width: 3px; background: #475569; border-radius: 1px; }
+    .bar.active { background: #22c55e; }
+    .bar:nth-child(1) { height: 4px; }
+    .bar:nth-child(2) { height: 6px; }
+    .bar:nth-child(3) { height: 9px; }
+    .bar:nth-child(4) { height: 12px; }
+
+    /* --- RESPONSIVE LAYOUT --- */
     @media (min-width: 1024px) {
         .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2rem; align-items: start; }
         .col-player { grid-column: span 9; position: sticky; top: 90px; }
         .col-list { grid-column: span 3; height: calc(100vh - 120px); overflow: hidden; display: flex; flex-direction: column; }
         .list-scroll-area { flex: 1; overflow-y: auto; }
+        .cam-name-label { font-size: 1.1rem; max-width: 400px; }
     }
-    /* Mobile: Stacked, Natural Height */
     @media (max-width: 1023px) {
         .layout-grid { display: flex; flex-direction: column; gap: 1.5rem; }
         .col-player { width: 100%; }
-        .col-list { width: 100%; height: auto; } /* Biarkan memanjang ke bawah di HP */
-        .list-scroll-area { height: auto; max-height: 600px; overflow-y: auto; } /* Limit tinggi di HP */
-        .navbar-brand h1 { font-size: 1.1rem; }
-        .player-info-title { font-size: 0.85rem; }
+        .col-list { width: 100%; height: auto; }
+        .list-scroll-area { height: auto; max-height: 500px; overflow-y: auto; }
     }
 </style>
 
@@ -98,26 +119,20 @@
 
     <nav class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
-            
             <div class="flex items-center gap-3 w-full md:w-auto navbar-brand">
                 <div class="w-12 h-12 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 shrink-0 p-1">
                     <img src="https://iili.io/f87539s.png" alt="KTVDI CCTV" class="w-8 h-8 object-contain brightness-0 invert">
                 </div>
                 <div class="flex-1 min-w-0">
                     <h1 class="text-slate-900 font-extrabold text-lg tracking-tight leading-none">KTVDI <span class="text-blue-700">SMART CITY</span></h1>
-                    <p class="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
-                        Portal LIVE CCTV terkini yang dapat memudahkan sobat KTVDI dalam memantau arus lalu lintas.
-                    </p>
+                    <p class="text-[11px] text-slate-500 font-medium mt-1 leading-snug">Portal LIVE CCTV terkini untuk memantau arus lalu lintas.</p>
                 </div>
             </div>
-
             <div class="relative w-full md:w-80 group">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-700 transition-colors"></i>
                 </div>
-                <input type="text" id="search-input" onkeyup="handleSearch()" 
-                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-11 pr-5 focus:outline-none focus:border-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-slate-400 shadow-inner"
-                    placeholder="Pencarian lokasi kamera...">
+                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-11 pr-5 focus:outline-none focus:border-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-slate-400 shadow-inner" placeholder="Cari lokasi kamera...">
             </div>
         </div>
     </nav>
@@ -125,24 +140,31 @@
     <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 layout-grid">
 
         <main class="col-player">
-            
             <div class="player-card">
-                <div class="bg-gradient-to-r from-blue-900 to-blue-800 text-white px-5 py-3 flex justify-between items-center border-b border-white/10">
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded border border-white/10 shrink-0">
+                <div class="player-header">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
                             <span class="relative flex h-2 w-2">
                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                               <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                             </span>
-                            <span class="text-[9px] tracking-wider font-bold">LIVE</span>
+                            <span class="text-[9px] font-bold tracking-wider">LIVE</span>
                         </div>
-                        <div class="flex flex-col min-w-0">
-                            <span class="text-[9px] text-blue-200 uppercase font-bold tracking-wider hidden sm:block">Lokasi Terpantau</span>
-                            <h2 id="active-cam-name" class="player-info-title text-sm md:text-base font-bold text-white truncate">Pilih Kamera</h2>
+                        
+                        <div class="cam-info-mobile">
+                            <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
+                            <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20">
-                         <i class="fa-solid fa-shield-halved text-emerald-400"></i> Sistem Enkripsi
+                    
+                    <div class="flex items-center gap-3">
+                         <div class="hidden sm:flex flex-col items-end">
+                             <div class="signal-bars" id="signal-meter">
+                                 <div class="bar active"></div><div class="bar active"></div><div class="bar active"></div><div class="bar active"></div>
+                             </div>
+                             <span class="text-[8px] text-emerald-300 font-bold mt-0.5" id="net-type">4G/WIFI</span>
+                         </div>
+                         <i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i>
                     </div>
                 </div>
 
@@ -167,52 +189,39 @@
                     <div id="overlay-error" class="absolute inset-0 bg-slate-900 z-40 hidden flex flex-col items-center justify-center text-center px-6">
                         <i class="fa-solid fa-video-slash text-slate-500 text-4xl mb-3"></i>
                         <h4 class="text-white font-bold mb-2">Kamera Offline</h4>
-                        <p class="text-slate-400 text-xs mb-4">Tidak dapat terhubung ke sumber video.</p>
-                        <button onclick="retryStream()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-lg">
-                            Coba Lagi
-                        </button>
+                        <p class="text-slate-400 text-xs mb-4">Koneksi terputus. Coba muat ulang.</p>
+                        <button onclick="retryStream()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-lg">Coba Lagi</button>
                     </div>
                 </div>
 
                 <div class="bg-slate-900 px-4 py-3 flex items-center justify-between border-t border-slate-800">
                     <div class="flex items-center gap-3">
                          <div class="flex items-center gap-2 text-slate-400 text-xs font-medium">
-                             <i id="conn-icon" class="fa-solid fa-circle text-[8px] text-emerald-500"></i>
-                             <span id="conn-text">Koneksi Stabil</span>
+                             <i class="fa-solid fa-circle text-[8px] text-emerald-500 animate-pulse"></i>
+                             <span>Live Stream</span>
                          </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="retryStream()" class="text-slate-300 hover:text-white px-3 py-2 rounded hover:bg-slate-800 transition relative z-50" title="Reload Stream">
-                            <i class="fa-solid fa-rotate-right"></i>
-                        </button>
-                        <button onclick="toggleFullscreen()" class="text-slate-300 hover:text-white px-3 py-2 rounded hover:bg-slate-800 transition relative z-50" title="Fullscreen">
-                            <i class="fa-solid fa-expand"></i>
-                        </button>
+                    <div class="flex items-center gap-3">
+                        <button onclick="retryStream()" class="text-slate-300 hover:text-white transition" title="Reload"><i class="fa-solid fa-rotate-right text-lg"></i></button>
+                        <button onclick="toggleFullscreen()" class="text-slate-300 hover:text-white transition" title="Fullscreen"><i class="fa-solid fa-expand text-lg"></i></button>
                     </div>
                 </div>
             </div>
 
             <div class="mt-4 bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col gap-3">
-                <div class="flex flex-wrap justify-between items-center gap-3">
-                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 w-fit">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                            <i class="fa-regular fa-clock"></i>
-                        </div>
-                        <div>
-                            <div id="digital-clock" class="text-slate-900 font-bold text-sm leading-none">00:00:00</div>
-                            <div id="date-display" class="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">...</div>
-                        </div>
+                <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 w-fit">
+                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+                        <i class="fa-regular fa-clock"></i>
+                    </div>
+                    <div>
+                        <div id="digital-clock" class="text-slate-900 font-bold text-sm leading-none">00:00:00</div>
+                        <div id="date-display" class="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">...</div>
                     </div>
                 </div>
-                
                 <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-9 flex items-center overflow-hidden">
-                    <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10">
-                        <i class="fa-solid fa-bullhorn text-white text-xs"></i>
-                    </div>
+                    <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10"><i class="fa-solid fa-bullhorn text-white text-xs"></i></div>
                     <div class="marquee-container w-full bg-white">
-                        <div class="marquee-content">
-                            INFORMASI PENTING: Tayangan CCTV ini bersumber dari layanan publik Pemerintah Daerah (Diskominfo). KTVDI Smart City hanya berfungsi sebagai portal akses untuk memudahkan pemantauan lalu lintas warga. Harap gunakan dengan bijak.
-                        </div>
+                        <div class="marquee-content">INFORMASI PENTING: Tayangan CCTV ini bersumber dari layanan publik Pemerintah Daerah. KTVDI Smart City hanya berfungsi sebagai portal akses. Gunakan dengan bijak.</div>
                     </div>
                 </div>
             </div>
@@ -226,22 +235,15 @@
                 </div>
                 <span class="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold border border-blue-100" id="total-cams">Loading...</span>
             </div>
-
-            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 bg-slate-50">
-                </div>
-            
-            <div class="p-3 bg-white border-t border-slate-200 text-center">
-                <p class="text-[10px] text-slate-400 font-medium">© 2026 KTVDI Network</p>
-            </div>
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 bg-slate-50"></div>
+            <div class="p-3 bg-white border-t border-slate-200 text-center text-[10px] text-slate-400 font-medium">© 2026 KTVDI Network</div>
         </aside>
 
     </div>
 </div>
 
 <script>
-    // ==========================================
-    // 1. DATA SOURCE LENGKAP
-    // ==========================================
+    // DATA SOURCE
     const streamSource = [
         // --- KOTA SEMARANG ---
         {city: "KOTA SEMARANG", name: "Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
@@ -416,12 +418,32 @@
     ];
 
     // ==========================================
-    // 2. PLAYER LOGIC & NETWORK MONITOR
+    // 2. NETWORK INFO
+    // ==========================================
+    function updateNetworkStatus() {
+        const netInfo = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const speedEl = document.getElementById('net-speed');
+        const iconEl = document.getElementById('net-icon');
+        
+        if (netInfo) {
+            const type = netInfo.effectiveType ? netInfo.effectiveType.toUpperCase() : 'WIFI';
+            speedEl.innerText = `${type}`;
+            if (type === '4G' || type === 'WIFI') {
+                iconEl.className = "fa-solid fa-wifi";
+            } else {
+                iconEl.className = "fa-solid fa-signal";
+            }
+        }
+    }
+
+    // ==========================================
+    // 3. PLAYER LOGIC (HLS + ERROR HANDLING)
     // ==========================================
     let hls;
     let activeStreamIndex = 0;
     const video = document.getElementById('video-element');
-    const statusText = document.getElementById('active-cam-name');
+    const statusCity = document.getElementById('active-cam-city');
+    const statusName = document.getElementById('active-cam-name');
     const loadingOverlay = document.getElementById('overlay-loading');
     const errorOverlay = document.getElementById('overlay-error');
     const playOverlay = document.getElementById('overlay-play');
@@ -433,24 +455,9 @@
         setInterval(updateClock, 1000);
         updateClock();
         
-        // Network Monitor
-        window.addEventListener('online', updateConnection);
-        window.addEventListener('offline', updateConnection);
-        updateConnection();
-    }
-
-    function updateConnection() {
-        const connText = document.getElementById('conn-text');
-        const connIcon = document.getElementById('conn-icon');
-        
-        if (navigator.onLine) {
-            connText.innerText = "Koneksi Stabil";
-            connText.className = "text-xs font-bold text-emerald-500";
-            connIcon.className = "fa-solid fa-circle text-[8px] text-emerald-500 animate-pulse";
-        } else {
-            connText.innerText = "Koneksi Terputus";
-            connText.className = "text-xs font-bold text-red-500";
-            connIcon.className = "fa-solid fa-circle-exclamation text-[8px] text-red-500";
+        if (navigator.connection) {
+            navigator.connection.addEventListener('change', updateNetworkStatus);
+            updateNetworkStatus();
         }
     }
 
@@ -459,11 +466,15 @@
         activeStreamIndex = index;
         const stream = streamSource[index];
 
-        statusText.innerText = `${stream.city} - ${stream.name}`;
+        // UI Updates
+        statusCity.innerText = stream.city;
+        statusName.innerText = stream.name;
+        
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
 
+        // Highlight Active Item
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
         if(activeItem) {
@@ -473,21 +484,40 @@
 
         if (Hls.isSupported()) {
             if (hls) hls.destroy();
-            hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+            hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: true,
+                backBufferLength: 30,
+                manifestLoadingTimeOut: 20000
+            });
+            
             hls.loadSource(stream.url);
             hls.attachMedia(video);
+            
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play().catch(() => {
                     loadingOverlay.classList.add('hidden');
                     playOverlay.classList.remove('hidden');
                 });
             });
+
             hls.on(Hls.Events.ERROR, (event, data) => {
                 if (data.fatal) {
-                    hls.destroy();
-                    showErrorState();
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            hls.destroy();
+                            showErrorState();
+                            break;
+                    }
                 }
             });
+
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = stream.url;
             video.addEventListener('loadedmetadata', () => {
@@ -521,7 +551,7 @@
     }
 
     // ==========================================
-    // 3. UI RENDERER (ACCORDION)
+    // 4. UI RENDERER (ACCORDION)
     // ==========================================
     function renderAccordionList() {
         const container = document.getElementById('camera-list-container');
@@ -550,10 +580,7 @@
             header.onclick = () => toggleGroup(header);
             header.innerHTML = `
                 <div class="group-title">
-                    <div class="group-icon-bg">
-                        <i class="fa-solid fa-map-location-dot"></i>
-                    </div>
-                    ${groupName}
+                    <i class="fa-solid fa-map-location-dot text-blue-700"></i> ${groupName}
                 </div>
                 <i class="fa-solid fa-chevron-down group-icon"></i>
             `;
@@ -567,7 +594,7 @@
                 row.id = `cam-${item.originalIndex}`;
                 row.onclick = () => loadStream(item.originalIndex);
                 row.innerHTML = `
-                    <i class="fa-solid fa-circle-play text-slate-300 text-lg play-icon transition-transform"></i>
+                    <i class="fa-solid fa-video text-slate-400 text-xs"></i>
                     <span class="cam-name flex-1">${item.name}</span>
                 `;
                 body.appendChild(row);
@@ -577,6 +604,7 @@
             groupDiv.appendChild(body);
             container.appendChild(groupDiv);
         }
+
         document.getElementById('total-cams').innerText = `${streamSource.length} CAM`;
     }
 
@@ -586,7 +614,7 @@
     }
 
     // ==========================================
-    // 4. SMART SEARCH
+    // 5. SMART SEARCH
     // ==========================================
     function handleSearch() {
         const term = document.getElementById('search-input').value.toLowerCase();
@@ -595,6 +623,7 @@
         groups.forEach(group => {
             const items = group.querySelectorAll('.cam-item');
             let hasMatch = false;
+
             items.forEach(item => {
                 if (item.innerText.toLowerCase().includes(term)) {
                     item.style.display = 'flex';
@@ -603,10 +632,11 @@
                     item.style.display = 'none';
                 }
             });
-            
+
+            const body = group.querySelector('.group-body');
+            const header = group.querySelector('.group-header');
+
             if (term.length > 0) {
-                const body = group.querySelector('.group-body');
-                const header = group.querySelector('.group-header');
                 if (hasMatch) {
                     group.style.display = 'block';
                     body.classList.add('open');
@@ -616,15 +646,15 @@
                 }
             } else {
                 group.style.display = 'block';
-                group.querySelector('.group-body').classList.remove('open');
-                group.querySelector('.group-header').classList.remove('active');
+                body.classList.remove('open');
+                header.classList.remove('active');
                 items.forEach(i => i.style.display = 'flex');
             }
         });
     }
 
     // ==========================================
-    // 5. UTILITIES (CLOCK & FULLSCREEN)
+    // 6. UTILITIES
     // ==========================================
     function updateClock() {
         const now = new Date();
@@ -633,15 +663,14 @@
     }
 
     function toggleFullscreen() {
-        const wrapper = document.querySelector('.player-wrapper');
+        const wrapper = document.querySelector('.video-wrapper'); // Use wrapper for custom UI overlay
         const video = document.getElementById('video-element');
         
-        // Prioritize wrapper fullscreen (better UI), fallback to video (iOS)
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {
             if (wrapper.requestFullscreen) {
                 wrapper.requestFullscreen();
             } else if (video.webkitEnterFullscreen) {
-                video.webkitEnterFullscreen(); // iOS Safari specific
+                video.webkitEnterFullscreen(); // iOS Fallback
             } else if (wrapper.webkitRequestFullscreen) {
                 wrapper.webkitRequestFullscreen();
             }
@@ -654,6 +683,8 @@
         }
     }
 
+    // Initialize
     document.addEventListener('DOMContentLoaded', initPlayer);
+
 </script>
 {% endblock %}
