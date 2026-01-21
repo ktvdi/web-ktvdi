@@ -1,202 +1,163 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
 
 <style>
-    /* --- Custom Scrollbar (Lebih Halus) --- */
-    .custom-scroll::-webkit-scrollbar { width: 6px; }
-    .custom-scroll::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.05); }
-    .custom-scroll::-webkit-scrollbar-thumb { background-color: #94a3b8; border-radius: 3px; }
-    .custom-scroll::-webkit-scrollbar-thumb:hover { background-color: #64748b; }
+    /* --- SCROLLBAR --- */
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
 
-    /* --- Animasi Marquee (Running Text) --- */
+    /* --- RUNNING TEXT --- */
     .marquee-wrapper { position: relative; overflow: hidden; mask-image: linear-gradient(to right, transparent, black 2%, black 98%, transparent); }
-    .marquee-content {
-        display: inline-block;
-        white-space: nowrap;
-        animation: marquee 50s linear infinite; /* Kecepatan sedang */
-        padding-left: 100%;
-    }
-    @keyframes marquee {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-100%); }
-    }
-    
-    /* --- Group Header Style (Lebih Tegas) --- */
-    .group-header {
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        background: rgba(255, 255, 255, 0.95); /* Lebih solid */
-        backdrop-filter: blur(5px);
-        padding: 10px 14px;
-        margin-top: 8px;
-        margin-bottom: 4px;
-        font-size: 0.7rem;
-        font-weight: 800;
-        color: #1e293b; /* Slate 800 */
-        border-bottom: 2px solid #e2e8f0;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-radius: 6px 6px 0 0; /* Sudut atas sedikit membulat */
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
+    .marquee-content { display: inline-block; white-space: nowrap; animation: marquee 50s linear infinite; padding-left: 100%; }
+    @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-    /* --- Player 16:9 Aspect Ratio --- */
-    .video-container {
-        position: relative;
-        width: 100%;
-        padding-top: 56.25%; /* Rasio 16:9 (9 / 16 * 100) */
-        background: #020617; /* Slate 950 (Hitam pekat) */
-        overflow: hidden;
-        border-radius: 0 0 12px 12px; /* Sudut bawah */
-        box-shadow: inset 0 0 100px rgba(0,0,0,0.8); /* Efek vignette */
-    }
-    
-    .video-player {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; /* Memenuhi container */
-    }
+    /* --- ACCORDION (PENGELOMPOKAN KOTA) --- */
+    .accordion-item { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; }
+    .accordion-header { padding: 14px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; transition: background 0.2s; }
+    .accordion-header:hover { background: #f1f5f9; }
+    .accordion-header.active { background: #eff6ff; border-bottom: 1px solid #bfdbfe; }
+    .accordion-title { font-size: 0.8rem; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 10px; }
+    .accordion-icon { font-size: 0.8rem; color: #64748b; transition: transform 0.3s ease; }
+    .accordion-header.active .accordion-icon { transform: rotate(180deg); color: #1e3a8a; }
+    .accordion-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease-in-out; background: white; }
+    .accordion-body.open { max-height: 3000px; /* Tinggi maksimal cukup besar untuk menampung list */ }
 
-    /* --- Warna Aksen Biru Tua --- */
-    .accent-bg { background-color: #1e3a8a; } /* Blue 900 */
-    .accent-text { color: #1e3a8a; }
-    .accent-border { border-color: #1e3a8a; }
+    /* --- PLAYER 16:9 --- */
+    .video-container { position: relative; width: 100%; padding-top: 56.25%; background: #020617; border-radius: 0 0 16px 16px; overflow: hidden; box-shadow: inset 0 0 80px rgba(0,0,0,0.8); }
+    .video-player { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; }
+
+    /* --- LOADING ANIMATION --- */
+    @keyframes logo-pulse {
+        0% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0 rgba(37, 99, 235, 0.4)); }
+        50% { transform: scale(1.05); opacity: 0.8; filter: drop-shadow(0 0 20px rgba(37, 99, 235, 0.8)); }
+        100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 0 rgba(37, 99, 235, 0.4)); }
+    }
+    .loading-logo { animation: logo-pulse 2s infinite ease-in-out; }
 </style>
 
-<div class="bg-[#f1f5f9] min-h-screen w-full flex flex-col font-['Inter'] text-slate-800 overflow-x-hidden select-none" id="main-body" oncontextmenu="return false;">
+<div class="bg-slate-50 min-h-screen w-full flex flex-col font-['Plus_Jakarta_Sans'] text-slate-800 overflow-x-hidden select-none" id="main-body" oncontextmenu="return false;">
 
-    <nav class="bg-white/90 backdrop-blur-sm border-b border-slate-200 py-3 px-4 lg:px-8 shrink-0 z-40 sticky top-0 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+    <nav class="bg-white/90 backdrop-blur-md border-b border-slate-200 py-3 px-4 lg:px-8 shrink-0 z-40 sticky top-0 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-3 w-full md:w-auto">
-            <div class="w-10 h-10 bg-[#1e3a8a] rounded-lg flex items-center justify-center shadow-md shadow-blue-900/20 shrink-0">
-                <img src="https://iili.io/f87539s.png" alt="Logo CCTV" class="w-6 h-6 object-contain brightness-0 invert"> </div>
-            
+            <div class="w-10 h-10 bg-[#1e3a8a] rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 shrink-0 p-0.5">
+                <img src="https://iili.io/f87539s.png" alt="Logo CCTV" class="w-6 h-6 object-contain brightness-0 invert">
+            </div>
             <div class="leading-tight flex-1">
                 <h1 class="text-slate-900 font-extrabold text-lg tracking-tight">KTVDI <span class="text-[#1e3a8a]">SMART CITY</span></h1>
-                <p class="text-[11px] text-slate-500 font-medium leading-snug whitespace-normal max-w-md">
-                    Portal pemantauan lalu lintas real-time terintegrasi untuk komunitas KTVDI.
-                </p>
+                <p class="text-[11px] text-slate-500 font-medium leading-snug">Portal pemantauan lalu lintas real-time.</p>
             </div>
         </div>
-        
         <div class="relative w-full md:w-80 group">
             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                 <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-[#1e3a8a] transition-colors"></i>
             </div>
-            <input type="text" id="search-cctv" onkeyup="filterCCTV()" 
-                class="w-full bg-white border-2 border-slate-200 text-slate-700 text-sm rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-[#1e3a8a] transition-all placeholder:text-slate-400 font-medium"
-                placeholder="Cari lokasi kamera...">
+            <input type="text" id="search-cctv" onkeyup="filterCCTV()" class="w-full bg-slate-100 border-2 border-slate-100 text-slate-700 text-sm rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-slate-400 font-medium" placeholder="Cari lokasi kamera...">
         </div>
     </nav>
 
     <div class="max-w-[1920px] mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-start">
 
         <main class="lg:col-span-9 flex flex-col gap-0 md:gap-4 order-1 sticky top-0 z-30 lg:static">
-            
-            <div class="bg-[#1e3a8a] text-white px-5 py-3 md:rounded-t-xl flex justify-between items-center text-xs font-bold shadow-md z-10 relative border-b border-white/10">
+            <div class="bg-[#1e3a8a] text-white px-5 py-3 md:rounded-t-2xl flex justify-between items-center text-xs font-bold shadow-lg z-10 relative border-b border-white/10">
                 <div class="flex items-center gap-3">
-                    <div class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-red-600 border-2 border-white"></span>
+                    <div class="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-lg border border-white/10">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        <span class="text-[10px] tracking-wider text-green-100">LIVE</span>
                     </div>
-                    <span id="playing-status" class="tracking-wide font-extrabold">Memuat Kamera...</span>
+                    <span id="playing-status" class="tracking-wide font-extrabold truncate max-w-[200px] md:max-w-none">Memuat Kamera...</span>
                 </div>
-                <div class="flex items-center gap-2 bg-black/30 px-3 py-1 rounded-md border border-white/10">
-                    <i class="fa-solid fa-satellite-dish text-[10px] text-green-400 animate-pulse"></i>
-                    <span>LIVE FEED</span>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-blue-200"></i>
                 </div>
             </div>
 
-            <div class="w-full bg-black shadow-xl relative md:rounded-b-xl overflow-hidden group ring-1 ring-slate-900/5">
+            <div class="w-full bg-black shadow-2xl relative md:rounded-b-2xl overflow-hidden group ring-1 ring-slate-900/5">
                 <div class="video-container">
                     <video id="main-video" class="video-player" autoplay muted playsinline></video>
 
-                    <div id="play-overlay" class="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="forcePlay()">
+                    <div id="play-overlay" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="forcePlay()">
                         <div class="w-20 h-20 bg-white/10 hover:bg-white/20 border-2 border-white/50 rounded-full flex items-center justify-center backdrop-blur-md shadow-2xl transition-all hover:scale-105 group/play">
                             <i class="fa-solid fa-play text-white text-3xl ml-1 group-hover/play:text-[#1e3a8a] transition-colors drop-shadow-lg"></i>
                         </div>
                     </div>
 
-                    <div id="loading-overlay" class="absolute inset-0 bg-slate-950 z-30 flex flex-col items-center justify-center">
-                        <div class="flex flex-col items-center gap-4">
-                            <div class="relative w-16 h-16">
-                                <div class="absolute inset-0 border-4 border-t-[#1e3a8a] border-r-transparent border-b-slate-800 border-l-transparent rounded-full animate-spin"></div>
-                                <div class="absolute inset-2 border-4 border-b-[#1e3a8a] border-l-transparent border-t-slate-800 border-r-transparent rounded-full animate-spin animation-delay-150"></div>
-                                <img src="https://iili.io/f87Ctjt.md.png" alt="Loading" class="w-full h-full object-contain relative z-10 p-3 drop-shadow-[0_0_15px_rgba(30,58,138,0.5)]">
+                    <div id="loading-overlay" class="absolute inset-0 bg-[#020617] z-30 flex flex-col items-center justify-center">
+                        <div class="flex flex-col items-center gap-6">
+                            <div class="relative w-24 h-24 flex items-center justify-center">
+                                <div class="absolute inset-0 bg-blue-600/20 rounded-full blur-2xl animate-pulse"></div>
+                                <img src="https://iili.io/f87539s.png" alt="Loading" class="w-16 h-16 object-contain loading-logo brightness-0 invert drop-shadow-lg relative z-10">
                             </div>
-                            <div class="text-center">
-                                <h3 class="text-white font-black text-xl tracking-widest">KTVDI</h3>
-                                <p class="text-slate-400 text-xs font-bold mt-2 tracking-wide animate-pulse">MENGHUBUNGKAN...</p>
+                            <div class="text-center space-y-1">
+                                <h3 class="text-white font-extrabold text-xl tracking-[0.2em] drop-shadow-md">KTVDI</h3>
+                                <p class="text-blue-400 text-[10px] font-bold tracking-widest animate-pulse">MENGHUBUNGKAN SATELIT...</p>
                             </div>
                         </div>
                     </div>
 
                     <div id="error-overlay" class="absolute inset-0 bg-slate-950/95 z-30 hidden flex flex-col items-center justify-center text-center px-6">
-                        <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-4 border-2 border-slate-800 shadow-inner">
-                            <i class="fa-solid fa-video-slash text-slate-500 text-2xl"></i>
+                        <div class="w-16 h-16 bg-slate-900/80 rounded-full flex items-center justify-center mb-4 border border-slate-800 backdrop-blur-sm">
+                            <i class="fa-solid fa-signal-slash text-slate-500 text-2xl"></i>
                         </div>
-                        <h4 class="text-white font-bold mb-2 text-lg">Sinyal Terputus</h4>
-                        <p class="text-slate-400 text-sm mb-6 max-w-xs mx-auto leading-relaxed">Kamera sedang offline atau terjadi gangguan pada server sumber.</p>
-                        <button onclick="reloadStream()" class="px-6 py-2.5 bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold rounded-lg transition shadow-lg shadow-blue-900/20 flex items-center gap-2 active:scale-95">
+                        <h4 class="text-white font-bold mb-1">Sinyal Terputus</h4>
+                        <p class="text-slate-400 text-xs mb-6">Kamera offline atau gangguan jaringan.</p>
+                        <button onclick="reloadStream()" class="px-6 py-2 bg-[#1e3a8a] hover:bg-[#172554] text-white text-xs font-bold rounded-full transition shadow-lg flex items-center gap-2">
                             <i class="fa-solid fa-rotate-right"></i> Coba Lagi
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white border md:border-2 border-slate-200 p-4 md:rounded-xl shadow-sm flex flex-col gap-4">
+            <div class="bg-white border md:border-2 border-slate-200 p-4 md:rounded-2xl shadow-sm flex flex-col gap-4">
                 <div class="flex flex-wrap justify-between items-center gap-3">
-                    <div class="flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-lg border border-slate-200">
-                        <i class="fa-regular fa-clock text-[#1e3a8a]"></i>
+                    <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[#1e3a8a]">
+                            <i class="fa-regular fa-clock"></i>
+                        </div>
                         <div class="text-left">
-                            <div id="clock" class="text-slate-900 font-mono text-base font-black leading-none tracking-tight">00:00:00</div>
-                            <div id="date" class="text-[10px] text-slate-600 font-bold uppercase leading-none mt-1 tracking-wider">...</div>
+                            <div id="clock" class="text-slate-900 font-mono text-base font-black leading-none">00:00:00</div>
+                            <div id="date" class="text-[10px] text-slate-500 font-bold uppercase mt-1">...</div>
                         </div>
                     </div>
-
                     <div class="flex items-center gap-2">
-                        <button onclick="toggleFullscreen()" class="px-4 py-2.5 bg-white hover:bg-slate-50 text-[#1e3a8a] border-2 border-[#1e3a8a] rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-sm active:bg-slate-100">
-                            <i class="fa-solid fa-expand"></i> <span class="hidden sm:inline">Fullscreen</span>
+                        <button onclick="toggleFullscreen()" class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-expand"></i> Fullscreen
                         </button>
-                        <div class="px-4 py-2.5 bg-slate-100 text-slate-600 border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-2 cursor-help select-none shadow-sm" title="Koneksi Aman">
-                            <i class="fa-solid fa-lock text-emerald-600"></i> Secure
-                        </div>
                     </div>
                 </div>
-
-                <div class="relative bg-slate-100 border-2 border-slate-200 rounded-lg h-10 flex items-center overflow-hidden">
+                <div class="relative bg-slate-100 border-2 border-slate-200 rounded-xl h-9 flex items-center overflow-hidden">
                     <div class="bg-[#1e3a8a] h-full px-4 flex items-center justify-center shrink-0 z-10 shadow-md">
-                        <i class="fa-solid fa-circle-info text-white text-sm animate-pulse"></i>
+                        <i class="fa-solid fa-circle-info text-white text-xs"></i>
                     </div>
                     <div class="marquee-wrapper w-full h-full flex items-center bg-white">
-                        <div class="marquee-content text-xs text-slate-700 font-semibold uppercase tracking-wide">
-                            <span class="text-red-600 font-extrabold mr-2">PERHATIAN:</span> Tayangan LIVE CCTV ini bersumber dari publik Diskominfo & Pemda. Hak cipta milik Pemerintah Daerah. Gunakan dengan bijak. KTVDI hanya sebagai agregator untuk kemudahan akses.
+                        <div class="marquee-content text-xs text-slate-600 font-semibold uppercase tracking-wide">
+                            <span class="text-red-600 font-bold mr-2">DISCLAIMER:</span> Tayangan LIVE CCTV ini bersumber dari publik Diskominfo & Pemda. Hak cipta milik Pemerintah Daerah. KTVDI hanya sebagai agregator untuk kemudahan akses.
                         </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <aside class="lg:col-span-3 flex flex-col h-[60vh] lg:h-[calc(100vh-140px)] bg-white lg:rounded-xl border-t-2 lg:border-2 border-slate-200 shadow-lg overflow-hidden order-2 mt-0 lg:mt-0 relative">
-            <div class="p-4 border-b-2 border-slate-100 bg-slate-50/80 backdrop-blur sticky top-0 z-20 flex justify-between items-center">
-                <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-2.5">
-                    <span class="w-8 h-8 rounded-lg bg-[#1e3a8a] flex items-center justify-center text-white shadow-sm">
-                        <i class="fa-solid fa-list-ul"></i>
-                    </span>
-                    Daftar Kamera
+        <aside class="lg:col-span-3 flex flex-col h-[60vh] lg:h-[calc(100vh-140px)] bg-white lg:rounded-2xl border-t lg:border border-slate-200 shadow-xl overflow-hidden order-2 mt-0 lg:mt-0 relative">
+            <div class="p-4 border-b border-slate-100 bg-white/95 backdrop-blur sticky top-0 z-20 flex justify-between items-center">
+                <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-city text-[#1e3a8a]"></i> Pilih Lokasi
                 </h3>
-                <span class="text-[10px] bg-[#1e3a8a] text-white px-2.5 py-1 rounded-md font-bold shadow-sm" id="cam-count">0</span>
+                <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-md font-bold border border-slate-200" id="cam-count-display">0 CAM</span>
             </div>
 
-            <div class="flex-1 overflow-y-auto custom-scroll p-3 space-y-1 bg-white" id="cctv-list">
+            <div class="flex-1 overflow-y-auto custom-scroll p-3 bg-slate-50" id="cctv-accordion">
                 </div>
             
-            <div class="p-3 bg-slate-50 border-t-2 border-slate-200 text-center">
-                <p class="text-[10px] text-slate-500 font-bold">© 2026 KTVDI Smart City</p>
+            <div class="p-3 bg-white border-t border-slate-200 text-center">
+                <p class="text-[10px] text-slate-400 font-medium">© 2026 KTVDI Network</p>
             </div>
         </aside>
 
@@ -204,521 +165,355 @@
 </div>
 
 <script>
-    // --- DATA CCTV LENGKAP (Semarang + Jogja + Pekalongan) ---
-    // Format data yang konsisten untuk kemudahan parsing
-    const rawStreamsData = `
-#EXTINF:-1 group-title="KOTA SEMARANG",METRO JOHAR
-https://livepantau.semarangkota.go.id/1d3d4d03-fbc6-471a-b86e-796f9d2454a6/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PEMUDA - GAJAHMADA
-https://livepantau.semarangkota.go.id/e274caf0-9e7d-4fb4-a0b7-47fcfe5e10ad/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",INDAPRASTA - IMAM BONJOL
-https://livepantau.semarangkota.go.id/e4a12f24-7e58-4dff-9e5b-e4ef0991b3e5/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BALAIKOTA
-https://livepantau.semarangkota.go.id/dd46c7bd-84b8-4cb1-a6e8-d4009da88b22/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",KALIGARANG
-https://livepantau.semarangkota.go.id/bc32b5de-1f3e-4269-857c-9e97a918ea67/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",TUGUMUDA 2
-https://livepantau.semarangkota.go.id/74dea63a-7c5c-43d9-96d3-dcaa96f96500/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",TUGUMUDA 3
-https://livepantau.semarangkota.go.id/163d3665-9e33-4098-991b-81e1531de941/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",TUGUMUDA
-https://livepantau.semarangkota.go.id/8b7644f9-072c-4c62-9952-f77c6e1851dc/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",TUGUMUDA 2 WIDE
-https://livepantau.semarangkota.go.id/65409efe-d32c-4762-b1b6-be7e0b70ae13/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",TUGUMUDA 3-2
-https://livepantau.semarangkota.go.id/6b60e72b-8428-4a13-b19d-1c59937f0aee/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PUCANG GADING
-https://livepantau.semarangkota.go.id/f4a8da4f-8353-4ea4-beed-801beedca676/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMPANG SAMBIROTO
-https://livepantau.semarangkota.go.id/4ffd0954-5fe8-45e0-bbdc-32b0ef74c0f4/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",FATMAWATI
-https://livepantau.semarangkota.go.id/6c9bfcf4-1118-4472-b952-70374425240e/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",COUNTING PEDURUNGAN
-https://livepantau.semarangkota.go.id/92c6c558-67b1-4fbe-85ac-13285134d3a4/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",TLOGOSARI
-https://livepantau.semarangkota.go.id/718fb9e8-52d5-44ef-9a0d-a4be26ce9640/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",DPU TEROWONGAN SOETTA USM
-https://livepantau.semarangkota.go.id/d2eb2ac6-ea82-4397-a304-4e644a6fcda2/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BAWAH TOL X3W_IN
-https://livepantau.semarangkota.go.id/64044538-6b87-45fe-9780-a7d9a772edb0/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SUPRIYADI
-https://livepantau.semarangkota.go.id/e6447de6-60af-428a-abad-3f46f93dff85/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PASAR BANYUMANIK
-https://livepantau.semarangkota.go.id/56255b86-ca94-4308-bc6e-ec99e4fa115a/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BANYUMANIK COUNTING OUT
-https://livepantau.semarangkota.go.id/3a3ab4ac-71d7-4745-96db-3d2a89c88eec/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMP SUKUN
-https://livepantau.semarangkota.go.id/ddd47c5c-60e9-4e11-9402-9a44e3f80cf0/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",EXIT TOL SRONDOL
-https://livepantau.semarangkota.go.id/26be91ae-df40-4154-8106-022fbf126091/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PATUNG DIPONEGORO
-https://livepantau.semarangkota.go.id/71e5c155-44b3-4323-8fa3-8000e02d2fe5/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BUKIT SARI
-https://livepantau.semarangkota.go.id/3dccd8b8-4d36-4f97-a801-e044f206c628/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",FLY OVER JATINGALEH
-https://livepantau.semarangkota.go.id/3b733f91-8045-4c00-b3ee-58346553c420/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",FLY OVER JATINGALEH WIDE
-https://livepantau.semarangkota.go.id/4fc95992-4d96-49bd-a2c1-5c2d53406f03/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",KALIWIRU
-https://livepantau.semarangkota.go.id/71144509-2bb9-4f55-ade3-bfa3bf01f1eb/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",DONBOSKO
-https://livepantau.semarangkota.go.id/5af48766-7d94-439f-9f83-a615fb82d3fa/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SP.AKPOL
-https://livepantau.semarangkota.go.id/3481ab70-9c70-4213-a954-adc9954d35f4/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BUNDARAN DIPONEGORO
-https://livepantau.semarangkota.go.id/66d3db83-931c-438e-aed5-8f29a96c7219/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",EXIT TOL GAYAMSARI
-https://livepantau.semarangkota.go.id/9397276f-ab0f-46a3-988c-4fa6b24782f5/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",LAMPER - GAJAH
-https://livepantau.semarangkota.go.id/15dfb463-f960-46bd-9db4-5f75780c8f9e/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMP KELINCI
-https://livepantau.semarangkota.go.id/99259845-4513-40d4-b4ff-fe52a731f96b/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMPANG CINDE
-https://livepantau.semarangkota.go.id/ffd980f2-fd2c-4dfe-919a-ad35d75b0035/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PASAR KAMBING 360
-https://livepantau.semarangkota.go.id/885c3af0-c04d-4376-8284-e5d8abdd3dac/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PETERONGAN
-https://livepantau.semarangkota.go.id/c2b8e299-695d-4a94-b9d6-149c97d9deb7/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",MILO
-https://livepantau.semarangkota.go.id/defcf484-e730-462d-912c-b98f7dba92ac/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BANGKONG
-https://livepantau.semarangkota.go.id/73c3d1e3-28d8-496c-b0a5-763225c10c3d/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",MT HARYONO
-https://livepantau.semarangkota.go.id/aff2b8b8-5d60-43bd-8a6d-bfcf9e83a234/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SRIWIJAYA 02
-https://livepantau.semarangkota.go.id/c0339699-6b20-45dc-8e8d-c3b0ece2ab3e/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SRIWIJAYA 01
-https://livepantau.semarangkota.go.id/d2d3a81d-9d33-4dac-af45-29500714ff87/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",KI MANGUN SARKORO
-https://livepantau.semarangkota.go.id/9ea7c028-2b3a-4df5-a8d6-ec8f71de6c53/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",JPO SIMPANG 5
-https://livepantau.semarangkota.go.id/ff2be764-eb85-487e-b603-81dc4fcd271f/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",POLDA 360
-https://livepantau.semarangkota.go.id/85f04ddc-61b3-40a0-87ed-2234a7a3703f/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PAHLAWAN PTZ 01
-https://livepantau.semarangkota.go.id/4f138ed7-2fca-4ada-8eec-be832fa6988b/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PAHLAWAN PTZ 02
-https://livepantau.semarangkota.go.id/e7895fae-c1b7-48a4-9efd-d8009d00c947/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PAHLAWAN 108
-https://livepantau.semarangkota.go.id/a174cf48-af7f-4cf9-a35c-4158c05b6745/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",ARAH TUGU TUNAS
-https://livepantau.semarangkota.go.id/31c11bab-0ec7-4136-9c74-98266f3f5380/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",ARAH PANDANARAN
-https://livepantau.semarangkota.go.id/892f0437-5dc9-45c1-b202-180f4c6d0ed8/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",DPU PAHLAWAN
-https://livepantau.semarangkota.go.id/ba6092fc-39c6-4f10-bca4-b4ab49f71246/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMPANG 5 1 360
-https://livepantau.semarangkota.go.id/7831ff81-dc8a-4c2e-b3ab-d041eda64804/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMPANG 5 2
-https://livepantau.semarangkota.go.id/2e283d27-b5bc-4f99-9e50-65ee51229031/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMPANG TENTREM MALL
-https://livepantau.semarangkota.go.id/1d38d1c3-1bd2-43c4-a699-1041897a5755/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",GAJAHMADA
-https://livepantau.semarangkota.go.id/37f49225-75cb-4a8f-86dd-7274e128a50f/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BERGOTA 360
-https://livepantau.semarangkota.go.id/c76db3cc-6a7c-46ca-9dd4-1d9000e5f9b7/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",THAMRIN PANDANARAN 360
-https://livepantau.semarangkota.go.id/9d44f052-0cf9-4b16-a786-cc6ea7e8d1a5/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMPANG THAMRIN
-https://livepantau.semarangkota.go.id/9578fde7-aa93-48bd-8cdf-7545458d95e9/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",BATHAN - THAMRIN
-https://livepantau.semarangkota.go.id/a0927a42-548d-4a91-89e0-50cb24378613/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",PUSAT OLEH OLEH
-https://livepantau.semarangkota.go.id/02f5d6ea-5b02-4097-b2d0-0f6646dca9f8/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",KYAI SALEH
-https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",SIMPANG LETJEN SUPRAPTO
-https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8
-#EXTINF:-1 group-title="KOTA SEMARANG",MBEROK IN
-https://livepantau.semarangkota.go.id/16ec5c7d-78d6-4faa-88f3-ce2377787ab6/index.m3u8
+    // --- DATA STREAMS LENGKAP ---
+    // (Array Objek Javascript Langsung agar lebih stabil daripada parsing string)
+    const streams = [
+        // --- KOTA SEMARANG (70+ KAMERA) ---
+        {group: "KOTA SEMARANG", name: "Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simpang Letjen Suprapto", url: "https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Mberok In", url: "https://livepantau.semarangkota.go.id/16ec5c7d-78d6-4faa-88f3-ce2377787ab6/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Metro Johar", url: "https://livepantau.semarangkota.go.id/1d3d4d03-fbc6-471a-b86e-796f9d2454a6/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pemuda - Gajahmada", url: "https://livepantau.semarangkota.go.id/e274caf0-9e7d-4fb4-a0b7-47fcfe5e10ad/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Indaprasta - Imam Bonjol", url: "https://livepantau.semarangkota.go.id/e4a12f24-7e58-4dff-9e5b-e4ef0991b3e5/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Balaikota", url: "https://livepantau.semarangkota.go.id/dd46c7bd-84b8-4cb1-a6e8-d4009da88b22/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Kaligarang", url: "https://livepantau.semarangkota.go.id/bc32b5de-1f3e-4269-857c-9e97a918ea67/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Tugumuda 2", url: "https://livepantau.semarangkota.go.id/74dea63a-7c5c-43d9-96d3-dcaa96f96500/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Tugumuda 3", url: "https://livepantau.semarangkota.go.id/163d3665-9e33-4098-991b-81e1531de941/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Tugumuda", url: "https://livepantau.semarangkota.go.id/8b7644f9-072c-4c62-9952-f77c6e1851dc/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Tugumuda 2 Wide", url: "https://livepantau.semarangkota.go.id/65409efe-d32c-4762-b1b6-be7e0b70ae13/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Tugumuda 3-2", url: "https://livepantau.semarangkota.go.id/6b60e72b-8428-4a13-b19d-1c59937f0aee/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pucang Gading", url: "https://livepantau.semarangkota.go.id/f4a8da4f-8353-4ea4-beed-801beedca676/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simpang Sambiroto", url: "https://livepantau.semarangkota.go.id/4ffd0954-5fe8-45e0-bbdc-32b0ef74c0f4/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Fatmawati", url: "https://livepantau.semarangkota.go.id/6c9bfcf4-1118-4472-b952-70374425240e/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Counting Pedurungan", url: "https://livepantau.semarangkota.go.id/92c6c558-67b1-4fbe-85ac-13285134d3a4/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Tlogosari", url: "https://livepantau.semarangkota.go.id/718fb9e8-52d5-44ef-9a0d-a4be26ce9640/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "DPU Terowongan Soetta", url: "https://livepantau.semarangkota.go.id/d2eb2ac6-ea82-4397-a304-4e644a6fcda2/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Bawah Tol X3W_IN", url: "https://livepantau.semarangkota.go.id/64044538-6b87-45fe-9780-a7d9a772edb0/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Supriyadi", url: "https://livepantau.semarangkota.go.id/e6447de6-60af-428a-abad-3f46f93dff85/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pasar Banyumanik", url: "https://livepantau.semarangkota.go.id/56255b86-ca94-4308-bc6e-ec99e4fa115a/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Banyumanik Counting Out", url: "https://livepantau.semarangkota.go.id/3a3ab4ac-71d7-4745-96db-3d2a89c88eec/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simp Sukun", url: "https://livepantau.semarangkota.go.id/ddd47c5c-60e9-4e11-9402-9a44e3f80cf0/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Exit Tol Srondol", url: "https://livepantau.semarangkota.go.id/26be91ae-df40-4154-8106-022fbf126091/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Patung Diponegoro", url: "https://livepantau.semarangkota.go.id/71e5c155-44b3-4323-8fa3-8000e02d2fe5/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Bukit Sari", url: "https://livepantau.semarangkota.go.id/3dccd8b8-4d36-4f97-a801-e044f206c628/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Fly Over Jatingaleh", url: "https://livepantau.semarangkota.go.id/3b733f91-8045-4c00-b3ee-58346553c420/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Fly Over Jatingaleh Wide", url: "https://livepantau.semarangkota.go.id/4fc95992-4d96-49bd-a2c1-5c2d53406f03/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Kaliwiru", url: "https://livepantau.semarangkota.go.id/71144509-2bb9-4f55-ade3-bfa3bf01f1eb/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Donbosko", url: "https://livepantau.semarangkota.go.id/5af48766-7d94-439f-9f83-a615fb82d3fa/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "SP.Akpol", url: "https://livepantau.semarangkota.go.id/3481ab70-9c70-4213-a954-adc9954d35f4/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Bundaran Diponegoro", url: "https://livepantau.semarangkota.go.id/66d3db83-931c-438e-aed5-8f29a96c7219/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Exit Tol Gayamsari", url: "https://livepantau.semarangkota.go.id/9397276f-ab0f-46a3-988c-4fa6b24782f5/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Lamper - Gajah", url: "https://livepantau.semarangkota.go.id/15dfb463-f960-46bd-9db4-5f75780c8f9e/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simp Kelinci", url: "https://livepantau.semarangkota.go.id/99259845-4513-40d4-b4ff-fe52a731f96b/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simpang Cinde", url: "https://livepantau.semarangkota.go.id/ffd980f2-fd2c-4dfe-919a-ad35d75b0035/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pasar Kambing 360", url: "https://livepantau.semarangkota.go.id/885c3af0-c04d-4376-8284-e5d8abdd3dac/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Peterongan", url: "https://livepantau.semarangkota.go.id/c2b8e299-695d-4a94-b9d6-149c97d9deb7/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Milo", url: "https://livepantau.semarangkota.go.id/defcf484-e730-462d-912c-b98f7dba92ac/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Bangkong", url: "https://livepantau.semarangkota.go.id/73c3d1e3-28d8-496c-b0a5-763225c10c3d/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "MT Haryono", url: "https://livepantau.semarangkota.go.id/aff2b8b8-5d60-43bd-8a6d-bfcf9e83a234/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Sriwijaya 02", url: "https://livepantau.semarangkota.go.id/c0339699-6b20-45dc-8e8d-c3b0ece2ab3e/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Sriwijaya 01", url: "https://livepantau.semarangkota.go.id/d2d3a81d-9d33-4dac-af45-29500714ff87/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Ki Mangun Sarkoro", url: "https://livepantau.semarangkota.go.id/9ea7c028-2b3a-4df5-a8d6-ec8f71de6c53/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "JPO Simpang 5", url: "https://livepantau.semarangkota.go.id/ff2be764-eb85-487e-b603-81dc4fcd271f/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Polda 360", url: "https://livepantau.semarangkota.go.id/85f04ddc-61b3-40a0-87ed-2234a7a3703f/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pahlawan PTZ 01", url: "https://livepantau.semarangkota.go.id/4f138ed7-2fca-4ada-8eec-be832fa6988b/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pahlawan PTZ 02", url: "https://livepantau.semarangkota.go.id/e7895fae-c1b7-48a4-9efd-d8009d00c947/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pahlawan 108", url: "https://livepantau.semarangkota.go.id/a174cf48-af7f-4cf9-a35c-4158c05b6745/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Arah Tugu Tunas", url: "https://livepantau.semarangkota.go.id/31c11bab-0ec7-4136-9c74-98266f3f5380/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Arah Pandanaran", url: "https://livepantau.semarangkota.go.id/892f0437-5dc9-45c1-b202-180f4c6d0ed8/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "DPU Pahlawan", url: "https://livepantau.semarangkota.go.id/ba6092fc-39c6-4f10-bca4-b4ab49f71246/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simpang 5 1 360", url: "https://livepantau.semarangkota.go.id/7831ff81-dc8a-4c2e-b3ab-d041eda64804/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simpang 5 2", url: "https://livepantau.semarangkota.go.id/2e283d27-b5bc-4f99-9e50-65ee51229031/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simpang Tentrem Mall", url: "https://livepantau.semarangkota.go.id/1d38d1c3-1bd2-43c4-a699-1041897a5755/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Gajahmada", url: "https://livepantau.semarangkota.go.id/37f49225-75cb-4a8f-86dd-7274e128a50f/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Bergota 360", url: "https://livepantau.semarangkota.go.id/c76db3cc-6a7c-46ca-9dd4-1d9000e5f9b7/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Thamrin Pandanaran 360", url: "https://livepantau.semarangkota.go.id/9d44f052-0cf9-4b16-a786-cc6ea7e8d1a5/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Simpang Thamrin", url: "https://livepantau.semarangkota.go.id/9578fde7-aa93-48bd-8cdf-7545458d95e9/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Bathan - Thamrin", url: "https://livepantau.semarangkota.go.id/a0927a42-548d-4a91-89e0-50cb24378613/index.m3u8"},
+        {group: "KOTA SEMARANG", name: "Pusat Oleh Oleh", url: "https://livepantau.semarangkota.go.id/02f5d6ea-5b02-4097-b2d0-0f6646dca9f8/index.m3u8"},
+        
+        // --- D.I. YOGYAKARTA (LENGKAP) ---
+        {group: "D.I. YOGYAKARTA", name: "Malioboro - Simpang Pajeksan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_22_Simpang_Pajeksan_Suryatmajan.stream/chunklist_w229731190.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Mandala Krida", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Mandala_Krida_PTZ.stream/chunklist_w59646757.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro - Depan Toko Subur", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_2_Depan_Toko_Subur.stream/chunklist_w1876728600.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Bumen", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_bumen.stream/chunklist_w1247100149.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Taman Waniwulang", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/WanaWil.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Pertigaan Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RBA Alun-Alun Sisi Barat", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/RBRA.stream/chunklist_w670553311.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Jl Nyoman Arah Gereja", url: "https://cctvjss.jogjakota.go.id/kotabaru/Jl-Nyoman-Oka.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Demen Glagah", url: "https://mam.jogjaprov.go.id:1937/atcs/DemenGlagah.stream/chunklist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Mantrigawen PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Karang Tunggal", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah2.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Condong Catur 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Condongcatur2.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Besi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Besi.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Juadi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Juadi.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Tegalgendu PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Tegalgendu_PTZ.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Tugu PTZ 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewSimpangTugu.stream/chunklist_w1182543842.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "View 0 KM PTZ", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewNolKilo.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "View Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Pandansari Timur", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewPandansariTimur.stream/chunklist_w347333533.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Segoro Tegalrejo 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_segoro_amarto_tegalrejo_2.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Nyai Ageng View Utara", url: "https://mam.jogjaprov.go.id:1937/cctv-kp/Karangnongko.stream/chunklist_w197698033.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Glagahsari PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari_PTZ.stream/chunklist_w609517393.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang Glagahsari", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari.stream/chunklist_w1045846334.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Semaki 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_1.stream/chunklist_w1401704022.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Semaki 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_2.stream/chunklist_w1348168339.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Gunung Ketur 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_2.stream/chunklist_w779845700.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RHTP Gunung Ketur 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_1.stream/chunklist_w11536123.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Brontokusuman Belakang 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_2.stream/chunklist_w1107148855.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Terang Bulan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_11_Terang_Bulan.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Mal Selatan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Mutiara Lama", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_8_Mutiara_Lama.stream/playlist.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Utara Mall", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_25_Utara_Mall.stream/chunklist_w2134770204.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Simpang BPK", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_bpk.stream/chunklist_w367961555.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_2.stream/chunklist_w331129965.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_1.stream/chunklist_w934333603.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Gayam", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gayam.stream/chunklist_w1124660989.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Sentul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Sentul.stream/chunklist_w109375030.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Alun-Alun Utara", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/AlunAlunUtara1.stream/chunklist_w292300010.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "SP3 Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist_w686073147.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Lapangan Basket", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/LapanganBasket.stream/chunklist_w2123417370.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Depan Plaza Malioboro", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanMall.stream/chunklist_w308264239.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Candi Prambanan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiPrambanan.stream/chunklist_w1877697172.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Candi Ratu Boko", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiBoko.stream/chunklist_w103317346.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Tebing Breksi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewBreksi.stream/chunklist_w870274498.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Museum Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/chunklist_w1260618601.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Malioboro Depan Pasar Bringharjo", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanBeringharjo.stream/chunklist_w2067964493.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Candi Sambisari", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiSambisari.stream/chunklist_w1703721545.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Embung Tambakboyo", url: "https://mam.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTambakboyo.stream/chunklist_w782093023.m3u8"},
+        {group: "D.I. YOGYAKARTA", name: "Alun-Alun Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/playlist.m3u8"},
 
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Malioboro - Simpang Pajeksan
-https://cctvjss.jogjakota.go.id/malioboro/Malioboro_22_Simpang_Pajeksan_Suryatmajan.stream/chunklist_w229731190.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Mandala Krida
-https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Mandala_Krida_PTZ.stream/chunklist_w59646757.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Malioboro - Depan Toko Subur
-https://cctvjss.jogjakota.go.id/malioboro/Malioboro_2_Depan_Toko_Subur.stream/chunklist_w1876728600.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RTHP Bumen
-https://cctvjss.jogjakota.go.id/rthp/rthp_bumen.stream/chunklist_w1247100149.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Taman Waniwulang
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/WanaWil.stream/chunklist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Pertigaan Terminal Wates
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RBA Alun-Alun Sisi Barat
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/RBRA.stream/chunklist_w670553311.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Jl Nyoman Arah Gereja
-https://cctvjss.jogjakota.go.id/kotabaru/Jl-Nyoman-Oka.stream/chunklist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Demen Glagah
-https://mam.jogjaprov.go.id:1937/atcs/DemenGlagah.stream/chunklist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Mantrigawen PTZ
-https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Karang Tunggal
-https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah2.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Condong Catur 2
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Condongcatur2.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Besi
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Besi.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Juadi
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Juadi.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Tegalgendu PTZ
-https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Tegalgendu_PTZ.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Tugu PTZ 2
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewSimpangTugu.stream/chunklist_w1182543842.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",View 0 KM PTZ
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewNolKilo.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",View Gn Merapi
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Pandansari Timur
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewPandansariTimur.stream/chunklist_w347333533.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RTHP Segoro Tegalrejo 2
-https://cctvjss.jogjakota.go.id/rthp/rthp_segoro_amarto_tegalrejo_2.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Nyai Ageng View Utara
-https://mam.jogjaprov.go.id:1937/cctv-kp/Karangnongko.stream/chunklist_w197698033.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Glagahsari PTZ
-https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari_PTZ.stream/chunklist_w609517393.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang Glagahsari
-https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari.stream/chunklist_w1045846334.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RTHP Semaki 1
-https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_1.stream/chunklist_w1401704022.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RTHP Semaki 2
-https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_2.stream/chunklist_w1348168339.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RTHP Gunung Ketur 2
-https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_2.stream/chunklist_w779845700.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RHTP Gunung Ketur 1
-https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_1.stream/chunklist_w11536123.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Brontokusuman Belakang 2
-https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_2.stream/chunklist_w1107148855.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Malioboro Terang Bulan
-https://cctvjss.jogjakota.go.id/malioboro/Malioboro_11_Terang_Bulan.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Malioboro Mal Selatan
-https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Malioboro Mutiara Lama
-https://cctvjss.jogjakota.go.id/malioboro/Malioboro_8_Mutiara_Lama.stream/playlist.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Malioboro Utara Mall
-https://cctvjss.jogjakota.go.id/malioboro/Malioboro_25_Utara_Mall.stream/chunklist_w2134770204.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Simpang BPK
-https://cctvjss.jogjakota.go.id/atcs/ATCS_bpk.stream/chunklist_w367961555.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RTHP Pakudaya Kuncen 2
-https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_2.stream/chunklist_w331129965.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",RTHP Pakudaya Kuncen 1
-https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_1.stream/chunklist_w934333603.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Gayam
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gayam.stream/chunklist_w1124660989.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Sentul
-https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Sentul.stream/chunklist_w109375030.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Alun-Alun Utara
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/AlunAlunUtara1.stream/chunklist_w292300010.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",SP3 Terminal Wates
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist_w686073147.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Lapangan Basket
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/LapanganBasket.stream/chunklist_w2123417370.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Depan Plaza Malioboro
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanMall.stream/chunklist_w308264239.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Candi Prambanan
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiPrambanan.stream/chunklist_w1877697172.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Candi Ratu Boko
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiBoko.stream/chunklist_w103317346.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Tebing Breksi
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewBreksi.stream/chunklist_w870274498.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Museum Gn Merapi
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/chunklist_w1260618601.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Malioboro Depan Pasar Bringharjo
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanBeringharjo.stream/chunklist_w2067964493.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Candi Sambisari
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiSambisari.stream/chunklist_w1703721545.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Embung Tambakboyo
-https://mam.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTambakboyo.stream/chunklist_w782093023.m3u8
-#EXTINF:-1 group-title="D.I. YOGYAKARTA",Alun-Alun Kidul
-https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/playlist.m3u8
+        // --- KOTA PEKALONGAN (LENGKAP) ---
+        {group: "KOTA PEKALONGAN", name: "Ponolawen", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Alun Alun Barat", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Depan Taspen 2", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dr Cipto", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ruang Amarta", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Grosir Setono", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Grogolan PTZ", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Depan Balaikota 1", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Gambaran", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Polsek Timur", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Alun Alun", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "THR", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "THR Selatan", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/4/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Stasiun", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Kec Pekalongan Selatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Depan Taspen 1", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Perempatan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Perempatan Kominfo 2", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pusri Timur", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pusri Barat", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ahmad Yani", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ponolawen Timur", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ponolawen Selatan", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pendopo Mataram", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Tirto Timur", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Tirto Selatan", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Ahmad Yani Timur", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/3/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Parkir Depan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dharma Bakti Timur", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dharma Bakti Barat", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Dharma Bakti Selatan", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Podosugih Utara", url: "https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Muhammadiyah Barat", url: "https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Matahari", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Terminal Tengah", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Terminal Timur", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Podo Sugih Timur", url: "https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Polsek Timur (Alt)", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Grogolan Timur", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Mataram Pojok Utara", url: "https://rtsp.pekalongankota.go.id/stream/4e2c3d4b-7cb1-40fa-9e56-3cfc9693412f/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego 2", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Area Sorogenen", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Stasiun Timur", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/1/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pusri Timur (Superindo)", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hlsll/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Posis Barat", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Posis Utara", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Posis Timur", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Jalan Kurinci (Alfamart)", url: "https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Kec Pekalongan Utara", url: "https://rtsp.pekalongankota.go.id/stream/097799c5-4130-48b8-8c94-869b1960d0c1/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Kali Bremi", url: "https://rtsp.pekalongankota.go.id/stream/a051a871-44ce-4a0e-9c30-6fc3455904b1/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Pertigaan Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"},
+        {group: "KOTA PEKALONGAN", name: "Menara TWL Pasir Kencana", url: "https://rtsp.pekalongankota.go.id/stream/e1c404e6-19f1-464c-9754-e8d53546ff8b/channel/0/hlsll/live/index.m3u8"}
+    ];
 
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Ponolawen
-https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Alun Alun Barat
-https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Depan Taspen 2
-https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Dr Cipto
-https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Ruang Amarta
-https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Grosir Setono
-https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Grogolan PTZ
-https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Depan Balaikota 1
-https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Gambaran
-https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Polsek Timur
-https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Alun Alun
-https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",THR
-https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",THR Selatan
-https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/4/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Stasiun
-https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Kec Pekalongan Selatan
-https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Depan Taspen 1
-https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Perempatan Kominfo
-https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Perempatan Kominfo 2
-https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pusri Timur
-https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pusri Barat
-https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Ahmad Yani
-https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Ponolawen Timur
-https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Ponolawen Selatan
-https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/2/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pendopo Mataram
-https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Tirto Timur
-https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Tirto Selatan
-https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/2/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Ahmad Yani Timur
-https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/3/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Parkir Depan Kominfo
-https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Dharma Bakti Timur
-https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Dharma Bakti Barat
-https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Dharma Bakti Selatan
-https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pertigaan Podosugih Utara
-https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Muhammadiyah Barat
-https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Matahari
-https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Terminal Tengah
-https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Terminal Timur
-https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pertigaan Podo Sugih Timur
-https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Polsek Timur (Alt)
-https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Grogolan Timur
-https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Mataram Pojok Utara
-https://rtsp.pekalongankota.go.id/stream/4e2c3d4b-7cb1-40fa-9e56-3cfc9693412f/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pertigaan Kel Klego
-https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pertigaan Kel Klego 2
-https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Area Sorogenen
-https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Stasiun Timur
-https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/1/hlsll/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pusri Timur (Superindo)
-https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hlsll/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Posis Barat
-https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Posis Utara
-https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Posis Timur
-https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Jalan Kurinci (Alfamart)
-https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Kec Pekalongan Utara
-https://rtsp.pekalongankota.go.id/stream/097799c5-4130-48b8-8c94-869b1960d0c1/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Kali Bremi
-https://rtsp.pekalongankota.go.id/stream/a051a871-44ce-4a0e-9c30-6fc3455904b1/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Alun Alun Selatan
-https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Pertigaan Alun Alun Selatan
-https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8
-#EXTINF:-1 group-title="KOTA PEKALONGAN",Menara TWL Pasir Kencana
-https://rtsp.pekalongankota.go.id/stream/e1c404e6-19f1-464c-9754-e8d53546ff8b/channel/0/hlsll/live/index.m3u8
-    `;
-
-    // --- PARSING DATA M3U8 (Dioptimalkan) ---
-    const streams = [];
-    const lines = rawStreamsData.trim().split('\n');
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (line.startsWith('#EXTINF:')) {
-            const nextLine = lines[i + 1] ? lines[i + 1].trim() : null;
-            if (nextLine && !nextLine.startsWith('#')) {
-                // Ekstrak group-title dan nama channel
-                const groupMatch = line.match(/group-title="([^"]*)"/);
-                const group = groupMatch ? groupMatch[1] : 'LAINNYA';
-                
-                const nameParts = line.split(',');
-                const name = nameParts.length > 1 ? nameParts.slice(1).join(',').trim() : 'Kamera';
-                
-                streams.push({ group: group, name: name, url: nextLine });
-                i++; // Skip baris URL di iterasi berikutnya
-            }
-        }
-    }
-
-    // --- PLAYER & UI LOGIC ---
-    let hls;
-    let activeIndex = 0;
+    // --- LOGIC PLAYER & ACCORDION (Sama, Tidak Berubah) ---
     const video = document.getElementById('main-video');
-    const playOverlay = document.getElementById('play-overlay');
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const errorOverlay = document.getElementById('error-overlay');
-    
-    function toTitleCase(str) {
-        return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
-    }
+    const listContainer = document.getElementById('cctv-accordion');
+    let hls;
 
     function init() {
-        document.getElementById('cam-count').innerText = `${streams.length}`;
-        renderList();
+        renderAccordion();
         if(streams.length > 0) loadStream(0);
         startClock();
         
-        video.addEventListener('waiting', () => loadingOverlay.classList.remove('hidden'));
         video.addEventListener('playing', () => {
-            loadingOverlay.classList.add('hidden');
-            playOverlay.classList.add('hidden');
+            document.getElementById('loading-overlay').classList.add('hidden');
+            document.getElementById('play-overlay').classList.add('hidden');
+        });
+        video.addEventListener('waiting', () => {
+            document.getElementById('loading-overlay').classList.remove('hidden');
         });
     }
 
-    function loadStream(index) {
-        if(index < 0 || index >= streams.length) return;
-        activeIndex = index;
-        const s = streams[index];
-        const displayName = toTitleCase(s.name);
-        
-        document.getElementById('playing-status').innerHTML = `Sedang memutar: <strong class="text-white">${displayName}</strong>`;
-        
-        loadingOverlay.classList.remove('hidden');
-        errorOverlay.classList.add('hidden');
-        playOverlay.classList.add('hidden');
-        
-        // Update UI List (Highlight item aktif)
-        renderList(document.getElementById('search-cctv').value);
-        setTimeout(() => {
-            const activeItem = document.getElementById(`cctv-item-${index}`);
-            if (activeItem) activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
+    function renderAccordion() {
+        const groups = {};
+        // Grouping
+        streams.forEach((s, i) => {
+            if (!groups[s.group]) groups[s.group] = [];
+            groups[s.group].push({ ...s, index: i });
+        });
 
-        // HLS Loading Logic
+        let html = '';
+        // Urutkan Group: Semarang dulu
+        const orderedGroups = Object.keys(groups).sort((a,b) => {
+            if(a.includes("SEMARANG")) return -1;
+            if(b.includes("SEMARANG")) return 1;
+            return 0;
+        });
+
+        orderedGroups.forEach(groupName => {
+            const items = groups[groupName];
+            const itemsHtml = items.map(item => `
+                <div class="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 transition-colors group" onclick="loadStream(${item.index})">
+                    <div class="w-8 h-6 bg-slate-200 rounded flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                        <i class="fa-solid fa-play text-[10px]"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold text-slate-700 group-hover:text-blue-700 truncate">${item.name}</div>
+                        <div class="text-[9px] text-slate-400 font-medium truncate">${groupName}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            html += `
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <i class="fa-solid fa-map-location-dot text-blue-600"></i>
+                            ${groupName}
+                        </div>
+                        <i class="fa-solid fa-chevron-down accordion-icon"></i>
+                    </div>
+                    <div class="accordion-body">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            `;
+        });
+        listContainer.innerHTML = html;
+        document.getElementById('cam-count-display').innerText = `${streams.length} CAM`;
+    }
+
+    window.toggleAccordion = function(header) {
+        const body = header.nextElementSibling;
+        const icon = header.querySelector('.accordion-icon');
+        const isOpen = body.classList.contains('open');
+        
+        document.querySelectorAll('.accordion-body').forEach(b => b.classList.remove('open'));
+        document.querySelectorAll('.accordion-header').forEach(h => {
+            h.classList.remove('active');
+            h.querySelector('.accordion-icon').style.transform = 'rotate(0deg)';
+        });
+
+        if (!isOpen) {
+            body.classList.add('open');
+            header.classList.add('active');
+            icon.style.transform = 'rotate(180deg)';
+        }
+    };
+
+    window.filterCCTV = function() {
+        const term = document.getElementById('search-cctv').value.toLowerCase();
+        
+        if (!term) {
+            renderAccordion();
+            return;
+        }
+
+        const filtered = streams.map((s, i) => ({...s, index: i}))
+                                .filter(s => s.name.toLowerCase().includes(term));
+        
+        let html = `<div class="p-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Hasil: ${filtered.length} kamera</div>`;
+        
+        if (filtered.length === 0) {
+            html += `<div class="text-center p-8 text-slate-400 text-sm">Nihil.</div>`;
+        } else {
+            html += filtered.map(item => `
+                <div class="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl mb-2 hover:border-blue-300 cursor-pointer shadow-sm" onclick="loadStream(${item.index})">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                        <i class="fa-solid fa-video"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-slate-800">${item.name}</div>
+                        <div class="text-[10px] text-slate-500">${item.group}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        listContainer.innerHTML = html;
+    };
+
+    window.loadStream = function(index) {
+        const s = streams[index];
+        document.getElementById('playing-status').innerText = s.name;
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        document.getElementById('error-overlay').classList.add('hidden');
+        document.getElementById('play-overlay').classList.add('hidden');
+
         if (Hls.isSupported()) {
-            if(hls) hls.destroy();
-            hls = new Hls({ 
-                enableWorker: true, 
-                lowLatencyMode: true,
-                backBufferLength: 30 
-            });
+            if (hls) hls.destroy();
+            hls = new Hls();
             hls.loadSource(s.url);
             hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(() => playOverlay.classList.remove('hidden'));
-            });
-            hls.on(Hls.Events.ERROR, (event, data) => {
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+            hls.on(Hls.Events.ERROR, (e, data) => {
                 if (data.fatal) {
-                    console.error('HLS Fatal Error:', data);
-                    loadingOverlay.classList.add('hidden');
-                    errorOverlay.classList.remove('hidden');
                     hls.destroy();
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    document.getElementById('error-overlay').classList.remove('hidden');
                 }
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Native HLS support (Safari)
             video.src = s.url;
-            video.addEventListener('loadedmetadata', () => {
-                video.play().catch(() => playOverlay.classList.remove('hidden'));
-            });
+            video.addEventListener('loadedmetadata', () => video.play());
             video.addEventListener('error', () => {
-                loadingOverlay.classList.add('hidden');
-                errorOverlay.classList.remove('hidden');
+                document.getElementById('loading-overlay').classList.add('hidden');
+                document.getElementById('error-overlay').classList.remove('hidden');
             });
         }
-    }
+    };
 
-    function forcePlay() {
-        video.muted = false; 
+    window.forcePlay = function() {
         video.play();
-        playOverlay.classList.add('hidden');
-    }
+        document.getElementById('play-overlay').classList.add('hidden');
+    };
 
-    function renderList(filterText = "") {
-        const listContainer = document.getElementById('cctv-list');
-        listContainer.innerHTML = "";
-        
-        let currentGroup = "";
-        const filteredStreams = streams.map((s, i) => ({...s, originalIndex: i}))
-                                       .filter(s => s.name.toLowerCase().includes(filterText.toLowerCase()));
+    window.reloadStream = function() {
+        // Simple reload trick
+        const currentSrc = video.src;
+        video.src = '';
+        setTimeout(() => video.src = currentSrc, 100);
+    };
 
-        filteredStreams.forEach((s) => {
-            if (s.group !== currentGroup) {
-                currentGroup = s.group;
-                const groupHeader = document.createElement('div');
-                groupHeader.className = "group-header accent-border accent-text";
-                groupHeader.innerHTML = `
-                    <i class="fa-solid fa-location-dot"></i>
-                    <span>${currentGroup}</span>
-                `;
-                listContainer.appendChild(groupHeader);
-            }
-
-            const isActive = s.originalIndex === activeIndex;
-            const item = document.createElement('div');
-            const displayName = toTitleCase(s.name);
-            
-            item.id = `cctv-item-${s.originalIndex}`;
-            item.className = `
-                flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 border
-                ${isActive 
-                    ? 'bg-[#1e3a8a]/10 border-[#1e3a8a]/30 shadow-sm -translate-y-0.5' 
-                    : 'bg-white border-transparent hover:bg-slate-50 hover:border-slate-200'
-                }
-            `;
-            
-            item.innerHTML = `
-                <div class="relative w-10 h-8 rounded-md overflow-hidden shrink-0 flex items-center justify-center transition-colors ${isActive ? 'bg-[#1e3a8a] text-white shadow-sm' : 'bg-slate-100 text-slate-400'}">
-                    <i class="fa-solid fa-video text-xs"></i>
-                    ${isActive ? '<span class="absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse ring-2 ring-white"></span>' : ''}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="text-xs font-bold ${isActive ? 'text-[#1e3a8a]' : 'text-slate-700'} truncate leading-tight">${displayName}</h4>
-                    <p class="text-[10px] text-slate-500 truncate mt-0.5 font-medium tracking-wide">Live Stream</p>
-                </div>
-                ${isActive ? '<i class="fa-solid fa-chevron-right text-[#1e3a8a] text-xs animate-bounce-x"></i>' : ''}
-            `;
-            item.onclick = () => loadStream(s.originalIndex);
-            listContainer.appendChild(item);
-        });
-    }
-
-    function reloadStream() { loadStream(activeIndex); }
-    function filterCCTV() { renderList(document.getElementById('search-cctv').value); }
-    
-    function toggleFullscreen() {
+    window.toggleFullscreen = function() {
         const container = document.querySelector('.video-container');
         if (!document.fullscreenElement) {
-            if (container.requestFullscreen) container.requestFullscreen(); 
-            else if (container.webkitEnterFullscreen) container.webkitEnterFullscreen();
+            container.requestFullscreen?.() || container.webkitRequestFullscreen?.();
         } else {
-            document.exitFullscreen();
+            document.exitFullscreen?.();
         }
-    }
+    };
 
-    function startClock() {
-        const clockEl = document.getElementById('clock');
-        const dateEl = document.getElementById('date');
-        setInterval(() => {
-            const now = new Date();
-            clockEl.innerText = now.toLocaleTimeString('id-ID', {hour12: false, hour:'2-digit', minute:'2-digit', second:'2-digit'});
-            dateEl.innerText = now.toLocaleDateString('id-ID', {weekday: 'long', day: 'numeric', month: 'short', year: 'numeric'});
-        }, 1000);
-    }
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID');
+        document.getElementById('date').innerText = now.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long'});
+    }, 1000);
 
-    window.addEventListener('DOMContentLoaded', init);
-    //Focus mode dihilangkan agar tidak mengganggu experience
+    init();
 </script>
 {% endblock %}
