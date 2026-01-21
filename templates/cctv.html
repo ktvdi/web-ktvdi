@@ -5,21 +5,17 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
 
 <style>
-    /* --- CORE VARIABLES --- */
+    /* --- CSS VARIABLES --- */
     :root {
-        --primary: #0f172a; /* Slate 900 */
-        --accent: #2563eb;  /* Blue 600 */
-        --surface: #ffffff;
-        --glass: rgba(255, 255, 255, 0.95);
-        --text-main: #334155;
-        --text-sub: #64748b;
+        --ktvdi-blue: #1e3a8a; /* Biru Tua Khas */
+        --ktvdi-dark: #0f172a;
+        --ktvdi-light: #f8fafc;
     }
 
-    /* --- GLOBAL STYLES --- */
-    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
 
-    /* --- CUSTOM SCROLLBAR --- */
-    .premium-scroll::-webkit-scrollbar { width: 5px; }
+    /* --- SCROLLBAR --- */
+    .premium-scroll::-webkit-scrollbar { width: 4px; }
     .premium-scroll::-webkit-scrollbar-track { background: transparent; }
     .premium-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
     .premium-scroll::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
@@ -27,85 +23,80 @@
     /* --- RUNNING TEXT --- */
     .marquee-container { position: relative; overflow: hidden; height: 100%; display: flex; align-items: center; }
     .marquee-content {
-        white-space: nowrap; will-change: transform;
+        display: inline-block; white-space: nowrap;
         animation: marquee-slide 60s linear infinite;
-        padding-left: 100%; font-size: 0.75rem; font-weight: 600; color: #475569;
+        padding-left: 100%; font-size: 0.7rem; font-weight: 600; color: #475569;
     }
     @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-    /* --- PLAYER CONTAINER (16:9) --- */
-    .player-wrapper {
-        position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
-        background: #000; border-radius: 0 0 16px 16px; overflow: hidden;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .video-element { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; }
-
     /* --- ACCORDION LIST --- */
-    .camera-group { margin-bottom: 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; overflow: hidden; transition: all 0.3s ease; }
+    .camera-group { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 10px; background: white; overflow: hidden; transition: all 0.2s ease; }
     .group-header {
-        padding: 14px 18px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        padding: 12px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
         background: #fff; transition: background 0.2s;
     }
     .group-header:hover { background: #f8fafc; }
     .group-header.active { background: #eff6ff; border-bottom: 1px solid #dbeafe; }
-    .group-title { font-size: 0.75rem; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 10px; }
-    .group-icon { font-size: 0.75rem; color: #94a3b8; transition: transform 0.3s; }
+    .group-title { font-size: 0.75rem; font-weight: 800; color: var(--ktvdi-blue); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
+    .group-icon { font-size: 0.7rem; color: #94a3b8; transition: transform 0.3s; }
     .group-header.active .group-icon { transform: rotate(180deg); color: #2563eb; }
     
-    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0, 1, 0, 1); background: #fcfcfc; }
-    .group-body.open { max-height: 3000px; transition: max-height 0.8s ease-in-out; }
+    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s cubic-bezier(0, 1, 0, 1); background: #ffffff; }
+    .group-body.open { max-height: 4000px; transition: max-height 0.8s ease-in-out; }
 
     /* --- LIST ITEM --- */
     .cam-item {
-        padding: 12px 18px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
-        display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+        padding: 10px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+        display: flex; align-items: center; gap: 10px; transition: all 0.2s;
     }
-    .cam-item:last-child { border-bottom: none; }
-    .cam-item:hover { background-color: #f1f5f9; padding-left: 24px; }
+    .cam-item:hover { background-color: #f8fafc; padding-left: 20px; }
     .cam-item.active { background-color: #eff6ff; border-left: 3px solid #2563eb; }
     .cam-item.active .cam-name { color: #1d4ed8; font-weight: 700; }
-    
-    /* --- STATUS BADGE --- */
-    .live-badge {
-        display: inline-flex; align-items: center; gap: 6px;
-        background: rgba(16, 185, 129, 0.1); color: #10b981;
-        padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(16, 185, 129, 0.2);
-        font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em;
-    }
-    .pulse-dot { width: 6px; height: 6px; background: #10b981; border-radius: 50%; animation: pulse-green 2s infinite; }
-    @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
 
-    /* --- LOADING SPINNER --- */
-    .spinner {
-        width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
-        border-radius: 50%; border-top-color: #3b82f6;
-        animation: spin 1s ease-in-out infinite;
+    /* --- PLAYER CONTAINER (16:9 Fixed) --- */
+    .player-wrapper {
+        position: relative; width: 100%; padding-top: 56.25%;
+        background: #000; border-radius: 0 0 12px 12px; overflow: hidden;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .video-element { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; }
+
+    /* --- LOADING PULSE --- */
+    @keyframes pulse-logo {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+    .loading-anim { animation: pulse-logo 1.5s infinite ease-in-out; }
 </style>
 
 <div class="min-h-screen w-full flex flex-col text-slate-800" id="main-content">
 
-    <nav class="bg-white/90 backdrop-blur-lg border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <nav class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-3 w-full md:w-auto">
-                <div class="w-10 h-10 bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl flex items-center justify-center shadow-lg shadow-slate-900/20 text-white">
-                    <i class="fa-solid fa-tower-broadcast text-lg"></i>
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 shrink-0 p-1">
+                    <img src="https://iili.io/f87539s.png" alt="KTVDI CCTV" class="w-8 h-8 object-contain brightness-0 invert">
                 </div>
-                <div class="leading-tight">
-                    <h1 class="text-slate-900 font-extrabold text-lg tracking-tight">KTVDI <span class="text-blue-600">SMART CITY</span></h1>
-                    <p class="text-[11px] text-slate-500 font-medium">Integrated Traffic Monitoring System</p>
+                
+                <div class="leading-tight flex-1">
+                    <h1 class="text-slate-900 font-extrabold text-lg tracking-tight">KTVDI <span class="text-blue-700">SMART CITY</span></h1>
+                    <p class="text-[10px] text-slate-500 font-medium leading-snug hidden md:block max-w-md">
+                        Portal LIVE CCTV terkini yang dapat memudahkan sobat KTVDI dalam memantau arus lalu lintas.
+                    </p>
+                    <p class="text-[10px] text-slate-500 font-medium leading-snug md:hidden">
+                        Portal Pantauan Lalu Lintas Terkini.
+                    </p>
                 </div>
             </div>
 
-            <div class="relative w-full md:w-96 group">
+            <div class="relative w-full md:w-80 group">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-600 transition-colors"></i>
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-700 transition-colors"></i>
                 </div>
                 <input type="text" id="search-input" onkeyup="handleSearch()" 
-                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-11 pr-5 focus:outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all font-medium placeholder:text-slate-400"
-                    placeholder="Pencarian lokasi kamera...">
+                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-11 pr-5 focus:outline-none focus:border-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-slate-400"
+                    placeholder="Cari lokasi kamera...">
             </div>
         </div>
     </nav>
@@ -114,96 +105,97 @@
 
         <main class="lg:col-span-9 flex flex-col gap-0 order-1 sticky top-24 z-30 lg:static">
             
-            <div class="bg-[#0f172a] text-white px-6 py-4 md:rounded-t-2xl flex justify-between items-center border-b border-white/10 shadow-lg relative z-20">
-                <div class="flex items-center gap-4">
-                    <div class="live-badge">
-                        <div class="pulse-dot"></div>
-                        <span>LIVE FEED</span>
+            <div class="bg-gradient-to-r from-blue-900 to-blue-800 text-white px-4 py-3 md:rounded-t-xl flex justify-between items-center text-xs font-bold shadow-lg z-10 relative border-b border-white/10">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded border border-white/10 shrink-0">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                        </span>
+                        <span class="text-[9px] tracking-wider text-white">LIVE</span>
                     </div>
-                    <div class="h-4 w-px bg-white/20"></div>
-                    <div class="flex flex-col">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Lokasi Terpantau</span>
-                        <span id="active-cam-name" class="text-sm font-bold text-white tracking-wide truncate max-w-[200px] md:max-w-md">Memilih Kamera...</span>
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-[9px] text-blue-200 uppercase tracking-wider hidden sm:block">Lokasi Terpantau</span>
+                        <span id="active-cam-name" class="text-sm font-bold text-white truncate">Memilih Kamera...</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div id="connection-status" class="hidden md:flex items-center gap-2 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20">
-                        <i class="fa-solid fa-wifi"></i> <span>STABLE</span>
-                    </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <i class="fa-solid fa-video text-blue-200"></i>
                 </div>
             </div>
 
-            <div class="w-full bg-black shadow-2xl relative md:rounded-b-2xl overflow-hidden group">
+            <div class="w-full bg-black shadow-2xl relative md:rounded-b-xl overflow-hidden group">
                 <div class="player-wrapper">
                     <video id="video-element" class="video-element" autoplay muted playsinline></video>
 
-                    <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
-                        <div class="w-20 h-20 bg-white/10 border-2 border-white/30 rounded-full flex items-center justify-center backdrop-blur-md shadow-2xl transition-transform hover:scale-110 hover:bg-white/20">
-                            <i class="fa-solid fa-play text-white text-3xl ml-1"></i>
+                    <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
+                        <div class="w-16 h-16 bg-white/10 hover:bg-white/20 border border-white/40 rounded-full flex items-center justify-center backdrop-blur-md shadow-2xl transition-transform hover:scale-110">
+                            <i class="fa-solid fa-play text-white text-2xl ml-1"></i>
                         </div>
                     </div>
 
-                    <div id="overlay-loading" class="absolute inset-0 bg-[#0f172a] z-40 flex flex-col items-center justify-center">
-                        <div class="spinner mb-4"></div>
-                        <p class="text-slate-400 text-xs font-bold tracking-widest animate-pulse">MENGHUBUNGKAN SATELIT...</p>
+                    <div id="overlay-loading" class="absolute inset-0 bg-[#0f172a] z-40 flex flex-col items-center justify-center text-center p-4">
+                        <div class="relative w-20 h-20 mb-4 loading-anim">
+                            <div class="absolute inset-0 bg-blue-600/30 rounded-full blur-xl"></div>
+                            <img src="https://iili.io/f87539s.png" alt="Loading Camera" class="w-full h-full object-contain brightness-0 invert drop-shadow-lg relative z-10">
+                        </div>
+                        <h3 class="text-white font-extrabold text-lg tracking-widest mb-1">KTVDI CCTV</h3>
+                        <p class="text-blue-400 text-xs font-semibold animate-pulse">Sedang loading play Camera...</p>
                     </div>
 
                     <div id="overlay-error" class="absolute inset-0 bg-slate-900 z-40 hidden flex flex-col items-center justify-center text-center px-6">
-                        <div class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 border border-slate-700">
-                            <i class="fa-solid fa-video-slash text-slate-500 text-2xl"></i>
-                        </div>
-                        <h4 class="text-white font-bold mb-1">Sinyal Terputus</h4>
-                        <p class="text-slate-400 text-xs mb-6">Kamera sedang offline atau gangguan jaringan.</p>
-                        <button onclick="retryStream()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full transition shadow-lg">
-                            Muat Ulang
+                        <i class="fa-solid fa-video-slash text-slate-500 text-3xl mb-3"></i>
+                        <h4 class="text-white font-bold mb-1">Kamera Offline</h4>
+                        <p class="text-slate-400 text-xs mb-4">Tidak dapat terhubung ke sumber video.</p>
+                        <button onclick="retryStream()" class="px-5 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-bold rounded-full transition shadow-lg">
+                            Coba Lagi
                         </button>
                     </div>
                 </div>
             </div>
 
             <div class="mt-4 bg-white border border-slate-200 p-4 md:rounded-xl shadow-sm flex flex-col gap-3">
-                <div class="flex flex-wrap justify-between items-center gap-4">
-                    <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-lg border border-slate-100">
-                        <i class="fa-regular fa-clock text-blue-600"></i>
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                        <i class="fa-regular fa-clock text-blue-800"></i>
                         <div class="text-left">
-                            <div id="digital-clock" class="text-slate-900 font-mono text-base font-black leading-none">00:00:00</div>
-                            <div id="date-display" class="text-[10px] text-slate-500 font-bold uppercase mt-1">...</div>
+                            <div id="digital-clock" class="text-slate-900 font-mono text-sm font-black leading-none">00:00:00</div>
+                            <div id="date-display" class="text-[9px] text-slate-500 font-bold uppercase mt-0.5">...</div>
                         </div>
                     </div>
-                    
                     <div class="flex items-center gap-2">
-                        <button onclick="toggleFullscreen()" class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-sm">
-                            <i class="fa-solid fa-expand"></i> Fullscreen
+                        <button onclick="toggleFullscreen()" class="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-expand"></i> <span class="hidden sm:inline">Fullscreen</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-9 flex items-center overflow-hidden">
-                    <div class="bg-blue-600 h-full px-4 flex items-center justify-center shrink-0 z-10 shadow-md">
-                        <i class="fa-solid fa-circle-info text-white text-xs"></i>
+                <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-8 flex items-center overflow-hidden">
+                    <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10 shadow-md">
+                        <i class="fa-solid fa-bullhorn text-white text-xs"></i>
                     </div>
                     <div class="marquee-container w-full">
                         <div class="marquee-content">
-                            INFORMASI: Tayangan CCTV ini bersumber dari layanan publik Pemerintah Daerah. KTVDI berfungsi sebagai agregator. Gunakan informasi ini dengan bijak untuk memantau lalu lintas.
+                            INFORMASI: Tayangan CCTV ini bersumber dari layanan publik Pemerintah Daerah. KTVDI berfungsi sebagai agregator. Gunakan informasi ini dengan bijak untuk memantau lalu lintas dan keamanan.
                         </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <aside class="lg:col-span-3 flex flex-col h-[65vh] lg:h-[calc(100vh-140px)] bg-white lg:rounded-2xl border border-slate-200 shadow-xl overflow-hidden order-2 mt-0 relative">
-            <div class="p-4 border-b border-slate-100 bg-white sticky top-0 z-20 flex justify-between items-center shadow-sm">
-                <h3 class="font-extrabold text-slate-800 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-list-ul text-blue-600"></i> DAFTAR LOKASI
+        <aside class="lg:col-span-3 flex flex-col h-[60vh] lg:h-[calc(100vh-140px)] bg-white lg:rounded-2xl border border-slate-200 shadow-lg overflow-hidden order-2 mt-0 relative">
+            <div class="p-3 border-b border-slate-100 bg-white sticky top-0 z-20 flex justify-between items-center shadow-sm">
+                <h3 class="font-extrabold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-list text-blue-800"></i> Daftar Lokasi
                 </h3>
-                <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded border border-slate-200 font-bold" id="total-cams">0 CAM</span>
+                <span class="text-[9px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-100 font-bold" id="total-cams">0 CAM</span>
             </div>
 
-            <div class="flex-1 overflow-y-auto premium-scroll p-3 bg-slate-50" id="camera-list-container">
+            <div class="flex-1 overflow-y-auto premium-scroll p-2 bg-slate-50/50" id="camera-list-container">
                 </div>
             
-            <div class="p-3 bg-white border-t border-slate-200 text-center text-[10px] text-slate-400 font-medium">
-                &copy; 2026 KTVDI Network
+            <div class="p-2 bg-white border-t border-slate-200 text-center text-[9px] text-slate-400 font-medium">
+                © 2026 KTVDI Smart City
             </div>
         </aside>
 
@@ -212,10 +204,10 @@
 
 <script>
     // ==========================================
-    // 1. DATA SOURCE (PREMIUM DATA STRUCTURE)
+    // 1. DATA SOURCE LENGKAP (NO MISSING DATA)
     // ==========================================
     const streamSource = [
-        // --- KOTA SEMARANG (70+ Updated) ---
+        // --- KOTA SEMARANG (DATA BARU & LENGKAP) ---
         {city: "KOTA SEMARANG", name: "Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Simpang Letjen Suprapto", url: "https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Mberok In", url: "https://livepantau.semarangkota.go.id/16ec5c7d-78d6-4faa-88f3-ce2377787ab6/index.m3u8"},
@@ -388,7 +380,7 @@
     ];
 
     // ==========================================
-    // 2. PLAYER LOGIC (HLS + ERROR HANDLING)
+    // 2. PLAYER LOGIC & UI FUNCTIONS
     // ==========================================
     let hls;
     let activeStreamIndex = 0;
@@ -399,15 +391,8 @@
     const playOverlay = document.getElementById('overlay-play');
 
     function initPlayer() {
-        // Grouping Data
         renderAccordionList();
-        
-        // Initial Load (Default Camera)
-        if (streamSource.length > 0) {
-            loadStream(0);
-        }
-
-        // Clock Update
+        if (streamSource.length > 0) loadStream(0);
         setInterval(updateClock, 1000);
         updateClock();
     }
@@ -417,13 +402,13 @@
         activeStreamIndex = index;
         const stream = streamSource[index];
 
-        // UI Updates
+        // Reset UI
         statusText.innerText = `${stream.city} - ${stream.name}`;
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
 
-        // Highlight Active Item in List
+        // Highlight Active List Item
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
         if(activeItem) {
@@ -431,37 +416,36 @@
             activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // HLS Logic
+        // HLS Logic (Enhanced Reliability)
         if (Hls.isSupported()) {
             if (hls) hls.destroy();
             hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: true,
-                backBufferLength: 90
+                backBufferLength: 60,
+                manifestLoadingTimeOut: 15000,
+                levelLoadingTimeOut: 15000
             });
             
             hls.loadSource(stream.url);
             hls.attachMedia(video);
             
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(() => {
-                        loadingOverlay.classList.add('hidden');
-                        playOverlay.classList.remove('hidden'); // Show manual play if autoplay blocked
-                    });
-                }
+                video.play().catch(() => {
+                    loadingOverlay.classList.add('hidden');
+                    playOverlay.classList.remove('hidden'); // Show play button if autoplay fails
+                });
             });
 
             hls.on(Hls.Events.ERROR, (event, data) => {
                 if (data.fatal) {
                     switch (data.type) {
                         case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.error("Network Error, trying to recover...");
+                            console.log("Network error, recovering...");
                             hls.startLoad();
                             break;
                         case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.error("Media Error, trying to recover...");
+                            console.log("Media error, recovering...");
                             hls.recoverMediaError();
                             break;
                         default:
@@ -473,7 +457,7 @@
             });
 
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Safari Native HLS
+            // Safari / iOS Support
             video.src = stream.url;
             video.addEventListener('loadedmetadata', () => {
                 video.play().catch(() => playOverlay.classList.remove('hidden'));
@@ -488,7 +472,7 @@
     });
 
     video.addEventListener('waiting', () => {
-        loadingOverlay.classList.remove('hidden');
+        if (!video.paused) loadingOverlay.classList.remove('hidden');
     });
 
     function showErrorState() {
@@ -506,34 +490,36 @@
     }
 
     // ==========================================
-    // 3. UI RENDERER (ACCORDION)
+    // 3. UI RENDERER (ACCORDION GROUPING)
     // ==========================================
     function renderAccordionList() {
         const container = document.getElementById('camera-list-container');
         container.innerHTML = '';
         
-        // Grouping Data
+        // Grouping Data by City
         const groups = {};
         streamSource.forEach((s, i) => {
             if (!groups[s.city]) groups[s.city] = [];
             groups[s.city].push({ ...s, originalIndex: i });
         });
 
-        // Render HTML
+        // Render HTML Structure
         for (const [city, items] of Object.entries(groups)) {
             const groupDiv = document.createElement('div');
             groupDiv.className = 'camera-group';
             
+            // Header Group
             const header = document.createElement('div');
             header.className = 'group-header';
             header.onclick = () => toggleGroup(header);
             header.innerHTML = `
                 <div class="group-title">
-                    <i class="fa-solid fa-map-location-dot text-blue-600"></i> ${city}
+                    <i class="fa-solid fa-map-location-dot text-blue-700"></i> ${city}
                 </div>
                 <i class="fa-solid fa-chevron-down group-icon"></i>
             `;
 
+            // Body Group (Hidden by default)
             const body = document.createElement('div');
             body.className = 'group-body';
             
@@ -564,7 +550,7 @@
     }
 
     // ==========================================
-    // 4. SEARCH FUNCTION
+    // 4. SMART SEARCH (EXPAND ON MATCH)
     // ==========================================
     function handleSearch() {
         const term = document.getElementById('search-input').value.toLowerCase();
@@ -587,9 +573,9 @@
             });
 
             if (term.length > 0) {
-                // Auto expand if matches found
                 const body = group.querySelector('.group-body');
                 const header = group.querySelector('.group-header');
+                
                 if (hasVisibleItem) {
                     group.style.display = 'block';
                     body.classList.add('open');
@@ -598,7 +584,7 @@
                     group.style.display = 'none';
                 }
             } else {
-                // Reset to default state
+                // Reset View
                 group.style.display = 'block';
                 const body = group.querySelector('.group-body');
                 const header = group.querySelector('.group-header');
@@ -628,7 +614,7 @@
         }
     }
 
-    // Start Everything
+    // Start
     document.addEventListener('DOMContentLoaded', initPlayer);
 
 </script>
