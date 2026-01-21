@@ -54,25 +54,42 @@
     .group-header.active { background: #eff6ff; border-bottom: 1px solid #dbeafe; }
     .group-title { font-size: 0.8rem; font-weight: 800; color: var(--primary); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
     .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #ffffff; }
-    .group-body.open { max-height: 4000px; }
+    .group-body.open { max-height: 5000px; }
 
     /* --- LIST ITEM --- */
     .cam-item {
-        padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+        padding: 14px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
         display: flex; align-items: center; gap: 12px; transition: all 0.2s;
     }
     .cam-item:hover { background-color: #f8fafc; padding-left: 20px; }
     .cam-item.active { background-color: #eff6ff; border-left: 4px solid #2563eb; }
     .cam-item.active .cam-name { color: #1e40af; font-weight: 700; }
+    
+    /* Agar teks di HP turun ke bawah (tidak kepotong) */
+    .cam-name { 
+        font-size: 0.85rem; font-weight: 500; color: #475569;
+        white-space: normal; line-height: 1.3;
+    }
 
     /* --- LOADING ANIMATION --- */
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
     @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-    /* --- RESPONSIVE TYPOGRAPHY --- */
-    @media (max-width: 640px) {
+    /* --- RESPONSIVE LAYOUT FIX --- */
+    /* Desktop: Side-by-side, Fixed Height List */
+    @media (min-width: 1024px) {
+        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2rem; align-items: start; }
+        .col-player { grid-column: span 9; position: sticky; top: 90px; }
+        .col-list { grid-column: span 3; height: calc(100vh - 120px); overflow: hidden; display: flex; flex-direction: column; }
+        .list-scroll-area { flex: 1; overflow-y: auto; }
+    }
+    /* Mobile: Stacked, Natural Height */
+    @media (max-width: 1023px) {
+        .layout-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+        .col-player { width: 100%; }
+        .col-list { width: 100%; height: auto; } /* Biarkan memanjang ke bawah di HP */
+        .list-scroll-area { height: auto; max-height: 600px; overflow-y: auto; } /* Limit tinggi di HP */
         .navbar-brand h1 { font-size: 1.1rem; }
-        .navbar-brand p { font-size: 0.65rem; white-space: normal; line-height: 1.2; }
         .player-info-title { font-size: 0.85rem; }
     }
 </style>
@@ -89,7 +106,7 @@
                 <div class="flex-1 min-w-0">
                     <h1 class="text-slate-900 font-extrabold text-lg tracking-tight leading-none">KTVDI <span class="text-blue-700">SMART CITY</span></h1>
                     <p class="text-[11px] text-slate-500 font-medium mt-1 leading-snug">
-                        Portal LIVE CCTV terkini untuk memantau arus lalu lintas.
+                        Portal LIVE CCTV terkini yang dapat memudahkan sobat KTVDI dalam memantau arus lalu lintas.
                     </p>
                 </div>
             </div>
@@ -100,14 +117,14 @@
                 </div>
                 <input type="text" id="search-input" onkeyup="handleSearch()" 
                     class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2.5 pl-11 pr-5 focus:outline-none focus:border-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-slate-400 shadow-inner"
-                    placeholder="Cari lokasi kamera...">
+                    placeholder="Pencarian lokasi kamera...">
             </div>
         </div>
     </nav>
 
-    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 layout-grid">
 
-        <main class="lg:col-span-9 flex flex-col gap-0 order-1 sticky top-24 z-30 lg:static">
+        <main class="col-player">
             
             <div class="player-card">
                 <div class="bg-gradient-to-r from-blue-900 to-blue-800 text-white px-5 py-3 flex justify-between items-center border-b border-white/10">
@@ -123,6 +140,9 @@
                             <span class="text-[9px] text-blue-200 uppercase font-bold tracking-wider hidden sm:block">Lokasi Terpantau</span>
                             <h2 id="active-cam-name" class="player-info-title text-sm md:text-base font-bold text-white truncate">Pilih Kamera</h2>
                         </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20">
+                         <i class="fa-solid fa-shield-halved text-emerald-400"></i> Sistem Enkripsi
                     </div>
                 </div>
 
@@ -156,16 +176,16 @@
 
                 <div class="bg-slate-900 px-4 py-3 flex items-center justify-between border-t border-slate-800">
                     <div class="flex items-center gap-3">
-                         <div class="flex items-center gap-2 text-slate-400 text-xs">
-                             <i class="fa-solid fa-circle text-[8px] text-green-500"></i>
-                             <span>Connection Stable</span>
+                         <div class="flex items-center gap-2 text-slate-400 text-xs font-medium">
+                             <i id="conn-icon" class="fa-solid fa-circle text-[8px] text-emerald-500"></i>
+                             <span id="conn-text">Koneksi Stabil</span>
                          </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="retryStream()" class="text-slate-300 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Reload Stream">
+                        <button onclick="retryStream()" class="text-slate-300 hover:text-white px-3 py-2 rounded hover:bg-slate-800 transition relative z-50" title="Reload Stream">
                             <i class="fa-solid fa-rotate-right"></i>
                         </button>
-                        <button onclick="toggleFullscreen()" class="text-slate-300 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Fullscreen">
+                        <button onclick="toggleFullscreen()" class="text-slate-300 hover:text-white px-3 py-2 rounded hover:bg-slate-800 transition relative z-50" title="Fullscreen">
                             <i class="fa-solid fa-expand"></i>
                         </button>
                     </div>
@@ -173,19 +193,21 @@
             </div>
 
             <div class="mt-4 bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col gap-3">
-                <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 w-fit">
-                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                        <i class="fa-regular fa-clock"></i>
-                    </div>
-                    <div>
-                        <div id="digital-clock" class="text-slate-900 font-bold text-sm leading-none">00:00:00</div>
-                        <div id="date-display" class="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">...</div>
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100 w-fit">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+                            <i class="fa-regular fa-clock"></i>
+                        </div>
+                        <div>
+                            <div id="digital-clock" class="text-slate-900 font-bold text-sm leading-none">00:00:00</div>
+                            <div id="date-display" class="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">...</div>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-9 flex items-center overflow-hidden">
                     <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10">
-                        <i class="fa-solid fa-circle-info text-white text-xs"></i>
+                        <i class="fa-solid fa-bullhorn text-white text-xs"></i>
                     </div>
                     <div class="marquee-container w-full bg-white">
                         <div class="marquee-content">
@@ -196,7 +218,7 @@
             </div>
         </main>
 
-        <aside class="lg:col-span-3 flex flex-col h-[60vh] lg:h-[calc(100vh-140px)] bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden order-2 mt-0 relative">
+        <aside class="col-list bg-white rounded-xl border border-slate-200 shadow-lg">
             <div class="p-4 border-b border-slate-100 bg-white sticky top-0 z-20 flex justify-between items-center">
                 <div>
                     <h3 class="font-extrabold text-slate-800 text-sm">Daftar Lokasi</h3>
@@ -205,10 +227,10 @@
                 <span class="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold border border-blue-100" id="total-cams">Loading...</span>
             </div>
 
-            <div id="camera-list-container" class="flex-1 overflow-y-auto premium-scroll p-2 bg-slate-50">
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 bg-slate-50">
                 </div>
             
-            <div class="p-2 bg-white border-t border-slate-200 text-center">
+            <div class="p-3 bg-white border-t border-slate-200 text-center">
                 <p class="text-[10px] text-slate-400 font-medium">© 2026 KTVDI Network</p>
             </div>
         </aside>
@@ -394,7 +416,7 @@
     ];
 
     // ==========================================
-    // 2. PLAYER LOGIC & UI FUNCTIONS
+    // 2. PLAYER LOGIC & NETWORK MONITOR
     // ==========================================
     let hls;
     let activeStreamIndex = 0;
@@ -405,17 +427,31 @@
     const playOverlay = document.getElementById('overlay-play');
 
     function initPlayer() {
-        // Grouping Data
         renderAccordionList();
+        if (streamSource.length > 0) loadStream(0);
         
-        // Initial Load (Default Camera)
-        if (streamSource.length > 0) {
-            loadStream(0);
-        }
-
-        // Clock Update
         setInterval(updateClock, 1000);
         updateClock();
+        
+        // Network Monitor
+        window.addEventListener('online', updateConnection);
+        window.addEventListener('offline', updateConnection);
+        updateConnection();
+    }
+
+    function updateConnection() {
+        const connText = document.getElementById('conn-text');
+        const connIcon = document.getElementById('conn-icon');
+        
+        if (navigator.onLine) {
+            connText.innerText = "Koneksi Stabil";
+            connText.className = "text-xs font-bold text-emerald-500";
+            connIcon.className = "fa-solid fa-circle text-[8px] text-emerald-500 animate-pulse";
+        } else {
+            connText.innerText = "Koneksi Terputus";
+            connText.className = "text-xs font-bold text-red-500";
+            connIcon.className = "fa-solid fa-circle-exclamation text-[8px] text-red-500";
+        }
     }
 
     function loadStream(index) {
@@ -423,13 +459,11 @@
         activeStreamIndex = index;
         const stream = streamSource[index];
 
-        // UI Updates
         statusText.innerText = `${stream.city} - ${stream.name}`;
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
 
-        // Highlight Active Item in List
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
         if(activeItem) {
@@ -437,52 +471,24 @@
             activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // HLS Logic
         if (Hls.isSupported()) {
             if (hls) hls.destroy();
-            hls = new Hls({
-                enableWorker: true,
-                lowLatencyMode: true,
-                backBufferLength: 60,
-                manifestLoadingTimeOut: 15000,
-                levelLoadingTimeOut: 15000
-            });
-            
+            hls = new Hls({ enableWorker: true, lowLatencyMode: true });
             hls.loadSource(stream.url);
             hls.attachMedia(video);
-            
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(() => {
-                        // Jika autoplay diblokir browser, munculkan tombol play manual
-                        loadingOverlay.classList.add('hidden');
-                        playOverlay.classList.remove('hidden');
-                    });
-                }
+                video.play().catch(() => {
+                    loadingOverlay.classList.add('hidden');
+                    playOverlay.classList.remove('hidden');
+                });
             });
-
             hls.on(Hls.Events.ERROR, (event, data) => {
                 if (data.fatal) {
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.log("Network error, recovering...");
-                            hls.startLoad();
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.log("Media error, recovering...");
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            hls.destroy();
-                            showErrorState();
-                            break;
-                    }
+                    hls.destroy();
+                    showErrorState();
                 }
             });
-
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Safari / iOS Support
             video.src = stream.url;
             video.addEventListener('loadedmetadata', () => {
                 video.play().catch(() => playOverlay.classList.remove('hidden'));
@@ -497,8 +503,7 @@
     });
 
     video.addEventListener('waiting', () => {
-        // Tampilkan loading jika buffering
-        loadingOverlay.classList.remove('hidden');
+        if (!video.paused) loadingOverlay.classList.remove('hidden');
     });
 
     function showErrorState() {
@@ -516,48 +521,54 @@
     }
 
     // ==========================================
-    // 3. UI RENDERER (ACCORDION GROUPING)
+    // 3. UI RENDERER (ACCORDION)
     // ==========================================
     function renderAccordionList() {
         const container = document.getElementById('camera-list-container');
         container.innerHTML = '';
         
-        // Grouping Data by City
         const groups = {};
         streamSource.forEach((s, i) => {
             if (!groups[s.city]) groups[s.city] = [];
             groups[s.city].push({ ...s, originalIndex: i });
         });
 
-        // Render HTML Structure
-        for (const [city, items] of Object.entries(groups)) {
+        // Sort: Semarang First
+        const orderedGroups = Object.keys(groups).sort((a,b) => {
+            if(a.includes("SEMARANG")) return -1;
+            if(b.includes("SEMARANG")) return 1;
+            return 0;
+        });
+
+        for (const groupName of orderedGroups) {
+            const items = groups[groupName];
             const groupDiv = document.createElement('div');
-            groupDiv.className = 'camera-group';
+            groupDiv.className = 'accordion-group';
             
-            // Header Group
             const header = document.createElement('div');
             header.className = 'group-header';
             header.onclick = () => toggleGroup(header);
             header.innerHTML = `
                 <div class="group-title">
-                    <i class="fa-solid fa-map-location-dot text-blue-700"></i> ${city}
+                    <div class="group-icon-bg">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    ${groupName}
                 </div>
                 <i class="fa-solid fa-chevron-down group-icon"></i>
             `;
 
-            // Body Group (Hidden by default)
             const body = document.createElement('div');
             body.className = 'group-body';
             
-            // List Items
             items.forEach(item => {
                 const row = document.createElement('div');
                 row.className = 'cam-item';
                 row.id = `cam-${item.originalIndex}`;
                 row.onclick = () => loadStream(item.originalIndex);
                 row.innerHTML = `
-                    <i class="fa-solid fa-video text-slate-400 text-xs"></i>
-                    <span class="cam-name flex-1 text-xs md:text-sm font-medium leading-snug">${item.name}</span>
+                    <i class="fa-solid fa-circle-play text-slate-300 text-lg play-icon transition-transform"></i>
+                    <span class="cam-name flex-1">${item.name}</span>
                 `;
                 body.appendChild(row);
             });
@@ -566,44 +577,36 @@
             groupDiv.appendChild(body);
             container.appendChild(groupDiv);
         }
-
         document.getElementById('total-cams').innerText = `${streamSource.length} CAM`;
     }
 
     function toggleGroup(header) {
         header.classList.toggle('active');
-        const body = header.nextElementSibling;
-        body.classList.toggle('open');
+        header.nextElementSibling.classList.toggle('open');
     }
 
     // ==========================================
-    // 4. SMART SEARCH (EXPAND ON MATCH)
+    // 4. SMART SEARCH
     // ==========================================
     function handleSearch() {
         const term = document.getElementById('search-input').value.toLowerCase();
-        const groups = document.querySelectorAll('.camera-group');
-        let foundCount = 0;
-
+        const groups = document.querySelectorAll('.accordion-group');
+        
         groups.forEach(group => {
             const items = group.querySelectorAll('.cam-item');
             let hasMatch = false;
-
             items.forEach(item => {
-                const text = item.innerText.toLowerCase();
-                if (text.includes(term)) {
+                if (item.innerText.toLowerCase().includes(term)) {
                     item.style.display = 'flex';
                     hasMatch = true;
-                    foundCount++;
                 } else {
                     item.style.display = 'none';
                 }
             });
-
+            
             if (term.length > 0) {
-                // Auto expand if matches found
                 const body = group.querySelector('.group-body');
                 const header = group.querySelector('.group-header');
-                
                 if (hasMatch) {
                     group.style.display = 'block';
                     body.classList.add('open');
@@ -612,19 +615,16 @@
                     group.style.display = 'none';
                 }
             } else {
-                // Reset View
                 group.style.display = 'block';
-                const body = group.querySelector('.group-body');
-                const header = group.querySelector('.group-header');
-                body.classList.remove('open');
-                header.classList.remove('active');
+                group.querySelector('.group-body').classList.remove('open');
+                group.querySelector('.group-header').classList.remove('active');
                 items.forEach(i => i.style.display = 'flex');
             }
         });
     }
 
     // ==========================================
-    // 5. UTILITIES
+    // 5. UTILITIES (CLOCK & FULLSCREEN)
     // ==========================================
     function updateClock() {
         const now = new Date();
@@ -633,17 +633,27 @@
     }
 
     function toggleFullscreen() {
-        const elem = document.querySelector('.player-wrapper');
-        if (!document.fullscreenElement) {
-            if (elem.requestFullscreen) elem.requestFullscreen();
-            else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+        const wrapper = document.querySelector('.player-wrapper');
+        const video = document.getElementById('video-element');
+        
+        // Prioritize wrapper fullscreen (better UI), fallback to video (iOS)
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (wrapper.requestFullscreen) {
+                wrapper.requestFullscreen();
+            } else if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen(); // iOS Safari specific
+            } else if (wrapper.webkitRequestFullscreen) {
+                wrapper.webkitRequestFullscreen();
+            }
         } else {
-            if (document.exitFullscreen) document.exitFullscreen();
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
         }
     }
 
-    // Initialize
     document.addEventListener('DOMContentLoaded', initPlayer);
-
 </script>
 {% endblock %}
