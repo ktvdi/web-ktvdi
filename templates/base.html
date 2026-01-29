@@ -26,7 +26,18 @@
     <style>
         /* === iOS 26.3 ULTRA GLASS DESIGN SYSTEM === */
         
-        /* 1. Header Desktop Glass */
+        /* 1. Page Loader */
+        #initial-loader {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(242, 242, 247, 0.85); /* iOS System Gray 6 */
+            backdrop-filter: blur(50px) saturate(180%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+        .loader-logo { width: 80px; height: 80px; filter: drop-shadow(0 10px 20px rgba(30, 58, 138, 0.3)); animation: breath 2s infinite ease-in-out; }
+        @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+        /* 2. Header Desktop Glass */
         .glass-header { 
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(50px) saturate(180%);
@@ -35,24 +46,24 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
         }
 
-        /* 2. Mobile Floating Dock (Menu Bawah) - GLASSY PERFECTION */
+        /* 3. Mobile Floating Dock (Menu Bawah) - GRID LAYOUT */
         .ios-dock {
-            background: rgba(255, 255, 255, 0.85); /* Slightly transparent */
-            backdrop-filter: blur(60px) saturate(220%); /* Deep Blur iOS Style */
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(60px) saturate(220%);
             -webkit-backdrop-filter: blur(60px) saturate(220%);
-            border: 1px solid rgba(255, 255, 255, 0.5); /* Frosty Border */
-            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
             border-radius: 36px;
             margin: 0;
             width: 100%;
-            height: 72px;
-            display: flex;
-            justify-content: space-evenly;
-            align-items: center;
-            padding-bottom: 2px;
+            height: 80px; /* Tinggi dock */
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 Kolom Rata */
+            align-items: end; /* Item rata bawah */
+            padding-bottom: 10px; 
+            position: relative;
         }
         
-        /* Container untuk Dock agar Floating Sempurna */
         .ios-dock-container {
             position: fixed;
             bottom: 24px;
@@ -63,7 +74,44 @@
             z-index: 60;
         }
 
-        /* 3. Floating Ticker (Di ATAS Dock) - SAFETY GAP */
+        /* 4. Nav Items (Mobile) */
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            color: #86868b; transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            height: 100%; padding-bottom: 2px;
+        }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 4px; transition: transform 0.2s; }
+        .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; line-height: 1; }
+        .nav-item.active { color: #007aff; } 
+        .nav-item:active i { transform: scale(0.85); } 
+
+        /* 5. CCTV Center Button (Perfect Alignment) */
+        .dock-center-wrapper {
+            position: relative;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            height: 100%;
+        }
+        .dock-center-btn {
+            width: 56px; height: 56px;
+            background: linear-gradient(135deg, #007aff, #0056b3);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.4);
+            border: 4px solid #f2f2f7; 
+            position: absolute;
+            top: -24px; /* Pop out effect */
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 70;
+        }
+        .dock-center-btn:active { top: -20px; transform: scale(0.95); box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3); }
+        .dock-center-label { 
+            font-size: 10px; font-weight: 700; color: #86868b; 
+            margin-bottom: 2px; /* Sejajar dengan label lain */
+        }
+        .dock-center-wrapper:hover .dock-center-label { color: #007aff; }
+
+        /* 6. Floating Ticker (Di ATAS Dock) */
         .glass-ticker-floating {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(40px);
@@ -78,41 +126,11 @@
             align-items: center;
             overflow: hidden;
             position: fixed;
-            /* JARAK AMAN AGAR TIDAK DITABRAK CCTV BUTTON */
-            bottom: 115px; 
+            bottom: 115px; /* Jarak aman dari Dock */
             left: 50%;
             transform: translateX(-50%);
             z-index: 50; 
         }
-
-        /* Nav Item Mobile */
-        .nav-item {
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            color: #86868b; transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-            width: 60px; height: 100%; position: relative; padding-bottom: 8px;
-        }
-        .nav-item i { font-size: 1.5rem; margin-bottom: 4px; transition: transform 0.2s; }
-        .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; }
-        .nav-item.active { color: #007aff; } 
-        .nav-item:active i { transform: scale(0.85); } 
-
-        /* CCTV Center Button - POSISI DIPERBAIKI (TIDAK NABRAK) */
-        .dock-center-btn {
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, #007aff, #0056b3);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white;
-            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.4);
-            border: 4px solid #f2f2f7; 
-            /* Dikurangi tingginya agar pas tidak nabrak ticker */
-            transform: translateY(-20px); 
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative; z-index: 70;
-        }
-        .dock-center-btn:active { transform: translateY(-16px) scale(0.95); box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3); }
-        .dock-center-label { position: absolute; bottom: -12px; font-size: 10px; font-weight: 700; color: #86868b; }
-        .dock-center-btn:hover ~ .dock-center-label { color: #007aff; }
 
         /* Desktop Menu Links */
         .desktop-link { 
@@ -162,15 +180,23 @@
             .ios-dock-container { display: none; }
         }
 
-        /* Animations */
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(10px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+        /* Dropdown Fix */
+        .dropdown-menu {
+            transform-origin: top right;
+            animation: scaleIn 0.2s ease-out;
         }
-        .animate-dropdown { animation: fadeUp 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900">
+
+    <div id="initial-loader">
+        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="loader-logo" alt="Loading...">
+        <p class="mt-4 text-xs font-bold text-slate-400 tracking-widest animate-pulse">MEMUAT KTVDI...</p>
+    </div>
 
     <nav class="fixed top-0 w-full z-50 glass-header transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -197,11 +223,11 @@
 
                 <div class="flex items-center gap-3">
                     
-                    <div class="relative group">
-                        <button onclick="document.getElementById('info-dropdown').classList.toggle('hidden')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition flex items-center justify-center border border-slate-200">
+                    <div class="relative group z-50">
+                        <button onclick="toggleDropdown('info-dropdown')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition flex items-center justify-center border border-slate-200">
                             <i class="fa-solid fa-bars text-sm"></i>
                         </button>
-                        <div id="info-dropdown" class="hidden absolute right-0 mt-4 w-64 max-w-[90vw] bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 border border-slate-200/50 z-50 origin-top-right ring-1 ring-black/5 animate-dropdown">
+                        <div id="info-dropdown" class="hidden absolute right-0 mt-3 w-64 max-w-[85vw] bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 border border-slate-200/50 dropdown-menu">
                             <div class="px-4 py-2 border-b border-slate-100">
                                 <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Menu Tambahan</span>
                             </div>
@@ -226,12 +252,12 @@
                     </div>
 
                     {% if session.get('user') %}
-                        <div class="relative group">
-                            <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 transition border border-slate-200">
+                        <div class="relative group z-50">
+                            <button onclick="toggleDropdown('profile-dropdown')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 transition border border-slate-200">
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=007aff&color=fff&bold=true" class="h-8 w-8 rounded-full shadow-sm">
                                 <span class="text-xs font-bold text-slate-700 hidden md:block">{{ session.get('nama').split()[0] }}</span>
                             </button>
-                            <div id="profile-dropdown" class="hidden absolute right-0 mt-4 w-60 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 border border-slate-200/50 z-50 ring-1 ring-black/5 animate-dropdown origin-top-right">
+                            <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-60 bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl py-2 border border-slate-200/50 dropdown-menu">
                                 <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50/50">
                                     <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Akun Anda</p>
                                     <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
@@ -244,10 +270,10 @@
                     {% else %}
                         <div class="flex items-center gap-2">
                             <a href="{{ url_for('login') }}" class="hidden md:block text-xs font-bold text-slate-500 hover:text-blue-600 transition px-2">Masuk</a>
-                            <a href="{{ url_for('login') }}" class="md:hidden w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition border border-slate-200">
-                                <i class="fa-solid fa-right-to-bracket text-sm"></i>
-                            </a>
                             <a href="{{ url_for('register') }}" class="px-5 py-2.5 bg-[#007aff] text-white text-xs font-bold rounded-full hover:bg-blue-600 transition shadow-lg shadow-blue-500/30 active:scale-95">Daftar</a>
+                             <a href="{{ url_for('login') }}" class="md:hidden w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-[#007aff] border border-slate-200">
+                                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                            </a>
                         </div>
                     {% endif %}
                 </div>
@@ -327,7 +353,7 @@
                 <span>Religi</span>
             </a>
             
-            <div class="relative flex flex-col items-center justify-center -mt-6">
+            <div class="dock-center-wrapper">
                 <a href="{{ url_for('cctv_page') }}" class="dock-center-btn">
                     <i class="fa-solid fa-video text-xl"></i>
                 </a>
@@ -359,7 +385,7 @@
 
     <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto">
         <div class="bg-[#ff3b30] h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4">
-            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> BERITA TERKINI
+            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE TERKINI
         </div>
         <div class="ticker-wrap relative flex-1">
             <div id="unified-ticker-desktop" class="ticker-move"></div>
@@ -410,6 +436,26 @@
     </div>
 
     <script>
+        // Init Loader
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('initial-loader');
+            if(loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.visibility = 'hidden', 500);
+            }
+        });
+
+        // Dropdown Toggle (Fix)
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            // Close others
+            document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
+                if(d.id !== id) d.classList.add('hidden');
+            });
+            el.classList.toggle('hidden');
+        }
+
+        // Chat Toggle
         function toggleChat() { 
             const win = document.getElementById('chat-window');
             win.classList.toggle('hidden');
@@ -463,7 +509,6 @@
                 const data = await res.json(); 
                 if (data && data.length > 0) {
                     const items = data.map(n => `<div class="ticker-item"><i class="fa-solid fa-rss text-[8px] text-red-500 mr-2"></i> ${n}</div>`).join('');
-                    // Update Mobile & Desktop Ticker
                     if(document.getElementById('unified-ticker-mobile')) document.getElementById('unified-ticker-mobile').innerHTML = items + items + items;
                     if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = items + items + items;
                 } else {
@@ -481,6 +526,13 @@
             if(document.getElementById('clock-mobile')) document.getElementById('clock-mobile').innerText = timeString;
             if(document.getElementById('clock-desktop')) document.getElementById('clock-desktop').innerText = timeString;
         }, 1000);
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(e){   
+            if (!e.target.closest('.relative.group')){
+                document.querySelectorAll('[id$="-dropdown"]').forEach(d => d.classList.add('hidden'));
+            }
+        });
     </script>
 </body>
 </html>
