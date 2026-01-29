@@ -26,16 +26,45 @@
     <style>
         /* === iOS 26.3 ULTRA GLASS DESIGN SYSTEM === */
         
-        /* 1. Page Loader */
+        /* 1. Page Loader - DEEP BLUE GLOSSY */
         #initial-loader {
             position: fixed; inset: 0; z-index: 9999;
-            background: rgba(242, 242, 247, 0.85); /* iOS System Gray 6 */
-            backdrop-filter: blur(50px) saturate(180%);
+            /* Latar Biru Tua Gradient */
+            background: radial-gradient(circle at center, #1e3a8a 0%, #020617 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 0.5s ease, visibility 0.5s ease;
+            overflow: hidden;
         }
-        .loader-logo { width: 80px; height: 80px; filter: drop-shadow(0 10px 20px rgba(30, 58, 138, 0.3)); animation: breath 2s infinite ease-in-out; }
-        @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        
+        /* Efek Kilau/Glossy Background Loader */
+        #initial-loader::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            animation: shine 4s infinite linear; pointer-events: none;
+        }
+        @keyframes shine { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .loader-content {
+            position: relative; z-index: 10;
+            display: flex; flex-direction: column; align-items: center;
+            background: rgba(255, 255, 255, 0.1); /* Glass Container */
+            backdrop-filter: blur(20px);
+            padding: 2.5rem; border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .loader-logo { 
+            width: 80px; height: 80px; 
+            filter: brightness(0) invert(1) drop-shadow(0 0 20px rgba(56, 189, 248, 0.5));
+            animation: breath 2s infinite ease-in-out; 
+        }
+        .loader-text {
+            margin-top: 1.5rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.25em;
+            color: rgba(255, 255, 255, 0.9); text-transform: uppercase;
+        }
+        @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
 
         /* 2. Header Desktop Glass */
         .glass-header { 
@@ -46,7 +75,7 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
         }
 
-        /* 3. Mobile Floating Dock (Menu Bawah) - GRID LAYOUT */
+        /* 3. Mobile Floating Dock (Menu Bawah) */
         .ios-dock {
             background: rgba(255, 255, 255, 0.90);
             backdrop-filter: blur(60px) saturate(220%);
@@ -56,11 +85,11 @@
             border-radius: 36px;
             margin: 0;
             width: 100%;
-            height: 72px; /* Tinggi dock standar */
+            height: 76px;
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 5 Kolom Rata */
+            grid-template-columns: repeat(5, 1fr);
             align-items: center;
-            padding: 0 4px;
+            padding: 0 8px;
             position: relative;
         }
         
@@ -74,36 +103,58 @@
             z-index: 60;
         }
 
-        /* 4. Nav Items (Mobile) - SEMUA SEJAJAR */
+        /* 4. Nav Items (Mobile) - EFEK AIR/RIPPLE */
         .nav-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #86868b; transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            color: #86868b; 
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             height: 100%; width: 100%;
-            border-radius: 20px; /* Untuk efek hover/active */
+            border-radius: 20px;
             position: relative;
-            overflow: hidden; /* Untuk efek ripple */
+            overflow: hidden;
         }
-        
         .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
         .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; line-height: 1; z-index: 2; }
 
-        /* Active State (Glassy/Water Effect) */
-        .nav-item.active { 
-            color: #007aff; 
-            background: rgba(0, 122, 255, 0.1); /* Efek air tipis */
-        } 
-        .nav-item.active i { transform: scale(1.1); filter: drop-shadow(0 4px 6px rgba(0, 122, 255, 0.2)); } 
-        
-        /* Haptic Touch Effect */
-        .nav-item:active { transform: scale(0.92); background: rgba(0, 0, 0, 0.05); }
-
-        /* CCTV Button (Spesifik tapi Rata) */
-        .cctv-btn {
-            /* Styling khusus jika perlu, tapi base-nya sama dengan nav-item */
+        /* Active State & Touch Effect (Water/Glassy) */
+        .nav-item.active { color: #007aff; } 
+        .nav-item:active::after {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle, rgba(0, 122, 255, 0.2) 0%, transparent 70%);
+            animation: ripple 0.4s ease-out;
         }
-        .cctv-btn.active i { color: #ff3b30; filter: drop-shadow(0 4px 6px rgba(255, 59, 48, 0.2)); } /* CCTV Merah saat aktif */
-        .cctv-btn.active { color: #ff3b30; background: rgba(255, 59, 48, 0.1); }
+        @keyframes ripple { from { opacity: 1; transform: scale(0.5); } to { opacity: 0; transform: scale(2); } }
+        
+        .nav-item:active i { transform: scale(0.9); } 
 
+        /* 5. CCTV Button (Lingkaran Bulat di Tengah Grid) */
+        .cctv-wrapper {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; width: 100%;
+        }
+        /* Lingkaran Biru */
+        .cctv-circle {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #007aff, #0056b3);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 122, 255, 0.3);
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 2px;
+        }
+        .cctv-wrapper:active .cctv-circle {
+            transform: scale(0.9);
+            box-shadow: 0 0 20px rgba(0, 122, 255, 0.6); /* Glow saat klik */
+        }
+        .cctv-wrapper.active .cctv-circle {
+            background: linear-gradient(135deg, #ff3b30, #d70015); /* Merah saat aktif */
+            box-shadow: 0 4px 15px rgba(255, 59, 48, 0.4);
+        }
+        .cctv-label { font-size: 10px; font-weight: 700; color: #86868b; }
+        .cctv-wrapper:hover .cctv-label, .cctv-wrapper.active .cctv-label { color: #007aff; }
+        .cctv-wrapper.active .cctv-label { color: #ff3b30; }
 
         /* 6. Floating Ticker (Di ATAS Dock) */
         .glass-ticker-floating {
@@ -120,7 +171,7 @@
             align-items: center;
             overflow: hidden;
             position: fixed;
-            bottom: 108px; /* Jarak aman dari Dock */
+            bottom: 115px; /* Jarak aman dari Dock */
             left: 50%;
             transform: translateX(-50%);
             z-index: 50; 
@@ -207,7 +258,7 @@
     <div id="initial-loader">
         <div class="loader-content">
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="loader-logo" alt="Loading...">
-            <p class="mt-4 text-xs font-bold text-slate-400 tracking-widest animate-pulse">MEMUAT KTVDI...</p>
+            <p class="loader-text">MEMUAT KTVDI...</p>
         </div>
     </div>
 
@@ -366,9 +417,11 @@
                 <span>Religi</span>
             </a>
             
-            <a href="{{ url_for('cctv_page') }}" class="nav-item cctv-btn {% if request.endpoint == 'cctv_page' %}active{% endif %}">
-                <i class="fa-solid fa-video"></i>
-                <span>CCTV</span>
+            <a href="{{ url_for('cctv_page') }}" class="nav-item cctv-wrapper {% if request.endpoint == 'cctv_page' %}active{% endif %}">
+                <div class="cctv-circle">
+                    <i class="fa-solid fa-video text-lg"></i>
+                </div>
+                <span class="cctv-label">CCTV</span>
             </a>
 
             <a href="{{ url_for('daftar_siaran') }}" class="nav-item {% if request.endpoint == 'daftar_siaran' %}active{% endif %}">
@@ -451,8 +504,10 @@
         window.addEventListener('load', () => {
             const loader = document.getElementById('initial-loader');
             if(loader) {
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.visibility = 'hidden', 500);
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.visibility = 'hidden', 500);
+                }, 1500); // Tahan 1.5 detik agar terlihat
             }
         });
 
