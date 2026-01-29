@@ -17,55 +17,25 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta
 import urllib3
 
-# ==========================================
-# 1. KONFIGURASI SYSTEM & SECURITY
-# ==========================================
-# Matikan warning SSL (agar request ke server pemerintah lancar)
+# 1. KONFIGURASI SYSTEM
+# ----------------------------------------
+# Matikan warning SSL agar request ke server pemerintah lancar
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# Konfigurasi Session
+# Konfigurasi Session & Security
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
-# ==========================================
-# 2. SISTEM AUTO-MAINTENANCE (PENJAGA PINTU)
-# ==========================================
-# Website otomatis PULIH pada tanggal ini:
-MAINTENANCE_END_DATE = datetime(2026, 1, 30, 7, 0, 0) # Tahun, Bulan, Tgl, Jam, Menit, Detik
-
-@app.before_request
-def maintenance_interceptor():
-    """
-    Mengecek waktu server sebelum memproses request user.
-    Jika masih dalam periode maintenance, alihkan ke halaman maintenance.html
-    """
-    # 1. Izinkan file statis (CSS/JS/Gambar) lewat agar tampilan tidak rusak
-    if request.endpoint == 'static':
-        return None
-    
-    # 2. Hitung Waktu WIB (UTC+7)
-    now_wib = datetime.utcnow() + timedelta(hours=7) 
-
-    # 3. Cek Status Maintenance
-    if now_wib < MAINTENANCE_END_DATE:
-        # Jika user mengakses halaman selain maintenance, paksa render maintenance.html
-        return render_template('maintenance.html'), 503
-    
-    # Jika waktu sudah lewat, website berjalan normal
-    return None
-
-# ==========================================
-# 3. KONEKSI DATABASE (FIREBASE)
-# ==========================================
+# 2. KONEKSI DATABASE (FIREBASE)
+# ----------------------------------------
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Konfigurasi Cloud (Vercel / Production)
+        # Mode Cloud (Vercel / Production)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -80,7 +50,7 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        # Konfigurasi Lokal (Development)
+        # Mode Lokal (Development)
         if os.path.exists("credentials.json"):
             cred = credentials.Certificate("credentials.json")
         else:
@@ -100,9 +70,8 @@ except Exception as e:
     ref = None
     print(f"⚠️ STATUS: Mode Offline (DB Error: {e})")
 
-# ==========================================
-# 4. KONFIGURASI EMAIL (SMTP GMAIL)
-# ==========================================
+# 3. KONFIGURASI EMAIL (SMTP GMAIL)
+# ----------------------------------------
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -111,29 +80,23 @@ app.config['MAIL_PASSWORD'] = os.environ.get("MAIL_PASSWORD")
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
-# ==========================================
-# 5. KONFIGURASI AI (GEMINI) - UPDATED
-# ==========================================
+# 4. KONFIGURASI AI (GEMINI)
+# ----------------------------------------
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash") # Model Flash lebih cepat
+    model = genai.GenerativeModel("gemini-1.5-flash") # Model cepat & stabil
 except: model = None
 
-# Prompt Persona AI
 MODI_PROMPT = """
 Anda adalah MODI, Asisten Virtual Resmi dari KTVDI (Komunitas TV Digital Indonesia).
 Karakter: Profesional, Ramah, Solutif, dan Menggunakan Bahasa Indonesia Baku namun hangat.
-Tugas: 
-1. Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah Siaran.
-2. Memberikan informasi cuaca atau bencana jika diminta (berdasarkan konteks data yang diberikan).
-3. Menjaga percakapan tetap positif dan bermanfaat.
-
-PENTING: Jika data EWS menunjukkan ada bendungan status 'Siaga' atau 'Awas', peringatkan user dengan tegas namun tidak panik.
+Tugas: Menjawab pertanyaan seputar TV Digital, STB, Antena, dan Solusi Masalah Siaran.
+Jika ditanya soal bendungan, gunakan data EWS yang diberikan.
 """
 
 # ==========================================
-# 6. FUNGSI BANTUAN (HELPERS)
+# 5. FUNGSI BANTUAN (HELPERS UTILS)
 # ==========================================
 
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
@@ -171,7 +134,7 @@ def get_news_entries():
                             elif 'cnbc' in url: entry['source_name'] = 'CNBC Indonesia'
                             else: entry['source_name'] = 'Google News'
                             
-                            # Ekstraksi Gambar Pintar
+                            # Ekstraksi Gambar (Regex)
                             img_url = None
                             if 'media_content' in entry and entry.media_content:
                                 img_url = entry.media_content[0]['url']
@@ -207,18 +170,23 @@ def time_since_published(published_time):
 
 def get_quote_religi():
     return {
-        "muslim": ["Maka dirikanlah shalat... (QS. An-Nisa: 103)", "Jauhi korupsi sekecil apapun...", "Sebaik-baik manusia adalah yang bermanfaat bagi orang lain."],
-        "universal": ["Integritas adalah melakukan hal yang benar...", "Damai di dunia dimulai dari damai di hati...", "Kejujuran adalah mata uang yang berlaku di mana-mana."]
+        "muslim": ["Maka dirikanlah shalat... (QS. An-Nisa: 103)", "Jauhi korupsi sekecil apapun..."],
+        "universal": ["Integritas adalah melakukan hal yang benar...", "Damai di dunia dimulai dari damai di hati..."]
     }
 
 def get_smart_fallback_response(text):
-    return "<b>Mohon Maaf Ndan.</b> Server AI sedang sibuk memproses data. Silakan coba tanyakan lagi dalam beberapa detik. 🙏"
+    return "<b>Siap Ndan!</b> Sistem AI sedang sibuk. Mohon ulangi pertanyaan atau cek menu yang tersedia. 👮‍♂️"
 
 # ==========================================
-# 7. LOGIKA EWS & CUACA (CORE INTELLIGENCE)
+# 6. LOGIKA EWS & CUACA (CORE INTELLIGENCE)
 # ==========================================
 
 def smart_convert_cm(value):
+    """
+    Mengubah nilai Meter ke CM secara cerdas.
+    - Jika nilai < 50, diasumsikan Meter -> dikali 100.
+    - Jika nilai >= 50, diasumsikan sudah CM -> biarkan.
+    """
     try:
         val_float = float(value)
         if val_float != 0 and val_float < 50:
@@ -268,11 +236,18 @@ def get_cuaca_10_kota():
                 results.append({"kota": cities[i]['name'], "suhu": round(temp), "cuaca": status, "icon": icon, "anim": anim})
     except: pass
     
+    # Fallback jika API Cuaca Gagal
     if not results:
         for c in cities: results.append({"kota": c['name'], "suhu": "-", "cuaca": "N/A", "icon": "fa-cloud", "anim": ""})
     return results
 
 def normalize_dam_data(raw_data):
+    """
+    Normalisasi Data Bendungan:
+    1. Ambil Batas (Threshold) dari DB, Konversi ke CM.
+    2. Ambil TMA Realtime, Konversi ke CM.
+    3. Fix Timezone (UTC to WIB +7).
+    """
     clean_data = []
     
     for item in raw_data:
@@ -282,28 +257,33 @@ def normalize_dam_data(raw_data):
 
             name = item.get('dam_name') or item.get('nama') or item.get('name') or "Bendungan"
             
+            # 1. THRESHOLD (BATAS WAJAR)
             siaga_val = item.get('siaga', 0)
             awas_val = item.get('awas', 0)
             siaga_cm = smart_convert_cm(siaga_val)
             awas_cm = smart_convert_cm(awas_val)
             
+            # Fallback jika API mengembalikan 0
             if float(siaga_cm) == 0: siaga_cm = "200"
             if float(awas_cm) == 0: awas_cm = "300"
 
+            # 2. TMA (TINGGI MUKA AIR)
             raw_tma = latest.get('limpas') if latest else (item.get('tma') or item.get('siap') or 0)
             tma_cm = smart_convert_cm(raw_tma)
 
+            # 3. FIX TIMEZONE (UTC -> WIB)
             raw_time = latest.get('created_at') or item.get('updated_at')
             waktu_display = "Hari ini"
             if raw_time:
                 try:
                     clean_str = str(raw_time).split('.')[0].replace('Z', '')
                     dt_utc = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
-                    dt_wib = dt_utc + timedelta(hours=7) 
+                    dt_wib = dt_utc + timedelta(hours=7) # Tambah 7 Jam
                     waktu_display = dt_wib.strftime("%d-%m-%Y %H:%M")
                 except:
                     waktu_display = str(raw_time)[:16].replace('T', ' ')
 
+            # 4. DETAIL DATA LAIN
             status = latest.get('status') or item.get('status_alert') or 'Aman'
             pob = latest.get('pob_id')
             petugas = f"Kode: {pob}" if pob else "Tim Piket"
@@ -311,9 +291,9 @@ def normalize_dam_data(raw_data):
 
             dam = {
                 'name': name,
-                'tma': tma_cm,     
-                'siaga': siaga_cm, 
-                'awas': awas_cm,   
+                'tma': tma_cm,     # CM
+                'siaga': siaga_cm, # CM
+                'awas': awas_cm,   # CM
                 'inflow': latest.get('debit', 0),
                 'outflow': latest.get('debit_ke_saluran_induk', 0),
                 'status': status,
@@ -328,12 +308,9 @@ def normalize_dam_data(raw_data):
     return clean_data
 
 def fetch_ews_data():
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'application/json'
-    }
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36', 'Accept': 'application/json'}
     
-    # 1. UTAMA: SIAGA KRANJI (Update Cepat & Timestamp Buster)
+    # 1. UTAMA: SIAGA KRANJI (Anti-Cache)
     try:
         ts = int(time.time() * 1000)
         url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
@@ -344,7 +321,7 @@ def fetch_ews_data():
             if raw_list: return normalize_dam_data(raw_list)
     except: pass
 
-    # 2. BACKUP: EWS JATENG (Resmi Pemerintah)
+    # 2. BACKUP: EWS JATENG (Official)
     try:
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
         r = requests.get(url, headers=headers, timeout=9, verify=False)
@@ -357,7 +334,7 @@ def fetch_ews_data():
     return []
 
 # ==========================================
-# 8. ROUTES & CONTROLLERS (LENGKAP)
+# 7. ROUTE LENGKAP & OTENTIKASI
 # ==========================================
 
 @app.route("/", methods=['GET'])
@@ -622,18 +599,7 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # Daftar Kota Lengkap (+5 Kota Baru: Demak, Cilacap, Purworejo, Kebumen, Klaten)
-    kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
-        "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi", "Cilacap",
-        "Cilegon", "Cimahi", "Cirebon", "Demak", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
-        "Jayapura", "Kebumen", "Kediri", "Kendari", "Klaten", "Kotamobagu", "Kupang", "Langsa", "Lhokseumawe", "Lubuklinggau", "Madiun", "Magelang",
-        "Makassar", "Malang", "Manado", "Mataram", "Medan", "Metro", "Mojokerto", "Padang", "Padangpanjang", "Padangsidempuan",
-        "Pagar Alam", "Palangkaraya", "Palembang", "Palopo", "Palu", "Pangkal Pinang", "Parepare", "Pariaman", "Pasuruan", "Payakumbuh",
-        "Pekalongan", "Pekanbaru", "Pematangsiantar", "Pontianak", "Prabumulih", "Probolinggo", "Purwokerto", "Purwodadi", "Purworejo", "Sabang", "Salatiga",
-        "Samarinda", "Sawahlunto", "Semarang", "Serang", "Sibolga", "Singkawang", "Solok", "Sorong", "Subulussalam", "Sukabumi",
-        "Surabaya", "Surakarta", "Tangerang", "Tangerang Selatan", "Tanjungbalai", "Tanjungpinang", "Tarakan", "Tasikmalaya", "Tebing Tinggi", "Tegal",
-        "Ternate", "Tidore Kepulauan", "Tomohon", "Tual", "Yogyakarta"
-    ]
+    kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu", "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi", "Cilegon", "Cimahi", "Cirebon", "Denpasar", "Depok", "Dumai", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi", "Jayapura", "Kediri", "Kendari", "Kotamobagu", "Kupang", "Langsa", "Lhokseumawe", "Lubuklinggau", "Madiun", "Magelang", "Makassar", "Malang", "Manado", "Mataram", "Medan", "Metro", "Mojokerto", "Padang", "Padangpanjang", "Padangsidempuan", "Pagar Alam", "Palangkaraya", "Palembang", "Palopo", "Palu", "Pangkal Pinang", "Parepare", "Pariaman", "Pasuruan", "Payakumbuh", "Pekalongan", "Pekanbaru", "Pematangsiantar", "Pontianak", "Prabumulih", "Probolinggo", "Purwokerto", "Sabang", "Salatiga", "Samarinda", "Sawahlunto", "Semarang", "Serang", "Sibolga", "Singkawang", "Solok", "Sorong", "Subulussalam", "Sukabumi", "Surabaya", "Surakarta", "Tangerang", "Tangerang Selatan", "Tanjungbalai", "Tanjungpinang", "Tarakan", "Tasikmalaya", "Tebing Tinggi", "Tegal", "Ternate", "Tidore Kepulauan", "Tomohon", "Tual", "Yogyakarta"]
     return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=get_quote_religi())
 
 @app.route("/api/news-ticker")
