@@ -16,134 +16,146 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-                    colors: { brand: { navy: '#0f172a', blue: '#1e40af', sky: '#38bdf8', surface: '#f8fafc' } },
+                    colors: { brand: { navy: '#0f172a', blue: '#1e3a8a', sky: '#38bdf8', surface: '#f8fafc' } },
                     padding: { 'safe': 'env(safe-area-inset-bottom)' }
                 }
             }
         }
     </script>
     <style>
-        /* === NAVBAR STYLE: iOS 26.2 GLASS === */
+        /* === iOS GLASSMOPHISM STYLE === */
         
-        /* Desktop Navbar */
-        .glass-nav { 
-            background: rgba(15, 23, 42, 0.65); /* Transparansi Tinggi */
-            backdrop-filter: blur(30px) saturate(180%); /* Efek Kaca Kuat */
-            -webkit-backdrop-filter: blur(30px) saturate(180%);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        /* Top Navbar Glass */
+        .glass-header { 
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
         }
-        
-        /* Mobile Floating Dock (iOS Style) */
+
+        /* Mobile Bottom Dock (Floating) */
+        .ios-dock-container {
+            position: fixed;
+            bottom: 20px; /* Jarak dari bawah */
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 32px); /* Margin kiri kanan */
+            max-width: 450px;
+            z-index: 60;
+        }
+
         .ios-dock {
-            background: rgba(255, 255, 255, 0.75); /* Frosty White */
-            backdrop-filter: blur(40px) saturate(200%);
-            -webkit-backdrop-filter: blur(40px) saturate(200%);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
-            border-radius: 28px; /* Rounded Dock */
-            margin: 0 16px 20px 16px; /* Floating Margin */
-            width: calc(100% - 32px);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(30px) saturate(200%);
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 24px; /* Sudut membulat khas iOS */
+            box-shadow: 0 10px 40px -10px rgba(30, 58, 138, 0.15); /* Shadow Biru Halus */
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 12px 16px;
+            height: 70px;
         }
 
-        /* Active Link Indicator */
-        .nav-active { color: #007aff !important; font-weight: 700; }
-        .nav-active::after {
-            content: ''; display: block; width: 4px; height: 4px; 
-            background: #007aff; border-radius: 50%; margin: 2px auto 0;
+        /* Nav Item Styles */
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #94a3b8; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
+        .nav-item i { font-size: 1.3rem; margin-bottom: 4px; transition: transform 0.2s; }
+        .nav-item span { font-size: 9px; font-weight: 600; letter-spacing: 0.3px; }
+        
+        /* Active State */
+        .nav-item.active { color: #1e3a8a; } /* Biru KTVDI */
+        .nav-item.active i { transform: translateY(-2px); }
+        .nav-item:active { transform: scale(0.9); } /* Haptic feedback visual */
 
-        .nav-desktop-link { 
-            color: rgba(255, 255, 255, 0.6); 
-            font-weight: 500; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            font-size: 0.95rem; padding: 6px 12px; border-radius: 12px;
+        /* Center Floating Button (CCTV) */
+        .dock-center-btn {
+            width: 54px; height: 54px;
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            box-shadow: 0 8px 20px rgba(30, 58, 138, 0.4);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            transform: translateY(-20px); /* Naik ke atas */
+            transition: transform 0.2s;
         }
-        .nav-desktop-link:hover { 
-            color: white; background: rgba(255, 255, 255, 0.1); 
+        .dock-center-btn:active { transform: translateY(-20px) scale(0.9); }
+
+        /* Desktop Links */
+        .desktop-link {
+            color: #64748b; font-weight: 500; padding: 8px 16px; border-radius: 12px; transition: all 0.2s; font-size: 0.9rem;
         }
-        .nav-desktop-link.nav-active {
-            color: white !important; background: rgba(56, 189, 248, 0.15);
-            border-bottom: none;
-        }
-        .nav-desktop-link.nav-active::after { display: none; }
+        .desktop-link:hover { background: rgba(30, 58, 138, 0.05); color: #1e3a8a; }
+        .desktop-link.active { background: rgba(30, 58, 138, 0.1); color: #1e3a8a; font-weight: 700; }
 
-        /* Icon Animation */
-        .dock-icon { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .group:active .dock-icon { transform: scale(0.85); } /* Haptic Press Effect */
+        /* Chatbot Bubble */
+        .chat-bubble-bot { background: #f1f5f9; color: #1e293b; border-radius: 18px 18px 18px 4px; padding: 12px 16px; font-size: 13px; max-width: 85%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .chat-bubble-user { background: #1e3a8a; color: white; border-radius: 18px 18px 4px 18px; padding: 12px 16px; font-size: 13px; max-width: 85%; margin-left: auto; box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2); }
 
-        /* FOOTER & LAINNYA (TETAP) */
-        .footer-link { transition: all 0.3s ease; color: #94a3b8; display: block; margin-bottom: 0.5rem; }
-        .footer-link:hover { transform: translateX(5px); color: #38bdf8; }
-
-        /* RUNNING TEXT */
-        .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; background: #fff; }
-        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 250s linear infinite; } 
-        .ticker-item { padding: 0 4rem; display: flex; align-items: center; } 
+        /* Ticker */
+        .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; background: transparent; }
+        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 200s linear infinite; } 
+        .ticker-item { padding: 0 4rem; display: flex; align-items: center; color: #475569; font-size: 0.75rem; font-weight: 600; } 
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-        .ticker-wrap:hover .ticker-move { animation-play-state: paused; }
 
-        /* Chatbot Style */
-        .chat-bubble-bot { background-color: #f1f5f9; color: #334155; border-radius: 0 16px 16px 16px; padding: 12px; font-size: 13px; max-width: 85%; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .chat-bubble-user { background-color: #1e40af; color: white; border-radius: 16px 0 16px 16px; padding: 12px; font-size: 13px; max-width: 85%; margin-left: auto; box-shadow: 0 2px 5px rgba(30, 64, 175, 0.3); }
+        /* Footer Links */
+        .footer-link { color: #94a3b8; transition: color 0.2s; display: block; margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .footer-link:hover { color: #38bdf8; padding-left: 4px; }
     </style>
 </head>
-<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[140px] lg:pb-0">
+<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[100px] lg:pb-0 font-sans selection:bg-blue-100">
 
-    <nav class="fixed top-0 w-full z-50 glass-nav transition-all duration-300">
+    <nav class="fixed top-0 w-full z-50 glass-header transition-all duration-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16 md:h-20">
+                
                 <a href="{{ url_for('home') }}" class="flex items-center gap-3 group shrink-0">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-10 w-auto filter drop-shadow-lg brightness-110">
-                    <div class="hidden md:block">
-                        <h1 class="text-white font-bold text-lg leading-none tracking-tight">KTVDI</h1>
-                        <p class="text-[10px] text-blue-200 tracking-wider font-medium opacity-80">Komunitas TV Digital Indonesia</p>
+                    <div class="w-10 h-10 bg-brand-blue rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20">
+                         <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-6 w-6 object-contain brightness-0 invert">
+                    </div>
+                    <div class="hidden md:block leading-tight">
+                        <h1 class="text-slate-900 font-extrabold text-lg tracking-tight">KTVDI</h1>
+                        <p class="text-[10px] text-brand-blue font-bold tracking-widest opacity-80">SMART CITY</p>
                     </div>
                 </a>
                 
-                <div class="hidden lg:flex items-center space-x-2">
-                    <a href="{{ url_for('home') }}" class="nav-desktop-link {% if request.endpoint == 'home' %}nav-active{% endif %}">Beranda</a>
-                    <a href="{{ url_for('cctv_page') }}" class="nav-desktop-link {% if request.endpoint == 'cctv_page' %}nav-active{% endif %}">CCTV</a>
-                    <a href="{{ url_for('ews_jateng_page') }}" class="nav-desktop-link {% if request.endpoint == 'ews_jateng_page' %}nav-active{% endif %}">EWS Bendungan</a>
-                    <a href="{{ url_for('jadwal_sholat_page') }}" class="nav-desktop-link {% if request.endpoint == 'jadwal_sholat_page' %}nav-active{% endif %}">Religi</a>
-                    <a href="{{ url_for('daftar_siaran') }}" class="nav-desktop-link {% if request.endpoint == 'daftar_siaran' %}nav-active{% endif %}">Database</a>
-                    <a href="{{ url_for('berita_page') }}" class="nav-desktop-link {% if request.endpoint == 'berita_page' %}nav-active{% endif %}">Berita</a>
+                <div class="hidden lg:flex items-center space-x-1">
+                    <a href="{{ url_for('home') }}" class="desktop-link {% if request.endpoint == 'home' %}active{% endif %}">Beranda</a>
+                    <a href="{{ url_for('cctv_page') }}" class="desktop-link {% if request.endpoint == 'cctv_page' %}active{% endif %}">CCTV</a>
+                    <a href="{{ url_for('ews_jateng_page') }}" class="desktop-link {% if request.endpoint == 'ews_jateng_page' %}active{% endif %}">EWS</a>
+                    <a href="{{ url_for('jadwal_sholat_page') }}" class="desktop-link {% if request.endpoint == 'jadwal_sholat_page' %}active{% endif %}">Religi</a>
+                    <a href="{{ url_for('daftar_siaran') }}" class="desktop-link {% if request.endpoint == 'daftar_siaran' %}active{% endif %}">Data</a>
+                    <a href="{{ url_for('berita_page') }}" class="desktop-link {% if request.endpoint == 'berita_page' %}active{% endif %}">Berita</a>
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <div class="relative group">
-                        <button onclick="document.getElementById('info-dropdown').classList.toggle('hidden')" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition backdrop-blur-sm border border-white/10">
-                            <i class="fa-solid fa-circle-info text-sm"></i>
-                        </button>
-                        <div id="info-dropdown" class="hidden absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl py-2 border border-slate-200/50 z-50 origin-top-right ring-1 ring-black/5">
-                            <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition first:rounded-t-xl">
-                                <i class="fa-solid fa-users mr-3 text-blue-500"></i> Tentang Kami
-                            </a>
-                            <a href="{{ url_for('ews_jateng_page') }}" class="block lg:hidden px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 border-t border-slate-100 font-medium transition last:rounded-b-xl">
-                                <i class="fa-solid fa-water mr-3 text-blue-500"></i> EWS Bendungan
-                            </a>
-                        </div>
-                    </div>
+                    <button onclick="document.getElementById('info-modal').classList.toggle('hidden')" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-brand-blue transition flex items-center justify-center">
+                        <i class="fa-solid fa-circle-info text-lg"></i>
+                    </button>
 
                     {% if session.get('user') %}
                         <div class="relative group">
-                            <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 focus:outline-none bg-white/10 pl-1 pr-3 py-1 rounded-full hover:bg-white/20 transition border border-white/10 backdrop-blur-sm">
-                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=3b82f6&color=fff&bold=true" class="h-7 w-7 rounded-full shadow-sm">
-                                <span class="text-xs font-bold text-white hidden md:block tracking-wide">{{ session.get('nama').split()[0] }}</span>
+                            <button onclick="document.getElementById('profile-dropdown').classList.toggle('hidden')" class="flex items-center gap-2 bg-slate-100 pl-1 pr-3 py-1 rounded-full hover:bg-blue-50 transition border border-slate-200">
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=1e3a8a&color=fff&bold=true" class="h-7 w-7 rounded-full shadow-sm">
+                                <span class="text-xs font-bold text-slate-700 hidden md:block">{{ session.get('nama').split()[0] }}</span>
                             </button>
-                            <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl py-2 border border-slate-200/50 z-50 ring-1 ring-black/5">
+                            <div id="profile-dropdown" class="hidden absolute right-0 mt-3 w-56 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl py-2 border border-slate-100 z-50 ring-1 ring-black/5 animate-fade-in-up origin-top-right">
                                 <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50/50">
                                     <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Akun Anda</p>
                                     <p class="text-sm font-bold text-slate-800 truncate">{{ session.get('nama') }}</p>
                                 </div>
-                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-2.5 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-70"></i> Dashboard</a>
+                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-2.5 text-sm text-slate-600 hover:bg-blue-50 hover:text-brand-blue font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-70"></i> Dashboard</a>
                                 <a href="{{ url_for('logout') }}" class="block px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-right-from-bracket mr-3 opacity-70"></i> Keluar</a>
                             </div>
                         </div>
                     {% else %}
-                        <div class="flex items-center gap-2">
-                            <a href="{{ url_for('login') }}" class="text-xs font-bold text-slate-300 hover:text-white transition px-2">Masuk</a>
-                            <a href="{{ url_for('register') }}" class="px-4 py-2 bg-white text-slate-900 text-xs font-bold rounded-full hover:bg-slate-100 transition shadow-lg shadow-white/10 transform active:scale-95">Daftar</a>
-                        </div>
+                        <a href="{{ url_for('login') }}" class="px-5 py-2 bg-brand-blue text-white text-xs font-bold rounded-full hover:bg-blue-800 transition shadow-lg shadow-blue-900/30 transform active:scale-95">Masuk</a>
                     {% endif %}
                 </div>
             </div>
@@ -154,165 +166,131 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-[#0f172a] text-white pt-16 pb-32 lg:pb-16 border-t border-slate-800 font-['Plus_Jakarta_Sans']">
-        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-            <div class="space-y-6">
+    <footer class="bg-brand-navy text-white pt-16 pb-32 lg:pb-16 border-t border-slate-800 font-['Plus_Jakarta_Sans']">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-10 mb-8">
+            <div class="space-y-4">
                 <div class="flex items-center gap-3">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-10 w-auto">
-                    <div>
-                        <h4 class="text-lg font-bold tracking-tight">KTVDI</h4>
-                        <p class="text-[10px] text-slate-400">Komunitas TV Digital Indonesia</p>
-                    </div>
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-8 w-8 brightness-0 invert">
+                    <span class="font-bold text-xl tracking-tight">KTVDI</span>
                 </div>
-                <p class="text-slate-400 text-sm leading-relaxed">
-                    Platform independen penyedia informasi frekuensi, teknologi, dan edukasi penyiaran digital terpercaya di Indonesia.
-                </p>
-                <div class="flex gap-3">
-                    <a href="https://facebook.com" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#1877F2] transition border border-slate-700"><i class="fa-brands fa-facebook-f text-sm"></i></a>
-                    <a href="https://twitter.com" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#1DA1F2] transition border border-slate-700"><i class="fa-brands fa-twitter text-sm"></i></a>
-                    <a href="https://instagram.com" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#E4405F] transition border border-slate-700"><i class="fa-brands fa-instagram text-sm"></i></a>
-                    <a href="https://youtube.com" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center hover:bg-[#FF0000] transition border border-slate-700"><i class="fa-brands fa-youtube text-sm"></i></a>
-                </div>
+                <p class="text-slate-400 text-sm leading-relaxed">Platform informasi penyiaran digital dan smart city terintegrasi di Indonesia.</p>
             </div>
-            
             <div>
-                <h4 class="font-bold mb-6 text-white text-sm uppercase tracking-wider border-b border-blue-900 pb-2 inline-block">Akses Cepat</h4>
-                <ul class="text-sm space-y-2">
+                <h4 class="font-bold text-sm text-slate-200 mb-4 uppercase tracking-wider">Menu</h4>
+                <ul class="space-y-1">
                     <li><a href="{{ url_for('home') }}" class="footer-link">Beranda</a></li>
-                    <li><a href="{{ url_for('daftar_siaran') }}" class="footer-link">Database MUX</a></li>
-                    <li><a href="{{ url_for('berita_page') }}" class="footer-link">Berita & Artikel</a></li>
-                    <li><a href="{{ url_for('cctv_page') }}" class="footer-link">Pantauan CCTV</a></li>
-                    <li><a href="{{ url_for('ews_jateng_page') }}" class="footer-link">Monitoring Bendungan</a></li>
+                    <li><a href="{{ url_for('cctv_page') }}" class="footer-link">CCTV Live</a></li>
+                    <li><a href="{{ url_for('ews_jateng_page') }}" class="footer-link">EWS System</a></li>
                 </ul>
             </div>
-
             <div>
-                <h4 class="font-bold mb-6 text-white text-sm uppercase tracking-wider border-b border-blue-900 pb-2 inline-block">Layanan</h4>
-                <ul class="text-sm space-y-2">
-                    <li><a href="#" class="footer-link">Pasang Iklan</a></li>
-                    <li><a href="#" class="footer-link">Kerjasama Media</a></li>
-                    <li><a href="#" class="footer-link">Laporkan Gangguan</a></li>
+                <h4 class="font-bold text-sm text-slate-200 mb-4 uppercase tracking-wider">Layanan</h4>
+                <ul class="space-y-1">
+                    <li><a href="#" class="footer-link">API Access</a></li>
+                    <li><a href="#" class="footer-link">Status Server</a></li>
                     <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
                 </ul>
             </div>
-
             <div>
-                <h4 class="font-bold mb-6 text-white text-sm uppercase tracking-wider border-b border-blue-900 pb-2 inline-block">Kontak Resmi</h4>
-                <ul class="space-y-4 text-sm text-slate-400">
-                    <li class="flex items-start gap-3 group cursor-pointer">
-                        <i class="fa-solid fa-map-pin mt-1 text-blue-500 group-hover:text-white transition"></i>
-                        <span class="group-hover:text-blue-400 transition">Hubungi Admin (Pak Lukas)</span>
-                    </li>
-                    <li class="flex items-start gap-3 group cursor-pointer">
-                        <i class="fa-solid fa-envelope mt-1 text-blue-500 group-hover:text-white transition"></i>
-                        <span class="group-hover:text-blue-400 transition">kom.tvdigitalid@gmail.com</span>
-                    </li>
-                    <li class="flex items-start gap-3 group cursor-pointer">
-                        <i class="fa-brands fa-whatsapp mt-1 text-green-500 group-hover:text-green-400 transition"></i>
-                        <span class="group-hover:text-blue-400 transition">0815-9131-735</span>
-                    </li>
-                </ul>
+                <h4 class="font-bold text-sm text-slate-200 mb-4 uppercase tracking-wider">Kontak</h4>
+                <p class="text-sm text-slate-400 mb-2">kom.tvdigitalid@gmail.com</p>
+                <div class="flex gap-3 mt-4">
+                    <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-blue transition"><i class="fa-brands fa-facebook-f text-xs"></i></a>
+                    <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-blue transition"><i class="fa-brands fa-instagram text-xs"></i></a>
+                    <a href="#" class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center hover:bg-brand-blue transition"><i class="fa-brands fa-youtube text-xs"></i></a>
+                </div>
             </div>
         </div>
-        <div class="border-t border-slate-800 pt-8 text-center">
-            <p class="text-xs text-slate-500">&copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.</p>
+        <div class="border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
+            &copy; 2026 KTVDI Network. All Rights Reserved.
         </div>
     </footer>
 
-    <nav class="lg:hidden fixed bottom-0 w-full z-[60] pb-safe pointer-events-none">
-        <div class="ios-dock pointer-events-auto h-[70px] grid grid-cols-5 items-center px-1 relative">
-            
-            <a href="{{ url_for('home') }}" class="flex flex-col items-center justify-center gap-0.5 group {% if request.endpoint == 'home' %}nav-active{% else %}text-slate-400{% endif %}">
-                <i class="fa-solid fa-house text-xl dock-icon mb-1"></i>
-                <span class="text-[9px] font-medium tracking-wide">Beranda</span>
+    <div class="ios-dock-container lg:hidden">
+        <nav class="ios-dock">
+            <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %}">
+                <i class="fa-solid fa-house"></i>
+                <span>Beranda</span>
             </a>
             
-            <a href="{{ url_for('jadwal_sholat_page') }}" class="flex flex-col items-center justify-center gap-0.5 group {% if request.endpoint == 'jadwal_sholat_page' %}nav-active{% else %}text-slate-400{% endif %}">
-                <i class="fa-solid fa-mosque text-xl dock-icon mb-1"></i>
-                <span class="text-[9px] font-medium tracking-wide">Religi</span>
+            <a href="{{ url_for('jadwal_sholat_page') }}" class="nav-item {% if request.endpoint == 'jadwal_sholat_page' %}active{% endif %}">
+                <i class="fa-solid fa-mosque"></i>
+                <span>Religi</span>
             </a>
 
-            <a href="{{ url_for('cctv_page') }}" class="flex flex-col items-center justify-center relative -top-6 group">
-                <div class="w-14 h-14 rounded-full bg-[#007aff] text-white flex items-center justify-center shadow-lg shadow-blue-500/40 border-[3px] border-white dock-icon active:scale-90 transition-transform">
-                    <i class="fa-solid fa-video text-xl"></i>
-                </div>
-                <span class="text-[9px] font-bold text-slate-500 mt-1">CCTV</span>
+            <a href="{{ url_for('cctv_page') }}" class="dock-center-btn">
+                <i class="fa-solid fa-video text-xl"></i>
             </a>
 
-            <a href="{{ url_for('daftar_siaran') }}" class="flex flex-col items-center justify-center gap-0.5 group {% if request.endpoint == 'daftar_siaran' %}nav-active{% else %}text-slate-400{% endif %}">
-                <i class="fa-solid fa-server text-xl dock-icon mb-1"></i>
-                <span class="text-[9px] font-medium tracking-wide">Data</span>
+            <a href="{{ url_for('daftar_siaran') }}" class="nav-item {% if request.endpoint == 'daftar_siaran' %}active{% endif %}">
+                <i class="fa-solid fa-server"></i>
+                <span>Data</span>
             </a>
             
-            <a href="{{ url_for('berita_page') }}" class="flex flex-col items-center justify-center gap-0.5 group {% if request.endpoint == 'berita_page' %}nav-active{% else %}text-slate-400{% endif %}">
-                <i class="fa-regular fa-newspaper text-xl dock-icon mb-1"></i>
-                <span class="text-[9px] font-medium tracking-wide">Berita</span>
+            <a href="{{ url_for('berita_page') }}" class="nav-item {% if request.endpoint == 'berita_page' %}active{% endif %}">
+                <i class="fa-regular fa-newspaper"></i>
+                <span>Berita</span>
             </a>
-
-        </div>
-    </nav>
-
-    <div class="fixed bottom-[95px] lg:bottom-0 w-full z-50 lg:z-40 pointer-events-none">
-        <div class="bg-white/90 backdrop-blur-md border-t border-b border-slate-200/50 h-9 flex items-center shadow-sm select-none pointer-events-auto max-w-[1920px] mx-auto">
-            <div class="bg-red-600 h-full flex items-center px-4 z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2">
-                <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> INFO
-            </div>
-            <div class="ticker-wrap relative flex-1">
-                <div id="unified-ticker" class="ticker-move text-slate-700 font-semibold text-xs tracking-wide leading-none uppercase">
-                </div>
-            </div>
-            <div class="bg-white/90 backdrop-blur-md h-full flex items-center px-3 border-l border-slate-200/50 z-20 shrink-0 font-mono text-[10px] font-bold text-slate-600 hidden md:flex" id="clock">
-                00:00:00
-            </div>
-        </div>
+        </nav>
     </div>
 
-    <div class="fixed bottom-[145px] lg:bottom-24 left-4 z-[60] group pb-safe">
-        <a href="tel:112" class="flex items-center justify-center w-11 h-11 bg-white/80 backdrop-blur-md rounded-full text-red-500 shadow-xl border border-red-100 hover:scale-110 transition-transform active:scale-95">
-            <i class="fa-solid fa-phone-volume text-lg animate-pulse"></i>
-        </a>
+    <div class="fixed bottom-[100px] lg:bottom-0 w-full z-40 pointer-events-none lg:pointer-events-auto">
+        <div class="bg-white/90 backdrop-blur-md border-t border-b border-slate-200/50 h-8 flex items-center shadow-sm select-none max-w-[1920px] mx-auto pointer-events-auto mx-4 rounded-full lg:rounded-none lg:mx-0 lg:h-9">
+            <div class="bg-red-600 h-full flex items-center px-4 rounded-l-full lg:rounded-none z-20 shrink-0 text-white text-[9px] lg:text-[10px] font-black uppercase tracking-widest gap-2">
+                <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> INFO
+            </div>
+            <div class="ticker-wrap relative flex-1 rounded-r-full lg:rounded-none">
+                <div id="unified-ticker" class="ticker-move">
+                    </div>
+            </div>
+        </div>
     </div>
 
     <div class="fixed bottom-[145px] lg:bottom-24 right-4 z-[60] pb-safe flex flex-col items-end">
-        <div id="chat-window" class="hidden w-[85vw] max-w-[360px] bg-white rounded-2xl shadow-2xl overflow-hidden mb-3 border border-slate-100 flex flex-col transform origin-bottom-right transition-all animate-fade-in-up">
-            <div class="bg-[#007aff] p-4 flex justify-between items-center text-white shadow-md">
+        
+        <div id="chat-window" class="hidden w-[85vw] max-w-[340px] bg-white rounded-3xl shadow-2xl overflow-hidden mb-3 border border-slate-100 flex flex-col transform origin-bottom-right transition-all animate-fade-in-up">
+            <div class="bg-brand-blue p-4 flex justify-between items-center text-white shadow-md">
                 <div class="flex items-center gap-3">
                     <div class="relative">
                         <img src="https://iili.io/f87Ctjt.md.png" class="h-9 w-9 rounded-full bg-white p-0.5 border-2 border-white/30">
-                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-blue-600 rounded-full"></span>
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-blue-900 rounded-full"></span>
                     </div>
                     <div>
                         <div class="font-bold text-sm">Modi AI</div>
-                        <div class="text-[10px] text-blue-100 opacity-90">Online • Cepat & Responsif</div>
+                        <div class="text-[10px] text-blue-100 opacity-90">Online • Siap Membantu</div>
                     </div>
                 </div>
                 <button onclick="toggleChat()" class="w-7 h-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition"><i class="fa-solid fa-chevron-down text-xs"></i></button>
             </div>
             <div id="chat-messages" class="h-80 bg-slate-50 p-4 overflow-y-auto flex flex-col gap-3 custom-scroll">
                 <div class="flex gap-2">
-                    <div class="chat-bubble-bot shadow-sm border border-slate-100">Halo Sahabat KTVDI! 👋<br>Saya Modi, asisten virtual Anda. Ada yang bisa dibantu seputar TV Digital?</div>
+                    <img src="https://iili.io/f87Ctjt.md.png" class="h-6 w-6 rounded-full self-end mb-1">
+                    <div class="chat-bubble-bot shadow-sm border border-slate-100">Halo! Saya Modi. Ada yang bisa saya bantu tentang siaran TV atau EWS hari ini? 👋</div>
                 </div>
             </div>
             <div class="p-3 bg-white border-t border-slate-100">
                 <form onsubmit="handleChat(event)" class="flex gap-2 relative">
-                    <input type="text" id="chat-input" placeholder="Ketik pesan..." class="w-full bg-slate-100 text-sm px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition text-slate-700" autocomplete="off">
-                    <button type="submit" class="absolute right-2 top-1.5 bg-[#007aff] text-white w-9 h-9 rounded-xl flex items-center justify-center hover:bg-blue-600 transition shadow-md active:scale-95"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                    <input type="text" id="chat-input" placeholder="Tanya Modi..." class="w-full bg-slate-100 text-sm px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition text-slate-700" autocomplete="off">
+                    <button type="submit" class="absolute right-2 top-1.5 bg-brand-blue text-white w-9 h-9 rounded-xl flex items-center justify-center hover:bg-blue-800 transition shadow-md active:scale-95"><i class="fa-solid fa-paper-plane text-xs"></i></button>
                 </form>
             </div>
         </div>
-        <button onclick="toggleChat()" class="w-14 h-14 bg-[#007aff] text-white rounded-full shadow-2xl shadow-blue-500/40 flex items-center justify-center hover:scale-105 transition active:scale-90 border-2 border-white relative overflow-hidden group">
-             <i class="fa-solid fa-message text-2xl group-hover:rotate-12 transition-transform"></i>
+
+        <button onclick="toggleChat()" class="w-14 h-14 rounded-full shadow-2xl shadow-blue-900/30 flex items-center justify-center hover:scale-110 transition active:scale-95 border-2 border-white relative overflow-hidden group bg-white">
+             <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover">
              <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
     </div>
 
     <script>
+        // Chat Toggle
         function toggleChat() { 
             const win = document.getElementById('chat-window');
             win.classList.toggle('hidden');
             if(!win.classList.contains('hidden')) { setTimeout(() => document.getElementById('chat-messages').scrollTop = 99999, 100); }
         }
         
+        // Chat Logic
         async function handleChat(e){ 
             e.preventDefault(); 
             const i=document.getElementById('chat-input');
@@ -325,7 +303,7 @@
             const loadDiv = document.createElement('div');
             loadDiv.id = loadId;
             loadDiv.className = "flex gap-2";
-            loadDiv.innerHTML = `<div class="chat-bubble-bot text-slate-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Modi sedang mengetik...</div>`;
+            loadDiv.innerHTML = `<img src="https://iili.io/f87Ctjt.md.png" class="h-6 w-6 rounded-full self-end mb-1"><div class="chat-bubble-bot text-slate-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Modi sedang berpikir...</div>`;
             msgs.appendChild(loadDiv);
             msgs.scrollTop = 99999;
 
@@ -336,48 +314,39 @@
                 addMsg(d.response,'bot');
             } catch {
                 document.getElementById(loadId).remove();
-                const polriResponses = [
-                    "<b>Siap!</b> Mohon izin melaporkan, koneksi ke server pusat sedang <b>8-1-0</b> (Mati/Offline). Mohon izin mencoba kembali beberapa saat lagi. <b>Ganti!</b> 👮‍♂️",
-                    "<b>Lapor Ndan!</b> Jaringan monitor terpantau padat merayap. Sistem AI sedang istirahat di tempat. <b>Siap 86!</b> 🫡",
-                    "<b>Mohon Izin Komandan.</b> Sistem sedang tidak monitor. Harap standby, situasi aman terkendali. <b>8-1-3!</b> 👮",
-                    "<b>Siap Salah!</b> Gagal terhubung ke Markas Besar Data. Mohon petunjuk lebih lanjut atau ulangi perintah. <b>Kijang satu ganti.</b> 📻"
-                ];
-                const randomRes = polriResponses[Math.floor(Math.random() * polriResponses.length)];
-                addMsg(randomRes,'bot');
+                addMsg("Maaf, koneksi ke Modi terputus. Coba lagi nanti ya! 🙏", 'bot');
             }
         }
 
         function addMsg(t,s){
             const d=document.createElement('div'); d.className="flex gap-2 w-full";
             const tm=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-            d.innerHTML = s=='user' ? 
-                `<div class="chat-bubble-user text-left shadow-sm border border-blue-600/20">${t}<div class="text-[9px] text-blue-100 text-right mt-1 opacity-80">${tm} <i class="fa-solid fa-check-double ml-1"></i></div></div>` : 
-                `<div class="chat-bubble-bot shadow-sm border border-slate-100">${t.replace(/\n/g,'<br>')}<div class="text-[9px] text-slate-400 text-right mt-1 opacity-80">${tm}</div></div>`;
+            
+            if (s == 'user') {
+                d.innerHTML = `<div class="chat-bubble-user text-left shadow-sm border border-blue-800">${t}<div class="text-[9px] text-blue-200 text-right mt-1 opacity-80">${tm}</div></div>`;
+            } else {
+                d.innerHTML = `<img src="https://iili.io/f87Ctjt.md.png" class="h-6 w-6 rounded-full self-end mb-1"><div class="chat-bubble-bot shadow-sm border border-slate-100">${t.replace(/\n/g,'<br>')}<div class="text-[9px] text-slate-400 text-right mt-1 opacity-80">${tm}</div></div>`;
+            }
+            
             const msgs = document.getElementById('chat-messages');
             msgs.appendChild(d);
             msgs.scrollTop = 99999;
         }
 
+        // Ticker Logic
         async function updateTicker() {
             try { 
                 const res = await fetch('/api/news-ticker'); 
                 const data = await res.json(); 
                 if (data && data.length > 0) {
-                    const items = data.map(n => `<div class="ticker-item"><i class="fa-solid fa-bolt text-[8px] text-red-500 mr-2"></i> ${n}</div>`).join('');
+                    const items = data.map(n => `<div class="ticker-item"><i class="fa-solid fa-rss text-[8px] text-red-500 mr-2"></i> ${n}</div>`).join('');
                     document.getElementById('unified-ticker').innerHTML = items + items + items;
                 } else {
-                    const def = `<div class="ticker-item">SELAMAT DATANG DI KTVDI - KOMUNITAS TV DIGITAL INDONESIA. DAPATKAN INFORMASI AKURAT SEPUTAR PENYIARAN DIGITAL.</div>`;
-                    document.getElementById('unified-ticker').innerHTML = def + def;
+                    document.getElementById('unified-ticker').innerHTML = `<div class="ticker-item">SELAMAT DATANG DI KTVDI SMART CITY...</div>`.repeat(3);
                 }
             } catch {}
         }
         updateTicker();
-        
-        setInterval(() => {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'}).replace(/\./g, ':');
-            if(document.getElementById('clock')) document.getElementById('clock').innerText = timeString;
-        }, 1000);
     </script>
 </body>
 </html>
