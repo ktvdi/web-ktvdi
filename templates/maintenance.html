@@ -5,234 +5,248 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maintenance - KTVDI Smart City</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
             --primary: #1e3a8a; /* KTVDI Blue */
             --primary-dark: #0f172a;
-            --accent: #3b82f6;
-            --text-light: #e2e8f0;
+            --gold: #fbbf24;    /* Ramadan Gold */
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at 50% 0, #1e293b, #020617);
-            min-height: 100vh;
+            background-color: var(--primary-dark);
+            color: var(--text-main);
+            overflow: hidden; /* Mencegah scroll saat efek canvas berjalan */
+            height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: white;
-            padding: 20px;
-            overflow: hidden;
             position: relative;
         }
 
-        /* Background Pattern */
-        .bg-pattern {
-            position: absolute; inset: 0;
-            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            z-index: 0;
+        /* --- INTERACTIVE BACKGROUND --- */
+        #network-canvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
         }
 
-        .container {
+        /* --- ORNAMENT RAMADAN (SUBTLE) --- */
+        .ornament {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(circle at 50% 0%, rgba(30, 58, 138, 0.4) 0%, transparent 60%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .maintenance-card {
             position: relative;
             z-index: 10;
-            max-width: 600px;
-            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 3rem 2rem;
+            border-radius: 24px;
             text-align: center;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeUp 1s ease-out;
         }
 
-        /* Logo Area */
-        .logo-wrapper {
-            margin-bottom: 2rem;
-            animation: float 4s ease-in-out infinite;
-        }
-        .logo-box {
+        /* --- LOGO --- */
+        .brand-logo {
             width: 80px; height: 80px;
-            background: linear-gradient(135deg, #2563eb, #1e40af);
+            background: white;
             border-radius: 20px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 0 30px rgba(37, 99, 235, 0.4);
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 40px rgba(37, 99, 235, 0.3);
             position: relative;
         }
-        .logo-box img {
-            width: 50px; height: 50px;
+        .brand-logo img {
+            width: 60%; height: 60%;
             object-fit: contain;
-            filter: brightness(0) invert(1);
         }
-        .maintenance-icon {
-            position: absolute;
-            bottom: -10px; right: -10px;
-            background: #eab308;
-            color: #000;
-            width: 32px; height: 32px;
+        .status-dot {
+            position: absolute; bottom: -5px; right: -5px;
+            width: 24px; height: 24px;
+            background: var(--gold);
+            border: 4px solid var(--primary-dark);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
-            border: 4px solid #0f172a;
+            color: #000; font-size: 10px;
         }
 
-        /* Typography */
+        /* --- TEXT CONTENT --- */
         h1 {
-            font-size: 2rem;
-            font-weight: 800;
+            font-size: 1.75rem;
+            font-weight: 700;
             margin-bottom: 1rem;
-            letter-spacing: -0.02em;
-            background: linear-gradient(to right, #fff, #94a3b8);
+            line-height: 1.2;
+            background: linear-gradient(to right, #fff, #cbd5e1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        
-        p {
-            font-size: 1rem;
-            color: #94a3b8;
+
+        p.message {
+            font-size: 0.95rem;
+            color: var(--text-muted);
             line-height: 1.6;
             margin-bottom: 2rem;
         }
 
-        /* Countdown Box */
-        .countdown-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            padding: 20px;
+        .ramadan-note {
+            font-size: 0.85rem;
+            color: var(--gold);
+            background: rgba(251, 191, 36, 0.1);
+            padding: 8px 16px;
+            border-radius: 99px;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        /* --- COUNTDOWN --- */
+        .countdown-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
             margin-bottom: 2rem;
         }
-        .countdown-timer {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 10px;
-        }
-        .time-block {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .time-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .time-val {
+            display: block;
             font-size: 1.5rem;
-            font-weight: 800;
-            color: #3b82f6;
+            font-weight: 700;
+            color: white;
             font-variant-numeric: tabular-nums;
         }
         .time-label {
             font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #64748b;
+            color: var(--text-muted);
             margin-top: 4px;
         }
-        .separator {
-            font-size: 1.5rem;
-            font-weight: 300;
-            color: #475569;
-            margin-top: -2px;
+
+        /* --- PROGRESS BAR --- */
+        .progress-wrapper {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            width: 85%; /* Simulasi progress */
+            border-radius: 10px;
+            animation: shimmer 2s infinite linear;
+            background-size: 200% 100%;
         }
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(34, 197, 94, 0.1);
-            color: #4ade80;
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-            margin-bottom: 1.5rem;
-        }
-        
+        /* --- FOOTER --- */
         .footer {
             font-size: 0.75rem;
             color: #475569;
-            margin-top: auto;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Animations */
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Mobile Adjustments */
+        /* Mobile */
         @media (max-width: 480px) {
             h1 { font-size: 1.5rem; }
-            p { font-size: 0.9rem; }
-            .time-val { font-size: 1.25rem; }
+            .countdown-grid { gap: 8px; }
+            .time-val { font-size: 1.2rem; }
+            .maintenance-card { padding: 2rem 1.5rem; }
         }
     </style>
 </head>
 <body>
 
-    <div class="bg-pattern"></div>
+    <canvas id="network-canvas"></canvas>
+    <div class="ornament"></div>
 
-    <div class="container">
+    <div class="maintenance-card">
         
-        <div class="logo-wrapper">
-            <div class="logo-box">
-                <img src="https://iili.io/f87539s.png" alt="KTVDI Logo">
-                <div class="maintenance-icon">
-                    <i class="fa-solid fa-screwdriver-wrench"></i>
-                </div>
+        <div class="brand-logo">
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" onerror="this.src='https://iili.io/f87539s.png'">
+            <div class="status-dot">
+                <i class="fa-solid fa-wrench"></i>
             </div>
         </div>
 
-        <div class="status-badge">
-            <i class="fa-solid fa-server"></i>
-            Server Maintenance
+        <div class="ramadan-note">
+            <i class="fa-solid fa-moon"></i> &nbsp;Upgrade Sistem Menjelang Ramadan
         </div>
 
-        <h1>Sistem Sedang Dalam Perbaikan</h1>
+        <h1>Peningkatan Layanan</h1>
         
-        <p>
-            Mohon maaf atas ketidaknyamanan ini. Kami sedang melakukan peningkatan performa server untuk layanan yang lebih baik. Website akan kembali normal pada:
-            <br>
-            <strong style="color: #fff;">Jumat, 30 Januari 2026 - Pukul 07:00 WIB</strong>
+        <p class="message">
+            Kami sedang melakukan pemeliharaan server terjadwal untuk memastikan performa KTVDI Smart City tetap prima, stabil, dan cepat.
         </p>
 
-        <div class="countdown-box">
-            <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Estimasi Kembali Dalam</div>
-            <div class="countdown-timer" id="countdown">
-                <div class="time-block">
-                    <span class="time-val" id="hours">00</span>
-                    <span class="time-label">Jam</span>
-                </div>
-                <span class="separator">:</span>
-                <div class="time-block">
-                    <span class="time-val" id="minutes">00</span>
-                    <span class="time-label">Menit</span>
-                </div>
-                <span class="separator">:</span>
-                <div class="time-block">
-                    <span class="time-val" id="seconds">00</span>
-                    <span class="time-label">Detik</span>
-                </div>
+        <div class="progress-wrapper">
+            <div class="progress-bar"></div>
+        </div>
+
+        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px; font-weight: 600;">SISTEM KEMBALI ONLINE DALAM:</div>
+        <div class="countdown-grid">
+            <div class="time-box">
+                <span class="time-val" id="days">00</span>
+                <span class="time-label">Hari</span>
+            </div>
+            <div class="time-box">
+                <span class="time-val" id="hours">00</span>
+                <span class="time-label">Jam</span>
+            </div>
+            <div class="time-box">
+                <span class="time-val" id="minutes">00</span>
+                <span class="time-label">Menit</span>
+            </div>
+            <div class="time-box">
+                <span class="time-val" id="seconds">00</span>
+                <span class="time-label">Detik</span>
             </div>
         </div>
 
         <div class="footer">
-            &copy; 2026 KTVDI Smart City Network. All rights reserved.
+            Estimasi Selesai: <strong>Jumat, 30 Jan 2026 - 07:00 WIB</strong>
+            <br>
+            &copy; 2026 KTVDI Network. Professional IT Maintenance.
         </div>
 
     </div>
 
     <script>
-        // Set target date: Jumat, 30 Jan 2026, 07:00:00 WIB
-        // Note: Javascript Date month is 0-indexed (Januari = 0)
+        // --- 1. COUNTDOWN LOGIC ---
         const targetDate = new Date("2026-01-30T07:00:00+07:00").getTime();
 
         function updateCountdown() {
@@ -240,26 +254,116 @@
             const distance = targetDate - now;
 
             if (distance < 0) {
-                // Jika waktu habis
-                document.getElementById("countdown").innerHTML = "<div style='color:#4ade80; font-weight:bold;'>Sistem Sedang Memuat Ulang...</div>";
-                // Optional: Auto reload when time is up
-                // window.location.reload(); 
+                document.querySelector('.countdown-grid').innerHTML = "<div style='grid-column: span 4; color:#4ade80; font-weight:bold; padding:10px;'>Memulai Ulang Sistem...</div>";
+                setTimeout(() => window.location.reload(), 3000);
                 return;
             }
 
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
             const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-            // Tambahkan 0 di depan jika angka < 10
+            document.getElementById("days").innerText = days < 10 ? "0" + days : days;
             document.getElementById("hours").innerText = hours < 10 ? "0" + hours : hours;
             document.getElementById("minutes").innerText = minutes < 10 ? "0" + minutes : minutes;
             document.getElementById("seconds").innerText = seconds < 10 ? "0" + seconds : seconds;
         }
-
         setInterval(updateCountdown, 1000);
-        updateCountdown(); // Run immediately
-    </script>
+        updateCountdown();
 
+        // --- 2. INTERACTIVE NETWORK BACKGROUND (CANVAS) ---
+        const canvas = document.getElementById('network-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let particles = [];
+
+        // Resize Canvas
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Particle Class
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.size = Math.random() * 2;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x < 0 || this.x > width) this.vx *= -1;
+                if (this.y < 0 || this.y > height) this.vy *= -1;
+            }
+            draw() {
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Init Particles
+        for (let i = 0; i < 80; i++) particles.push(new Particle());
+
+        // Mouse Interaction
+        let mouse = { x: null, y: null };
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+        window.addEventListener('touchmove', (e) => {
+             mouse.x = e.touches[0].clientX;
+             mouse.y = e.touches[0].clientY;
+        });
+
+        // Animation Loop
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            particles.forEach((p, index) => {
+                p.update();
+                p.draw();
+                
+                // Connect particles
+                for (let j = index; j < particles.length; j++) {
+                    const dx = particles[j].x - p.x;
+                    const dy = particles[j].y - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 100) {
+                        ctx.strokeStyle = `rgba(148, 163, 184, ${1 - dist/100})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Mouse interaction (Repel)
+                if (mouse.x) {
+                    const dx = mouse.x - p.x;
+                    const dy = mouse.y - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        const angle = Math.atan2(dy, dx);
+                        p.x -= Math.cos(angle) * 1;
+                        p.y -= Math.sin(angle) * 1;
+                    }
+                }
+            });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
 </body>
 </html>
