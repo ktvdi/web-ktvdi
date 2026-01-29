@@ -26,63 +26,16 @@
     <style>
         /* === iOS 26.3 ULTRA GLASS DESIGN SYSTEM === */
         
-        /* 1. Page Loader - BLUE GLOSSY STYLE */
+        /* 1. Page Loader */
         #initial-loader {
             position: fixed; inset: 0; z-index: 9999;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); /* Biru Tua Gradient */
+            background: rgba(242, 242, 247, 0.85); /* iOS System Gray 6 */
+            backdrop-filter: blur(50px) saturate(180%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 0.5s ease, visibility 0.5s ease;
-            overflow: hidden;
         }
-
-        /* Efek Glossy Mengkilat */
-        #initial-loader::before {
-            content: '';
-            position: absolute;
-            top: -50%; left: -50%;
-            width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-            animation: gloss-shine 3s infinite linear;
-            pointer-events: none;
-        }
-
-        .loader-content {
-            position: relative;
-            z-index: 10;
-            display: flex; flex-direction: column; align-items: center;
-            /* Efek Kaca pada Logo Container */
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            padding: 2rem;
-            border-radius: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-        }
-
-        .loader-logo { 
-            width: 80px; height: 80px; 
-            filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.6)); /* Glow Biru */
-            animation: breath 2s infinite ease-in-out; 
-            /* Pastikan logo putih agar kontras */
-            filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(255,255,255,0.5));
-        }
-
-        .loader-text {
-            margin-top: 1.5rem;
-            font-size: 0.75rem;
-            font-weight: 800;
-            letter-spacing: 0.2em;
-            color: rgba(255, 255, 255, 0.9);
-            text-transform: uppercase;
-            animation: pulse-text 2s infinite;
-        }
-
-        @keyframes gloss-shine {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .loader-logo { width: 80px; height: 80px; filter: drop-shadow(0 10px 20px rgba(30, 58, 138, 0.3)); animation: breath 2s infinite ease-in-out; }
         @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-        @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
         /* 2. Header Desktop Glass */
         .glass-header { 
@@ -103,11 +56,11 @@
             border-radius: 36px;
             margin: 0;
             width: 100%;
-            height: 80px; /* Tinggi dock */
+            height: 72px; /* Tinggi dock standar */
             display: grid;
             grid-template-columns: repeat(5, 1fr); /* 5 Kolom Rata */
-            align-items: end; /* Item rata bawah */
-            padding-bottom: 10px; 
+            align-items: center;
+            padding: 0 4px;
             position: relative;
         }
         
@@ -121,42 +74,36 @@
             z-index: 60;
         }
 
-        /* 4. Nav Items (Mobile) */
+        /* 4. Nav Items (Mobile) - SEMUA SEJAJAR */
         .nav-item {
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             color: #86868b; transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-            height: 100%; padding-bottom: 2px;
-        }
-        .nav-item i { font-size: 1.4rem; margin-bottom: 4px; transition: transform 0.2s; }
-        .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; line-height: 1; }
-        .nav-item.active { color: #007aff; } 
-        .nav-item:active i { transform: scale(0.85); } 
-
-        /* 5. CCTV Center Button (Perfect Alignment) */
-        .dock-center-wrapper {
+            height: 100%; width: 100%;
+            border-radius: 20px; /* Untuk efek hover/active */
             position: relative;
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            height: 100%;
+            overflow: hidden; /* Untuk efek ripple */
         }
-        .dock-center-btn {
-            width: 56px; height: 56px;
-            background: linear-gradient(135deg, #007aff, #0056b3);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            color: white;
-            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.4);
-            border: 4px solid #f2f2f7; 
-            position: absolute;
-            top: -24px; /* Pop out effect */
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            z-index: 70;
+        
+        .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
+        .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; line-height: 1; z-index: 2; }
+
+        /* Active State (Glassy/Water Effect) */
+        .nav-item.active { 
+            color: #007aff; 
+            background: rgba(0, 122, 255, 0.1); /* Efek air tipis */
+        } 
+        .nav-item.active i { transform: scale(1.1); filter: drop-shadow(0 4px 6px rgba(0, 122, 255, 0.2)); } 
+        
+        /* Haptic Touch Effect */
+        .nav-item:active { transform: scale(0.92); background: rgba(0, 0, 0, 0.05); }
+
+        /* CCTV Button (Spesifik tapi Rata) */
+        .cctv-btn {
+            /* Styling khusus jika perlu, tapi base-nya sama dengan nav-item */
         }
-        .dock-center-btn:active { top: -20px; transform: scale(0.95); box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3); }
-        .dock-center-label { 
-            font-size: 10px; font-weight: 700; color: #86868b; 
-            margin-bottom: 2px; /* Sejajar dengan label lain */
-        }
-        .dock-center-wrapper:hover .dock-center-label { color: #007aff; }
+        .cctv-btn.active i { color: #ff3b30; filter: drop-shadow(0 4px 6px rgba(255, 59, 48, 0.2)); } /* CCTV Merah saat aktif */
+        .cctv-btn.active { color: #ff3b30; background: rgba(255, 59, 48, 0.1); }
+
 
         /* 6. Floating Ticker (Di ATAS Dock) */
         .glass-ticker-floating {
@@ -173,7 +120,7 @@
             align-items: center;
             overflow: hidden;
             position: fixed;
-            bottom: 115px; /* Jarak aman dari Dock */
+            bottom: 108px; /* Jarak aman dari Dock */
             left: 50%;
             transform: translateX(-50%);
             z-index: 50; 
@@ -260,7 +207,7 @@
     <div id="initial-loader">
         <div class="loader-content">
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="loader-logo" alt="Loading...">
-            <p class="loader-text">MEMUAT KTVDI...</p>
+            <p class="mt-4 text-xs font-bold text-slate-400 tracking-widest animate-pulse">MEMUAT KTVDI...</p>
         </div>
     </div>
 
@@ -419,12 +366,10 @@
                 <span>Religi</span>
             </a>
             
-            <div class="dock-center-wrapper">
-                <a href="{{ url_for('cctv_page') }}" class="dock-center-btn">
-                    <i class="fa-solid fa-video text-xl"></i>
-                </a>
-                <span class="dock-center-label">CCTV</span>
-            </div>
+            <a href="{{ url_for('cctv_page') }}" class="nav-item cctv-btn {% if request.endpoint == 'cctv_page' %}active{% endif %}">
+                <i class="fa-solid fa-video"></i>
+                <span>CCTV</span>
+            </a>
 
             <a href="{{ url_for('daftar_siaran') }}" class="nav-item {% if request.endpoint == 'daftar_siaran' %}active{% endif %}">
                 <i class="fa-solid fa-database"></i>
@@ -602,4 +547,3 @@
     </script>
 </body>
 </html>
-
