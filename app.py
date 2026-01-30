@@ -43,7 +43,7 @@ MAINTENANCE_END_DATE = datetime(2026, 1, 31, 7, 0, 0) # Tahun, Bulan, Tgl, Jam, 
 def maintenance_interceptor():
     """
     Mengecek waktu server sebelum memproses request user.
-    Jika masih dalam periode maintenance, alihkan ke halaman cctv.html
+    Jika masih dalam periode maintenance, alihkan ke halaman maintenance.html
     """
     # 1. Izinkan file statis (CSS/JS/Gambar) lewat agar tampilan tidak rusak
     if request.endpoint == 'static':
