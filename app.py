@@ -37,7 +37,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # 2. SISTEM AUTO-MAINTENANCE (PENJAGA PINTU)
 # ==========================================
 # Website otomatis PULIH pada tanggal ini:
-MAINTENANCE_END_DATE = datetime(2026, 1, 30, 7, 0, 0) # Tahun, Bulan, Tgl, Jam, Menit, Detik
+MAINTENANCE_END_DATE = datetime(2026, 1, 31, 7, 0, 0) # Tahun, Bulan, Tgl, Jam, Menit, Detik
 
 @app.before_request
 def maintenance_interceptor():
