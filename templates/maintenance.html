@@ -1,310 +1,725 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maintenance WEB KTVDI</title>
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
+
+<style>
+    /* --- VARIABLES --- */
+    :root {
+        --primary: #1e3a8a; /* KTVDI Blue */
+        --primary-dark: #0f172a;
+        --accent: #2563eb;
+        --bg-body: #f8fafc;
+    }
+
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); -webkit-tap-highlight-color: transparent; }
+
+    /* --- UTILS --- */
+    .premium-scroll::-webkit-scrollbar { width: 5px; }
+    .premium-scroll::-webkit-scrollbar-track { background: transparent; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+    /* --- MARQUEE --- */
+    .marquee-container { position: relative; overflow: hidden; height: 100%; display: flex; align-items: center; }
+    .marquee-content {
+        display: inline-block; white-space: nowrap;
+        animation: marquee-slide 60s linear infinite;
+        padding-left: 100%; font-size: 0.75rem; font-weight: 600; color: #475569;
+    }
+    @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    /* --- PLAYER CARD --- */
+    .player-card {
+        border-radius: 16px; overflow: hidden; background: #000;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
+        display: flex; flex-direction: column;
+    }
     
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary: #1e3a8a; /* KTVDI Blue */
-            --dark: #020617;
-            --gold: #fbbf24;    /* Ramadan Gold */
-            --gold-light: #fde68a;
-            --text-main: #f8fafc;
-        }
+    /* Header Responsive Mobile */
+    .player-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        padding: 12px 16px; color: white;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .cam-info-mobile {
+        display: flex; flex-direction: column;
+        line-height: 1.2;
+    }
+    .cam-city-label {
+        font-size: 0.65rem; font-weight: 700; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .cam-name-label {
+        font-size: 0.95rem; font-weight: 800; color: white;
+        max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+    /* Video Wrapper (16:9 Fixed) */
+    .video-wrapper {
+        position: relative; width: 100%; padding-top: 56.25%;
+        background: #020617;
+    }
+    .video-element {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill;
+    }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at 50% 10%, #172554, #020617);
-            color: var(--text-main);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
+    /* --- ACCORDION LIST --- */
+    .accordion-group { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; overflow: hidden; }
+    .group-header {
+        padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        background: #fff; transition: all 0.2s;
+    }
+    .group-header:hover { background: #f8fafc; }
+    .group-header.active { background: #eff6ff; border-bottom: 1px solid #dbeafe; }
+    .group-title { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #ffffff; }
+    .group-body.open { max-height: 5000px; }
 
-        /* --- ORNAMEN RAMADAN (CSS Only) --- */
-        .decoration { position: absolute; pointer-events: none; z-index: 2; }
+    /* --- LIST ITEM --- */
+    .cam-item {
+        padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+        display: flex; align-items: center; gap: 10px; transition: all 0.2s;
+    }
+    .cam-item:hover { background-color: #f8fafc; padding-left: 18px; }
+    .cam-item.active { background-color: #eff6ff; border-left: 3px solid #2563eb; }
+    .cam-item.active .cam-name { color: #1e40af; font-weight: 700; }
+    .cam-name { font-size: 0.8rem; font-weight: 500; color: #475569; white-space: normal; line-height: 1.3; }
 
-        /* Lampion Gantung */
-        .lantern {
-            top: -20px; 
-            color: var(--gold);
-            filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6));
-            animation: swing 3s ease-in-out infinite alternate;
-            transform-origin: top center;
-        }
-        .lantern-1 { left: 10%; font-size: 80px; animation-duration: 3.5s; }
-        .lantern-2 { right: 10%; font-size: 100px; animation-duration: 4s; }
-        .lantern-3 { right: 25%; font-size: 60px; top: -10px; animation-duration: 3s; opacity: 0.8; }
+    /* --- LOADING ANIMATION --- */
+    .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
+    @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-        /* Sudut Ornamen */
-        .corner-pattern {
-            position: absolute; width: 300px; height: 300px;
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L100 50 L50 100 L0 50 Z' fill='none' stroke='%23fbbf24' stroke-width='1' opacity='0.2'/%3E%3C/svg%3E");
-            z-index: 1; opacity: 0.3;
-        }
-        .cp-tl { top: 0; left: 0; transform: rotate(0deg); }
-        .cp-br { bottom: 0; right: 0; transform: rotate(180deg); }
+    /* --- BITRATE MONITOR (REPLACEMENT FOR SIGNAL) --- */
+    .signal-container {
+        display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
+    .bar { width: 3px; background: #94a3b8; border-radius: 1px; transition: height 0.3s, background 0.3s; }
+    .bar.active { background: #22c55e; } 
+    .bar:nth-child(1) { height: 4px; }
+    .bar:nth-child(2) { height: 6px; }
+    .bar:nth-child(3) { height: 8px; }
+    .bar:nth-child(4) { height: 10px; }
+    .net-label { font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 1px; }
 
-        /* Canvas Background */
-        #star-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+    /* --- RESPONSIVE LAYOUT --- */
+    @media (min-width: 1024px) {
+        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; align-items: start; }
+        .col-player { grid-column: span 9; position: sticky; top: 90px; }
+        .col-list { grid-column: span 3; height: calc(100vh - 110px); overflow: hidden; display: flex; flex-direction: column; }
+        .list-scroll-area { flex: 1; overflow-y: auto; }
+        .cam-name-label { font-size: 1rem; max-width: 400px; }
+    }
+    @media (max-width: 1023px) {
+        .layout-grid { display: flex; flex-direction: column; gap: 1rem; padding: 1rem !important; }
+        .col-player { width: 100%; }
+        .col-list { width: 100%; height: auto; }
+        .list-scroll-area { height: auto; max-height: 500px; overflow-y: auto; }
+        .cam-name-label { font-size: 0.85rem; }
+    }
+</style>
 
-        /* --- MAIN CARD --- */
-        .card {
-            position: relative; z-index: 10;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(251, 191, 36, 0.2); /* Gold Border */
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(251, 191, 36, 0.05);
-            padding: 3rem;
-            border-radius: 24px;
-            text-align: center;
-            max-width: 600px;
-            width: 90%;
-            animation: slideUp 1s ease-out;
-        }
+<div class="min-h-screen w-full flex flex-col text-slate-800" id="main-content">
 
-        /* Logo Area */
-        .brand-wrapper {
-            display: flex; align-items: center; justify-content: center; gap: 15px;
-            margin-bottom: 2rem;
-        }
-        .logo-img {
-            width: 50px; height: 50px;
-            object-fit: contain;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
-        }
-        .brand-text { text-align: left; }
-        .brand-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; line-height: 1; color: white; }
-        .brand-sub { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
-
-        /* Typography */
-        h1 {
-            font-family: 'Cinzel', serif;
-            font-size: 1.8rem;
-            color: var(--gold);
-            margin-bottom: 1rem;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            line-height: 1.3;
-        }
-
-        p {
-            font-size: 0.95rem;
-            color: #cbd5e1;
-            line-height: 1.6;
-            margin-bottom: 2rem;
-        }
-
-        /* Countdown */
-        .countdown-wrapper {
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.3);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-        }
-        .countdown-wrapper::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--gold), transparent);
-        }
-
-        .timer-grid { display: flex; justify-content: center; gap: 15px; }
-        .time-unit { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
-        .time-val {
-            font-family: 'Inter', sans-serif;
-            font-size: 2rem; font-weight: 700; color: white;
-            text-shadow: 0 0 20px rgba(37, 99, 235, 0.8);
-            font-variant-numeric: tabular-nums;
-        }
-        .time-label { font-size: 0.65rem; text-transform: uppercase; color: var(--gold); margin-top: 5px; letter-spacing: 1px; }
-        .separator { font-size: 1.5rem; color: rgba(255,255,255,0.3); margin-top: 5px; }
-
-        .footer {
-            font-size: 0.75rem; color: #94a3b8;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding-top: 1rem;
-        }
-
-        /* Keyframes */
-        @keyframes swing {
-            0% { transform: rotate(3deg); }
-            100% { transform: rotate(-3deg); }
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (max-width: 480px) {
-            h1 { font-size: 1.4rem; }
-            .logo-img { width: 40px; height: 40px; }
-            .brand-title { font-size: 1.2rem; }
-            .time-val { font-size: 1.5rem; }
-            .card { padding: 2rem 1.5rem; }
-            .lantern-2 { display: none; } /* Hide 1 lantern on mobile to save space */
-        }
-    </style>
-</head>
-<body>
-
-    <canvas id="star-canvas"></canvas>
-
-    <div class="decoration lantern lantern-1"><i class="fa-solid fa-mosque"></i></div> <div class="decoration lantern lantern-2"><i class="fa-solid fa-star-and-crescent"></i></div> <div class="decoration lantern lantern-3"><i class="fa-solid fa-lightbulb"></i></div> <div class="corner-pattern cp-tl"></div>
-    <div class="corner-pattern cp-br"></div>
-
-    <div class="card">
-        <div class="brand-wrapper">
-            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="logo-img" alt="KTVDI Logo" onerror="this.src='https://iili.io/f87539s.png'">
-            
-            <div class="brand-text">
-                <div class="brand-title">KTVDI</div>
-                <div class="brand-sub">Komunitas TV Digital Indonesia</div>
-            </div>
-        </div>
-
-        <h1>Peningkatan Layanan Menjelang Bulan Ramadan</h1>
-
-        <p>
-            Mohon maaf atas ketidaknyamanannya. Saat ini kami sedang melakukan pemeliharaan server untuk memastikan performa Website KTVDI tetap prima, stabil, dan lancar menjelang datangnya bulan suci Ramadan.
-        </p>
-
-        <div class="countdown-wrapper">
-            <div style="font-size: 0.7rem; color: var(--gold); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">Sistem Kembali Online Dalam:</div>
-            <div class="timer-grid" id="timer">
-                <div class="time-unit">
-                    <span class="time-val" id="hours">00</span>
-                    <span class="time-label">Jam</span>
+    <nav class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto navbar-brand">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 shrink-0 p-1">
+                    <img src="https://iili.io/f87539s.png" alt="KTVDI CCTV" class="w-6 h-6 object-contain brightness-0 invert">
                 </div>
-                <span class="separator">:</span>
-                <div class="time-unit">
-                    <span class="time-val" id="minutes">00</span>
-                    <span class="time-label">Menit</span>
-                </div>
-                <span class="separator">:</span>
-                <div class="time-unit">
-                    <span class="time-val" id="seconds">00</span>
-                    <span class="time-label">Detik</span>
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-slate-900 font-extrabold text-lg tracking-tight leading-none">WEBSITE MASIH <span class="text-blue-700">MAINTENANCE</span></h1>
+                    <p class="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">INI TAMPILAN TESTING SAJA YA YANG TIM IT KAMI OTAK ATIK, SEBENERNYA ANDA DI HALAMAN PERBAIKAN</p>
                 </div>
             </div>
+            <div class="relative w-full md:w-80 group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-700 transition-colors"></i>
+                </div>
+                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2 pl-11 pr-5 focus:outline-none focus:border-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-slate-400 shadow-inner" placeholder="Cari lokasi kamera...">
+            </div>
         </div>
+    </nav>
 
-        <div class="footer">
-            <div>WEBSITE KTVDI DAPAT DIAKSES KEMBALI PADA :</div>
-            <strong style="color: white; font-size: 0.9rem;">Sabtu, 31 Jan 2026 - 07:00 WIB</strong>
-            <br><br>
-            &copy; 2026 KTVDI Network. Professional IT Maintenance.<br>
-            <span style="font-size: 0.65rem; opacity: 0.7;">Selamat beristirahat ya Sob.</span>
-        </div>
-    </div>
+    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 layout-grid">
 
-    <script>
-        // --- 1. COUNTDOWN SYSTEM ---
-        const targetDate = new Date("2026-01-31T07:00:00+07:00").getTime();
+        <main class="col-player">
+            <div class="player-card">
+                <div class="player-header">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
+                            <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                            <span class="text-[9px] font-bold tracking-wider">LIVE</span>
+                        </div>
+                        
+                        <div class="cam-info-mobile">
+                            <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
+                            <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20 shrink-0">
+                         <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span class="hidden sm:inline">Secure</span>
+                    </div>
+                </div>
 
-        function updateTimer() {
-            const now = new Date().getTime();
-            const distance = targetDate - now;
+                <div class="video-wrapper group">
+                    <video id="video-element" class="video-element" autoplay muted playsinline></video>
 
-            if (distance < 0) {
-                document.getElementById("timer").innerHTML = "<span style='color:#4ade80; font-weight:bold; font-size:1.2rem;'>Memuat Ulang Sistem...</span>";
-                setTimeout(() => window.location.reload(), 3000);
-                return;
-            }
+                    <div id="overlay-loading" class="absolute inset-0 bg-[#0f172a] z-40 flex flex-col items-center justify-center text-center p-4">
+                        <div class="relative w-20 h-20 mb-4 logo-pulse">
+                            <div class="absolute inset-0 bg-blue-600/30 rounded-full blur-xl"></div>
+                            <img src="https://iili.io/f87539s.png" alt="Loading" class="w-full h-full object-contain brightness-0 invert drop-shadow-lg relative z-10">
+                        </div>
+                        <h3 class="text-white font-extrabold text-lg tracking-widest mb-1">KTVDI CCTV</h3>
+                        <p class="text-blue-400 text-xs font-semibold animate-pulse">Sedang loading play Camera...</p>
+                    </div>
 
-            const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((distance % (1000 * 60)) / 1000);
+                    <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
+                        <div class="w-16 h-16 bg-white/10 border-2 border-white/40 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-play text-white text-3xl ml-1"></i>
+                        </div>
+                    </div>
 
-            document.getElementById("hours").innerText = h < 10 ? "0" + h : h;
-            document.getElementById("minutes").innerText = m < 10 ? "0" + m : m;
-            document.getElementById("seconds").innerText = s < 10 ? "0" + s : s;
-        }
-        setInterval(updateTimer, 1000);
-        updateTimer();
+                    <div id="overlay-error" class="absolute inset-0 bg-slate-900 z-40 hidden flex flex-col items-center justify-center text-center px-6">
+                        <i class="fa-solid fa-video-slash text-slate-500 text-4xl mb-3"></i>
+                        <h4 class="text-white font-bold mb-2">Kamera Offline</h4>
+                        <p class="text-slate-400 text-xs mb-4">Koneksi terputus. Coba muat ulang.</p>
+                        <button onclick="retryStream()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-lg">Coba Lagi</button>
+                    </div>
+                </div>
 
-        // --- 2. INTERACTIVE STAR BACKGROUND ---
-        const canvas = document.getElementById('star-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height;
-        let stars = [];
+                <div class="bg-slate-900 px-4 py-2.5 flex items-center justify-between border-t border-slate-800">
+                    <div class="flex items-center gap-3">
+                         <div class="text-[10px] text-slate-400 font-mono tracking-wider">PANTAUAN CCTV TERKINI</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="retryStream()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Reload"><i class="fa-solid fa-rotate-right text-sm"></i></button>
+                        <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
+                    </div>
+                </div>
+            </div>
 
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            initStars();
-        }
+            <div class="mt-4 bg-white border border-slate-200 p-3 rounded-xl shadow-sm flex flex-col gap-3">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    
+                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+                            <i class="fa-regular fa-clock"></i>
+                        </div>
+                        <div>
+                            <div id="digital-clock" class="text-slate-900 font-bold text-sm leading-none">00:00:00</div>
+                            <div id="date-display" class="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">...</div>
+                        </div>
+                    </div>
 
-        class Star {
-            constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.size = Math.random() * 2;
-                this.speedX = (Math.random() - 0.5) * 0.2;
-                this.speedY = (Math.random() - 0.5) * 0.2;
-                this.opacity = Math.random();
-            }
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
+                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                        <div class="signal-container">
+                            <div class="signal-bars" id="signal-meter">
+                                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            </div>
+                            <span class="net-label" id="bitrate-display">0.00 Mbps</span>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                            <i class="fa-solid fa-bolt-lightning text-sm"></i>
+                        </div>
+                    </div>
+
+                </div>
                 
-                // Mouse Interaction (Push effect)
-                if(mouse.x) {
-                    const dx = this.x - mouse.x;
-                    const dy = this.y - mouse.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if(dist < 100) {
-                        this.x += dx * 0.05;
-                        this.y += dy * 0.05;
+                <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-8 flex items-center overflow-hidden">
+                    <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10"><i class="fa-solid fa-bullhorn text-white text-xs"></i></div>
+                    <div class="marquee-container w-full bg-white">
+                        <div class="marquee-content">INFORMASI PENTING: Tayangan CCTV ini bersumber dari layanan publik Pemerintah Daerah (Diskominfo). KTVDI Smart City hanya berfungsi sebagai portal akses. Gunakan dengan bijak.</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="col-list bg-white rounded-xl border border-slate-200 shadow-lg">
+            <div class="p-4 border-b border-slate-100 bg-white sticky top-0 z-20 flex justify-between items-center">
+                <div>
+                    <h3 class="font-extrabold text-slate-800 text-sm">Daftar Lokasi</h3>
+                    <p class="text-[10px] text-slate-500">Pilih kota untuk melihat kamera</p>
+                </div>
+                <span class="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold border border-blue-100" id="total-cams">Loading...</span>
+            </div>
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-2 bg-slate-50"></div>
+            <div class="p-3 bg-white border-t border-slate-200 text-center text-[10px] text-slate-400 font-medium">© 2026 KTVDI Network</div>
+        </aside>
+
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. DATA SOURCE LENGKAP
+    // ==========================================
+    const streamSource = [
+        {city: "KOTA SEMARANG", name: "Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Letjen Suprapto", url: "https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Mberok In", url: "https://livepantau.semarangkota.go.id/16ec5c7d-78d6-4faa-88f3-ce2377787ab6/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Metro Johar", url: "https://livepantau.semarangkota.go.id/1d3d4d03-fbc6-471a-b86e-796f9d2454a6/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pemuda - Gajahmada", url: "https://livepantau.semarangkota.go.id/e274caf0-9e7d-4fb4-a0b7-47fcfe5e10ad/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Indaprasta - Imam Bonjol", url: "https://livepantau.semarangkota.go.id/e4a12f24-7e58-4dff-9e5b-e4ef0991b3e5/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Balaikota", url: "https://livepantau.semarangkota.go.id/dd46c7bd-84b8-4cb1-a6e8-d4009da88b22/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Kaligarang", url: "https://livepantau.semarangkota.go.id/bc32b5de-1f3e-4269-857c-9e97a918ea67/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 2", url: "https://livepantau.semarangkota.go.id/74dea63a-7c5c-43d9-96d3-dcaa96f96500/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 3", url: "https://livepantau.semarangkota.go.id/163d3665-9e33-4098-991b-81e1531de941/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda", url: "https://livepantau.semarangkota.go.id/8b7644f9-072c-4c62-9952-f77c6e1851dc/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 2 Wide", url: "https://livepantau.semarangkota.go.id/65409efe-d32c-4762-b1b6-be7e0b70ae13/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 3-2", url: "https://livepantau.semarangkota.go.id/6b60e72b-8428-4a13-b19d-1c59937f0aee/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pucang Gading", url: "https://livepantau.semarangkota.go.id/f4a8da4f-8353-4ea4-beed-801beedca676/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Sambiroto", url: "https://livepantau.semarangkota.go.id/4ffd0954-5fe8-45e0-bbdc-32b0ef74c0f4/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Fatmawati", url: "https://livepantau.semarangkota.go.id/6c9bfcf4-1118-4472-b952-70374425240e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Counting Pedurungan", url: "https://livepantau.semarangkota.go.id/92c6c558-67b1-4fbe-85ac-13285134d3a4/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tlogosari", url: "https://livepantau.semarangkota.go.id/718fb9e8-52d5-44ef-9a0d-a4be26ce9640/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU Terowongan Soetta", url: "https://livepantau.semarangkota.go.id/d2eb2ac6-ea82-4397-a304-4e644a6fcda2/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bawah Tol X3W_IN", url: "https://livepantau.semarangkota.go.id/64044538-6b87-45fe-9780-a7d9a772edb0/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Supriyadi", url: "https://livepantau.semarangkota.go.id/e6447de6-60af-428a-abad-3f46f93dff85/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pasar Banyumanik", url: "https://livepantau.semarangkota.go.id/56255b86-ca94-4308-bc6e-ec99e4fa115a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Banyumanik Counting Out", url: "https://livepantau.semarangkota.go.id/3a3ab4ac-71d7-4745-96db-3d2a89c88eec/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simp Sukun", url: "https://livepantau.semarangkota.go.id/ddd47c5c-60e9-4e11-9402-9a44e3f80cf0/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Exit Tol Srondol", url: "https://livepantau.semarangkota.go.id/26be91ae-df40-4154-8106-022fbf126091/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Patung Diponegoro", url: "https://livepantau.semarangkota.go.id/71e5c155-44b3-4323-8fa3-8000e02d2fe5/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bukit Sari", url: "https://livepantau.semarangkota.go.id/3dccd8b8-4d36-4f97-a801-e044f206c628/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Fly Over Jatingaleh", url: "https://livepantau.semarangkota.go.id/3b733f91-8045-4c00-b3ee-58346553c420/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Fly Over Jatingaleh Wide", url: "https://livepantau.semarangkota.go.id/4fc95992-4d96-49bd-a2c1-5c2d53406f03/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Kaliwiru", url: "https://livepantau.semarangkota.go.id/71144509-2bb9-4f55-ade3-bfa3bf01f1eb/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Donbosko", url: "https://livepantau.semarangkota.go.id/5af48766-7d94-439f-9f83-a615fb82d3fa/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SP.Akpol", url: "https://livepantau.semarangkota.go.id/3481ab70-9c70-4213-a954-adc9954d35f4/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bundaran Diponegoro", url: "https://livepantau.semarangkota.go.id/66d3db83-931c-438e-aed5-8f29a96c7219/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Exit Tol Gayamsari", url: "https://livepantau.semarangkota.go.id/9397276f-ab0f-46a3-988c-4fa6b24782f5/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Lamper - Gajah", url: "https://livepantau.semarangkota.go.id/15dfb463-f960-46bd-9db4-5f75780c8f9e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simp Kelinci", url: "https://livepantau.semarangkota.go.id/99259845-4513-40d4-b4ff-fe52a731f96b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Cinde", url: "https://livepantau.semarangkota.go.id/ffd980f2-fd2c-4dfe-919a-ad35d75b0035/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pasar Kambing 360", url: "https://livepantau.semarangkota.go.id/885c3af0-c04d-4376-8284-e5d8abdd3dac/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Peterongan", url: "https://livepantau.semarangkota.go.id/c2b8e299-695d-4a94-b9d6-149c97d9deb7/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Milo", url: "https://livepantau.semarangkota.go.id/defcf484-e730-462d-912c-b98f7dba92ac/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bangkong", url: "https://livepantau.semarangkota.go.id/73c3d1e3-28d8-496c-b0a5-763225c10c3d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "MT Haryono", url: "https://livepantau.semarangkota.go.id/aff2b8b8-5d60-43bd-8a6d-bfcf9e83a234/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Sriwijaya 02", url: "https://livepantau.semarangkota.go.id/c0339699-6b20-45dc-8e8d-c3b0ece2ab3e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Sriwijaya 01", url: "https://livepantau.semarangkota.go.id/d2d3a81d-9d33-4dac-af45-29500714ff87/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Ki Mangun Sarkoro", url: "https://livepantau.semarangkota.go.id/9ea7c028-2b3a-4df5-a8d6-ec8f71de6c53/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JPO Simpang 5", url: "https://livepantau.semarangkota.go.id/ff2be764-eb85-487e-b603-81dc4fcd271f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Polda 360", url: "https://livepantau.semarangkota.go.id/85f04ddc-61b3-40a0-87ed-2234a7a3703f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pahlawan PTZ 01", url: "https://livepantau.semarangkota.go.id/4f138ed7-2fca-4ada-8eec-be832fa6988b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pahlawan PTZ 02", url: "https://livepantau.semarangkota.go.id/e7895fae-c1b7-48a4-9efd-d8009d00c947/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pahlawan 108", url: "https://livepantau.semarangkota.go.id/a174cf48-af7f-4cf9-a35c-4158c05b6745/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Arah Tugu Tunas", url: "https://livepantau.semarangkota.go.id/31c11bab-0ec7-4136-9c74-98266f3f5380/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Arah Pandanaran", url: "https://livepantau.semarangkota.go.id/892f0437-5dc9-45c1-b202-180f4c6d0ed8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU Pahlawan", url: "https://livepantau.semarangkota.go.id/ba6092fc-39c6-4f10-bca4-b4ab49f71246/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang 5 1 360", url: "https://livepantau.semarangkota.go.id/7831ff81-dc8a-4c2e-b3ab-d041eda64804/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang 5 2", url: "https://livepantau.semarangkota.go.id/2e283d27-b5bc-4f99-9e50-65ee51229031/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Tentrem Mall", url: "https://livepantau.semarangkota.go.id/1d38d1c3-1bd2-43c4-a699-1041897a5755/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Gajahmada", url: "https://livepantau.semarangkota.go.id/37f49225-75cb-4a8f-86dd-7274e128a50f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bergota 360", url: "https://livepantau.semarangkota.go.id/c76db3cc-6a7c-46ca-9dd4-1d9000e5f9b7/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Thamrin Pandanaran 360", url: "https://livepantau.semarangkota.go.id/9d44f052-0cf9-4b16-a786-cc6ea7e8d1a5/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Thamrin", url: "https://livepantau.semarangkota.go.id/9578fde7-aa93-48bd-8cdf-7545458d95e9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bathan - Thamrin", url: "https://livepantau.semarangkota.go.id/a0927a42-548d-4a91-89e0-50cb24378613/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pusat Oleh Oleh", url: "https://livepantau.semarangkota.go.id/02f5d6ea-5b02-4097-b2d0-0f6646dca9f8/index.m3u8"},
+
+        // --- D.I. YOGYAKARTA ---
+        {city: "D.I. YOGYAKARTA", name: "Malioboro - Simpang Pajeksan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_22_Simpang_Pajeksan_Suryatmajan.stream/chunklist_w229731190.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Mandala Krida", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Mandala_Krida_PTZ.stream/chunklist_w59646757.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro - Depan Toko Subur", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_2_Depan_Toko_Subur.stream/chunklist_w1876728600.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Bumen", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_bumen.stream/chunklist_w1247100149.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Taman Waniwulang", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/WanaWil.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Pertigaan Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RBA Alun-Alun Sisi Barat", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/RBRA.stream/chunklist_w670553311.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Jl Nyoman Arah Gereja", url: "https://cctvjss.jogjakota.go.id/kotabaru/Jl-Nyoman-Oka.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Demen Glagah", url: "https://mam.jogjaprov.go.id:1937/atcs/DemenGlagah.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Mantrigawen PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Karang Tunggal", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah2.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Condong Catur 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Condongcatur2.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Besi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Besi.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Juadi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Juadi.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Tegalgendu PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Tegalgendu_PTZ.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Tugu PTZ 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewSimpangTugu.stream/chunklist_w1182543842.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "View 0 KM PTZ", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewNolKilo.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "View Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Pandansari Timur", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewPandansariTimur.stream/chunklist_w347333533.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Segoro Tegalrejo 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_segoro_amarto_tegalrejo_2.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Nyai Ageng View Utara", url: "https://mam.jogjaprov.go.id:1937/cctv-kp/Karangnongko.stream/chunklist_w197698033.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Glagahsari PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari_PTZ.stream/chunklist_w609517393.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Glagahsari", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari.stream/chunklist_w1045846334.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Semaki 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_1.stream/chunklist_w1401704022.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Semaki 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_2.stream/chunklist_w1348168339.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Gunung Ketur 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_2.stream/chunklist_w779845700.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RHTP Gunung Ketur 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_1.stream/chunklist_w11536123.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Brontokusuman Belakang 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_2.stream/chunklist_w1107148855.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Terang Bulan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_11_Terang_Bulan.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Mal Selatan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Mutiara Lama", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_8_Mutiara_Lama.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Utara Mall", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_25_Utara_Mall.stream/chunklist_w2134770204.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang BPK", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_bpk.stream/chunklist_w367961555.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_2.stream/chunklist_w331129965.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_1.stream/chunklist_w934333603.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Gayam", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gayam.stream/chunklist_w1124660989.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Sentul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Sentul.stream/chunklist_w109375030.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Alun-Alun Utara", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/AlunAlunUtara1.stream/chunklist_w292300010.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SP3 Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist_w686073147.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Lapangan Basket", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/LapanganBasket.stream/chunklist_w2123417370.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Depan Plaza Malioboro", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanMall.stream/chunklist_w308264239.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Candi Prambanan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiPrambanan.stream/chunklist_w1877697172.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Candi Ratu Boko", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiBoko.stream/chunklist_w103317346.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Tebing Breksi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewBreksi.stream/chunklist_w870274498.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Museum Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/chunklist_w1260618601.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Depan Pasar Bringharjo", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanBeringharjo.stream/chunklist_w2067964493.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Candi Sambisari", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiSambisari.stream/chunklist_w1703721545.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Embung Tambakboyo", url: "https://mam.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTambakboyo.stream/chunklist_w782093023.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Alun-Alun Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/playlist.m3u8"},
+
+        // --- KOTA PEKALONGAN ---
+        {city: "KOTA PEKALONGAN", name: "Ponolawen", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Alun Alun Barat", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/3/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Depan Taspen 2", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Dr Cipto", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Ruang Amarta", url: "https://rtsp.pekalongankota.go.id/stream/203ede86-a503-4350-816c-9d92643ff605/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Grosir Setono", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Grogolan PTZ", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Depan Balaikota 1", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Gambaran", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Polsek Timur", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Alun Alun", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "THR", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "THR Selatan", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/4/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Stasiun", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Kec Pekalongan Selatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Depan Taspen 1", url: "https://rtsp.pekalongankota.go.id/stream/d794f4f7-1b4e-4d1f-a92d-f0920c5f387c/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Perempatan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Perempatan Kominfo 2", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pusri Timur", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pusri Barat", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Ahmad Yani", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Ponolawen Timur", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Ponolawen Selatan", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pendopo Mataram", url: "https://rtsp.pekalongankota.go.id/stream/3cf3168a-784e-4f9d-9d1e-15809887e87f/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Tirto Timur", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Tirto Selatan", url: "https://rtsp.pekalongankota.go.id/stream/723919ec-c0ae-43a9-90f8-a513d5823b27/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Ahmad Yani Timur", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/3/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Parkir Depan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/092dc478-ba66-4939-8fd0-b8796cfd89a0/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Dharma Bakti Timur", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Dharma Bakti Barat", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Dharma Bakti Selatan", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pertigaan Podosugih Utara", url: "https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Muhammadiyah Barat", url: "https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Matahari", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Terminal Tengah", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Terminal Timur", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pertigaan Podo Sugih Timur", url: "https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Polsek Timur (Alt)", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Grogolan Timur", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Mataram Pojok Utara", url: "https://rtsp.pekalongankota.go.id/stream/4e2c3d4b-7cb1-40fa-9e56-3cfc9693412f/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego 2", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Area Sorogenen", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Stasiun Timur", url: "https://rtsp.pekalongankota.go.id/stream/fa9357ae-1dbc-4f50-a6d1-88649a49a8ae/channel/1/hlsll/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pusri Timur (Superindo)", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hlsll/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Posis Barat", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Posis Utara", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Posis Timur", url: "https://rtsp.pekalongankota.go.id/stream/390c6bc2-f6eb-46f6-be5a-a7bd6651d110/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Jalan Kurinci (Alfamart)", url: "https://rtsp.pekalongankota.go.id/stream/f7047bbb-7385-4e0a-b0b4-58594772a8e1/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Kec Pekalongan Utara", url: "https://rtsp.pekalongankota.go.id/stream/097799c5-4130-48b8-8c94-869b1960d0c1/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Kali Bremi", url: "https://rtsp.pekalongankota.go.id/stream/a051a871-44ce-4a0e-9c30-6fc3455904b1/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Pertigaan Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Menara TWL Pasir Kencana", url: "https://rtsp.pekalongankota.go.id/stream/e1c404e6-19f1-464c-9754-e8d53546ff8b/channel/0/hlsll/live/index.m3u8"}
+    ];
+
+    // ==========================================
+    // 2. BITRATE MONITORING LOGIC
+    // ==========================================
+    function updateBitrateDisplay(bitrateKbps) {
+        const bitrateMbps = (bitrateKbps / 1024).toFixed(2);
+        const display = document.getElementById('bitrate-display');
+        const bars = document.querySelectorAll('.bar');
+        
+        display.innerText = `${bitrateMbps} Mbps`;
+
+        // Bar Logic: 
+        // 0-0.5 Mbps: 1 bar
+        // 0.5-1.5 Mbps: 2 bars
+        // 1.5-3 Mbps: 3 bars
+        // >3 Mbps: 4 bars
+        let quality = 0;
+        const value = parseFloat(bitrateMbps);
+        
+        if (value > 0) quality = 1;
+        if (value > 0.5) quality = 2;
+        if (value > 1.5) quality = 3;
+        if (value > 3) quality = 4;
+
+        bars.forEach((bar, index) => {
+            if (index < quality) {
+                bar.classList.add('active');
+                // Warna peringatan jika bitrate terlalu rendah untuk HD
+                bar.style.backgroundColor = (value < 0.8) ? '#eab308' : '#22c55e';
+            } else {
+                bar.classList.remove('active');
+                bar.style.backgroundColor = '#94a3b8';
+            }
+        });
+    }
+
+    // ==========================================
+    // 3. PLAYER LOGIC (HLS + ERROR HANDLING)
+    // ==========================================
+    let hls;
+    let activeStreamIndex = 0;
+    const video = document.getElementById('video-element');
+    const statusCity = document.getElementById('active-cam-city');
+    const statusName = document.getElementById('active-cam-name');
+    const loadingOverlay = document.getElementById('overlay-loading');
+    const errorOverlay = document.getElementById('overlay-error');
+    const playOverlay = document.getElementById('overlay-play');
+
+    function initPlayer() {
+        renderAccordionList();
+        if (streamSource.length > 0) loadStream(0);
+        setInterval(updateClock, 1000);
+        updateClock();
+    }
+
+    function loadStream(index) {
+        if (index < 0 || index >= streamSource.length) return;
+        activeStreamIndex = index;
+        const stream = streamSource[index];
+
+        statusCity.innerText = stream.city;
+        statusName.innerText = stream.name;
+        
+        loadingOverlay.classList.remove('hidden');
+        errorOverlay.classList.add('hidden');
+        playOverlay.classList.add('hidden');
+        updateBitrateDisplay(0);
+
+        document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.getElementById(`cam-${index}`);
+        if(activeItem) {
+            activeItem.classList.add('active');
+            activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        if (Hls.isSupported()) {
+            if (hls) hls.destroy();
+            hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: true,
+                backBufferLength: 30
+            });
+            
+            hls.loadSource(stream.url);
+            hls.attachMedia(video);
+            
+            // Listen for bitrate/fragment data
+            hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+                if(data.stats) {
+                    // Hitung kbps dari ukuran fragmen dan waktu download
+                    const kbps = (data.stats.total * 8) / (data.stats.loading.end - data.stats.loading.start);
+                    updateBitrateDisplay(kbps);
+                }
+            });
+
+            hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+               const level = hls.levels[data.level];
+               if(level && level.bitrate) updateBitrateDisplay(level.bitrate / 1000);
+            });
+
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(() => {
+                    loadingOverlay.classList.add('hidden');
+                    playOverlay.classList.remove('hidden');
+                });
+            });
+
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            hls.destroy();
+                            showErrorState();
+                            break;
                     }
                 }
-
-                if (this.x < 0) this.x = width;
-                if (this.x > width) this.x = 0;
-                if (this.y < 0) this.y = height;
-                if (this.y > height) this.y = 0;
-            }
-            draw() {
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function initStars() {
-            stars = [];
-            for (let i = 0; i < 150; i++) stars.push(new Star());
-        }
-
-        let mouse = { x: null, y: null };
-        window.addEventListener('mousemove', e => { mouse.x = e.x; mouse.y = e.y; });
-        window.addEventListener('resize', resize);
-
-        function animate() {
-            ctx.clearRect(0, 0, width, height);
-            stars.forEach(star => {
-                star.update();
-                star.draw();
             });
-            requestAnimationFrame(animate);
+
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = stream.url;
+            video.addEventListener('loadedmetadata', () => {
+                video.play().catch(() => playOverlay.classList.remove('hidden'));
+            });
+            video.addEventListener('error', showErrorState);
+        }
+    }
+
+    video.addEventListener('playing', () => {
+        loadingOverlay.classList.add('hidden');
+        playOverlay.classList.add('hidden');
+    });
+
+    video.addEventListener('waiting', () => {
+        if (!video.paused) loadingOverlay.classList.remove('hidden');
+    });
+
+    function showErrorState() {
+        loadingOverlay.classList.add('hidden');
+        errorOverlay.classList.remove('hidden');
+        updateBitrateDisplay(0);
+    }
+
+    function retryStream() {
+        loadStream(activeStreamIndex);
+    }
+
+    function startPlayback() {
+        video.play();
+        playOverlay.classList.add('hidden');
+    }
+
+    // ==========================================
+    // 4. UI RENDERER (ACCORDION)
+    // ==========================================
+    function renderAccordionList() {
+        const container = document.getElementById('camera-list-container');
+        container.innerHTML = '';
+        
+        const groups = {};
+        streamSource.forEach((s, i) => {
+            if (!groups[s.city]) groups[s.city] = [];
+            groups[s.city].push({ ...s, originalIndex: i });
+        });
+
+        const orderedGroups = Object.keys(groups).sort((a,b) => {
+            if(a.includes("SEMARANG")) return -1;
+            if(b.includes("SEMARANG")) return 1;
+            return 0;
+        });
+
+        for (const groupName of orderedGroups) {
+            const items = groups[groupName];
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'accordion-group';
+            
+            const header = document.createElement('div');
+            header.className = 'group-header';
+            header.onclick = () => toggleGroup(header);
+            header.innerHTML = `
+                <div class="group-title">
+                    <i class="fa-solid fa-map-location-dot text-blue-700"></i> ${groupName}
+                </div>
+                <i class="fa-solid fa-chevron-down group-icon"></i>
+            `;
+
+            const body = document.createElement('div');
+            body.className = 'group-body';
+            
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'cam-item';
+                row.id = `cam-${item.originalIndex}`;
+                row.onclick = () => loadStream(item.originalIndex);
+                row.innerHTML = `
+                    <i class="fa-solid fa-circle-play text-slate-300 text-lg play-icon transition-transform"></i>
+                    <span class="cam-name flex-1">${item.name}</span>
+                `;
+                body.appendChild(row);
+            });
+
+            groupDiv.appendChild(header);
+            groupDiv.appendChild(body);
+            container.appendChild(groupDiv);
         }
 
-        resize();
-        animate();
-    </script>
-</body>
-</html>
+        document.getElementById('total-cams').innerText = `${streamSource.length} CAM`;
+    }
+
+    function toggleGroup(header) {
+        header.classList.toggle('active');
+        header.nextElementSibling.classList.toggle('open');
+    }
+
+    // ==========================================
+    // 5. SMART SEARCH
+    // ==========================================
+    function handleSearch() {
+        const term = document.getElementById('search-input').value.toLowerCase();
+        const groups = document.querySelectorAll('.accordion-group');
+        
+        groups.forEach(group => {
+            const items = group.querySelectorAll('.cam-item');
+            let hasMatch = false;
+
+            items.forEach(item => {
+                if (item.innerText.toLowerCase().includes(term)) {
+                    item.style.display = 'flex';
+                    hasMatch = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            const body = group.querySelector('.group-body');
+            const header = group.querySelector('.group-header');
+
+            if (term.length > 0) {
+                if (hasMatch) {
+                    group.style.display = 'block';
+                    body.classList.add('open');
+                    header.classList.add('active');
+                } else {
+                    group.style.display = 'none';
+                }
+            } else {
+                group.style.display = 'block';
+                body.classList.remove('open');
+                header.classList.remove('active');
+                items.forEach(i => i.style.display = 'flex');
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. UTILITIES
+    // ==========================================
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('digital-clock').innerText = now.toLocaleTimeString('id-ID', {hour12: false});
+        document.getElementById('date-display').innerText = now.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    }
+
+    function toggleFullscreen() {
+        const wrapper = document.querySelector('.video-wrapper');
+        const video = document.getElementById('video-element');
+        
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (wrapper.requestFullscreen) {
+                wrapper.requestFullscreen();
+            } else if (video.webkitEnterFullscreen) {
+                video.webkitEnterFullscreen();
+            } else if (wrapper.webkitRequestFullscreen) {
+                wrapper.webkitRequestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initPlayer);
+
+</script>
+{% endblock %}
