@@ -1,16 +1,18 @@
-{% extends 'base.html' %}
-{% block title %}Database Siaran - KTVDI{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Dashboard Kontributor - KTVDI{% endblock %}
 
 {% block content %}
 <style>
     /* === iOS 26.3 GLASS THEME === */
-    .glass-panel {
+    .glass-card {
         background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(40px) saturate(180%);
-        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        backdrop-filter: blur(50px) saturate(180%);
+        -webkit-backdrop-filter: blur(50px) saturate(180%);
         border: 1px solid rgba(255, 255, 255, 0.5);
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
         border-radius: 24px;
+        transition: transform 0.3s ease;
     }
 
     .glass-input {
@@ -23,60 +25,70 @@
     }
     .glass-input:focus {
         background: rgba(255, 255, 255, 0.95);
-        border-color: #1e40af; /* KTVDI Blue */
+        border-color: #1e40af;
         box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
         transform: translateY(-1px);
     }
     .glass-input:disabled { 
-        opacity: 0.6; cursor: not-allowed; background: rgba(200, 200, 200, 0.2); 
+        opacity: 0.6; cursor: not-allowed; background: rgba(200, 200, 200, 0.1); 
     }
 
-    .channel-card {
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        border-radius: 18px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex; align-items: center; gap: 12px;
-        padding: 12px 16px;
-    }
-    .channel-card:hover {
-        transform: translateY(-4px) scale(1.02);
-        box-shadow: 0 10px 25px -5px rgba(30, 64, 175, 0.15);
-        border-color: rgba(30, 64, 175, 0.2);
-        background: rgba(255, 255, 255, 0.95);
-    }
-
-    /* Background Gradient KTVDI */
-    .bg-ktvdi-mesh {
+    /* Background Gradient */
+    .bg-mesh-dash {
         background-color: #f8fafc;
         background-image: 
-            radial-gradient(at 0% 0%, hsla(217,91%,91%,1) 0, transparent 50%), 
-            radial-gradient(at 100% 0%, hsla(199,89%,91%,1) 0, transparent 50%), 
-            radial-gradient(at 100% 100%, hsla(220,91%,91%,1) 0, transparent 50%), 
-            radial-gradient(at 0% 100%, hsla(200,91%,91%,1) 0, transparent 50%);
+            radial-gradient(at 0% 100%, rgba(30, 64, 175, 0.1) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%);
         background-attachment: fixed;
     }
+
+    .action-btn {
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .action-btn:hover { transform: translateY(-2px); shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    .action-btn:active { transform: scale(0.95); }
 </style>
 
-<div class="min-h-screen bg-ktvdi-mesh py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] pb-32">
+<div class="min-h-screen bg-mesh-dash py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] pb-32">
     
-    <div class="max-w-6xl mx-auto relative z-10">
-        <div class="text-center mb-10 animate-fade-in-up">
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 border border-white/80 text-blue-800 text-[10px] font-bold tracking-widest uppercase mb-4 shadow-sm backdrop-blur-md">
-                <i class="fa-solid fa-tower-broadcast animate-pulse"></i> Data Frekuensi Nasional
+    <div class="max-w-6xl mx-auto relative z-10 space-y-8">
+        
+        <div class="glass-card p-8 flex flex-col md:flex-row justify-between items-center gap-6 animate-fade-in-up">
+            <div class="flex items-center gap-5 w-full md:w-auto">
+                <div class="relative">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-navy to-brand-blue flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/30">
+                        {{ name[0] | upper if name else 'U' }}
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold text-brand-navy">Halo, {{ name }}! 👋</h1>
+                    <p class="text-slate-500 text-sm font-medium">Selamat datang di Panel Kontributor.</p>
+                </div>
             </div>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-brand-navy mb-3 tracking-tight">Database Siaran Digital</h1>
-            <p class="text-slate-500 text-lg max-w-2xl mx-auto font-medium">Cek ketersediaan saluran TV digital (MUX) di wilayah Anda dengan data akurat dan terupdate.</p>
+            
+            <a href="{{ url_for('logout') }}" class="action-btn px-6 py-3 bg-red-50 text-red-600 font-bold rounded-xl border border-red-100 hover:bg-red-500 hover:text-white flex items-center gap-2 w-full md:w-auto justify-center">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
+            </a>
         </div>
 
-        <div class="glass-panel p-6 md:p-10 animate-fade-in-up" style="animation-delay: 0.1s;">
-            
+        <div class="glass-card p-6 md:p-10 animate-fade-in-up" style="animation-delay: 0.1s;">
+            <div class="flex items-center gap-3 mb-8 border-b border-slate-200/60 pb-6">
+                <div class="p-3 bg-blue-50 rounded-2xl text-brand-blue shadow-sm">
+                    <i class="fa-solid fa-database text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-brand-navy">Manajemen Data Siaran</h2>
+                    <p class="text-xs text-slate-500 font-medium">Kelola database frekuensi TV digital di sini.</p>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="group relative">
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Provinsi</label>
                     <div class="relative">
                         <i class="fa-solid fa-map absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                        <select id="provinsi" onchange="loadWilayah()" class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
+                        <select id="provinsi" class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
                             <option value="">Pilih Provinsi</option>
                             {% for p in provinsi_list %}
                             <option value="{{ p }}">{{ p }}</option>
@@ -87,10 +99,10 @@
                 </div>
                 
                 <div class="group relative">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Wilayah Layanan</label>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Wilayah</label>
                     <div class="relative">
                         <i class="fa-solid fa-location-crosshairs absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                        <select id="wilayah" onchange="loadMux()" disabled class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
+                        <select id="wilayah" disabled class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
                             <option value="">Menunggu Provinsi...</option>
                         </select>
                         <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
@@ -98,10 +110,10 @@
                 </div>
                 
                 <div class="group relative">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Penyelenggara MUX</label>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">MUX</label>
                     <div class="relative">
                         <i class="fa-solid fa-tower-cell absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                        <select id="mux" onchange="loadSiaran()" disabled class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
+                        <select id="mux" disabled class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
                             <option value="">Menunggu Wilayah...</option>
                         </select>
                         <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
@@ -109,169 +121,115 @@
                 </div>
             </div>
 
-            <div id="loading" class="hidden text-center py-16">
-                <div class="w-14 h-14 border-4 border-blue-100 border-t-brand-blue rounded-full animate-spin mx-auto mb-4"></div>
-                <p class="text-brand-blue font-bold text-sm animate-pulse tracking-wide">MENGAMBIL DATA...</p>
-            </div>
-
-            <div id="empty-state" class="text-center py-20">
-                <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                    <i class="fa-solid fa-satellite-dish text-4xl text-slate-300"></i>
-                </div>
-                <h3 class="text-slate-700 font-bold text-lg">Belum ada data ditampilkan</h3>
-                <p class="text-slate-400 text-sm mt-2 font-medium">Silakan pilih filter lokasi di atas untuk melihat daftar saluran.</p>
-            </div>
-
-            <div id="result-container" class="hidden animate-fade-in-up">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 pb-6 border-b border-slate-200/60 gap-6">
-                    <div>
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-navy to-brand-blue flex items-center justify-center text-white shadow-lg shadow-blue-900/20">
-                                <i class="fa-solid fa-tower-broadcast text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-2xl font-black text-brand-navy" id="mux-title">Nama MUX</h3>
-                                <p class="text-xs text-slate-500 font-medium mt-1">Penyelenggara Multipleksing Resmi</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="text-right">
-                        <div class="inline-flex flex-col items-end">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Terakhir Diupdate</span>
-                            <span class="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600">
-                                <i class="fa-regular fa-clock text-blue-500"></i> <span id="update-date">Date</span>
-                            </span>
-                            <div class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
-                                Oleh: <span id="updater" class="font-bold text-brand-blue">Admin</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if session.get('user') %}
-                    <div class="flex gap-3 mt-4 md:mt-0">
-                         <button id="editDataBtn" class="px-4 py-2 bg-amber-100 text-amber-700 text-xs font-bold rounded-lg hover:bg-amber-200 transition">
-                            <i class="fa-solid fa-pen mr-1"></i> Edit
-                         </button>
-                         <button id="deleteDataBtn" class="px-4 py-2 bg-red-100 text-red-700 text-xs font-bold rounded-lg hover:bg-red-200 transition">
-                            <i class="fa-solid fa-trash mr-1"></i> Hapus
-                         </button>
-                    </div>
-                    {% endif %}
-                </div>
+            <div id="action-area" class="mt-8 pt-6 border-t border-slate-200/60 flex flex-wrap gap-4 justify-between items-center transition-all duration-300">
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" id="channel-list">
-                    </div>
-
-                <div class="mt-10 pt-6 border-t border-slate-200/60 text-center">
-                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                        <i class="fa-solid fa-shield-halved mr-1"></i> Data Terverifikasi © Komunitas TV Digital Indonesia
-                    </p>
+                <div id="status-text" class="text-sm text-slate-400 font-medium flex items-center gap-2">
+                    <i class="fa-solid fa-info-circle"></i> Silakan pilih filter untuk mengedit data.
                 </div>
+
+                <div class="flex gap-3">
+                    <a href="{{ url_for('add_data') }}" id="addDataBtn" class="action-btn px-6 py-3 bg-gradient-to-r from-brand-navy to-brand-blue text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/30 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> Tambah Data Baru
+                    </a>
+
+                    <div id="edit-buttons" class="hidden flex gap-3">
+                        <button id="editDataBtn" class="action-btn px-6 py-3 bg-amber-100 text-amber-700 font-bold rounded-xl hover:bg-amber-500 hover:text-white flex items-center gap-2 transition-colors">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit MUX Ini
+                        </button>
+                        <button id="deleteDataBtn" class="action-btn px-6 py-3 bg-red-100 text-red-700 font-bold rounded-xl hover:bg-red-500 hover:text-white flex items-center gap-2 transition-colors">
+                            <i class="fa-solid fa-trash-can"></i> Hapus
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="preview-container" class="hidden mt-8 p-6 bg-slate-50/80 rounded-2xl border border-slate-200">
+                <h4 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Preview Data</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="preview-list"></div>
             </div>
 
         </div>
-        
-        {% if session.get('user') %}
-        <div class="fixed bottom-32 right-6 z-40">
-             <a href="{{ url_for('add_data') }}" class="flex items-center justify-center w-14 h-14 bg-brand-blue text-white rounded-full shadow-2xl hover:scale-110 transition active:scale-95 border-4 border-white">
-                <i class="fa-solid fa-plus text-xl"></i>
-            </a>
-        </div>
-        {% endif %}
-
     </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function () {
-    // 1. Ganti Provinsi
+    
+    function toggleState(hasMux) {
+        if(hasMux) {
+            $("#addDataBtn").addClass("hidden");
+            $("#edit-buttons").removeClass("hidden").addClass("flex");
+            $("#status-text").html('<span class="text-green-600 font-bold"><i class="fa-solid fa-check-circle"></i> Data MUX ditemukan. Silakan Edit atau Hapus.</span>');
+            $("#preview-container").removeClass("hidden");
+        } else {
+            $("#addDataBtn").removeClass("hidden");
+            $("#edit-buttons").addClass("hidden").removeClass("flex");
+            $("#status-text").html('<i class="fa-solid fa-info-circle"></i> Silakan pilih filter untuk mengedit data.');
+            $("#preview-container").addClass("hidden");
+        }
+    }
+
+    // 1. Provinsi
     $("#provinsi").change(function () {
         var val = $(this).val();
         $("#wilayah").prop('disabled', true).html('<option>Memuat...</option>');
         $("#mux").prop('disabled', true).html('<option>Menunggu Wilayah...</option>');
+        toggleState(false);
         
         if (val) {
             $.getJSON("/get_wilayah", { provinsi: val }, function (data) {
                 var w = $("#wilayah").empty().append('<option value="">Pilih Wilayah</option>').prop('disabled', false);
-                if (data.wilayah && data.wilayah.length > 0) {
-                    $.each(data.wilayah, function (i, item) { w.append('<option value="' + item + '">' + item + '</option>'); });
-                } else {
-                    w.append('<option disabled>Tidak ada data</option>');
-                }
+                if (data.wilayah) $.each(data.wilayah, function (i, item) { w.append('<option value="' + item + '">' + item + '</option>'); });
             });
         }
     });
 
-    // 2. Ganti Wilayah
+    // 2. Wilayah
     $("#wilayah").change(function () {
         var p = $("#provinsi").val(), w = $(this).val();
         $("#mux").prop('disabled', true).html('<option>Memuat...</option>');
+        toggleState(false);
 
         if (w) {
             $.getJSON("/get_mux", { provinsi: p, wilayah: w }, function (data) {
                 var m = $("#mux").empty().append('<option value="">Pilih MUX</option>').prop('disabled', false);
-                if (data.mux && data.mux.length > 0) {
-                    $.each(data.mux, function (i, item) { m.append('<option value="' + item + '">' + item + '</option>'); });
-                } else {
-                    m.append('<option disabled>Tidak ada data</option>');
-                }
+                if (data.mux) $.each(data.mux, function (i, item) { m.append('<option value="' + item + '">' + item + '</option>'); });
             });
         }
     });
 
-    // 3. Ganti MUX (Tampilkan Detail)
+    // 3. MUX Selected -> Show Buttons & Preview
     $("#mux").change(function () {
         var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $(this).val();
         
         if (m) {
-            $("#loading").removeClass('hidden');
-            $("#result-container").addClass('hidden');
-            $("#empty-state").addClass('hidden');
-
+            // Load Preview Data
             $.getJSON("/get_siaran", { provinsi: p, wilayah: w, mux: m }, function (data) {
-                
-                $("#mux-title").text(m);
-                $("#updater").text(data.last_updated_by_name || 'Admin');
-                $("#update-date").text((data.last_updated_date || '-') + ' ' + (data.last_updated_time || ''));
-
-                var list = $("#channel-list").empty();
-                
-                if (data.siaran) {
-                    $.each(data.siaran, function(i, ch) {
-                        var card = `
-                            <div class="channel-card group cursor-default">
-                                <div class="w-10 h-10 rounded-full bg-blue-50 text-brand-blue flex items-center justify-center font-bold text-sm group-hover:bg-brand-blue group-hover:text-white transition-colors duration-300 shadow-sm border border-blue-100">
-                                    ${i+1}
-                                </div>
-                                <span class="text-sm font-bold text-slate-700 leading-tight group-hover:text-brand-navy transition-colors truncate w-full">${ch}</span>
-                                <i class="fa-solid fa-signal text-[10px] text-green-500 ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
-                            </div>
-                        `;
-                        list.append(card);
+                toggleState(true);
+                var list = $("#preview-list").empty();
+                if(data.siaran) {
+                    $.each(data.siaran, function(i, s) {
+                        list.append(`<div class="bg-white p-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 truncate"><i class="fa-solid fa-tv text-blue-500 mr-2"></i>${s}</div>`);
                     });
                 }
-
-                $("#loading").addClass('hidden');
-                $("#result-container").removeClass('hidden');
-            }).fail(function() {
-                $("#loading").addClass('hidden');
-                $("#empty-state").removeClass('hidden');
             });
+        } else {
+            toggleState(false);
         }
     });
 
-    // Buttons Actions
+    // Actions
     $("#editDataBtn").click(function() {
         var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $("#mux").val();
-        if(p && w && m) window.location.href = `/edit_data/${encodeURIComponent(p)}/${encodeURIComponent(w)}/${encodeURIComponent(m)}`;
+        window.location.href = `/edit_data/${encodeURIComponent(p)}/${encodeURIComponent(w)}/${encodeURIComponent(m)}`;
     });
 
     $("#deleteDataBtn").click(function() {
-        if(confirm("⚠️ PERINGATAN: Hapus data permanen?")) {
+        if(confirm("⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus data ini secara permanen?")) {
             var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $("#mux").val();
             $.post(`/delete_data/${encodeURIComponent(p)}/${encodeURIComponent(w)}/${encodeURIComponent(m)}`, function() {
+                alert("Data berhasil dihapus.");
                 location.reload();
             });
         }
@@ -284,6 +242,6 @@ $(document).ready(function () {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+    .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
 </style>
 {% endblock %}
