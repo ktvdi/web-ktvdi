@@ -90,14 +90,13 @@
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
     @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-    /* --- SIGNAL BAR (NEW) --- */
+    /* --- BITRATE MONITOR (REPLACEMENT FOR SIGNAL) --- */
     .signal-container {
         display: flex; flex-direction: column; align-items: flex-end;
     }
     .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
-    .bar { width: 3px; background: #94a3b8; border-radius: 1px; transition: background 0.3s; }
-    .bar.active { background: #22c55e; } /* Hijau Stabil */
-    .bar.weak { background: #eab308; } /* Kuning Lemah */
+    .bar { width: 3px; background: #94a3b8; border-radius: 1px; transition: height 0.3s, background 0.3s; }
+    .bar.active { background: #22c55e; } 
     .bar:nth-child(1) { height: 4px; }
     .bar:nth-child(2) { height: 6px; }
     .bar:nth-child(3) { height: 8px; }
@@ -223,10 +222,10 @@
                             <div class="signal-bars" id="signal-meter">
                                 <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
                             </div>
-                            <span class="net-label" id="net-type">CHECKING...</span>
+                            <span class="net-label" id="bitrate-display">0.00 Mbps</span>
                         </div>
-                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                            <i class="fa-solid fa-wifi text-sm" id="net-icon"></i>
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                            <i class="fa-solid fa-bolt-lightning text-sm"></i>
                         </div>
                     </div>
 
@@ -261,7 +260,6 @@
     // 1. DATA SOURCE LENGKAP
     // ==========================================
     const streamSource = [
-        // --- KOTA SEMARANG ---
         {city: "KOTA SEMARANG", name: "Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Simpang Letjen Suprapto", url: "https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Mberok In", url: "https://livepantau.semarangkota.go.id/16ec5c7d-78d6-4faa-88f3-ce2377787ab6/index.m3u8"},
@@ -434,69 +432,38 @@
     ];
 
     // ==========================================
-    // 2. NETWORK INFO (SMART DETECTION)
+    // 2. BITRATE MONITORING LOGIC
     // ==========================================
-    function updateNetworkStatus() {
-        const netInfo = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        const netTypeEl = document.getElementById('net-type');
-        const netIcon = document.getElementById('net-icon');
+    function updateBitrateDisplay(bitrateKbps) {
+        const bitrateMbps = (bitrateKbps / 1024).toFixed(2);
+        const display = document.getElementById('bitrate-display');
         const bars = document.querySelectorAll('.bar');
         
-        let type = 'ONLINE';
-        let quality = 4; // Max 4 bars
-        let isWifi = false;
+        display.innerText = `${bitrateMbps} Mbps`;
 
-        if (netInfo) {
-            // Deteksi Tipe & Efisiensi
-            const effectiveType = netInfo.effectiveType; // 4g, 3g, 2g
-            isWifi = netInfo.type === 'wifi';
-            
-            // Format Label Tipe
-            if (isWifi) {
-                type = 'WIFI CONNECTED';
-                netIcon.className = 'fa-solid fa-wifi text-sm';
-            } else {
-                type = effectiveType ? effectiveType.toUpperCase() : 'CELLULAR';
-                netIcon.className = 'fa-solid fa-tower-cell text-sm';
-            }
+        // Bar Logic: 
+        // 0-0.5 Mbps: 1 bar
+        // 0.5-1.5 Mbps: 2 bars
+        // 1.5-3 Mbps: 3 bars
+        // >3 Mbps: 4 bars
+        let quality = 0;
+        const value = parseFloat(bitrateMbps);
+        
+        if (value > 0) quality = 1;
+        if (value > 0.5) quality = 2;
+        if (value > 1.5) quality = 3;
+        if (value > 3) quality = 4;
 
-            // Hitung Kualitas berdasarkan RTT (Ping) dan Bandwidth (Downlink)
-            // Sinyal kuat: RTT < 100ms, Bandwidth > 5 Mbps
-            if (effectiveType === 'slow-2g' || netInfo.rtt > 1500) quality = 1;
-            else if (effectiveType === '2g' || netInfo.rtt > 800) quality = 2;
-            else if (effectiveType === '3g' || netInfo.rtt > 400) quality = 3;
-            else quality = 4;
-
-            // Penyesuaian khusus jika downlink sangat rendah
-            if (netInfo.downlink < 1) quality = Math.min(quality, 2);
-
-        } else {
-            // Fallback (Safari iOS)
-            type = navigator.onLine ? 'LTE / STABLE' : 'OFFLINE';
-            quality = navigator.onLine ? 4 : 0;
-            netIcon.className = navigator.onLine ? 'fa-solid fa-signal text-sm' : 'fa-solid fa-plane text-sm';
-        }
-
-        // Update Text
-        netTypeEl.innerText = type;
-
-        // Visualisasi Bar
         bars.forEach((bar, index) => {
-            bar.classList.remove('active', 'weak');
             if (index < quality) {
                 bar.classList.add('active');
-                if (quality <= 2) bar.classList.add('weak');
+                // Warna peringatan jika bitrate terlalu rendah untuk HD
+                bar.style.backgroundColor = (value < 0.8) ? '#eab308' : '#22c55e';
+            } else {
+                bar.classList.remove('active');
+                bar.style.backgroundColor = '#94a3b8';
             }
         });
-
-        // Warna & Status Offline
-        if (!navigator.onLine) {
-            netTypeEl.innerText = 'OFFLINE';
-            netTypeEl.style.color = '#ef4444';
-            bars.forEach(b => b.classList.remove('active'));
-        } else {
-            netTypeEl.style.color = (quality <= 2) ? '#f59e0b' : '#10b981';
-        }
     }
 
     // ==========================================
@@ -514,17 +481,8 @@
     function initPlayer() {
         renderAccordionList();
         if (streamSource.length > 0) loadStream(0);
-        
         setInterval(updateClock, 1000);
         updateClock();
-        
-        // Listeners Jaringan
-        window.addEventListener('online', updateNetworkStatus);
-        window.addEventListener('offline', updateNetworkStatus);
-        if (navigator.connection) {
-            navigator.connection.addEventListener('change', updateNetworkStatus);
-        }
-        updateNetworkStatus();
     }
 
     function loadStream(index) {
@@ -538,6 +496,7 @@
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
+        updateBitrateDisplay(0);
 
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
@@ -557,6 +516,20 @@
             hls.loadSource(stream.url);
             hls.attachMedia(video);
             
+            // Listen for bitrate/fragment data
+            hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
+                if(data.stats) {
+                    // Hitung kbps dari ukuran fragmen dan waktu download
+                    const kbps = (data.stats.total * 8) / (data.stats.loading.end - data.stats.loading.start);
+                    updateBitrateDisplay(kbps);
+                }
+            });
+
+            hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
+               const level = hls.levels[data.level];
+               if(level && level.bitrate) updateBitrateDisplay(level.bitrate / 1000);
+            });
+
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play().catch(() => {
                     loadingOverlay.classList.add('hidden');
@@ -602,6 +575,7 @@
     function showErrorState() {
         loadingOverlay.classList.add('hidden');
         errorOverlay.classList.remove('hidden');
+        updateBitrateDisplay(0);
     }
 
     function retryStream() {
