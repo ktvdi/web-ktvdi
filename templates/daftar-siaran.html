@@ -2,60 +2,148 @@
 {% block title %}Database Siaran - KTVDI{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-brand-surface py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans']">
-    <div class="max-w-5xl mx-auto">
+<style>
+    /* === iOS 26.3 GLASS THEME === */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+        border-radius: 24px;
+    }
+
+    .glass-input {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 14px;
+        transition: all 0.3s ease;
+    }
+    .glass-input:focus {
+        background: rgba(255, 255, 255, 0.9);
+        border-color: #1e40af; /* KTVDI Blue */
+        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
+    }
+    .glass-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .channel-card {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        border-radius: 16px;
+        transition: all 0.2s;
+    }
+    .channel-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(30, 64, 175, 0.1);
+        border-color: #1e40af;
+    }
+
+    /* Background Gradient KTVDI */
+    .bg-ktvdi-mesh {
+        background: radial-gradient(circle at 10% 10%, #eff6ff 0%, #f8fafc 100%);
+    }
+    
+    .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+</style>
+
+<div class="min-h-screen bg-ktvdi-mesh py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] relative">
+    
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
+    <div class="max-w-5xl mx-auto relative z-10">
         <div class="text-center mb-10">
-            <h1 class="text-3xl md:text-4xl font-extrabold text-brand-navy mb-4">Database Frekuensi</h1>
-            <p class="text-slate-500">Cari tahu saluran TV digital yang tersedia di wilayah Anda.</p>
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100/50 border border-blue-200 text-blue-800 text-[10px] font-bold tracking-widest uppercase mb-4 shadow-sm">
+                <i class="fa-solid fa-tower-broadcast"></i> Data Frekuensi Nasional
+            </div>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-brand-navy mb-3 tracking-tight">Database Siaran Digital</h1>
+            <p class="text-slate-500 text-lg max-w-2xl mx-auto">Cek ketersediaan saluran TV digital (MUX) di wilayah Anda dengan data akurat dan terupdate.</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 p-6 md:p-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Provinsi</label>
-                    <select id="provinsi" onchange="loadWilayah()" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue outline-none">
-                        <option value="">-- Pilih Provinsi --</option>
-                        {% for p in provinsi_list %}
-                        <option value="{{ p }}">{{ p }}</option>
-                        {% endfor %}
-                    </select>
+        <div class="glass-panel p-6 md:p-10">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="group">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Provinsi</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-map absolute left-4 top-4 text-slate-400"></i>
+                        <select id="provinsi" onchange="loadWilayah()" class="glass-input w-full p-3 pl-11 outline-none text-slate-700 font-bold appearance-none cursor-pointer">
+                            <option value="">Pilih Provinsi</option>
+                            {% for p in provinsi_list %}
+                            <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Wilayah Layanan</label>
-                    <select id="wilayah" onchange="loadMux()" disabled class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue outline-none disabled:opacity-50">
-                        <option value="">-- Pilih Wilayah --</option>
-                    </select>
+                
+                <div class="group">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Wilayah Layanan</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-location-crosshairs absolute left-4 top-4 text-slate-400"></i>
+                        <select id="wilayah" onchange="loadMux()" disabled class="glass-input w-full p-3 pl-11 outline-none text-slate-700 font-bold appearance-none cursor-pointer">
+                            <option value="">Pilih Wilayah</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Penyelenggara MUX</label>
-                    <select id="mux" onchange="loadSiaran()" disabled class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-blue outline-none disabled:opacity-50">
-                        <option value="">-- Pilih MUX --</option>
-                    </select>
+                
+                <div class="group">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Penyelenggara MUX</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-tower-cell absolute left-4 top-4 text-slate-400"></i>
+                        <select id="mux" onchange="loadSiaran()" disabled class="glass-input w-full p-3 pl-11 outline-none text-slate-700 font-bold appearance-none cursor-pointer">
+                            <option value="">Pilih MUX</option>
+                        </select>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
                 </div>
             </div>
 
-            <div id="result-container" class="hidden animate-fade-in-up">
-                <div class="border-t border-slate-100 pt-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <h3 class="text-xl font-bold text-brand-navy" id="mux-title">Nama MUX</h3>
-                            <p class="text-xs text-slate-400 mt-1">Diupdate oleh: <span id="updater" class="font-bold text-brand-blue">User</span> pada <span id="update-date">Date</span></p>
+            <div id="loading" class="hidden text-center py-12">
+                <div class="w-12 h-12 border-4 border-blue-100 border-t-brand-blue rounded-full animate-spin mx-auto mb-3"></div>
+                <p class="text-brand-blue font-bold text-sm animate-pulse">Mengambil Data Siaran...</p>
+            </div>
+
+            <div id="empty-state" class="text-center py-16">
+                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-satellite-dish text-3xl text-slate-300"></i>
+                </div>
+                <h3 class="text-slate-600 font-bold text-lg">Belum ada data ditampilkan</h3>
+                <p class="text-slate-400 text-sm mt-1">Silakan pilih lokasi di atas untuk melihat daftar saluran.</p>
+            </div>
+
+            <div id="result-container" class="hidden animate-pop">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-6 border-b border-slate-100 gap-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-brand-navy flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check text-green-500 text-lg"></i>
+                            <span id="mux-title">Nama MUX</span>
+                        </h3>
+                        <div class="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                            <span class="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-md">
+                                <i class="fa-regular fa-clock"></i> <span id="update-date">Date</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i class="fa-solid fa-user-pen"></i> <span id="updater" class="font-bold text-brand-blue">User</span>
+                            </span>
                         </div>
                     </div>
-                    
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="channel-list">
-                        </div>
+                    {% if session.get('user') %}
+                    <div class="flex gap-2">
+                         </div>
+                    {% endif %}
+                </div>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="channel-list">
+                    </div>
+
+                <div class="mt-8 pt-4 border-t border-slate-100 text-center">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Data © Komunitas TV Digital Indonesia</p>
                 </div>
             </div>
-            
-            <div id="loading" class="hidden text-center py-10">
-                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-brand-blue"></i>
-            </div>
-            
-            <div id="empty-state" class="text-center py-10 text-slate-400">
-                <i class="fa-solid fa-satellite-dish text-4xl mb-3 opacity-30"></i>
-                <p>Silakan pilih lokasi untuk melihat data.</p>
-            </div>
+
         </div>
     </div>
 </div>
@@ -67,18 +155,24 @@
         
         wilSelect.innerHTML = '<option value="">Memuat...</option>';
         wilSelect.disabled = true;
+        document.getElementById('mux').innerHTML = '<option value="">Pilih MUX</option>';
         document.getElementById('mux').disabled = true;
         
         if(!prov) return;
 
-        const res = await fetch(`/get_wilayah?provinsi=${prov}`);
-        const data = await res.json();
-        
-        wilSelect.innerHTML = '<option value="">-- Pilih Wilayah --</option>';
-        data.wilayah.forEach(w => {
-            wilSelect.innerHTML += `<option value="${w}">${w}</option>`;
-        });
-        wilSelect.disabled = false;
+        try {
+            const res = await fetch(`/get_wilayah?provinsi=${prov}`);
+            const data = await res.json();
+            
+            wilSelect.innerHTML = '<option value="">Pilih Wilayah</option>';
+            data.wilayah.forEach(w => {
+                wilSelect.innerHTML += `<option value="${w}">${w}</option>`;
+            });
+            wilSelect.disabled = false;
+        } catch(e) {
+            console.error(e);
+            wilSelect.innerHTML = '<option value="">Gagal Memuat</option>';
+        }
     }
 
     async function loadMux() {
@@ -89,14 +183,18 @@
         muxSelect.innerHTML = '<option value="">Memuat...</option>';
         muxSelect.disabled = true;
 
-        const res = await fetch(`/get_mux?provinsi=${prov}&wilayah=${wil}`);
-        const data = await res.json();
-        
-        muxSelect.innerHTML = '<option value="">-- Pilih MUX --</option>';
-        data.mux.forEach(m => {
-            muxSelect.innerHTML += `<option value="${m}">${m}</option>`;
-        });
-        muxSelect.disabled = false;
+        try {
+            const res = await fetch(`/get_mux?provinsi=${prov}&wilayah=${wil}`);
+            const data = await res.json();
+            
+            muxSelect.innerHTML = '<option value="">Pilih MUX</option>';
+            data.mux.forEach(m => {
+                muxSelect.innerHTML += `<option value="${m}">${m}</option>`;
+            });
+            muxSelect.disabled = false;
+        } catch(e) {
+            console.error(e);
+        }
     }
 
     async function loadSiaran() {
@@ -110,29 +208,37 @@
         document.getElementById('result-container').classList.add('hidden');
         document.getElementById('empty-state').classList.add('hidden');
 
-        const res = await fetch(`/get_siaran?provinsi=${prov}&wilayah=${wil}&mux=${mux}`);
-        const data = await res.json();
+        try {
+            const res = await fetch(`/get_siaran?provinsi=${prov}&wilayah=${wil}&mux=${mux}`);
+            const data = await res.json();
 
-        document.getElementById('mux-title').innerText = mux;
-        document.getElementById('updater').innerText = data.last_updated_by_name || '-';
-        document.getElementById('update-date').innerText = (data.last_updated_date || '-') + ' ' + (data.last_updated_time || '');
+            document.getElementById('mux-title').innerText = mux;
+            document.getElementById('updater').innerText = data.last_updated_by_name || 'Admin';
+            document.getElementById('update-date').innerText = (data.last_updated_date || '-') + ' ' + (data.last_updated_time || '');
 
-        const list = document.getElementById('channel-list');
-        list.innerHTML = '';
-        
-        if(data.siaran) {
-            data.siaran.forEach(ch => {
-                list.innerHTML += `
-                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-tv text-brand-blue"></i>
-                        <span class="text-sm font-bold text-slate-700">${ch}</span>
-                    </div>
-                `;
-            });
+            const list = document.getElementById('channel-list');
+            list.innerHTML = '';
+            
+            if(data.siaran) {
+                data.siaran.forEach(ch => {
+                    list.innerHTML += `
+                        <div class="channel-card p-4 flex flex-col items-center justify-center text-center gap-2 cursor-default group">
+                            <div class="w-10 h-10 rounded-full bg-blue-50 text-brand-blue flex items-center justify-center group-hover:bg-brand-blue group-hover:text-white transition-colors duration-300">
+                                <i class="fa-solid fa-tv text-lg"></i>
+                            </div>
+                            <span class="text-sm font-bold text-slate-700 leading-tight group-hover:text-brand-navy transition-colors">${ch}</span>
+                        </div>
+                    `;
+                });
+            }
+            
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('result-container').classList.remove('hidden');
+        } catch(e) {
+            console.error(e);
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
         }
-
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('result-container').classList.remove('hidden');
     }
 </script>
 {% endblock %}
