@@ -3,106 +3,179 @@
 {% block title %}NEWS Headline - KTVDI{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-24 px-4 font-['Plus_Jakarta_Sans']">
-    <div class="max-w-7xl mx-auto">
+<style>
+    /* === iOS 26.3 GLASS THEME === */
+    
+    /* Background Mesh Gradient (Animasi Halus) */
+    .bg-mesh-news {
+        background-color: #f0fdfa;
+        background-image: 
+            radial-gradient(at 10% 10%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
+            radial-gradient(at 90% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+            radial-gradient(at 50% 90%, rgba(20, 184, 166, 0.15) 0px, transparent 50%);
+        background-attachment: fixed;
+    }
+
+    /* Glass Container */
+    .glass-container {
+        background: rgba(255, 255, 255, 0.65);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        border-radius: 32px;
+    }
+
+    /* News Card (Interactive Glass) */
+    .news-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        border-radius: 24px;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+    }
+
+    /* Hover Effect: Lift & Glow */
+    .news-card:hover {
+        transform: translateY(-8px) scale(1.01);
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 122, 255, 0.3);
+        z-index: 10;
+    }
+
+    /* Source Badge */
+    .source-badge {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    /* Pagination Button */
+    .page-btn {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        transition: all 0.2s;
+    }
+    .page-btn:hover {
+        background: #007aff; color: white; border-color: #007aff;
+        box-shadow: 0 8px 20px rgba(0, 122, 255, 0.3);
+    }
+</style>
+
+<div class="min-h-screen bg-mesh-news py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] pb-32">
+    <div class="max-w-7xl mx-auto relative z-10">
         
-        <div class="text-center mb-16 relative z-10">
-            <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white border border-blue-100 shadow-md mb-6 animate-fade-in-up">
-                <span class="relative flex h-3 w-3">
+        <div class="text-center mb-12 animate-fade-in-up">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/60 border border-white/80 shadow-sm backdrop-blur-md mb-5">
+                <span class="relative flex h-2.5 w-2.5">
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                 </span>
-                <span class="text-xs font-bold text-slate-600 uppercase tracking-widest">Live Updates</span>
+                <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Live Updates</span>
             </div>
-            <h1 class="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight leading-tight animate-fade-in-up" style="animation-delay: 0.1s;">
+            
+            <h1 class="text-4xl md:text-6xl font-black text-slate-900 mb-4 tracking-tight leading-tight">
                 Wawasan <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Digital</span> Terkini
             </h1>
-            <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed animate-fade-in-up" style="animation-delay: 0.2s;">
-                Kurasi berita eksklusif seputar informasi terkini nasional, teknologi masa kini, penyiaran, dan inovasi TV Digital di Indonesia dari sumber terpercaya.
+            <p class="text-slate-500 max-w-2xl mx-auto text-lg font-medium leading-relaxed">
+                Kurasi berita eksklusif seputar teknologi, penyiaran, dan inovasi TV Digital Indonesia dari sumber terpercaya.
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
             {% for article in articles %}
-            <article class="news-card group bg-white rounded-[2rem] shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 border border-slate-100 overflow-hidden flex flex-col h-full relative transform hover:-translate-y-2">
-                
-                <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="absolute inset-0 z-20 focus:outline-none focus:ring-4 focus:ring-blue-500/30 rounded-[2rem]"></a>
-
-                <div class="relative h-60 overflow-hidden">
-                    {% if article.image %}
-                        <img src="{{ article.image }}" alt="{{ article.title }}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-in-out" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                        <div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300 hidden">
-                            <i class="fa-regular fa-image text-5xl mb-3 opacity-50"></i>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">KTVDI News</span>
-                        </div>
-                    {% else %}
-                        <div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300">
-                            <i class="fa-regular fa-newspaper text-5xl mb-3 opacity-50"></i>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Berita Terkini</span>
-                        </div>
-                    {% endif %}
+            <a href="{{ article.link }}" target="_blank" rel="noopener noreferrer" class="group block h-full">
+                <article class="news-card animate-fade-in-up" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
                     
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300"></div>
-
-                    <div class="absolute top-4 left-4 z-30">
-                        <span class="inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg border border-white/20">
-                            {% if 'CNN' in article.source_name %}
-                                <span class="w-2 h-2 bg-red-600 rounded-full"></span>
-                            {% elif 'Antara' in article.source_name %}
-                                <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
-                            {% else %}
-                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            {% endif %}
-                            <span class="text-[10px] font-bold text-slate-800 uppercase tracking-wider source-text">
-                                {{ article.source_name if article.source_name else 'BERITA' }}
-                            </span>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="p-8 flex flex-col flex-grow relative z-30 bg-white">
-                    
-                    <div class="flex items-center gap-2 mb-4 text-xs text-slate-400 font-bold uppercase tracking-wider">
-                        <i class="fa-regular fa-clock text-blue-500"></i>
-                        <span class="date-display" data-iso="{{ article.published }}">Update Terbaru</span>
-                    </div>
-
-                    <h3 class="title-text text-xl font-bold text-slate-800 mb-4 line-clamp-3 leading-snug group-hover:text-blue-600 transition-colors duration-300">
-                        {{ article.title }}
-                    </h3>
-
-                    <div class="text-slate-500 text-sm line-clamp-3 mb-6 leading-relaxed font-medium">
-                        {% if article.summary %}
-                            {{ article.summary | striptags | truncate(140) }}
+                    <div class="relative h-56 overflow-hidden bg-slate-100">
+                        {% if article.image %}
+                            <img src="{{ article.image }}" alt="{{ article.title }}" 
+                                 class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-out" 
+                                 loading="lazy" 
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="absolute inset-0 hidden flex-col items-center justify-center bg-slate-50 text-slate-300">
+                                <i class="fa-regular fa-image text-4xl mb-2 opacity-40"></i>
+                                <span class="text-[10px] font-bold uppercase tracking-wider">KTVDI News</span>
+                            </div>
                         {% else %}
-                            Baca selengkapnya untuk mendapatkan informasi detail mengenai berita ini langsung dari sumber aslinya.
+                            <div class="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-300">
+                                <i class="fa-regular fa-newspaper text-4xl mb-2 opacity-40"></i>
+                                <span class="text-[10px] font-bold uppercase tracking-wider">Berita Terkini</span>
+                            </div>
                         {% endif %}
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
+
+                        <div class="absolute top-4 left-4 z-20">
+                            <span class="source-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-xl">
+                                {% if 'CNN' in article.source_name %}
+                                    <span class="w-2 h-2 bg-red-600 rounded-full shadow-[0_0_8px_rgba(220,38,38,0.5)]"></span>
+                                {% elif 'Antara' in article.source_name %}
+                                    <span class="w-2 h-2 bg-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>
+                                {% elif 'CNBC' in article.source_name %}
+                                    <span class="w-2 h-2 bg-blue-600 rounded-full shadow-[0_0_8px_rgba(37,99,235,0.5)]"></span>
+                                {% else %}
+                                    <span class="w-2 h-2 bg-slate-500 rounded-full"></span>
+                                {% endif %}
+                                <span class="text-[10px] font-bold text-slate-800 uppercase tracking-wider truncate max-w-[100px]">
+                                    {{ article.source_name if article.source_name else 'NEWS' }}
+                                </span>
+                            </span>
+                        </div>
                     </div>
 
-                    <div class="mt-auto pt-6 border-t border-slate-100 flex items-center justify-between">
-                        <span class="inline-flex items-center text-xs font-bold text-blue-600 group-hover:text-blue-700 transition-colors">
-                            BACA ARTIKEL <i class="fa-solid fa-arrow-right-long ml-2 transform group-hover:translate-x-1 transition-transform"></i>
-                        </span>
+                    <div class="p-6 flex flex-col flex-grow">
+                        
+                        <div class="flex items-center gap-2 mb-3 text-[11px] font-bold text-slate-400 uppercase tracking-wide">
+                            <i class="fa-regular fa-clock text-blue-500"></i>
+                            <span class="date-display" data-iso="{{ article.published }}">Update Terbaru</span>
+                        </div>
+
+                        <h3 class="title-text text-lg font-bold text-slate-800 mb-3 line-clamp-3 leading-snug group-hover:text-blue-600 transition-colors">
+                            {{ article.title }}
+                        </h3>
+
+                        <p class="text-slate-500 text-sm line-clamp-3 mb-6 leading-relaxed flex-grow">
+                            {% if article.summary %}
+                                {{ article.summary | striptags | truncate(120) }}
+                            {% else %}
+                                Baca selengkapnya untuk mendapatkan informasi detail mengenai berita ini langsung dari sumber aslinya.
+                            {% endif %}
+                        </p>
+
+                        <div class="mt-auto pt-5 border-t border-slate-100 flex items-center justify-between">
+                            <span class="inline-flex items-center text-xs font-bold text-blue-600 group-hover:text-blue-700 transition-colors">
+                                BACA ARTIKEL <i class="fa-solid fa-arrow-up-right-from-square ml-2 text-[10px]"></i>
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </article>
+                </article>
+            </a>
             {% endfor %}
         </div>
 
         {% if total_pages > 1 %}
-        <div class="mt-8 flex justify-center items-center gap-3 animate-fade-in-up" style="animation-delay: 0.3s;">
+        <div class="glass-container p-2 inline-flex items-center gap-2 mx-auto left-1/2 -translate-x-1/2 relative mt-8">
             {% if page > 1 %}
-            <a href="{{ url_for('berita_page', page=page-1) }}" class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold shadow-sm hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:-translate-y-1 transition-all z-30">
+            <a href="{{ url_for('berita_page', page=page-1) }}" class="page-btn w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 shadow-sm">
                 <i class="fa-solid fa-chevron-left"></i>
             </a>
             {% endif %}
 
-            <div class="px-8 py-3 bg-white border border-slate-200 rounded-2xl shadow-sm text-sm font-bold text-slate-600 z-30">
+            <div class="px-6 py-2 bg-white/80 rounded-xl text-sm font-bold text-slate-600 border border-white">
                 Halaman <span class="text-blue-600">{{ page }}</span> / {{ total_pages }}
             </div>
 
             {% if page < total_pages %}
-            <a href="{{ url_for('berita_page', page=page+1) }}" class="w-12 h-12 flex items-center justify-center bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold shadow-sm hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:-translate-y-1 transition-all z-30">
+            <a href="{{ url_for('berita_page', page=page+1) }}" class="page-btn w-10 h-10 flex items-center justify-center rounded-xl text-slate-600 shadow-sm">
                 <i class="fa-solid fa-chevron-right"></i>
             </a>
             {% endif %}
@@ -110,14 +183,13 @@
         {% endif %}
 
         {% if not articles %}
-        <div class="text-center py-32 bg-white rounded-[2.5rem] shadow-xl border border-slate-100 mt-8 relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-400 to-cyan-400"></div>
-            <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-                <i class="fa-solid fa-satellite-dish text-4xl text-blue-500"></i>
+        <div class="glass-container p-16 text-center max-w-2xl mx-auto mt-12">
+            <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <i class="fa-solid fa-satellite-dish text-3xl text-slate-400"></i>
             </div>
-            <h3 class="text-2xl font-black text-slate-800 mb-2">Mengambil Data...</h3>
-            <p class="text-slate-500 max-w-md mx-auto mb-8 font-medium">Sistem sedang menghubungi satelit berita. Mohon tunggu sebentar.</p>
-            <a href="/" class="inline-flex items-center px-8 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 z-30 relative">
+            <h3 class="text-2xl font-black text-slate-800 mb-2">Sedang Memuat Berita...</h3>
+            <p class="text-slate-500 mb-8">Sistem kami sedang menghubungi server berita. Mohon tunggu sebentar atau coba muat ulang.</p>
+            <a href="/" class="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-blue-600 transition shadow-lg">
                 Kembali ke Dashboard
             </a>
         </div>
@@ -136,42 +208,38 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const cards = document.querySelectorAll('.news-card');
+        const dateDisplays = document.querySelectorAll('.date-display');
+        const titleDisplays = document.querySelectorAll('.title-text');
 
-        cards.forEach(card => {
-            // 1. FORMAT TANGGAL INDONESIA (Client-Side)
-            const dateEl = card.querySelector('.date-display');
-            const rawDate = dateEl.getAttribute('data-iso');
-            
+        // 1. FORMAT TANGGAL
+        dateDisplays.forEach(el => {
+            const rawDate = el.getAttribute('data-iso');
             if (rawDate) {
                 try {
                     const d = new Date(rawDate);
-                    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-                    let formatted = d.toLocaleDateString('id-ID', options);
-                    formatted = formatted.replace('pukul', '|'); 
-                    dateEl.innerText = formatted + ' WIB';
+                    // Opsi format tanggal Indonesia
+                    const options = { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' };
+                    // Format Jam
+                    const time = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+                    
+                    el.innerText = `${d.toLocaleDateString('id-ID', options)} • ${time} WIB`;
                 } catch (e) {
-                    dateEl.innerText = "Baru Saja";
+                    el.innerText = "Baru Saja";
                 }
             } else {
-                // Fallback date (Hari ini) jika kosong
-                const now = new Date();
-                const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-                dateEl.innerText = now.toLocaleDateString('id-ID', options);
+                el.innerText = "Baru Saja";
             }
+        });
 
-            // 2. BERSIHKAN JUDUL (Hapus nama media di belakang)
-            const titleEl = card.querySelector('.title-text');
-            const sourceEl = card.querySelector('.source-text');
-            let title = titleEl.innerText;
-            
-            // Pola umum RSS: "Judul Berita - Nama Media"
+        // 2. BERSIHKAN JUDUL (Hapus akhiran nama media jika ada)
+        titleDisplays.forEach(el => {
+            let title = el.innerText;
             if (title.includes(' - ')) {
                 const parts = title.split(' - ');
-                // Jika bagian terakhir pendek (< 20 chars), kemungkinan itu nama media
-                if (parts[parts.length - 1].length < 20) {
-                    parts.pop(); // Buang nama media dari judul
-                    titleEl.innerText = parts.join(' - ');
+                // Jika bagian terakhir pendek (< 20 chars), anggap itu nama media dan hapus
+                if (parts.length > 1 && parts[parts.length - 1].length < 20) {
+                    parts.pop();
+                    el.innerText = parts.join(' - ');
                 }
             }
         });
