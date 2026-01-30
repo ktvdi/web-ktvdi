@@ -246,9 +246,6 @@
         const body = document.body;
         const badge = document.getElementById('ramadanBadge');
         
-        // Malam: 17:31 - 05:59 | Siang: 06:00 - 17:30
-        // Logika jam: if hour >= 17 (jam 5 sore) OR hour < 6 (jam 6 pagi) -> Malam
-        // Lebih presisi: if (hour > 17 || (hour == 17 && minute >= 30)) -> Malam
         const now = new Date();
         const isNight = (now.getHours() > 17 || (now.getHours() === 17 && now.getMinutes() >= 31)) || now.getHours() < 6;
 
@@ -319,14 +316,12 @@
     renderCards(); // Init
 
 
-    // --- 3. JADWAL SHOLAT & COUNTDOWN (FIXED) ---
+    // --- 3. JADWAL SHOLAT & COUNTDOWN (FIXED LOGIC) ---
     let countdownInterval;
-    const cityList = JSON.parse(document.getElementById('cityData').textContent); // Ambil dari script json
+    const cityList = JSON.parse(document.getElementById('cityData').textContent); 
 
     function loadJadwal(city) {
         document.getElementById('scheduleLoading').classList.remove('hidden');
-        
-        // Simpan kota terpilih ke dropdown
         document.getElementById('kotaSelect').value = city;
 
         const date = new Date();
@@ -396,22 +391,19 @@
 
             // LOGIKA TAMPILAN STATUS
             if(azanName !== "") {
-                // TAMPILAN SAAT WAKTU TIBA
                 document.getElementById('statusNormal').classList.add('hidden');
                 document.getElementById('statusAzan').classList.remove('hidden');
                 document.getElementById('azanMessage').innerText = azanName;
                 
-                // Pesan Khusus per Waktu
                 let subMsg = "Selamat Menunaikan Ibadah Sholat";
                 if(azanName === 'IMSAK') subMsg = "Selamat Menunaikan Ibadah Puasa";
                 if(azanName === 'MAGHRIB') subMsg = "Selamat Berbuka Puasa";
                 document.getElementById('azanSubMessage').innerText = subMsg;
-                
-                return; // Keluar agar tidak lanjut ke countdown
+                return;
             }
 
             // TAMPILAN NORMAL (COUNTDOWN)
-            if(!next) { // Next day Imsak
+            if(!next) { 
                 next = prayers[0];
                 const [h,m] = next.t.split(':');
                 const pt = new Date(); pt.setDate(pt.getDate()+1); pt.setHours(h,m,0);
@@ -456,29 +448,31 @@
         document.getElementById(id)?.classList.add('active');
     }
 
-    // --- 4. AUTO GPS DETECT ---
+    // --- 4. AUTO GPS DETECT (NOMINATIM FIX) ---
     if (navigator.geolocation) {
         document.getElementById('detectStatus').innerText = "Mendeteksi...";
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                // Reverse Geocoding via BigDataCloud (Free/No Key for simple usage) or OpenStreetMap
-                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`)
+                // Menggunakan OpenStreetMap Nominatim
+                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
                 .then(res => res.json())
                 .then(data => {
-                    const city = data.city || data.locality || "Jakarta";
-                    // Cari kota terdekat di list kita (Sederhana: exact match or contains)
-                    let foundCity = "Jakarta";
-                    // Loop cari yang cocok
-                    // (Implementasi sederhana, idealnya pakai Haversine formula jika punya koordinat semua kota)
-                    // Di sini kita coba match string nama kota
-                    const availableCities = JSON.parse(document.getElementById('cityData').textContent);
-                    for(let c of availableCities) {
-                        if(city.includes(c) || c.includes(city)) {
+                    const addr = data.address;
+                    // Gabungkan semua kemungkinan nama kota/kabupaten
+                    const detectedName = [addr.city, addr.town, addr.county, addr.state_district, addr.village]
+                                        .filter(Boolean).join(" ").toLowerCase();
+                    
+                    let foundCity = "Jakarta"; // Default fallback
+                    
+                    // Loop pencarian fuzzy (case insensitive & partial match)
+                    for(let c of cityList) {
+                        if(detectedName.includes(c.toLowerCase()) || c.toLowerCase().includes(detectedName)) {
                             foundCity = c; break;
                         }
                     }
+                    
                     document.getElementById('detectStatus').innerText = "GPS Aktif";
                     loadJadwal(foundCity);
                 })
