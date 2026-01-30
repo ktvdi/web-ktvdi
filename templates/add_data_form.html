@@ -3,114 +3,164 @@
 {% block title %}Tambah Data - KTVDI{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-brand-surface py-20 px-4 relative overflow-hidden font-['Plus_Jakarta_Sans']">
-    
-    <div class="absolute top-0 left-0 w-96 h-96 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-    <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+<style>
+    /* === iOS 26.3 GLASS THEME === */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(50px) saturate(180%);
+        -webkit-backdrop-filter: blur(50px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+        border-radius: 32px;
+    }
 
-    <div class="max-w-3xl mx-auto relative z-10">
+    .glass-input {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    .glass-input:focus {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: #1e40af;
+        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
+        transform: translateY(-1px);
+    }
+    .glass-input::placeholder { color: #94a3b8; }
+    
+    .section-title {
+        position: relative;
+        padding-left: 1rem;
+        margin-bottom: 1.5rem;
+        font-weight: 800;
+        color: #1e3a8a;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.875rem;
+    }
+    .section-title::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 4px;
+        background: #3b82f6;
+        border-radius: 4px;
+    }
+
+    /* Background Mesh */
+    .bg-mesh-add {
+        background-color: #f8fafc;
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(158,82%,90%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 100%, hsla(217,91%,91%,1) 0, transparent 50%);
+        background-attachment: fixed;
+    }
+</style>
+
+<div class="min-h-screen bg-mesh-add py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] pb-32">
+    
+    <div class="max-w-3xl mx-auto relative z-10 animate-fade-in-up">
         
-        <div class="mb-8 flex items-center justify-between">
+        <div class="mb-8">
             <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-2 text-slate-500 hover:text-brand-blue font-bold transition-colors group">
-                <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
+                <div class="w-10 h-10 rounded-full bg-white/80 border border-white flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-hover:-translate-x-1">
                     <i class="fa-solid fa-arrow-left text-sm"></i>
                 </div>
-                Kembali ke Dashboard
+                <span>Kembali ke Dashboard</span>
             </a>
         </div>
 
-        <div class="bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-white/50 overflow-hidden">
+        <div class="glass-card overflow-hidden">
             
-            <div class="bg-gradient-to-r from-brand-navy to-brand-blue p-8 text-white relative overflow-hidden">
+            <div class="bg-gradient-to-r from-brand-navy to-brand-blue p-8 md:p-10 text-white relative overflow-hidden">
                 <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
                 <div class="relative z-10">
-                    <h1 class="text-3xl font-extrabold flex items-center gap-3">
-                        <i class="fa-solid fa-database"></i> Tambah Data Siaran
-                    </h1>
-                    <p class="text-blue-100 mt-2 text-sm max-w-lg">Kontribusi Anda membantu masyarakat mendapatkan informasi siaran digital yang akurat dan terpercaya.</p>
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md mb-4 border border-white/20">
+                        <i class="fa-solid fa-database text-xl"></i>
+                    </div>
+                    <h1 class="text-3xl font-extrabold tracking-tight mb-2">Tambah Data Siaran</h1>
+                    <p class="text-blue-100 font-medium text-sm max-w-lg">Kontribusi Anda sangat berharga untuk melengkapi database frekuensi TV digital nasional.</p>
                 </div>
             </div>
 
             {% if error_message %}
-            <div class="bg-red-50 text-red-600 p-4 mx-8 mt-8 rounded-xl border border-red-100 flex items-start gap-3 text-sm font-bold shadow-sm animate-pulse">
-                <i class="fa-solid fa-circle-exclamation mt-0.5 text-lg"></i>
-                <div>{{ error_message }}</div>
+            <div class="mx-8 mt-8 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 flex items-start gap-3 shadow-sm animate-pulse">
+                <i class="fa-solid fa-circle-exclamation text-xl mt-0.5"></i>
+                <div class="font-bold text-sm">{{ error_message }}</div>
             </div>
             {% endif %}
 
-            <div class="p-8 pt-6">
-                <form method="POST" class="space-y-8">
+            <div class="p-8 md:p-10">
+                <form method="POST" class="space-y-10">
                     
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-extrabold text-brand-blue uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">1. Lokasi Pemancar</h3>
-                        
+                    <div>
+                        <h3 class="section-title">1. Lokasi Pemancar</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label for="provinsi" class="text-xs font-bold text-slate-500 uppercase ml-1">Provinsi</label>
-                                <div class="relative group">
+                            
+                            <div class="group relative">
+                                <label for="provinsi" class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Provinsi</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-map-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 group-focus-within:text-brand-blue transition-colors"></i>
                                     <select id="provinsi" name="provinsi" required onchange="updateWilayahHint()"
-                                        class="w-full p-4 pl-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-bold focus:ring-2 focus:ring-brand-blue focus:border-brand-blue appearance-none cursor-pointer transition-all hover:bg-white shadow-sm">
-                                        <option value="">-- Pilih Provinsi --</option>
+                                        class="glass-input p-4 pl-12 font-bold text-slate-700 cursor-pointer outline-none appearance-none">
+                                        <option value="">Pilih Provinsi</option>
                                         {% for p in provinsi_list %}
                                             <option value="{{ p }}">{{ p }}</option>
                                         {% endfor %}
                                     </select>
-                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue transition-colors">
-                                        <i class="fa-solid fa-map-location-dot"></i>
-                                    </div>
-                                    <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                        <i class="fa-solid fa-chevron-down text-xs"></i>
-                                    </div>
+                                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                                 </div>
                             </div>
 
-                            <div class="space-y-2">
-                                <label for="wilayah" class="text-xs font-bold text-slate-500 uppercase ml-1">Wilayah Layanan</label>
-                                <div class="relative group">
+                            <div class="group relative">
+                                <label for="wilayah" class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Wilayah Layanan</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-map absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 group-focus-within:text-brand-blue transition-colors"></i>
                                     <input type="text" name="wilayah" id="wilayah" placeholder="Misal: Jawa Timur-1" required
-                                        class="w-full p-4 pl-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:bg-white transition-all placeholder:text-slate-400 shadow-sm">
-                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue transition-colors">
-                                        <i class="fa-solid fa-map"></i>
-                                    </div>
+                                        class="glass-input p-4 pl-12 font-bold text-slate-700 outline-none">
                                 </div>
-                                <p class="text-[10px] text-slate-400 ml-1 italic"><i class="fa-solid fa-circle-info text-brand-blue mr-1"></i> Format: Nama Provinsi-Angka (Sesuai Kominfo)</p>
+                                <p class="text-[10px] text-slate-400 mt-1.5 ml-1 italic flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-info text-brand-blue"></i> Sesuai format Kominfo (Provinsi-Angka)
+                                </p>
                             </div>
+
                         </div>
                     </div>
 
-                    <div class="space-y-4">
-                        <h3 class="text-sm font-extrabold text-brand-blue uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">2. Data Teknis</h3>
-                        
-                        <div class="space-y-2">
-                            <label for="mux" class="text-xs font-bold text-slate-500 uppercase ml-1">Penyelenggara MUX (Multiplexing)</label>
-                            <div class="relative group">
-                                <input type="text" name="mux" id="mux" placeholder="Contoh: UHF 27 - Metro TV" required
-                                    class="w-full p-4 pl-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-bold focus:outline-none focus:ring-2 focus:ring-brand-blue focus:bg-white transition-all placeholder:text-slate-400 shadow-sm">
-                                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand-blue transition-colors">
-                                    <i class="fa-solid fa-tower-broadcast"></i>
+                    <div>
+                        <h3 class="section-title">2. Data Teknis</h3>
+                        <div class="space-y-6">
+                            
+                            <div class="group relative">
+                                <label for="mux" class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Penyelenggara MUX</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-tower-broadcast absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10 group-focus-within:text-brand-blue transition-colors"></i>
+                                    <input type="text" name="mux" id="mux" placeholder="Contoh: UHF 27 - Metro TV" required
+                                        class="glass-input p-4 pl-12 font-bold text-slate-700 outline-none">
                                 </div>
+                                <p class="text-[10px] text-slate-400 mt-1.5 ml-1 italic">Wajib Format: <strong>UHF [XX] - [Nama Stasiun]</strong></p>
                             </div>
-                            <p class="text-[10px] text-slate-400 ml-1 italic">Format Wajib: <strong>UHF [XX] - [Nama Stasiun]</strong></p>
-                        </div>
 
-                        <div class="space-y-2">
-                            <label for="siaran" class="text-xs font-bold text-slate-500 uppercase ml-1 flex justify-between items-center">
-                                <span>Daftar Channel TV</span>
-                                <span class="bg-blue-50 text-brand-blue px-2 py-0.5 rounded text-[10px]">Pisahkan dengan koma (,)</span>
-                            </label>
-                            <div class="relative group">
-                                <textarea name="siaran" id="siaran" rows="4" required
-                                    class="w-full p-4 pl-11 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-brand-blue focus:bg-white transition-all placeholder:text-slate-400 shadow-sm leading-relaxed"
-                                    placeholder="Contoh: Metro TV, Magna Channel, BN Channel, TVRI Nasional, TVRI Sport..."></textarea>
-                                <div class="absolute left-4 top-6 text-slate-400 group-focus-within:text-brand-blue transition-colors">
-                                    <i class="fa-solid fa-tv"></i>
+                            <div class="group relative">
+                                <div class="flex justify-between items-center mb-2 pl-1">
+                                    <label for="siaran" class="text-xs font-bold text-slate-400 uppercase tracking-wider">Daftar Channel TV</label>
+                                    <span class="bg-blue-50 text-brand-blue px-2 py-0.5 rounded text-[10px] font-bold border border-blue-100">Pisahkan dengan koma (,)</span>
+                                </div>
+                                <div class="relative">
+                                    <i class="fa-solid fa-tv absolute left-4 top-5 text-slate-400 z-10 group-focus-within:text-brand-blue transition-colors"></i>
+                                    <textarea name="siaran" id="siaran" rows="4" required
+                                        class="glass-input p-4 pl-12 font-medium text-slate-700 outline-none leading-relaxed"
+                                        placeholder="Contoh: Metro TV, Magna Channel, BN Channel, TVRI Nasional, TVRI Sport..."></textarea>
                                 </div>
                             </div>
+
                         </div>
                     </div>
 
-                    <div class="pt-6">
-                        <button type="submit" class="w-full bg-gradient-to-r from-brand-navy to-brand-blue hover:from-blue-900 hover:to-blue-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-1 hover:shadow-xl flex justify-center items-center gap-2 group">
+                    <div class="pt-4 border-t border-slate-200/60">
+                        <button type="submit" class="w-full bg-gradient-to-r from-brand-navy to-brand-blue hover:from-blue-900 hover:to-blue-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all transform hover:-translate-y-1 active:scale-95 flex justify-center items-center gap-3 group">
                             <span>Simpan Data Sekarang</span>
                             <i class="fa-solid fa-paper-plane group-hover:translate-x-1 transition-transform"></i>
                         </button>
@@ -135,13 +185,10 @@
 </script>
 
 <style>
-    .animate-blob { animation: blob 7s infinite; }
-    @keyframes blob {
-        0% { transform: translate(0px, 0px) scale(1); }
-        33% { transform: translate(30px, -50px) scale(1.1); }
-        66% { transform: translate(-20px, 20px) scale(0.9); }
-        100% { transform: translate(0px, 0px) scale(1); }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
-    .animation-delay-2000 { animation-delay: 2s; }
+    .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
 </style>
 {% endblock %}
