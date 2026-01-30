@@ -226,7 +226,7 @@
                             <span class="net-label" id="net-type">CHECKING...</span>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                            <i class="fa-solid fa-wifi text-sm"></i>
+                            <i class="fa-solid fa-wifi text-sm" id="net-icon"></i>
                         </div>
                     </div>
 
@@ -434,37 +434,53 @@
     ];
 
     // ==========================================
-    // 2. NETWORK INFO (FIXED & IMPROVED)
+    // 2. NETWORK INFO (SMART DETECTION)
     // ==========================================
     function updateNetworkStatus() {
         const netInfo = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
         const netTypeEl = document.getElementById('net-type');
+        const netIcon = document.getElementById('net-icon');
         const bars = document.querySelectorAll('.bar');
         
         let type = 'ONLINE';
-        let quality = 4; // 1-4
+        let quality = 4; // Max 4 bars
+        let isWifi = false;
 
-        // 1. Cek navigator.connection (Jika ada)
         if (netInfo) {
-            const effectiveType = netInfo.effectiveType; // 4g, 3g, 2g, slow-2g
-            type = effectiveType ? effectiveType.toUpperCase() : 'WIFI';
+            // Deteksi Tipe & Efisiensi
+            const effectiveType = netInfo.effectiveType; // 4g, 3g, 2g
+            isWifi = netInfo.type === 'wifi';
             
-            if (effectiveType === 'slow-2g' || effectiveType === '2g') quality = 1;
-            else if (effectiveType === '3g') quality = 2;
-            else if (effectiveType === '4g') quality = 4;
+            // Format Label Tipe
+            if (isWifi) {
+                type = 'WIFI CONNECTED';
+                netIcon.className = 'fa-solid fa-wifi text-sm';
+            } else {
+                type = effectiveType ? effectiveType.toUpperCase() : 'CELLULAR';
+                netIcon.className = 'fa-solid fa-tower-cell text-sm';
+            }
 
-            // Jika Latency (rtt) tinggi, kurangi bar
-            if (netInfo.rtt > 500) quality = Math.max(1, quality - 1);
+            // Hitung Kualitas berdasarkan RTT (Ping) dan Bandwidth (Downlink)
+            // Sinyal kuat: RTT < 100ms, Bandwidth > 5 Mbps
+            if (effectiveType === 'slow-2g' || netInfo.rtt > 1500) quality = 1;
+            else if (effectiveType === '2g' || netInfo.rtt > 800) quality = 2;
+            else if (effectiveType === '3g' || netInfo.rtt > 400) quality = 3;
+            else quality = 4;
+
+            // Penyesuaian khusus jika downlink sangat rendah
+            if (netInfo.downlink < 1) quality = Math.min(quality, 2);
+
         } else {
-            // Fallback jika API tidak didukung (iOS Safari dll)
-            type = navigator.onLine ? 'STABLE' : 'OFFLINE';
+            // Fallback (Safari iOS)
+            type = navigator.onLine ? 'LTE / STABLE' : 'OFFLINE';
             quality = navigator.onLine ? 4 : 0;
+            netIcon.className = navigator.onLine ? 'fa-solid fa-signal text-sm' : 'fa-solid fa-plane text-sm';
         }
 
-        // 2. Update Label
+        // Update Text
         netTypeEl.innerText = type;
 
-        // 3. Update Bar Visual
+        // Visualisasi Bar
         bars.forEach((bar, index) => {
             bar.classList.remove('active', 'weak');
             if (index < quality) {
@@ -473,12 +489,13 @@
             }
         });
 
-        // 4. Update Warna Text
+        // Warna & Status Offline
         if (!navigator.onLine) {
             netTypeEl.innerText = 'OFFLINE';
             netTypeEl.style.color = '#ef4444';
+            bars.forEach(b => b.classList.remove('active'));
         } else {
-            netTypeEl.style.color = (quality <= 2) ? '#eab308' : '#22c55e';
+            netTypeEl.style.color = (quality <= 2) ? '#f59e0b' : '#10b981';
         }
     }
 
@@ -501,7 +518,7 @@
         setInterval(updateClock, 1000);
         updateClock();
         
-        // Listener Jaringan
+        // Listeners Jaringan
         window.addEventListener('online', updateNetworkStatus);
         window.addEventListener('offline', updateNetworkStatus);
         if (navigator.connection) {
@@ -515,7 +532,6 @@
         activeStreamIndex = index;
         const stream = streamSource[index];
 
-        // UI Updates
         statusCity.innerText = stream.city;
         statusName.innerText = stream.name;
         
@@ -523,7 +539,6 @@
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
 
-        // Highlight Active Item
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
         if(activeItem) {
@@ -536,8 +551,7 @@
             hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: true,
-                backBufferLength: 30,
-                manifestLoadingTimeOut: 20000
+                backBufferLength: 30
             });
             
             hls.loadSource(stream.url);
