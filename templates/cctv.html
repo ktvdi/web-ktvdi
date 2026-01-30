@@ -77,7 +77,7 @@
         overflow: hidden;
     }
     .video-element {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; /* Agar tidak stretch gepeng, tapi fit */
     }
 
     /* ACCORDION LIST (SIDEBAR) */
@@ -273,7 +273,7 @@
 
 <script>
     // ==========================================
-    // 1. DATA SOURCE LENGKAP
+    // 1. DATA SOURCE LENGKAP (UTUH)
     // ==========================================
     const streamSource = [
         // --- KOTA SEMARANG ---
@@ -459,46 +459,39 @@
         
         let connectionType = 'ONLINE';
         let quality = 4;
-        let rtt = '0';
+        let rtt = 0;
 
         if (netInfo) {
             connectionType = netInfo.effectiveType ? netInfo.effectiveType.toUpperCase() : 'WIFI';
-            // Round Trip Time (Ping) - Semakin kecil semakin bagus
-            rtt = netInfo.rtt || '0';
+            rtt = netInfo.rtt || 0; // Ping in ms (Round Trip Time)
             
-            // Logika Bar Sinyal Realtime
-            if (rtt < 100) {
-                quality = 4; // Full Bars (Excellent)
-            } else if (rtt < 200) {
-                quality = 3; // Good
-            } else if (rtt < 400) {
-                quality = 2; // Fair
-            } else {
-                quality = 1; // Weak
+            // Logic Realtime Signal based on Latency (Ping)
+            if (rtt > 0) {
+                if (rtt < 100) quality = 4; // Excellent
+                else if (rtt < 250) quality = 3; // Good
+                else if (rtt < 500) quality = 2; // Fair
+                else quality = 1; // Weak
             }
 
-            // Normalisasi Label (Browser kadang mendeteksi Wifi sbg 4g)
+            // Normalisasi Teks
             if(connectionType === '4G' || connectionType === '5G') connectionType = 'SELULAR';
         }
 
-        // Update Text UI
+        // Update UI Text
         netTypeEl.innerText = connectionType;
-        if(netRttEl) netRttEl.innerText = `Ping: ${rtt} ms`;
+        if(netRttEl) netRttEl.innerText = rtt > 0 ? `Ping: ${rtt} ms` : `Ping: - ms`;
 
-        // Update Visual Bars
+        // Update UI Bars
         bars.forEach((bar, index) => {
+            bar.className = 'bar'; // Reset class
             if (index < quality) {
                 bar.classList.add('active');
-                bar.classList.remove('weak');
-            } else {
-                bar.classList.remove('active');
-                bar.classList.remove('weak');
+                if(quality <= 2) bar.classList.add('weak'); // Yellow if weak
             }
         });
         
-        // Warna indikator jika lemah (Kuning) vs Bagus (Hijau)
+        // Update Text Color
         if (quality <= 2) {
-             bars.forEach(b => { if(b.classList.contains('active')) b.classList.add('weak'); });
              netTypeEl.style.color = '#fbbf24'; 
         } else {
              netTypeEl.style.color = '#94a3b8'; 
@@ -519,11 +512,6 @@
 
     function initPlayer() {
         renderAccordionList();
-        // Load first cam if available
-        if (streamSource.length > 0) {
-            // Optional: Auto load first or wait user
-            // loadStream(0); 
-        }
         
         setInterval(updateClock, 1000);
         updateClock();
@@ -532,9 +520,7 @@
             navigator.connection.addEventListener('change', updateNetworkStatus);
         }
         updateNetworkStatus();
-        
-        // Update network status periodically (Check ping every 5s)
-        setInterval(updateNetworkStatus, 5000);
+        setInterval(updateNetworkStatus, 3000); // Update sinyal tiap 3 detik
     }
 
     function loadStream(index) {
@@ -635,7 +621,6 @@
             groups[s.city].push({ ...s, originalIndex: i });
         });
 
-        // Priority Order
         const orderedGroups = Object.keys(groups).sort((a,b) => {
             if(a.includes("SEMARANG")) return -1;
             if(b.includes("SEMARANG")) return 1;
@@ -666,7 +651,7 @@
                 row.id = `cam-${item.originalIndex}`;
                 row.onclick = () => loadStream(item.originalIndex);
                 row.innerHTML = `
-                    <i class="fa-solid fa-circle-play text-slate-300 text-lg"></i>
+                    <i class="fa-solid fa-circle-play text-slate-300 text-lg play-icon transition-transform"></i>
                     <span class="cam-name flex-1">${item.name}</span>
                 `;
                 body.appendChild(row);
