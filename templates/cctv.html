@@ -1,27 +1,48 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
 
 <style>
-    /* --- VARIABLES --- */
+    /* === iOS 26.2 GLASS DESIGN SYSTEM === */
     :root {
-        --primary: #1e3a8a; /* KTVDI Blue */
-        --primary-dark: #0f172a;
-        --accent: #2563eb;
-        --bg-body: #f8fafc;
+        --glass-bg: rgba(255, 255, 255, 0.65);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --primary: #007aff;
+        --primary-dark: #0056b3;
     }
 
-    body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); -webkit-tap-highlight-color: transparent; }
+    body { 
+        font-family: 'Plus Jakarta Sans', sans-serif; 
+        background-color: #f2f2f7; /* iOS System Gray */
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(210,100%,93%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 0%, hsla(190,100%,93%,1) 0, transparent 50%), 
+            radial-gradient(at 100% 100%, hsla(280,100%,93%,1) 0, transparent 50%), 
+            radial-gradient(at 0% 100%, hsla(240,100%,93%,1) 0, transparent 50%);
+        background-attachment: fixed;
+        -webkit-tap-highlight-color: transparent; 
+    }
 
-    /* --- UTILS --- */
-    .premium-scroll::-webkit-scrollbar { width: 5px; }
+    /* GLASS CARD */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+        border-radius: 24px;
+        overflow: hidden;
+    }
+
+    /* SCROLLBAR */
+    .premium-scroll::-webkit-scrollbar { width: 4px; }
     .premium-scroll::-webkit-scrollbar-track { background: transparent; }
-    .premium-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 10px; }
 
-    /* --- MARQUEE --- */
+    /* MARQUEE */
     .marquee-container { position: relative; overflow: hidden; height: 100%; display: flex; align-items: center; }
     .marquee-content {
         display: inline-block; white-space: nowrap;
@@ -30,227 +51,207 @@
     }
     @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-    /* --- PLAYER CARD --- */
-    .player-card {
-        border-radius: 16px; overflow: hidden; background: #000;
-        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
+    /* PLAYER AREA */
+    .player-frame {
+        border-radius: 24px; overflow: hidden; background: #000;
+        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.3);
         display: flex; flex-direction: column;
+        border: 1px solid rgba(255,255,255,0.1);
     }
     
-    /* Header Responsive Mobile */
     .player-header {
-        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-        padding: 12px 16px; color: white;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(20px);
+        padding: 14px 20px; color: white;
         display: flex; justify-content: space-between; align-items: center;
-    }
-    .cam-info-mobile {
-        display: flex; flex-direction: column;
-        line-height: 1.2;
-    }
-    .cam-city-label {
-        font-size: 0.65rem; font-weight: 700; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .cam-name-label {
-        font-size: 0.95rem; font-weight: 800; color: white;
-        max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
-    /* Video Wrapper (16:9 Fixed) */
     .video-wrapper {
-        position: relative; width: 100%; padding-top: 56.25%;
-        background: #020617;
+        position: relative; width: 100%; padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        background: #000;
     }
     .video-element {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill;
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;
     }
 
-    /* --- ACCORDION LIST --- */
-    .accordion-group { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; overflow: hidden; }
-    .group-header {
-        padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-        background: #fff; transition: all 0.2s;
+    /* ACCORDION LIST (SIDEBAR) */
+    .accordion-group { 
+        margin-bottom: 10px; 
+        border: 1px solid rgba(255,255,255,0.4); 
+        border-radius: 18px; 
+        background: rgba(255,255,255,0.5); 
+        overflow: hidden; 
+        transition: all 0.3s ease;
     }
-    .group-header:hover { background: #f8fafc; }
-    .group-header.active { background: #eff6ff; border-bottom: 1px solid #dbeafe; }
-    .group-title { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
-    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #ffffff; }
+    .group-header {
+        padding: 14px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        background: rgba(255,255,255,0.6); transition: background 0.2s;
+    }
+    .group-header:hover { background: rgba(255,255,255,0.9); }
+    .group-header.active { background: rgba(255,255,255,0.95); border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .group-title { font-size: 0.75rem; font-weight: 800; color: #1e293b; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+    
+    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: rgba(255,255,255,0.3); }
     .group-body.open { max-height: 5000px; }
 
-    /* --- LIST ITEM --- */
+    /* CAM ITEM */
     .cam-item {
-        padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
-        display: flex; align-items: center; gap: 10px; transition: all 0.2s;
+        padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.03); cursor: pointer;
+        display: flex; align-items: center; gap: 12px; transition: all 0.2s;
     }
-    .cam-item:hover { background-color: #f8fafc; padding-left: 18px; }
-    .cam-item.active { background-color: #eff6ff; border-left: 3px solid #2563eb; }
-    .cam-item.active .cam-name { color: #1e40af; font-weight: 700; }
-    .cam-name { font-size: 0.8rem; font-weight: 500; color: #475569; white-space: normal; line-height: 1.3; }
+    .cam-item:hover { background-color: rgba(255,255,255,0.8); padding-left: 20px; }
+    .cam-item.active { 
+        background-color: rgba(0, 122, 255, 0.1); 
+        border-left: 4px solid #007aff;
+    }
+    .cam-item.active .cam-name { color: #007aff; font-weight: 700; }
+    .cam-item.active i { color: #007aff; }
+    .cam-name { font-size: 0.85rem; font-weight: 500; color: #475569; line-height: 1.3; }
 
-    /* --- LOADING ANIMATION --- */
+    /* LOADING & SIGNAL */
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
     @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-    /* --- SIGNAL BAR (NEW) --- */
-    .signal-container {
-        display: flex; flex-direction: column; align-items: flex-end;
-    }
     .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
-    .bar { width: 3px; background: #94a3b8; border-radius: 1px; transition: background 0.3s; }
-    .bar.active { background: #22c55e; } /* Hijau Stabil */
-    .bar.weak { background: #eab308; } /* Kuning Lemah */
-    .bar:nth-child(1) { height: 4px; }
-    .bar:nth-child(2) { height: 6px; }
-    .bar:nth-child(3) { height: 8px; }
-    .bar:nth-child(4) { height: 10px; }
-    .net-label { font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 1px; }
+    .bar { width: 3px; background: rgba(255,255,255,0.3); border-radius: 1px; transition: background 0.3s; }
+    .bar.active { background: #4ade80; } /* Hijau Terang */
+    .bar.weak { background: #fbbf24; }
+    .bar:nth-child(1) { height: 4px; } .bar:nth-child(2) { height: 6px; } .bar:nth-child(3) { height: 8px; } .bar:nth-child(4) { height: 10px; }
 
-    /* --- RESPONSIVE LAYOUT --- */
+    /* RESPONSIVE */
     @media (min-width: 1024px) {
-        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; align-items: start; }
-        .col-player { grid-column: span 9; position: sticky; top: 90px; }
-        .col-list { grid-column: span 3; height: calc(100vh - 110px); overflow: hidden; display: flex; flex-direction: column; }
-        .list-scroll-area { flex: 1; overflow-y: auto; }
-        .cam-name-label { font-size: 1rem; max-width: 400px; }
+        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2rem; align-items: start; }
+        .col-player { grid-column: span 8; position: sticky; top: 100px; }
+        .col-list { grid-column: span 4; height: calc(100vh - 120px); display: flex; flex-direction: column; }
+        .list-scroll-area { flex: 1; overflow-y: auto; padding-right: 2px; }
     }
     @media (max-width: 1023px) {
-        .layout-grid { display: flex; flex-direction: column; gap: 1rem; padding: 1rem !important; }
-        .col-player { width: 100%; }
-        .col-list { width: 100%; height: auto; }
+        .layout-grid { display: flex; flex-direction: column; gap: 1.5rem; }
         .list-scroll-area { height: auto; max-height: 500px; overflow-y: auto; }
-        .cam-name-label { font-size: 0.85rem; }
     }
 </style>
 
-<div class="min-h-screen w-full flex flex-col text-slate-800" id="main-content">
+<div class="min-h-screen w-full flex flex-col text-slate-800 pb-32">
 
-    <nav class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3 w-full md:w-auto navbar-brand">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 shrink-0 p-1">
-                    <img src="https://iili.io/f87539s.png" alt="KTVDI CCTV" class="w-6 h-6 object-contain brightness-0 invert">
+    <nav class="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white/20 shadow-sm transition-all duration-300">
+        <div class="max-w-[1920px] mx-auto px-4 lg:px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-blue-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30 text-white">
+                    <i class="fa-solid fa-video"></i>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <h1 class="text-slate-900 font-extrabold text-lg tracking-tight leading-none">KTVDI <span class="text-blue-700">SMART CITY</span></h1>
-                    <p class="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">Portal LIVE CCTV terkini untuk memantau arus lalu lintas.</p>
+                <div>
+                    <h1 class="text-slate-900 font-extrabold text-lg tracking-tight leading-none">KTVDI <span class="text-blue-600">SMART VIEW</span></h1>
+                    <p class="text-[11px] text-slate-500 font-medium mt-0.5">Pantauan Lalu Lintas Realtime</p>
                 </div>
             </div>
+            
             <div class="relative w-full md:w-80 group">
-                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-700 transition-colors"></i>
-                </div>
-                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2 pl-11 pr-5 focus:outline-none focus:border-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-slate-400 shadow-inner" placeholder="Cari lokasi kamera...">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors"></i>
+                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-white/60 border border-slate-200 text-slate-700 text-sm rounded-2xl py-2.5 pl-11 pr-5 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium placeholder:text-slate-400" placeholder="Cari lokasi kamera...">
             </div>
         </div>
     </nav>
 
-    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 layout-grid">
+    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-8 layout-grid">
 
         <main class="col-player">
-            <div class="player-card">
+            <div class="player-frame">
                 <div class="player-header">
-                    <div class="flex items-center gap-4">
-                        <div class="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
-                            <span class="relative flex h-2 w-2">
-                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                            </span>
-                            <span class="text-[9px] font-bold tracking-wider">LIVE</span>
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <div class="flex items-center gap-1.5 bg-red-500/20 px-2.5 py-1 rounded-full border border-red-500/30 shrink-0 animate-pulse">
+                            <span class="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                            <span class="text-[9px] font-bold text-red-100 tracking-wider">LIVE</span>
                         </div>
-                        
-                        <div class="cam-info-mobile">
-                            <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
-                            <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
+                        <div class="flex flex-col min-w-0">
+                            <span id="active-cam-city" class="text-[10px] font-bold text-blue-300 tracking-wider uppercase">PILIH LOKASI</span>
+                            <span id="active-cam-name" class="text-sm font-bold text-white truncate">Kamera Belum Dipilih</span>
                         </div>
                     </div>
                     
-                    <div class="flex items-center gap-2 text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20 shrink-0">
-                         <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span class="hidden sm:inline">Secure</span>
+                    <div class="flex items-center gap-3">
+                        <div class="signal-container hidden sm:flex flex-col items-end">
+                            <div class="signal-bars" id="signal-meter">
+                                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            </div>
+                            <span class="text-[9px] font-mono text-slate-400 mt-1" id="net-type">CONN</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="video-wrapper group">
+                <div class="video-wrapper group relative bg-black">
                     <video id="video-element" class="video-element" autoplay muted playsinline></video>
 
-                    <div id="overlay-loading" class="absolute inset-0 bg-[#0f172a] z-40 flex flex-col items-center justify-center text-center p-4">
-                        <div class="relative w-20 h-20 mb-4 logo-pulse">
-                            <div class="absolute inset-0 bg-blue-600/30 rounded-full blur-xl"></div>
-                            <img src="https://iili.io/f87539s.png" alt="Loading" class="w-full h-full object-contain brightness-0 invert drop-shadow-lg relative z-10">
+                    <div id="overlay-loading" class="absolute inset-0 bg-[#0f172a] z-40 flex flex-col items-center justify-center text-center p-6">
+                        <div class="w-16 h-16 mb-4 logo-pulse bg-blue-600/20 rounded-full flex items-center justify-center backdrop-blur-xl border border-blue-500/30">
+                            <i class="fa-solid fa-satellite-dish text-blue-400 text-2xl"></i>
                         </div>
-                        <h3 class="text-white font-extrabold text-lg tracking-widest mb-1">KTVDI CCTV</h3>
-                        <p class="text-blue-400 text-xs font-semibold animate-pulse">Sedang loading play Camera...</p>
+                        <h3 class="text-white font-bold text-sm tracking-widest mb-1">MENGHUBUNGKAN</h3>
+                        <p class="text-slate-400 text-xs">Mengambil feed dari server...</p>
                     </div>
 
-                    <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
-                        <div class="w-16 h-16 bg-white/10 border-2 border-white/40 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
-                            <i class="fa-solid fa-play text-white text-3xl ml-1"></i>
+                    <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
+                        <div class="w-20 h-20 bg-white/10 border border-white/30 rounded-full flex items-center justify-center hover:bg-white/20 hover:scale-105 transition-all shadow-2xl">
+                            <i class="fa-solid fa-play text-white text-3xl ml-2"></i>
                         </div>
                     </div>
 
                     <div id="overlay-error" class="absolute inset-0 bg-slate-900 z-40 hidden flex flex-col items-center justify-center text-center px-6">
-                        <i class="fa-solid fa-video-slash text-slate-500 text-4xl mb-3"></i>
-                        <h4 class="text-white font-bold mb-2">Kamera Offline</h4>
-                        <p class="text-slate-400 text-xs mb-4">Koneksi terputus. Coba muat ulang.</p>
-                        <button onclick="retryStream()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-lg">Coba Lagi</button>
+                        <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                            <i class="fa-solid fa-video-slash text-red-500 text-2xl"></i>
+                        </div>
+                        <h4 class="text-white font-bold mb-1">Sinyal Terputus</h4>
+                        <p class="text-slate-400 text-xs mb-6 max-w-xs">Kamera sedang offline dari server pusat atau koneksi internet Anda tidak stabil.</p>
+                        <button onclick="retryStream()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-full shadow-lg transition-all transform active:scale-95">
+                            Coba Hubungkan Ulang
+                        </button>
                     </div>
                 </div>
 
-                <div class="bg-slate-900 px-4 py-2.5 flex items-center justify-between border-t border-slate-800">
-                    <div class="flex items-center gap-3">
-                         <div class="text-[10px] text-slate-400 font-mono tracking-wider">PANTAUAN CCTV TERKINI</div>
+                <div class="bg-slate-900 px-5 py-3 flex items-center justify-between border-t border-slate-800">
+                    <div class="flex items-center gap-2 text-xs font-mono text-slate-400">
+                        <span id="digital-clock" class="text-white font-bold">00:00:00</span>
+                        <span class="text-slate-600">|</span>
+                        <span id="date-display">...</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="retryStream()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Reload"><i class="fa-solid fa-rotate-right text-sm"></i></button>
-                        <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
+                    <div class="flex gap-2">
+                         <button onclick="retryStream()" class="text-slate-400 hover:text-white p-2 rounded hover:bg-white/10 transition" title="Refresh Stream"><i class="fa-solid fa-rotate-right"></i></button>
+                         <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white p-2 rounded hover:bg-white/10 transition" title="Layar Penuh"><i class="fa-solid fa-expand"></i></button>
                     </div>
                 </div>
             </div>
 
-            <div class="mt-4 bg-white border border-slate-200 p-3 rounded-xl shadow-sm flex flex-col gap-3">
-                <div class="flex flex-wrap justify-between items-center gap-3">
-                    
-                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
-                            <i class="fa-regular fa-clock"></i>
+            <div class="mt-6 glass-card p-4 flex items-center gap-4">
+                 <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                    <i class="fa-solid fa-circle-info"></i>
+                 </div>
+                 <div class="flex-1 overflow-hidden relative h-10 flex items-center">
+                     <div class="marquee-container w-full">
+                        <div class="marquee-content text-sm text-slate-600 font-medium">
+                            PERHATIAN: Tayangan CCTV ini bersumber dari layanan publik Pemerintah Daerah (Diskominfo/ATCS). KTVDI hanya berfungsi sebagai portal akses untuk kemudahan masyarakat. Gunakan informasi ini dengan bijak.
                         </div>
-                        <div>
-                            <div id="digital-clock" class="text-slate-900 font-bold text-sm leading-none">00:00:00</div>
-                            <div id="date-display" class="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">...</div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
-                        <div class="signal-container">
-                            <div class="signal-bars" id="signal-meter">
-                                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                            </div>
-                            <span class="net-label" id="net-type">CHECKING...</span>
-                        </div>
-                        <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                            <i class="fa-solid fa-wifi text-sm"></i>
-                        </div>
-                    </div>
-
-                </div>
-                
-                <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-8 flex items-center overflow-hidden">
-                    <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10"><i class="fa-solid fa-bullhorn text-white text-xs"></i></div>
-                    <div class="marquee-container w-full bg-white">
-                        <div class="marquee-content">INFORMASI PENTING: Tayangan CCTV ini bersumber dari layanan publik Pemerintah Daerah (Diskominfo). KTVDI Smart City hanya berfungsi sebagai portal akses. Gunakan dengan bijak.</div>
-                    </div>
-                </div>
+                     </div>
+                 </div>
             </div>
         </main>
 
-        <aside class="col-list bg-white rounded-xl border border-slate-200 shadow-lg">
-            <div class="p-4 border-b border-slate-100 bg-white sticky top-0 z-20 flex justify-between items-center">
+        <aside class="col-list glass-card border border-white/60 shadow-xl flex flex-col">
+            <div class="p-5 border-b border-slate-200/60 bg-white/50 backdrop-blur-md sticky top-0 z-10 flex justify-between items-center">
                 <div>
-                    <h3 class="font-extrabold text-slate-800 text-sm">Daftar Lokasi</h3>
-                    <p class="text-[10px] text-slate-500">Pilih kota untuk melihat kamera</p>
+                    <h3 class="font-extrabold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ul text-blue-600"></i> Daftar Lokasi
+                    </h3>
+                    <p class="text-[10px] text-slate-500 font-medium mt-0.5">Pilih kota untuk melihat kamera</p>
                 </div>
-                <span class="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold border border-blue-100" id="total-cams">Loading...</span>
+                <span class="text-[10px] bg-blue-100/50 text-blue-700 px-2.5 py-1 rounded-full font-bold border border-blue-200" id="total-cams">0 CAM</span>
             </div>
-            <div id="camera-list-container" class="list-scroll-area premium-scroll p-2 bg-slate-50"></div>
-            <div class="p-3 bg-white border-t border-slate-200 text-center text-[10px] text-slate-400 font-medium">© 2026 KTVDI Network</div>
+            
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 space-y-1">
+                </div>
+            
+            <div class="p-3 text-center border-t border-slate-200/60 text-[10px] text-slate-400 font-bold bg-white/30 backdrop-blur-md">
+                KTVDI Network © 2026
+            </div>
         </aside>
 
     </div>
@@ -258,7 +259,7 @@
 
 <script>
     // ==========================================
-    // 1. DATA SOURCE LENGKAP
+    // 1. DATA SOURCE LENGKAP (JANGAN DIHAPUS)
     // ==========================================
     const streamSource = [
         // --- KOTA SEMARANG ---
@@ -470,9 +471,9 @@
         // Warna indikator jika lemah
         if (quality <= 2) {
              bars.forEach(b => { if(b.classList.contains('active')) b.classList.add('weak'); });
-             netTypeEl.style.color = '#eab308'; // Kuning
+             netTypeEl.style.color = '#fbbf24'; // Kuning
         } else {
-             netTypeEl.style.color = '#6EE7B7'; // Hijau Emerald Muda
+             netTypeEl.style.color = '#4ade80'; // Hijau Terang
         }
     }
 
@@ -620,9 +621,9 @@
             header.onclick = () => toggleGroup(header);
             header.innerHTML = `
                 <div class="group-title">
-                    <i class="fa-solid fa-map-location-dot text-blue-700"></i> ${groupName}
+                    <i class="fa-solid fa-map-location-dot text-blue-600"></i> ${groupName}
                 </div>
-                <i class="fa-solid fa-chevron-down group-icon"></i>
+                <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
             `;
 
             const body = document.createElement('div');
@@ -634,7 +635,7 @@
                 row.id = `cam-${item.originalIndex}`;
                 row.onclick = () => loadStream(item.originalIndex);
                 row.innerHTML = `
-                    <i class="fa-solid fa-circle-play text-slate-300 text-lg play-icon transition-transform"></i>
+                    <i class="fa-solid fa-play-circle text-slate-300 text-lg"></i>
                     <span class="cam-name flex-1">${item.name}</span>
                 `;
                 body.appendChild(row);
