@@ -161,7 +161,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative z-10">
                 <div>
                     <label class="block text-xs font-bold mb-3 uppercase tracking-wider opacity-80">
-                        <i class="fa-solid fa-map-location-dot mr-1"></i> Lokasi Anda
+                        <i class="fa-solid fa-map-location-dot mr-1"></i> Lokasi Anda (<span id="detectStatus" class="text-xs font-normal italic">Deteksi GPS...</span>)
                     </label>
                     <div class="select-wrapper">
                         <select id="kotaSelect" onchange="loadJadwal(this.value)">
@@ -177,13 +177,21 @@
                 </div>
 
                 <div class="text-center lg:text-right">
-                    <p class="text-xs font-bold uppercase tracking-widest mb-1 opacity-70">Menuju Waktu <span id="nextPrayerName" class="font-black text-yellow-500">...</span></p>
-                    <div class="text-6xl md:text-7xl font-cinzel font-bold countdown-text mb-2" id="countdownTimer">--:--:--</div>
-                    
-                    <div id="prePrayerAlert" class="hidden animate-bounce inline-block">
-                         <span class="px-3 py-1 rounded-lg text-xs font-bold border" style="background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #eab308;">
-                            <i class="fa-solid fa-bell mr-1"></i> <span id="prePrayerMessage"></span>
-                        </span>
+                    <div id="statusNormal">
+                        <p class="text-xs font-bold uppercase tracking-widest mb-1 opacity-70">Menuju Waktu <span id="nextPrayerName" class="font-black text-yellow-500">...</span></p>
+                        <div class="text-6xl md:text-7xl font-cinzel font-bold countdown-text mb-2" id="countdownTimer">--:--:--</div>
+                        
+                        <div id="prePrayerAlert" class="hidden animate-bounce inline-block">
+                             <span class="px-3 py-1 rounded-lg text-xs font-bold border" style="background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #eab308;">
+                                <i class="fa-solid fa-bell mr-1"></i> <span id="prePrayerMessage"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div id="statusAzan" class="hidden animate-pulse">
+                        <p class="text-yellow-500 text-sm font-bold uppercase tracking-widest mb-2">SAAT WAKTU</p>
+                        <div class="text-5xl md:text-6xl font-bold font-amiri mb-2" id="azanMessage">AZAN</div>
+                        <p class="text-sm font-medium opacity-90" id="azanSubMessage">Selamat Melaksanakan Ibadah</p>
                     </div>
                 </div>
             </div>
@@ -225,17 +233,24 @@
     </div>
 </div>
 
+<script type="application/json" id="cityData">
+    {{ daftar_kota | tojson }}
+</script>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-    // --- 1. THEME MANAGER (AUTO DAY/NIGHT) ---
+    // --- 1. THEME MANAGER & AUTO GPS ---
     function updateTheme() {
         const hour = new Date().getHours();
         const body = document.body;
         const badge = document.getElementById('ramadanBadge');
         
         // Malam: 17:31 - 05:59 | Siang: 06:00 - 17:30
-        const isNight = hour >= 17 || hour < 6;
+        // Logika jam: if hour >= 17 (jam 5 sore) OR hour < 6 (jam 6 pagi) -> Malam
+        // Lebih presisi: if (hour > 17 || (hour == 17 && minute >= 30)) -> Malam
+        const now = new Date();
+        const isNight = (now.getHours() > 17 || (now.getHours() === 17 && now.getMinutes() >= 31)) || now.getHours() < 6;
 
         if (isNight) {
             body.className = "theme-night bg-brand-navy text-white";
@@ -244,13 +259,13 @@
         } else {
             body.className = "theme-day bg-emerald-50 text-emerald-900";
             badge.className = "inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-[10px] font-bold tracking-widest uppercase mb-4 shadow-sm";
-            document.getElementById('lanterns').style.display = 'none'; // Sembunyikan lampion siang hari
+            document.getElementById('lanterns').style.display = 'none'; 
         }
     }
     updateTheme();
-    setInterval(updateTheme, 60000); // Cek tiap menit
+    setInterval(updateTheme, 60000); 
 
-    // --- 2. DATA KNOWLEDGE (18 TOPIK LENGKAP) ---
+    // --- 2. DATA KNOWLEDGE (18 TOPIK) ---
     const knowledgeData = [
         { t: "Niat Puasa", i: "fa-heart", d: "Berniat di malam hari sebelum fajar adalah rukun puasa wajib. 'Nawaitu shauma ghadin...' Niat membedakan ibadah dengan kebiasaan." },
         { t: "Keutamaan Sahur", i: "fa-utensils", d: "Sahur penuh berkah. Rasulullah SAW bersabda: 'Bersahurlah, karena di dalamnya terdapat keberkahan.' (HR. Bukhari)." },
@@ -304,11 +319,16 @@
     renderCards(); // Init
 
 
-    // --- 3. JADWAL SHOLAT & COUNTDOWN ---
+    // --- 3. JADWAL SHOLAT & COUNTDOWN (FIXED) ---
     let countdownInterval;
+    const cityList = JSON.parse(document.getElementById('cityData').textContent); // Ambil dari script json
 
     function loadJadwal(city) {
         document.getElementById('scheduleLoading').classList.remove('hidden');
+        
+        // Simpan kota terpilih ke dropdown
+        document.getElementById('kotaSelect').value = city;
+
         const date = new Date();
         const url = `https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${city}&country=Indonesia&method=20`;
 
@@ -318,6 +338,10 @@
             renderPrayerGrid(t);
             startCountdown(t);
             document.getElementById('scheduleLoading').classList.add('hidden');
+        })
+        .catch(err => {
+             console.error(err);
+             document.getElementById('scheduleLoading').classList.add('hidden');
         });
     }
 
@@ -354,7 +378,7 @@
             const now = new Date();
             let next = null;
             let minDiff = Infinity;
-            let azan = false;
+            let azanName = "";
 
             prayers.forEach(p => {
                 const [h,m] = p.t.split(':');
@@ -363,18 +387,30 @@
 
                 // Azan Time (0 to -4 mins)
                 if(diff <= 0 && diff > -240000) {
-                    document.getElementById('statusNormal').classList.add('hidden');
-                    document.getElementById('statusAzan').classList.remove('hidden');
-                    document.getElementById('azanMessage').innerText = `WAKTU ${p.n}`;
-                    azan = true;
+                    azanName = p.n;
                     highlightCard(p.id);
                 }
 
                 if(diff > 0 && diff < minDiff) { minDiff = diff; next = p; }
             });
 
-            if(azan) return;
+            // LOGIKA TAMPILAN STATUS
+            if(azanName !== "") {
+                // TAMPILAN SAAT WAKTU TIBA
+                document.getElementById('statusNormal').classList.add('hidden');
+                document.getElementById('statusAzan').classList.remove('hidden');
+                document.getElementById('azanMessage').innerText = azanName;
+                
+                // Pesan Khusus per Waktu
+                let subMsg = "Selamat Menunaikan Ibadah Sholat";
+                if(azanName === 'IMSAK') subMsg = "Selamat Menunaikan Ibadah Puasa";
+                if(azanName === 'MAGHRIB') subMsg = "Selamat Berbuka Puasa";
+                document.getElementById('azanSubMessage').innerText = subMsg;
+                
+                return; // Keluar agar tidak lanjut ke countdown
+            }
 
+            // TAMPILAN NORMAL (COUNTDOWN)
             if(!next) { // Next day Imsak
                 next = prayers[0];
                 const [h,m] = next.t.split(':');
@@ -394,13 +430,20 @@
 
             highlightCard(next.id);
 
-            // Alert
+            // LOGIKA PENGINGAT (REMINDER)
             const mins = Math.floor(minDiff/60000);
             const alert = document.getElementById('prePrayerAlert');
+            const alertMsg = document.getElementById('prePrayerMessage');
+
             if(mins <= 10) {
                 alert.classList.remove('hidden');
-                document.getElementById('prePrayerMessage').innerText = 
-                    mins === 0 ? "Waktu sudah hampir tiba!" : `${mins} Menit lagi waktu ${next.n}`;
+                if(next.n === 'IMSAK') {
+                     alertMsg.innerText = "Waktu Imsak sebentar lagi. Segera selesaikan sahur Anda & niat puasa.";
+                } else if(next.n === 'MAGHRIB') {
+                     alertMsg.innerText = "Sebentar lagi waktu berbuka puasa. Siapkan takjil manis.";
+                } else {
+                     alertMsg.innerText = "Sobat KTVDI sudah Sholat belum? Udah mau waktu selanjutnya nih!";
+                }
             } else {
                 alert.classList.add('hidden');
             }
@@ -413,10 +456,47 @@
         document.getElementById(id)?.classList.add('active');
     }
 
-    // Load Default
-    loadJadwal('Jakarta');
+    // --- 4. AUTO GPS DETECT ---
+    if (navigator.geolocation) {
+        document.getElementById('detectStatus').innerText = "Mendeteksi...";
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                // Reverse Geocoding via BigDataCloud (Free/No Key for simple usage) or OpenStreetMap
+                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`)
+                .then(res => res.json())
+                .then(data => {
+                    const city = data.city || data.locality || "Jakarta";
+                    // Cari kota terdekat di list kita (Sederhana: exact match or contains)
+                    let foundCity = "Jakarta";
+                    // Loop cari yang cocok
+                    // (Implementasi sederhana, idealnya pakai Haversine formula jika punya koordinat semua kota)
+                    // Di sini kita coba match string nama kota
+                    const availableCities = JSON.parse(document.getElementById('cityData').textContent);
+                    for(let c of availableCities) {
+                        if(city.includes(c) || c.includes(city)) {
+                            foundCity = c; break;
+                        }
+                    }
+                    document.getElementById('detectStatus').innerText = "GPS Aktif";
+                    loadJadwal(foundCity);
+                })
+                .catch(() => {
+                    document.getElementById('detectStatus').innerText = "Gagal Deteksi";
+                    loadJadwal('Jakarta');
+                });
+            },
+            () => {
+                document.getElementById('detectStatus').innerText = "GPS Dimatikan";
+                loadJadwal('Jakarta');
+            }
+        );
+    } else {
+        loadJadwal('Jakarta');
+    }
 
-    // --- 4. QUOTES ---
+    // --- 5. QUOTES ---
     const quotes = [
         "Integritas adalah melakukan hal benar saat tak ada yang melihat.",
         "Perbedaan adalah rahmat, mari rajut persaudaraan.",
