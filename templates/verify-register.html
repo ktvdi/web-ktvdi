@@ -1,33 +1,144 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Komunitas TV Digital Indonesia</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-  <!-- Header -->
-  <div id="header"></div>
+{% extends "base.html" %}
 
-  <div class="container">
-    <h1>Verifikasi Akun</h1>
+{% block title %}Verifikasi Akun - KTVDI{% endblock %}
+
+{% block content %}
+<style>
+    /* === iOS 26.3 GLASS THEME === */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(50px) saturate(180%);
+        -webkit-backdrop-filter: blur(50px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        border-radius: 32px;
+    }
+
+    .glass-input {
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        text-align: center;
+        letter-spacing: 0.5em; /* Spasi antar angka OTP */
+        font-family: monospace;
+    }
+    .glass-input:focus {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: #1e40af;
+        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
+        transform: scale(1.02);
+    }
+    .glass-input::placeholder { 
+        color: #cbd5e1; 
+        letter-spacing: normal;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    /* Background Mesh */
+    .bg-mesh-otp {
+        background-color: #f8fafc;
+        background-image: 
+            radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+            radial-gradient(at 50% 100%, hsla(225,39%,30%,1) 0, transparent 50%);
+        background-attachment: fixed;
+    }
+    /* Override body background khusus halaman ini jika perlu */
+    body { background: #f8fafc; }
+</style>
+
+<div class="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-hidden font-['Plus_Jakarta_Sans'] bg-slate-50">
     
-    <form method="POST">
-      <input type="text" name="otp" placeholder="Masukkan kode OTP" required>
-      <button type="submit">Verifikasi</button>
-    </form>
-    <div class="flash-message-container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, msg in messages %}
-          <p class="{{ category }}">{{ msg }}</p>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-400/20 rounded-full blur-[100px] animate-blob"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-indigo-400/20 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
     </div>
-    <a href="/login" class="forgot">← Pergi ke Login</a>
-  </div>
 
-</body>
-</html>
+    <div class="max-w-md w-full glass-card p-8 md:p-12 relative z-10 animate-fade-in-up">
+        
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-50 to-white border border-blue-100 text-brand-blue mb-6 shadow-lg shadow-blue-500/10 animate-bounce-slow">
+                <i class="fa-solid fa-shield-halved text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold text-brand-navy tracking-tight mb-2">Verifikasi Akun</h1>
+            <p class="text-slate-500 text-sm font-medium leading-relaxed">
+                Kami telah mengirimkan kode OTP ke email Anda. Masukkan kode tersebut di bawah ini.
+            </p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-6 space-y-3">
+                {% for category, message in messages %}
+                    <div class="p-4 rounded-2xl text-sm font-bold flex items-center gap-3 shadow-sm backdrop-blur-md animate-shake
+                        {{ 'bg-green-50/90 text-green-700 border border-green-200' if category == 'success' else 'bg-red-50/90 text-red-700 border border-red-200' }}">
+                        <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-triangle-exclamation' }} text-lg"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="space-y-6">
+            
+            <div class="group">
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-2 text-center tracking-widest">Kode OTP</label>
+                <input type="text" name="otp" placeholder="------" required maxlength="6" autofocus
+                    class="glass-input w-full py-5 text-slate-800 text-3xl font-bold outline-none"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-brand-navy to-brand-blue hover:from-blue-900 hover:to-blue-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-blue-500/30 transform hover:-translate-y-1 active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-check-circle"></i> Verifikasi Sekarang
+            </button>
+        </form>
+
+        <div class="mt-8 text-center space-y-4">
+            <p class="text-sm text-slate-500">
+                Belum menerima kode? 
+                <a href="#" class="text-brand-blue font-bold hover:text-blue-700 hover:underline transition">Kirim Ulang</a>
+            </p>
+            
+            <div class="pt-6 border-t border-slate-200/60">
+                <a href="/login" class="inline-flex items-center gap-2 text-slate-400 hover:text-brand-navy font-bold text-sm transition-colors group">
+                    <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i> Kembali ke Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom Animations */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+    @keyframes blob {
+        0% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+        100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob { animation: blob 7s infinite; }
+    .animation-delay-2000 { animation-delay: 2s; }
+
+    @keyframes bounceSlow {
+        0%, 100% { transform: translateY(-3%); }
+        50% { transform: translateY(3%); }
+    }
+    .animate-bounce-slow { animation: bounceSlow 3s infinite ease-in-out; }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    .animate-shake { animation: shake 0.4s ease-in-out; }
+</style>
+{% endblock %}
