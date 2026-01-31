@@ -90,7 +90,7 @@
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
     @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-    /* --- BITRATE MONITOR (REPLACEMENT FOR SIGNAL) --- */
+    /* --- RESOLUTION MONITOR --- */
     .signal-container {
         display: flex; flex-direction: column; align-items: flex-end;
     }
@@ -222,10 +222,10 @@
                             <div class="signal-bars" id="signal-meter">
                                 <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
                             </div>
-                            <span class="net-label" id="bitrate-display">0.00 Mbps</span>
+                            <span class="net-label" id="resolution-display">DETECTING...</span>
                         </div>
                         <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-                            <i class="fa-solid fa-bolt-lightning text-sm"></i>
+                            <i class="fa-solid fa-expand text-sm"></i>
                         </div>
                     </div>
 
@@ -257,12 +257,12 @@
 
 <script>
     // ==========================================
-    // 1. DATA SOURCE LENGKAP (UPDATED)
+    // 1. DATA SOURCE LENGKAP
     // ==========================================
     const streamSource = [
         // --- KOTA SEMARANG ---
-        {city: "KOTA SEMARANG", name: "Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Simpang Letjen Suprapto", url: "https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pandanaran - Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Letjen Suprapto - Kota Lama", url: "https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Mberok In", url: "https://livepantau.semarangkota.go.id/16ec5c7d-78d6-4faa-88f3-ce2377787ab6/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Metro Johar", url: "https://livepantau.semarangkota.go.id/1d3d4d03-fbc6-471a-b86e-796f9d2454a6/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Pemuda - Gajahmada", url: "https://livepantau.semarangkota.go.id/e274caf0-9e7d-4fb4-a0b7-47fcfe5e10ad/index.m3u8"},
@@ -280,31 +280,31 @@
         {city: "KOTA SEMARANG", name: "Counting Pedurungan", url: "https://livepantau.semarangkota.go.id/92c6c558-67b1-4fbe-85ac-13285134d3a4/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Tlogosari", url: "https://livepantau.semarangkota.go.id/718fb9e8-52d5-44ef-9a0d-a4be26ce9640/index.m3u8"},
         {city: "KOTA SEMARANG", name: "DPU Terowongan Soetta", url: "https://livepantau.semarangkota.go.id/d2eb2ac6-ea82-4397-a304-4e644a6fcda2/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Bawah Tol X3W_IN", url: "https://livepantau.semarangkota.go.id/64044538-6b87-45fe-9780-a7d9a772edb0/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bawah Tol Kaligawe", url: "https://livepantau.semarangkota.go.id/64044538-6b87-45fe-9780-a7d9a772edb0/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Supriyadi", url: "https://livepantau.semarangkota.go.id/e6447de6-60af-428a-abad-3f46f93dff85/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Pasar Banyumanik", url: "https://livepantau.semarangkota.go.id/56255b86-ca94-4308-bc6e-ec99e4fa115a/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Banyumanik Counting Out", url: "https://livepantau.semarangkota.go.id/3a3ab4ac-71d7-4745-96db-3d2a89c88eec/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Simp Sukun", url: "https://livepantau.semarangkota.go.id/ddd47c5c-60e9-4e11-9402-9a44e3f80cf0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Exit Tol Srondol", url: "https://livepantau.semarangkota.go.id/26be91ae-df40-4154-8106-022fbf126091/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Sukun", url: "https://livepantau.semarangkota.go.id/ddd47c5c-60e9-4e11-9402-9a44e3f80cf0/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Exit Tol Srondol (ADA)", url: "https://livepantau.semarangkota.go.id/26be91ae-df40-4154-8106-022fbf126091/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Patung Diponegoro", url: "https://livepantau.semarangkota.go.id/71e5c155-44b3-4323-8fa3-8000e02d2fe5/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Bukit Sari", url: "https://livepantau.semarangkota.go.id/3dccd8b8-4d36-4f97-a801-e044f206c628/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Fly Over Jatingaleh", url: "https://livepantau.semarangkota.go.id/3b733f91-8045-4c00-b3ee-58346553c420/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Fly Over Jatingaleh Wide", url: "https://livepantau.semarangkota.go.id/4fc95992-4d96-49bd-a2c1-5c2d53406f03/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Kaliwiru", url: "https://livepantau.semarangkota.go.id/71144509-2bb9-4f55-ade3-bfa3bf01f1eb/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Donbosko", url: "https://livepantau.semarangkota.go.id/5af48766-7d94-439f-9f83-a615fb82d3fa/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SP.Akpol", url: "https://livepantau.semarangkota.go.id/3481ab70-9c70-4213-a954-adc9954d35f4/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Akpol", url: "https://livepantau.semarangkota.go.id/3481ab70-9c70-4213-a954-adc9954d35f4/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Bundaran Diponegoro", url: "https://livepantau.semarangkota.go.id/66d3db83-931c-438e-aed5-8f29a96c7219/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Exit Tol Gayamsari", url: "https://livepantau.semarangkota.go.id/9397276f-ab0f-46a3-988c-4fa6b24782f5/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Lamper - Gajah", url: "https://livepantau.semarangkota.go.id/15dfb463-f960-46bd-9db4-5f75780c8f9e/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Simp Kelinci", url: "https://livepantau.semarangkota.go.id/99259845-4513-40d4-b4ff-fe52a731f96b/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Simpang Cinde", url: "https://livepantau.semarangkota.go.id/ffd980f2-fd2c-4dfe-919a-ad35d75b0035/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Pasar Kambing 360", url: "https://livepantau.semarangkota.go.id/885c3af0-c04d-4376-8284-e5d8abdd3dac/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pasar Kambing (Java Mall)", url: "https://livepantau.semarangkota.go.id/885c3af0-c04d-4376-8284-e5d8abdd3dac/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Peterongan", url: "https://livepantau.semarangkota.go.id/c2b8e299-695d-4a94-b9d6-149c97d9deb7/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Milo", url: "https://livepantau.semarangkota.go.id/defcf484-e730-462d-912c-b98f7dba92ac/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Bangkong", url: "https://livepantau.semarangkota.go.id/73c3d1e3-28d8-496c-b0a5-763225c10c3d/index.m3u8"},
         {city: "KOTA SEMARANG", name: "MT Haryono", url: "https://livepantau.semarangkota.go.id/aff2b8b8-5d60-43bd-8a6d-bfcf9e83a234/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Sriwijaya 02", url: "https://livepantau.semarangkota.go.id/c0339699-6b20-45dc-8e8d-c3b0ece2ab3e/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Sriwijaya 01", url: "https://livepantau.semarangkota.go.id/d2d3a81d-9d33-4dac-af45-29500714ff87/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Sriwijaya 02 (Wonderia)", url: "https://livepantau.semarangkota.go.id/c0339699-6b20-45dc-8e8d-c3b0ece2ab3e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Sriwijaya 01 (Wonderia)", url: "https://livepantau.semarangkota.go.id/d2d3a81d-9d33-4dac-af45-29500714ff87/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Ki Mangun Sarkoro", url: "https://livepantau.semarangkota.go.id/9ea7c028-2b3a-4df5-a8d6-ec8f71de6c53/index.m3u8"},
         {city: "KOTA SEMARANG", name: "JPO Simpang 5", url: "https://livepantau.semarangkota.go.id/ff2be764-eb85-487e-b603-81dc4fcd271f/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Polda 360", url: "https://livepantau.semarangkota.go.id/85f04ddc-61b3-40a0-87ed-2234a7a3703f/index.m3u8"},
@@ -314,15 +314,16 @@
         {city: "KOTA SEMARANG", name: "Arah Tugu Tunas", url: "https://livepantau.semarangkota.go.id/31c11bab-0ec7-4136-9c74-98266f3f5380/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Arah Pandanaran", url: "https://livepantau.semarangkota.go.id/892f0437-5dc9-45c1-b202-180f4c6d0ed8/index.m3u8"},
         {city: "KOTA SEMARANG", name: "DPU Pahlawan", url: "https://livepantau.semarangkota.go.id/ba6092fc-39c6-4f10-bca4-b4ab49f71246/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Simpang 5 1 360", url: "https://livepantau.semarangkota.go.id/7831ff81-dc8a-4c2e-b3ab-d041eda64804/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Simpang 5 2", url: "https://livepantau.semarangkota.go.id/2e283d27-b5bc-4f99-9e50-65ee51229031/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang 5-1", url: "https://livepantau.semarangkota.go.id/7831ff81-dc8a-4c2e-b3ab-d041eda64804/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang 5-2", url: "https://livepantau.semarangkota.go.id/2e283d27-b5bc-4f99-9e50-65ee51229031/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Simpang Tentrem Mall", url: "https://livepantau.semarangkota.go.id/1d38d1c3-1bd2-43c4-a699-1041897a5755/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "Gajahmada", url: "https://livepantau.semarangkota.go.id/37f49225-75cb-4a8f-86dd-7274e128a50f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Gajahmada 360", url: "https://livepantau.semarangkota.go.id/37f49225-75cb-4a8f-86dd-7274e128a50f/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Bergota 360", url: "https://livepantau.semarangkota.go.id/c76db3cc-6a7c-46ca-9dd4-1d9000e5f9b7/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Thamrin Pandanaran 360", url: "https://livepantau.semarangkota.go.id/9d44f052-0cf9-4b16-a786-cc6ea7e8d1a5/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Simpang Thamrin", url: "https://livepantau.semarangkota.go.id/9578fde7-aa93-48bd-8cdf-7545458d95e9/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Bathan - Thamrin", url: "https://livepantau.semarangkota.go.id/a0927a42-548d-4a91-89e0-50cb24378613/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Pusat Oleh Oleh", url: "https://livepantau.semarangkota.go.id/02f5d6ea-5b02-4097-b2d0-0f6646dca9f8/index.m3u8"},
+        {city: 'KOTA SEMARANG", name: "Pasar Karangayu", url: "https://livepantau.semarangkota.go.id/c21342a7-2475-4bbf-b876-0b91db27a79d/index.m3u8"},
 
         // --- D.I. YOGYAKARTA ---
         {city: "D.I. YOGYAKARTA", name: "Malioboro - Simpang Pajeksan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_22_Simpang_Pajeksan_Suryatmajan.stream/chunklist_w229731190.m3u8"},
@@ -337,7 +338,7 @@
         {city: "D.I. YOGYAKARTA", name: "Simpang Mantrigawen PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/playlist.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Simpang Karang Tunggal", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah2.stream/playlist.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Condong Catur 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Condongcatur2.stream/playlist.m3u8"},
-        {city: "D.I. YOGYAKARTA", name: "Besi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Besi.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Besi (Jakal)", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Besi.stream/playlist.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Simpang Juadi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Juadi.stream/playlist.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Simpang Tegalgendu PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Tegalgendu_PTZ.stream/playlist.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Simpang Tugu PTZ 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewSimpangTugu.stream/chunklist_w1182543842.m3u8"},
@@ -354,7 +355,7 @@
         {city: "D.I. YOGYAKARTA", name: "RHTP Gunung Ketur 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_1.stream/chunklist_w11536123.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Brontokusuman Belakang 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_2.stream/chunklist_w1107148855.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Malioboro Terang Bulan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_11_Terang_Bulan.stream/playlist.m3u8"},
-        {city: "D.I. YOGYAKARTA", name: "Malioboro Mal Selatan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Mall Selatan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/playlist.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Malioboro Mutiara Lama", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_8_Mutiara_Lama.stream/playlist.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Malioboro Utara Mall", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_25_Utara_Mall.stream/chunklist_w2134770204.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Simpang BPK", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_bpk.stream/chunklist_w367961555.m3u8"},
@@ -375,17 +376,17 @@
         {city: "D.I. YOGYAKARTA", name: "Embung Tambakboyo", url: "https://mam.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTambakboyo.stream/chunklist_w782093023.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Alun-Alun Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/playlist.m3u8"},
 
-        // --- KOTA PEKALONGAN (NEW DATA) ---
+        // --- KOTA PEKALONGAN ---
         {city: "KOTA PEKALONGAN", name: "Dr Cipto", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Grosir Setono", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Grogolan PTZ", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "Gambaran", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Simpang Gambaran", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Polsek Timur PTZ", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/1/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "Alun Alun", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "THR", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Alun Alun 360", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/2/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "THR 360", url: "https://rtsp.pekalongankota.go.id/stream/4ddb8484-2231-4450-9d91-30021a9d94e5/channel/3/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Kec Pekalongan Selatan", url: "https://rtsp.pekalongankota.go.id/stream/ec93a215-5852-4ae5-944e-8a6ec558e5e9/channel/0/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "Perempatan Kominfo", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "Perempatan Kominfo 2", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Perempatan Kominfo (Mataram)", url: "https://rtsp.pekalongankota.go.id/stream/c285d807-d19f-4dc0-83dc-b1932677fded/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Perempatan Kominfo 2 (Mataram)", url: "https://rtsp.pekalongankota.go.id/stream/c1657b7d-1780-4f5c-be0a-96a779cd92b9/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Pusri Timur", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Pusri Barat", url: "https://rtsp.pekalongankota.go.id/stream/b05ef4db-a7a7-4622-8b64-fd0085dabe4a/channel/2/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Stasiun PTZ", url: "https://rtsp.pekalongankota.go.id/stream/aae9126d-8149-40e7-9cf2-df7d1a2cbfab/channel/0/hls/live/index.m3u8"},
@@ -400,7 +401,7 @@
         {city: "KOTA PEKALONGAN", name: "Dharma Bakti Selatan", url: "https://rtsp.pekalongankota.go.id/stream/504ddc51-6bb8-4355-a6b3-e1fc4b8e3e8d/channel/2/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Pertigaan Podosugih Utara", url: "https://rtsp.pekalongankota.go.id/stream/69518725-7264-4b56-a685-7dbddf7cd039/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Muhammadiyah Barat", url: "https://rtsp.pekalongankota.go.id/stream/a561e384-c065-41f6-84fa-32ec581f133f/channel/0/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "Matahari", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "Matahari 360", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/1/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Terminal Tengah", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Terminal Timur", url: "https://rtsp.pekalongankota.go.id/stream/0b2a0c4c-fb26-4318-bbeb-86d6bcdf2fa3/channel/1/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Pertigaan Podo Sugih Timur", url: "https://rtsp.pekalongankota.go.id/stream/20f63cfc-3f39-440f-b604-4d356da5315d/channel/0/hls/live/index.m3u8"},
@@ -410,40 +411,120 @@
         {city: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/0/hlsll/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Pertigaan Kel Klego 2", url: "https://rtsp.pekalongankota.go.id/stream/98520500-cf21-47b5-ae30-eb767f681aba/channel/1/hlsll/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "SOROGENEN", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/2/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "PONOLAWEN", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
+        {city: "KOTA PEKALONGAN", name: "PONOLAWEN 360", url: "https://rtsp.pekalongankota.go.id/stream/a23d134a-18c6-4629-8df4-fe9b9777bac5/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Kec Pekalongan Utara", url: "https://rtsp.pekalongankota.go.id/stream/097799c5-4130-48b8-8c94-869b1960d0c1/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "KALI BREMI (CCTV BPBD)", url: "https://rtsp.pekalongankota.go.id/stream/a051a871-44ce-4a0e-9c30-6fc3455904b1/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8"},
-        {city: "KOTA PEKALONGAN", name: "Pertigaan Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"}
+        {city: "KOTA PEKALONGAN", name: "Pertigaan Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"},
+
+        // --- GUNUNG KIDUL ---
+        {city: "GUNUNG KIDUL", name: "Kelurahan Jetis", url: "https://stream.gunungkidulkab.go.id:8888/6d5acbc9-33cf-4d3a-8671-a26933f1868d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Jetis PTZ", url: "https://stream.gunungkidulkab.go.id:8888/61947637-427d-48ad-a59e-916edc063354/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Alun Alun Wonosari PTZ", url: "https://stream.gunungkidulkab.go.id:8888/cd59b3ca-9f14-4660-96a6-2e65442c52a2/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Green Village Gedangsari", url: "https://stream.gunungkidulkab.go.id:8888/bc0a365b-3b87-4fca-8bb0-66af17678e4d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang", url: "https://stream.gunungkidulkab.go.id:8888/c4c52e15-f967-4ffc-a785-8b5e4297e0f7/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 2 Patuk Barat", url: "https://stream.gunungkidulkab.go.id:8888/32588258-06cb-4628-987e-1f0748e6604e/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 2 Patuk Timur", url: "https://stream.gunungkidulkab.go.id:8888/e903344a-4303-4dbb-954c-1ba2eac82c10/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Simpang 4 Gading", url: "https://stream.gunungkidulkab.go.id:8888/e08a568b-111c-43ce-88bc-503f4a3cc348/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Taman Kota", url: "https://stream.gunungkidulkab.go.id:8888/93b13543-ed56-48dc-a6b2-b73c3fc8f29a/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/630843dd-4488-4360-8f86-b23f3e67980d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Kukup", url: "https://stream.gunungkidulkab.go.id:8888/53fa897a-dc59-435b-841b-ce544d559a20/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Getas", url: "https://stream.gunungkidulkab.go.id:8888/097ef287-a064-4730-8b65-0fdfad75f327/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Bunder", url: "https://stream.gunungkidulkab.go.id:8888/cdb69448-349b-460e-ac6c-545199e93599/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Pemadang", url: "https://stream.gunungkidulkab.go.id:8888/72f5464f-8741-4449-9727-c75db9a1169f/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Puskesmas Gedangsari 2", url: "https://stream.gunungkidulkab.go.id:8888/7796317a-7669-4f52-b560-e1706a1825c9/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "JJLS Planjan", url: "https://stream.gunungkidulkab.go.id:8888/5858ca16-f730-49d1-a494-9d20a82b9b55/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 1 Playen", url: "https://stream.gunungkidulkab.go.id:8888/c43d6c28-d03d-4aab-a589-7410b655908d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SD Karangrejek", url: "https://stream.gunungkidulkab.go.id:8888/97561df3-c774-495a-b4d6-e5654108ac43/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Perempatan Patuk", url: "https://stream.gunungkidulkab.go.id:8888/d237c46b-f15b-490c-869c-b5375df3a020/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP3 Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/f156c1d9-9381-45f5-a20f-cd323fb3a639/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Ngringung Mulo", url: "https://stream.gunungkidulkab.go.id:8888/bbc05db8-09ae-44d1-a049-3d22bd18962b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Pasar Playen", url: "https://stream.gunungkidulkab.go.id:8888/3cdd4d3d-123f-4fdd-9600-5afce882d8e5/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Alun Alun Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/c066fe94-69d3-487b-990a-f0bdb24fa9e9/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan Siyono", url: "https://stream.gunungkidulkab.go.id:8888/447f180a-3aa6-41af-a905-4f5567b84f1b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Drini", url: "https://stream.gunungkidulkab.go.id:8888/10aee277-d00f-45ee-b72d-c3c4962bc269/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Nglanggeran 1", url: "https://stream.gunungkidulkab.go.id:8888/dab5e1b1-dc22-4162-8523-ada6a19585d9/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Nglanggeran 2", url: "https://stream.gunungkidulkab.go.id:8888/a6091cbe-fbfc-401b-994b-258ba03b0387/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Puskesmas Ngawen 2", url: "https://stream.gunungkidulkab.go.id:8888/8193c0b3-0d34-43a1-9185-a534f6ffa303/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan SD Nanas", url: "https://stream.gunungkidulkab.go.id:8888/68e924c4-c94a-42e7-93ca-12b685c6513b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan PLN", url: "https://stream.gunungkidulkab.go.id:8888/ef7bc11d-8e05-4414-8e25-edeb78929cf0/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 2 Paliyan", url: "https://stream.gunungkidulkab.go.id:8888/a7891cb1-d941-4974-94cd-de33ac5d84b0/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Rejosari", url: "https://stream.gunungkidulkab.go.id:8888/a8b41e1f-51ae-4f3c-b61f-3d3485714fee/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Sambirejo", url: "https://stream.gunungkidulkab.go.id:8888/a4bed595-2ed8-46f5-a802-fc450bdf67e9/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "BPP Playen", url: "https://stream.gunungkidulkab.go.id:8888/40c44e72-0ef8-42b5-9410-8c88ad2d062d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SD Trowo 1", url: "https://stream.gunungkidulkab.go.id:8888/076df88c-ce65-47f4-8d4e-4872c430eee8/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Terminal Senin", url: "https://stream.gunungkidulkab.go.id:8888/f4e65d43-ff9a-4603-b035-b2bb778fc9d1/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SD Pucung", url: "https://stream.gunungkidulkab.go.id:8888/407a2a57-0202-4303-8314-114e635549c2/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMPN 1 Tanjungsari", url: "https://stream.gunungkidulkab.go.id:8888/d15446f5-d59f-47f0-b6d6-5828c28dfc6b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Puskesmas Patuk 2", url: "https://stream.gunungkidulkab.go.id:8888/565f31f5-ca89-4db2-937b-dd33f9fb5102/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "RTH 2", url: "https://stream.gunungkidulkab.go.id:8888/7ecb3678-fc9a-4d9a-9b71-d1716ab29c44/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "TPR Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/f6314dd1-a8ea-40a9-8a97-e0f2f8dc4bdd/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pasar Argosari", url: "https://stream.gunungkidulkab.go.id:8888/5b13c6d9-1295-4e5d-927a-ef546e433339/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan Siyono Timur", url: "https://stream.gunungkidulkab.go.id:8888/365d3972-8e24-4b8e-a9bd-2db5cbcbfee8/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapenawon Saptosari", url: "https://stream.gunungkidulkab.go.id:8888/3fb627dc-e19a-4bc7-9e79-687487c840db/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapenawon Saptosari 2", url: "https://stream.gunungkidulkab.go.id:8888/41eefc1f-8388-47b2-9dc9-59d5e65b10d7/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S3 Petoyan 1", url: "https://stream.gunungkidulkab.go.id:8888/d7c5ae4e-2c50-4fc3-a57d-84950313fe6f/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S3 Ngawen Timur", url: "https://stream.gunungkidulkab.go.id:8888/336476f5-2964-4c45-82d2-061b7fe984aa/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapanewon Semin Utara", url: "https://stream.gunungkidulkab.go.id:8888/25a25318-0831-41ca-a84e-cb725af7a912/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapanewon Semin Selatan", url: "https://stream.gunungkidulkab.go.id:8888/b788631e-790a-4034-a021-d70223e93e56/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Karangmojo Barat", url: "https://stream.gunungkidulkab.go.id:8888/1a72b20b-83a2-44e3-b2cb-34754ec25d7d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Karangmojo Timur", url: "https://stream.gunungkidulkab.go.id:8888/80040ab9-0b70-4d40-991d-33e3850d4115/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "BPP Semanu Barat", url: "https://stream.gunungkidulkab.go.id:8888/27c0b2c4-a1bf-4ed9-95ca-9d88f046c754/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Ngalang Timur", url: "https://stream.gunungkidulkab.go.id:8888/6d0d6159-4ddc-4ef6-a430-ee4ac9731e83/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Ngalang Barat", url: "https://stream.gunungkidulkab.go.id:8888/ae3ead60-bed5-4f71-8613-bd4161d51aaf/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Muggi Barat", url: "https://stream.gunungkidulkab.go.id:8888/95e43424-6406-45d5-9ea8-6c137e40e9fa/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S3 Lalin Pasar Playen", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/PertigaanPasarPlayen.stream/playlist.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Wediombo Jalan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/PantaiWediomboJalan.stream/playlist.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kodim Gn Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/LapanganKasatrian.stream/playlist.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapenawon Rangkop Timur", url: "https://stream.gunungkidulkab.go.id:8888/5bc413f9-0eae-4334-9b7b-e13bf155c8dd/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kepenawon Rangkop Barat", url: "https://stream.gunungkidulkab.go.id:8888/b344fc06-e8e9-40b2-ad80-d996918ec595/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pasar Wotgalih", url: "https://stream.gunungkidulkab.go.id:8888/d7bca391-48f3-48d5-9744-ddf548c21ca4/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang PTZ", url: "https://stream.gunungkidulkab.go.id:8888/194accd6-6fc8-4938-81c1-78206b1a0200/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang Fix", url: "https://stream.gunungkidulkab.go.id:8888/f443272b-2eee-4df1-a2bc-14474a336e29/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Parkiran Embung Nglanggeran", url: "https://stream.gunungkidulkab.go.id:8888/0386d0d8-c1a6-429a-9996-def5e2079644/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Embung Nglanggeran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/1bea2c47-343d-408e-adf5-ad5eaf6faeec/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Simpang 4 RSUD PTZ", url: "https://stream.gunungkidulkab.go.id:8888/00817fc1-25e9-469f-a5c5-c371bdd55f07/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan Siyono PTZ", url: "https://stream.gunungkidulkab.go.id:8888/c02bf2b6-834c-4c9b-9be6-f2980d859bb8/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Kukup PTZ", url: "https://stream.gunungkidulkab.go.id:8888/dfdcfa82-c168-4265-abc8-f786bb7f0313/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Pasar Playen PTZ", url: "https://stream.gunungkidulkab.go.id:8888/14d99ef0-eb77-4450-9fc9-eb7545a9ac16/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Simpang 4 Pancuran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/d0e1549c-170b-499e-8dee-4ec2fef57f4d/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan PLN PTZ", url: "https://stream.gunungkidulkab.go.id:8888/de774241-aaec-4937-a43a-ab59b7525dd0/index.m3u8"}
     ];
 
     // ==========================================
-    // 2. BITRATE MONITORING LOGIC
+    // 2. RESOLUTION MONITORING LOGIC
     // ==========================================
-    function updateBitrateDisplay(bitrateKbps) {
-        const bitrateMbps = (bitrateKbps / 1024).toFixed(2);
-        const display = document.getElementById('bitrate-display');
+    function updateResolutionDisplay() {
+        const video = document.getElementById('video-element');
+        const display = document.getElementById('resolution-display');
         const bars = document.querySelectorAll('.bar');
         
-        display.innerText = `${bitrateMbps} Mbps`;
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+            const w = video.videoWidth;
+            const h = video.videoHeight;
+            let label = "SD";
+            let quality = 1;
 
-        let quality = 0;
-        const value = parseFloat(bitrateMbps);
-        
-        if (value > 0) quality = 1;
-        if (value > 0.5) quality = 2;
-        if (value > 1.5) quality = 3;
-        if (value > 3) quality = 4;
+            if (w >= 1920 || h >= 1080) { label = "FULL HD"; quality = 4; }
+            else if (w >= 1280 || h >= 720) { label = "HD"; quality = 3; }
+            else if (w >= 640 || h >= 480) { label = "SD"; quality = 2; }
+            else { label = "LOW"; quality = 1; }
 
-        bars.forEach((bar, index) => {
-            if (index < quality) {
-                bar.classList.add('active');
-                bar.style.backgroundColor = (value < 0.8) ? '#eab308' : '#22c55e';
-            } else {
-                bar.classList.remove('active');
-                bar.style.backgroundColor = '#94a3b8';
-            }
-        });
+            display.innerText = `${w}x${h} (${label})`;
+
+            bars.forEach((bar, index) => {
+                if (index < quality) {
+                    bar.classList.add('active');
+                    bar.style.backgroundColor = (quality >= 3) ? '#22c55e' : '#eab308';
+                } else {
+                    bar.classList.remove('active');
+                    bar.style.backgroundColor = '#94a3b8';
+                }
+            });
+        } else {
+            display.innerText = "DETECTING...";
+            bars.forEach(bar => bar.classList.remove('active'));
+        }
     }
 
     // ==========================================
@@ -457,6 +538,10 @@
     const loadingOverlay = document.getElementById('overlay-loading');
     const errorOverlay = document.getElementById('overlay-error');
     const playOverlay = document.getElementById('overlay-play');
+
+    // Monitor resolution changes
+    video.addEventListener('loadedmetadata', updateResolutionDisplay);
+    video.addEventListener('resize', updateResolutionDisplay);
 
     function initPlayer() {
         renderAccordionList();
@@ -476,7 +561,7 @@
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
-        updateBitrateDisplay(0);
+        document.getElementById('resolution-display').innerText = "DETECTING...";
 
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
@@ -496,18 +581,6 @@
             hls.loadSource(stream.url);
             hls.attachMedia(video);
             
-            hls.on(Hls.Events.FRAG_LOADED, (event, data) => {
-                if(data.stats) {
-                    const kbps = (data.stats.total * 8) / (data.stats.loading.end - data.stats.loading.start);
-                    updateBitrateDisplay(kbps);
-                }
-            });
-
-            hls.on(Hls.Events.LEVEL_SWITCHED, (event, data) => {
-               const level = hls.levels[data.level];
-               if(level && level.bitrate) updateBitrateDisplay(level.bitrate / 1000);
-            });
-
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play().catch(() => {
                     loadingOverlay.classList.add('hidden');
@@ -544,6 +617,7 @@
     video.addEventListener('playing', () => {
         loadingOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
+        updateResolutionDisplay();
     });
 
     video.addEventListener('waiting', () => {
@@ -553,7 +627,7 @@
     function showErrorState() {
         loadingOverlay.classList.add('hidden');
         errorOverlay.classList.remove('hidden');
-        updateBitrateDisplay(0);
+        document.getElementById('resolution-display').innerText = "OFFLINE";
     }
 
     function retryStream() {
