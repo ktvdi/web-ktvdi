@@ -1,624 +1,276 @@
-<!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>{% block title %}KTVDI - Komunitas TV Digital Indonesia{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+{% extends 'base.html' %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
+
+<style>
+    /* --- VARIABLES --- */
+    :root {
+        --primary: #1e3a8a; 
+        --primary-dark: #0f172a;
+        --accent: #2563eb;
+        --bg-body: #f8fafc;
+    }
+
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg-body); -webkit-tap-highlight-color: transparent; }
+
+    /* --- UTILS --- */
+    .premium-scroll::-webkit-scrollbar { width: 5px; }
+    .premium-scroll::-webkit-scrollbar-track { background: transparent; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+    /* --- MARQUEE --- */
+    .marquee-container { position: relative; overflow: hidden; height: 100%; display: flex; align-items: center; }
+    .marquee-content {
+        display: inline-block; white-space: nowrap;
+        animation: marquee-slide 60s linear infinite;
+        padding-left: 100%; font-size: 0.75rem; font-weight: 600; color: #475569;
+    }
+    @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    /* --- PLAYER CARD --- */
+    .player-card {
+        border-radius: 16px; overflow: hidden; background: #000;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.2);
+        display: flex; flex-direction: column;
+    }
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'] },
-                    colors: { brand: { navy: '#0f172a', blue: '#1e40af', sky: '#007aff', surface: '#f2f2f7' } },
-                    padding: { 'safe': 'env(safe-area-inset-bottom)' }
-                }
-            }
-        }
-    </script>
-    
-    <style>
-        /* === iOS 26.3 ULTRA GLASS DESIGN SYSTEM === */
-        
-        /* 1. Page Loader */
-        #initial-loader {
-            position: fixed; inset: 0; z-index: 9999;
-            background: radial-gradient(circle at center, #1e3a8a 0%, #020617 100%);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
-            overflow: hidden;
-        }
-        #initial-loader::after {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
-            animation: shine 4s infinite linear; pointer-events: none;
-        }
-        @keyframes shine { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .player-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+        padding: 12px 16px; color: white;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .cam-info-mobile {
+        display: flex; flex-direction: column;
+        line-height: 1.2;
+    }
+    .cam-city-label {
+        font-size: 0.65rem; font-weight: 700; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .cam-name-label {
+        font-size: 0.95rem; font-weight: 800; color: white;
+        max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
-        .loader-content {
-            position: relative; z-index: 10;
-            display: flex; flex-direction: column; align-items: center;
-            background: rgba(255, 255, 255, 0.1); 
-            backdrop-filter: blur(20px);
-            padding: 2.5rem; border-radius: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-        .loader-logo { 
-            width: 80px; height: 80px; 
-            filter: brightness(0) invert(1) drop-shadow(0 0 20px rgba(56, 189, 248, 0.5));
-            animation: breath 2s infinite ease-in-out; 
-        }
-        .loader-text {
-            margin-top: 1.5rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.25em;
-            color: rgba(255, 255, 255, 0.9); text-transform: uppercase;
-        }
-        @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .video-wrapper {
+        position: relative; width: 100%; padding-top: 56.25%;
+        background: #020617;
+    }
+    .video-element {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill;
+    }
 
-        /* RAMADAN ANIMATIONS */
-        @keyframes lanternSwing {
-            0%, 100% { transform: rotate(3deg); }
-            50% { transform: rotate(-3deg); }
-        }
-        @keyframes moonFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-        
-        .ramadan-asset {
-            position: fixed;
-            z-index: 60; 
-            pointer-events: none; 
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
-        }
-        
-        .lantern-anim {
-            transform-origin: top center;
-            animation: lanternSwing 6s ease-in-out infinite;
-        }
-        .moon-anim {
-            animation: moonFloat 8s ease-in-out infinite;
-        }
-        
-        .delay-200 { animation-delay: 2.5s; }
+    /* --- ACCORDION LIST --- */
+    .accordion-group { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; overflow: hidden; }
+    .group-header {
+        padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        background: #fff; transition: all 0.2s;
+    }
+    .group-header:hover { background: #f8fafc; }
+    .group-header.active { background: #eff6ff; border-bottom: 1px solid #dbeafe; }
+    .group-title { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: #ffffff; }
+    .group-body.open { max-height: 5000px; }
 
-        /* 2. Mobile Floating Dock (WARNA BIRU #1e3a8a) */
-        .ios-dock {
-            background: #1e3a8a;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
-            border-radius: 36px;
-            margin: 0;
-            width: 100%; height: 76px;
-            display: grid; grid-template-columns: repeat(5, 1fr);
-            align-items: center; padding: 0 8px; position: relative;
-        }
-        .ios-dock-container {
-            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-            width: calc(100% - 32px); max-width: 480px; z-index: 60;
-        }
+    /* --- LIST ITEM --- */
+    .cam-item {
+        padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+        display: flex; align-items: center; gap: 10px; transition: all 0.2s;
+    }
+    .cam-item:hover { background-color: #f8fafc; padding-left: 18px; }
+    .cam-item.active { background-color: #eff6ff; border-left: 3px solid #2563eb; }
+    .cam-item.active .cam-name { color: #1e40af; font-weight: 700; }
+    .cam-name { font-size: 0.8rem; font-weight: 500; color: #475569; white-space: normal; line-height: 1.3; }
 
-        /* 3. Nav Items (Text Putih) */
-        .nav-item {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #cbd5e1; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            height: 100%; width: 100%; border-radius: 20px; position: relative; overflow: hidden;
-        }
-        .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
-        .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; line-height: 1; z-index: 2; }
-        
-        .nav-item.active { color: #ffffff; }
-        
-        .nav-item:active::after {
-            content: ''; position: absolute; inset: 0;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-            animation: ripple 0.4s ease-out;
-        }
-        @keyframes ripple { from { opacity: 1; transform: scale(0.5); } to { opacity: 0; transform: scale(2); } }
-        .nav-item:active i { transform: scale(0.9); } 
+    .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
+    @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-        /* 4. CCTV Button */
-        .cctv-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
-        .cctv-circle {
-            width: 48px; height: 48px; 
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: white; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            border: 2px solid rgba(255,255,255,0.4); 
-            transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 2px;
-        }
-        .cctv-wrapper:active .cctv-circle { transform: scale(0.9); box-shadow: 0 0 20px rgba(255, 255, 255, 0.4); }
-        .cctv-wrapper.active .cctv-circle { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
-        .cctv-label { font-size: 10px; font-weight: 700; color: #cbd5e1; }
-        .cctv-wrapper:hover .cctv-label, .cctv-wrapper.active .cctv-label { color: #ffffff; }
+    .signal-container {
+        display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
+    .bar { width: 3px; background: #94a3b8; border-radius: 1px; transition: height 0.3s, background 0.3s; }
+    .bar.active { background: #22c55e; } 
+    .bar:nth-child(1) { height: 4px; }
+    .bar:nth-child(2) { height: 6px; }
+    .bar:nth-child(3) { height: 8px; }
+    .bar:nth-child(4) { height: 10px; }
+    .net-label { font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 1px; }
 
-        /* 5. Floating Ticker Mobile (WARNA BIRU #1e3a8a) */
-        .glass-ticker-floating {
-            background: #1e3a8a; border: 1px solid rgba(255, 255, 255, 0.2); 
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-            border-radius: 18px; width: calc(100% - 32px); max-width: 480px; height: 38px;
-            display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 115px; left: 50%; transform: translateX(-50%); z-index: 50; 
-        }
+    @media (min-width: 1024px) {
+        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; align-items: start; }
+        .col-player { grid-column: span 9; position: sticky; top: 90px; }
+        .col-list { grid-column: span 3; height: calc(100vh - 110px); overflow: hidden; display: flex; flex-direction: column; }
+        .list-scroll-area { flex: 1; overflow-y: auto; }
+        .cam-name-label { font-size: 1rem; max-width: 400px; }
+    }
+    @media (max-width: 1023px) {
+        .layout-grid { display: flex; flex-direction: column; gap: 1rem; padding: 1rem !important; }
+        .col-player { width: 100%; }
+        .col-list { width: 100%; height: auto; }
+        .list-scroll-area { height: auto; max-height: 500px; overflow-y: auto; }
+        .cam-name-label { font-size: 0.85rem; }
+    }
+</style>
 
-        /* 6. Desktop Bottom Bar (WARNA BIRU #1e3a8a) */
-        .desktop-bottom-bar {
-            background: #1e3a8a; border-top: 1px solid rgba(255,255,255,0.1);
-            height: 40px; width: 100%; position: fixed; bottom: 0; z-index: 40; display: none;
-        }
-        @media (min-width: 1024px) {
-            .desktop-bottom-bar { display: flex; }
-            .glass-ticker-floating { display: none; }
-            .ios-dock-container { display: none; }
-        }
+<div class="min-h-screen w-full flex flex-col text-slate-800" id="main-content">
 
-        /* Ticker Text Color (Putih) */
-        .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; }
-        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 400s linear infinite; } 
-        .ticker-item { 
-            padding: 0 3rem; display: flex; align-items: center; 
-            color: #ffffff; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; 
-        } 
-        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-        /* JAM ANIMASI FLIP (Responsive Width) */
-        .clock-container {
-            display: flex; align-items: center; justify-content: center;
-            height: 100%; font-family: 'Courier New', Courier, monospace;
-            font-weight: bold; font-size: 11px; color: white;
-            min-width: 85px; /* Mobile width lebih kecil */
-        }
-        @media (min-width: 1024px) {
-            .clock-container { min-width: 110px; } /* Desktop width normal */
-        }
-
-        .clock-anim {
-            animation: slideUp 0.3s ease-out;
-        }
-        @keyframes slideUp {
-            from { transform: translateY(5px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        /* LOGO ANIMATION (Water Drop) */
-        @keyframes water-drop {
-            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
-            70% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
-        }
-        .water-effect-logo {
-            animation: water-drop 2s infinite ease-out;
-            border-radius: 50%;
-        }
-
-        .desktop-link { 
-            color: #e2e8f0; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.9rem; 
-        }
-        .desktop-link:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
-        .desktop-link.active { background: rgba(255, 255, 255, 0.2); color: #ffffff; }
-
-        .chat-bubble-bot { background: #e5e5ea; color: #000; border-radius: 18px 18px 18px 4px; padding: 10px 14px; font-size: 14px; max-width: 85%; }
-        .chat-bubble-user { background: #007aff; color: white; border-radius: 18px 18px 4px 18px; padding: 10px 14px; font-size: 14px; max-width: 85%; margin-left: auto; }
-        
-        .footer-link { transition: color 0.2s; color: #94a3b8; display: block; margin-bottom: 0.6rem; font-size: 0.9rem; }
-        .footer-link:hover { color: #38bdf8; padding-left: 4px; }
-
-        .logo-container {
-            width: 44px; height: 44px; background: linear-gradient(135deg, #0f172a, #1e3a8a);
-            border-radius: 14px; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.25); padding: 9px;
-        }
-
-        .dropdown-menu-mobile {
-            position: fixed !important; top: 70px !important; right: 16px !important; width: 250px !important;
-            z-index: 9999 !important; transform-origin: top right; animation: scaleIn 0.2s ease-out; max-height: 80vh; overflow-y: auto;
-        }
-        @media (min-width: 1024px) {
-            .dropdown-menu-mobile { position: absolute !important; top: 100% !important; right: 0 !important; margin-top: 10px; }
-        }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-    </style>
-</head>
-<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900">
-
-    <div id="initial-loader">
-        <div class="loader-content">
-            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="loader-logo" alt="Loading...">
-            <p class="loader-text">MEMUAT KTVDI...</p>
-        </div>
-    </div>
-
-    <img src="https://iili.io/fZQGdIp.md.png" class="ramadan-asset lantern-anim w-14 md:w-20 top-0 right-4 md:right-10 opacity-90 drop-shadow-md" alt="Lampion Ramadan">
-    <img src="https://iili.io/fZQGdIp.md.png" class="ramadan-asset lantern-anim delay-200 w-10 md:w-14 top-[-5px] right-16 md:right-28 opacity-80 drop-shadow-sm" alt="Lampion Kecil">
-    <img src="https://iili.io/fZQIwMl.md.png" class="ramadan-asset moon-anim w-10 md:w-16 top-20 left-4 md:left-10 opacity-80 z-[40]" alt="Bulan Ramadan">
-
-    <nav class="fixed top-0 w-full z-50 bg-[#1e3a8a] shadow-lg transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16 md:h-20">
-                
-                <a href="{{ url_for('home') }}" class="flex items-center gap-4 group shrink-0">
-                    <div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center group-hover:scale-105 transition-transform water-effect-logo bg-white/10 rounded-full">
-                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-full h-full object-contain" style="filter: brightness(0) invert(1);">
-                    </div>
-                    <div class="hidden md:block leading-tight">
-                        <h1 class="text-white font-extrabold text-xl leading-none tracking-tight">KTVDI</h1>
-                        <p class="text-xs text-blue-200 font-bold tracking-wide mt-0.5">Komunitas TV Digital Indonesia</p>
-                    </div>
-                </a>
-                
-                <div class="hidden lg:flex items-center space-x-1">
-                    <a href="{{ url_for('home') }}" class="desktop-link {% if request.endpoint == 'home' %}active{% endif %}">Beranda</a>
-                    <a href="{{ url_for('cctv_page') }}" class="desktop-link {% if request.endpoint == 'cctv_page' %}active{% endif %}">CCTV</a>
-                    <a href="{{ url_for('ews_jateng_page') }}" class="desktop-link {% if request.endpoint == 'ews_jateng_page' %}active{% endif %}">EWS Bendungan</a>
-                    <a href="{{ url_for('jadwal_sholat_page') }}" class="desktop-link {% if request.endpoint == 'jadwal_sholat_page' %}active{% endif %}">Religi</a>
-                    <a href="{{ url_for('daftar_siaran') }}" class="desktop-link {% if request.endpoint == 'daftar_siaran' %}active{% endif %}">Database</a>
-                    <a href="{{ url_for('berita_page') }}" class="desktop-link {% if request.endpoint == 'berita_page' %}active{% endif %}">Berita</a>
+    <nav class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto navbar-brand">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/20 shrink-0 p-1">
+                    <img src="https://iili.io/f87539s.png" alt="KTVDI CCTV" class="w-6 h-6 object-contain brightness-0 invert">
                 </div>
-
-                <div class="flex items-center gap-3">
-                    <div class="relative group z-50">
-                        <button onclick="toggleDropdown('info-dropdown')" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white transition flex items-center justify-center border border-white/10">
-                            <i class="fa-solid fa-bars text-sm"></i>
-                        </button>
-                        <div id="info-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
-                            <div class="px-4 py-2 border-b border-slate-100">
-                                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Menu Tambahan</span>
-                            </div>
-                            <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition flex items-center gap-3">
-                                <i class="fa-solid fa-users text-blue-600 w-5"></i> Tentang Kami
-                            </a>
-                            <a href="{{ url_for('ews_jateng_page') }}" class="block lg:hidden px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition flex items-center gap-3">
-                                <i class="fa-solid fa-water text-blue-600 w-5"></i> EWS Bendungan
-                            </a>
-                            <div class="border-t border-slate-100 my-1"></div>
-                            <div class="px-4 py-2">
-                                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Narahubung</p>
-                                <div class="flex items-center gap-2 text-sm text-slate-700">
-                                    <i class="fa-brands fa-whatsapp text-green-500 text-lg"></i>
-                                    <div>
-                                        <div class="font-bold">Pak Lukas</div>
-                                        <div class="text-xs text-slate-500">Admin KTVDI</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% if session.get('user') %}
-                        <div class="relative group z-50">
-                            <button onclick="toggleDropdown('profile-dropdown')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition border border-white/10">
-                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=1e3a8a&bold=true" class="h-8 w-8 rounded-full shadow-sm">
-                                <span class="text-xs font-bold text-white hidden md:block">{{ session.get('nama').split()[0] }}</span>
-                            </button>
-                            <div id="profile-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
-                                <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50">
-                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Akun Anda</p>
-                                    <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
-                                </div>
-                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard</a>
-                                <div class="border-t border-slate-100 my-1"></div>
-                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="flex items-center gap-2">
-                            <a href="{{ url_for('login') }}" class="hidden md:block text-xs font-bold text-blue-100 hover:text-white transition px-2">Masuk</a>
-                            <a href="{{ url_for('login') }}" class="md:hidden w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white border border-white/20">
-                                <i class="fa-solid fa-arrow-right-to-bracket"></i>
-                            </a>
-                            <a href="{{ url_for('register') }}" class="px-5 py-2.5 bg-white text-[#1e3a8a] text-xs font-bold rounded-full hover:bg-blue-50 transition shadow-lg active:scale-95">Daftar</a>
-                        </div>
-                    {% endif %}
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-slate-900 font-extrabold text-lg tracking-tight leading-none">KTVDI <span class="text-blue-700">SMART CITY</span></h1>
+                    <p class="text-[10px] text-slate-500 font-medium mt-0.5 leading-snug">Portal LIVE CCTV terkini untuk memantau arus lalu lintas.</p>
                 </div>
+            </div>
+            <div class="relative w-full md:w-80 group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-700 transition-colors"></i>
+                </div>
+                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-full py-2 pl-11 pr-5 focus:outline-none focus:border-blue-700 focus:bg-white focus:ring-2 focus:ring-blue-500/20 transition-all font-medium placeholder:text-slate-400 shadow-inner" placeholder="Cari lokasi kamera...">
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow pt-16 md:pt-20">
-        {% block content %}{% endblock %}
-    </main>
+    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 layout-grid">
 
-    <footer class="bg-[#0f172a] text-[#f5f5f7] pt-16 pb-48 lg:pb-16 font-sans border-t border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
-            <div class="space-y-5">
-                <div class="flex items-center gap-3">
-                    <div class="logo-container w-10 h-10 rounded-lg">
-                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-6 w-6 brightness-0 invert">
+        <main class="col-player">
+            <div class="player-card">
+                <div class="player-header">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-lg border border-white/10 shrink-0">
+                            <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                            <span class="text-[9px] font-bold tracking-wider">LIVE</span>
+                        </div>
+                        
+                        <div class="cam-info-mobile">
+                            <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
+                            <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
+                        </div>
                     </div>
-                    <div>
-                        <h4 class="text-lg font-bold tracking-tight">KTVDI</h4>
-                        <p class="text-[10px] text-gray-400 font-medium">Komunitas TV Digital Indonesia</p>
-                    </div>
-                </div>
-                <p class="text-gray-400 text-sm leading-relaxed">
-                    Pusat informasi independen mengenai perkembangan teknologi penyiaran digital, frekuensi, dan perangkat STB di Indonesia.
-                </p>
-            </div>
-            <div>
-                <h4 class="font-bold text-xs text-gray-500 uppercase tracking-widest mb-4">Navigasi Utama</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="{{ url_for('home') }}" class="footer-link">Beranda</a></li>
-                    <li><a href="{{ url_for('daftar_siaran') }}" class="footer-link">Database Frekuensi</a></li>
-                    <li><a href="{{ url_for('cctv_page') }}" class="footer-link">Pantauan CCTV</a></li>
-                    <li><a href="{{ url_for('ews_jateng_page') }}" class="footer-link">Info Bencana (EWS)</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold text-xs text-gray-500 uppercase tracking-widest mb-4">Layanan</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="footer-link">Tentang Kami</a></li>
-                    <li><a href="#" class="footer-link">Hubungi Kami</a></li>
-                    <li><a href="#" class="footer-link">Pasang Iklan</a></li>
-                    <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold text-xs text-gray-500 uppercase tracking-widest mb-4">Kontak Resmi</h4>
-                <ul class="space-y-4 text-sm text-slate-400">
-                    <li class="flex items-start gap-3 group cursor-pointer">
-                        <i class="fa-solid fa-user-tie mt-1 text-blue-500 group-hover:text-white transition"></i>
-                        <span class="group-hover:text-blue-400 transition">Pak Lukas (Admin)</span>
-                    </li>
-                    <li class="flex items-start gap-3 group cursor-pointer">
-                        <i class="fa-solid fa-envelope mt-1 text-blue-500 group-hover:text-white transition"></i>
-                        <span class="group-hover:text-blue-400 transition">kom.tvdigitalid@gmail.com</span>
-                    </li>
-                    <li class="flex items-start gap-3 group cursor-pointer">
-                        <i class="fa-brands fa-whatsapp mt-1 text-green-500 group-hover:text-green-400 transition"></i>
-                        <span class="group-hover:text-blue-400 transition">0815-9131-735</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        <div class="border-t border-slate-800 pt-8 text-center">
-            <p class="text-xs text-slate-500">&copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.</p>
-        </div>
-    </footer>
-
-    <div class="ios-dock-container lg:hidden">
-        <nav class="ios-dock">
-            <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %}">
-                <i class="fa-solid fa-house"></i>
-                <span>Beranda</span>
-            </a>
-            <a href="{{ url_for('jadwal_sholat_page') }}" class="nav-item {% if request.endpoint == 'jadwal_sholat_page' %}active{% endif %}">
-                <i class="fa-solid fa-mosque"></i>
-                <span>Religi</span>
-            </a>
-            
-            <a href="{{ url_for('cctv_page') }}" class="nav-item cctv-wrapper {% if request.endpoint == 'cctv_page' %}active{% endif %}">
-                <div class="cctv-circle">
-                    <i class="fa-solid fa-video text-lg"></i>
-                </div>
-                <span class="cctv-label">CCTV</span>
-            </a>
-
-            <a href="{{ url_for('daftar_siaran') }}" class="nav-item {% if request.endpoint == 'daftar_siaran' %}active{% endif %}">
-                <i class="fa-solid fa-database"></i>
-                <span>Data</span>
-            </a>
-            <a href="{{ url_for('berita_page') }}" class="nav-item {% if request.endpoint == 'berita_page' %}active{% endif %}">
-                <i class="fa-regular fa-newspaper"></i>
-                <span>Berita</span>
-            </a>
-        </nav>
-    </div>
-
-    <div class="glass-ticker-floating lg:hidden">
-        <div class="bg-[#ff3b30] h-full flex items-center px-3 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-2">
-            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE
-        </div>
-        <div class="ticker-wrap relative flex-1">
-            <div id="unified-ticker-mobile" class="ticker-move"></div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-md h-full px-2 border-l border-slate-200/50 z-20 shrink-0 flex items-center">
-            <div id="clock-mobile" class="clock-container text-[10px]">00:00:00 WIB</div>
-        </div>
-    </div>
-
-    <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto">
-        <div class="bg-[#ff3b30] h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4">
-            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> BERITA TERKINI
-        </div>
-        <div class="ticker-wrap relative flex-1">
-            <div id="unified-ticker-desktop" class="ticker-move"></div>
-        </div>
-        <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 flex items-center ml-4">
-            <div id="clock-desktop" class="clock-container text-[11px]">00:00:00 WIB</div>
-        </div>
-    </div>
-
-    <div class="fixed bottom-[160px] lg:bottom-24 left-4 z-[60] group pb-safe">
-        <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-xl border border-red-100 hover:scale-110 transition-transform active:scale-95">
-            <i class="fa-solid fa-phone-volume text-lg animate-pulse"></i>
-        </a>
-    </div>
-
-    <div class="fixed bottom-[160px] lg:bottom-24 right-4 z-[60] pb-safe flex flex-col items-end">
-        <div id="chat-window" class="hidden w-[85vw] max-w-[340px] bg-white rounded-3xl shadow-2xl overflow-hidden mb-4 border border-slate-100 flex flex-col transform origin-bottom-right transition-all animate-fade-in-up">
-            <div class="bg-[#007aff] p-3 flex justify-between items-center text-white shadow-md">
-                <div class="flex items-center gap-3">
-                    <div class="relative">
-                        <img src="https://iili.io/f87Ctjt.md.png" class="h-9 w-9 rounded-full bg-white p-0.5 border-2 border-white/30">
-                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-blue-600 rounded-full"></span>
-                    </div>
-                    <div>
-                        <div class="font-bold text-sm">Modi AI</div>
-                        <div class="text-[10px] text-blue-100 opacity-90">Online • Siap Membantu</div>
+                    
+                    <div class="flex items-center gap-2 text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20 shrink-0">
+                         <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span class="hidden sm:inline">Secure</span>
                     </div>
                 </div>
-                <button onclick="toggleChat()" class="w-7 h-7 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition"><i class="fa-solid fa-chevron-down text-xs"></i></button>
-            </div>
-            <div id="chat-messages" class="h-72 bg-slate-50 p-4 overflow-y-auto flex flex-col gap-3 custom-scroll">
-                <div class="flex gap-2">
-                    <img src="https://iili.io/f87Ctjt.md.png" class="h-6 w-6 rounded-full self-end mb-1">
-                    <div class="chat-bubble-bot shadow-sm border border-slate-100">Halo! Saya Modi. 👋 Ada yang bisa dibantu seputar siaran TV Digital?</div>
+
+                <div class="video-wrapper group">
+                    <video id="video-element" class="video-element" autoplay muted playsinline crossorigin="anonymous"></video>
+
+                    <div id="overlay-loading" class="absolute inset-0 bg-[#0f172a] z-40 flex flex-col items-center justify-center text-center p-4">
+                        <div class="relative w-20 h-20 mb-4 logo-pulse">
+                            <div class="absolute inset-0 bg-blue-600/30 rounded-full blur-xl"></div>
+                            <img src="https://iili.io/f87539s.png" alt="Loading" class="w-full h-full object-contain brightness-0 invert drop-shadow-lg relative z-10">
+                        </div>
+                        <h3 class="text-white font-extrabold text-lg tracking-widest mb-1">KTVDI CCTV</h3>
+                        <p class="text-blue-400 text-xs font-semibold animate-pulse">Sedang loading play Camera...</p>
+                    </div>
+
+                    <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
+                        <div class="w-16 h-16 bg-white/10 border-2 border-white/40 rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-play text-white text-3xl ml-1"></i>
+                        </div>
+                    </div>
+
+                    <div id="overlay-error" class="absolute inset-0 bg-slate-900 z-40 hidden flex flex-col items-center justify-center text-center px-6">
+                        <i class="fa-solid fa-video-slash text-slate-500 text-4xl mb-3"></i>
+                        <h4 class="text-white font-bold mb-2">Kamera Offline</h4>
+                        <p class="text-slate-400 text-xs mb-4">Koneksi terputus atau tertahan keamanan browser.</p>
+                        <button onclick="retryStream()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-lg">Coba Lagi</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 px-4 py-2.5 flex items-center justify-between border-t border-slate-800">
+                    <div class="flex items-center gap-3">
+                         <div class="text-[10px] text-slate-400 font-mono tracking-wider">PANTAUAN CCTV TERKINI</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="retryStream()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Reload"><i class="fa-solid fa-rotate-right text-sm"></i></button>
+                        <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
+                    </div>
                 </div>
             </div>
-            <div class="p-3 bg-white border-t border-slate-100">
-                <form onsubmit="handleChat(event)" class="flex gap-2 relative">
-                    <input type="text" id="chat-input" placeholder="Ketik pesan..." class="w-full bg-slate-100 text-sm px-4 py-2.5 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition text-slate-700" autocomplete="off">
-                    <button type="submit" class="absolute right-1.5 top-1.5 bg-[#007aff] text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-blue-600 transition shadow-sm active:scale-95"><i class="fa-solid fa-paper-plane text-xs"></i></button>
-                </form>
+
+            <div class="mt-4 bg-white border border-slate-200 p-3 rounded-xl shadow-sm flex flex-col gap-3">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                    
+                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+                            <i class="fa-regular fa-clock"></i>
+                        </div>
+                        <div>
+                            <div id="digital-clock" class="text-slate-900 font-bold text-sm leading-none">00:00:00</div>
+                            <div id="date-display" class="text-[10px] text-slate-500 font-semibold uppercase mt-0.5">...</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                        <div class="signal-container">
+                            <div class="signal-bars" id="signal-meter">
+                                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            </div>
+                            <span class="net-label" id="resolution-display">DETECTING...</span>
+                        </div>
+                        <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                            <i class="fa-solid fa-expand text-sm"></i>
+                        </div>
+                    </div>
+
+                </div>
+                
+                <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-8 flex items-center overflow-hidden">
+                    <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10"><i class="fa-solid fa-bullhorn text-white text-xs"></i></div>
+                    <div class="marquee-container w-full bg-white">
+                        <div class="marquee-content">INFORMASI PENTING: Untuk kestabilan pantauan, pastikan koneksi internet Anda stabil. KTVDI menyajikan data CCTV langsung dari server pemerintah kota terkait.</div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <button onclick="toggleChat()" class="w-14 h-14 rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center hover:scale-105 transition active:scale-95 border-2 border-white relative overflow-hidden group bg-white">
-             <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover">
-             <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-        </button>
+        </main>
+
+        <aside class="col-list bg-white rounded-xl border border-slate-200 shadow-lg">
+            <div class="p-4 border-b border-slate-100 bg-white sticky top-0 z-20 flex justify-between items-center">
+                <div>
+                    <h3 class="font-extrabold text-slate-800 text-sm">Daftar Lokasi</h3>
+                    <p class="text-[10px] text-slate-500">Pilih kota untuk melihat kamera</p>
+                </div>
+                <span class="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold border border-blue-100" id="total-cams">Loading...</span>
+            </div>
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-2 bg-slate-50"></div>
+            <div class="p-3 bg-white border-t border-slate-200 text-center text-[10px] text-slate-400 font-medium">© 2026 KTVDI Network</div>
+        </aside>
+
     </div>
-
-    <script>
-        // Init Loader
-        window.addEventListener('load', () => {
-            const loader = document.getElementById('initial-loader');
-            if(loader) {
-                setTimeout(() => {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.style.visibility = 'hidden', 500);
-                }, 1500); // Tahan 1.5 detik agar terlihat
-            }
-        });
-
-        // Dropdown Toggle (Fix)
-        function toggleDropdown(id) {
-            const el = document.getElementById(id);
-            // Close others
-            document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
-                if(d.id !== id) d.classList.add('hidden');
-            });
-            el.classList.toggle('hidden');
-        }
-
-        // Chat Toggle
-        function toggleChat() { 
-            const win = document.getElementById('chat-window');
-            win.classList.toggle('hidden');
-            if(!win.classList.contains('hidden')) { setTimeout(() => document.getElementById('chat-messages').scrollTop = 99999, 100); }
-        }
-        
-        async function handleChat(e){ 
-            e.preventDefault(); 
-            const i=document.getElementById('chat-input');
-            const t=i.value.trim(); 
-            if(!t)return;
-            addMsg(t,'user'); 
-            i.value='';
-            
-            const loadId = 'loading-'+Date.now();
-            const msgs = document.getElementById('chat-messages');
-            const loadDiv = document.createElement('div');
-            loadDiv.id = loadId;
-            loadDiv.className = "flex gap-2";
-            loadDiv.innerHTML = `<img src="https://iili.io/f87Ctjt.md.png" class="h-6 w-6 rounded-full self-end mb-1"><div class="chat-bubble-bot text-slate-400 italic text-xs flex items-center gap-2"><i class="fa-solid fa-circle-notch fa-spin"></i> Modi sedang mengetik...</div>`;
-            msgs.appendChild(loadDiv);
-            msgs.scrollTop = 99999;
-
-            try {
-                const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:t})});
-                const d=await r.json();
-                document.getElementById(loadId).remove();
-                addMsg(d.response,'bot');
-            } catch {
-                document.getElementById(loadId).remove();
-                addMsg("Maaf, koneksi ke Modi terputus. Silakan coba lagi nanti. 🙏", 'bot');
-            }
-        }
-
-        function addMsg(t,s){
-            const d=document.createElement('div'); d.className="flex gap-2 w-full";
-            const tm=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-            if (s == 'user') {
-                d.innerHTML = `<div class="chat-bubble-user text-left shadow-sm">${t}<div class="text-[9px] text-blue-200 text-right mt-1 opacity-80">${tm}</div></div>`;
-            } else {
-                d.innerHTML = `<img src="https://iili.io/f87Ctjt.md.png" class="h-6 w-6 rounded-full self-end mb-1"><div class="chat-bubble-bot shadow-sm border border-slate-100">${t.replace(/\n/g,'<br>')}<div class="text-[9px] text-slate-400 text-right mt-1 opacity-80">${tm}</div></div>`;
-            }
-            const msgs = document.getElementById('chat-messages');
-            msgs.appendChild(d);
-            msgs.scrollTop = 99999;
-        }
-
-        async function updateTicker() {
-            try { 
-                const res = await fetch('/api/news-ticker'); 
-                const data = await res.json(); 
-                if (data && data.length > 0) {
-                    const items = data.map(n => `<div class="ticker-item"><i class="fa-solid fa-rss text-[8px] text-red-500 mr-2"></i> ${n}</div>`).join('');
-                    if(document.getElementById('unified-ticker-mobile')) document.getElementById('unified-ticker-mobile').innerHTML = items + items + items;
-                    if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = items + items + items;
-                } else {
-                    const def = `<div class="ticker-item">SELAMAT DATANG DI KOMUNITAS TV DIGITAL INDONESIA - KTVDI. INFORMASI AKURAT & TERPERCAYA SEPUTAR SIARAN DIGITAL.</div>`;
-                    if(document.getElementById('unified-ticker-mobile')) document.getElementById('unified-ticker-mobile').innerHTML = def.repeat(3);
-                    if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = def.repeat(3);
-                }
-            } catch {}
-        }
-        updateTicker();
-        
-        // --- LOGIC JAM FLIP MULTI ZONA ---
-        const zones = [
-            { label: 'WIB', offset: 7 },
-            { label: 'WITA', offset: 8 },
-            { label: 'WIT', offset: 9 }
-        ];
-        let zoneIndex = 0;
-
-        function updateClockFlip() {
-            const now = new Date();
-            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-            
-            const currentZone = zones[zoneIndex];
-            const zoneTime = new Date(utc + (3600000 * currentZone.offset));
-            
-            const timeString = zoneTime.toLocaleTimeString('id-ID', {
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit',
-                hour12: false
-            }).replace(/\./g, ':');
-
-            const fullString = `${timeString} ${currentZone.label}`;
-
-            const els = [document.getElementById('clock-mobile'), document.getElementById('clock-desktop')];
-            els.forEach(el => {
-                if(el) {
-                    // Hapus kelas animasi lama biar bisa re-trigger
-                    el.classList.remove('clock-anim');
-                    // Force reflow
-                    void el.offsetWidth;
-                    el.innerText = fullString;
-                    // Tambah kelas animasi baru
-                    el.classList.add('clock-anim');
-                }
-            });
-
-            // Ganti zona berikutnya
-            zoneIndex = (zoneIndex + 1) % zones.length;
-        }
-
-        // Update setiap 3 detik
-        setInterval(updateClockFlip, 3000);
-        updateClockFlip(); // Jalankan langsung saat load
-
-        // Close dropdown when clicking outside
-        window.addEventListener('click', function(e){   
-            if (!e.target.closest('.relative.group')){
-                document.querySelectorAll('[id$="-dropdown"]').forEach(d => d.classList.add('hidden'));
-            }
-        });
-    </script>
-</body>
-</html>
+</div>
 
 <script>
     // ==========================================
     // 1. DATA SOURCE LENGKAP
     // ==========================================
     const streamSource = [
+        // --- KOTA KEDIRI ---
+        {city: "KOTA KEDIRI", name: "SP MUNING", url: "https://pplterpadu.kedirikota.go.id:8888/muning/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "ISKANDARMUDA", url: "https://pplterpadu.kedirikota.go.id:8888/iskandar_muda/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP ALUN ALUN", url: "https://pplterpadu.kedirikota.go.id:8888/alun_alun/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP BANDAR NGALIM", url: "https://pplterpadu.kedirikota.go.id:8888/bandar_ngalim/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "A YANI UTARA", url: "https://pplterpadu.kedirikota.go.id:8888/a_yani_utara/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP WATER TORN", url: "https://pplterpadu.kedirikota.go.id:8888/water_torn/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP NABATIYASA", url: "https://pplterpadu.kedirikota.go.id:8888/nabatiasa/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP MRICAN", url: "https://pplterpadu.kedirikota.go.id:8888/mrican/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP SEMAMPIR", url: "https://pplterpadu.kedirikota.go.id:8888/semampir/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP BARUNA", url: "https://pplterpadu.kedirikota.go.id:8888/baruna/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP JETIS", url: "https://pplterpadu.kedirikota.go.id:8888/jetis/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP DANDANGAN", url: "https://pplterpadu.kedirikota.go.id:8888/dandangan/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "A YANI SELATAN", url: "https://pplterpadu.kedirikota.go.id:8888/a_yani_selatan/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP TAMANAN", url: "https://pplterpadu.kedirikota.go.id:8888/tamanan/stream.m3u8"},
+
         // --- KOTA SEMARANG ---
         {city: "KOTA SEMARANG", name: "Pandanaran - Kyai Saleh", url: "https://livepantau.semarangkota.go.id/5dfc06a3-5e39-4e07-903e-18298e1ea317/index.m3u8"},
         {city: "KOTA SEMARANG", name: "Letjen Suprapto - Kota Lama", url: "https://livepantau.semarangkota.go.id/f589731a-8014-40e9-bd32-573993fd4360/index.m3u8"},
@@ -737,7 +389,7 @@
         {city: "D.I. YOGYAKARTA", name: "Embung Tambakboyo", url: "https://mam.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTambakboyo.stream/chunklist_w782093023.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "Alun-Alun Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/playlist.m3u8"},
 
-        // --- KOTA PEKALONGAN (VERSI BARU) ---
+        // --- KOTA PEKALONGAN ---
         {city: "KOTA PEKALONGAN", name: "Dr Cipto", url: "https://rtsp.pekalongankota.go.id/stream/065624f3-dd71-4b40-9106-9b59c81d51c6/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Grosir Setono", url: "https://rtsp.pekalongankota.go.id/stream/204f7718-e20c-4229-8ebc-3c5b7470febb/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Grogolan PTZ", url: "https://rtsp.pekalongankota.go.id/stream/442c3e59-0bcc-4651-a6b9-700b7b4f7218/channel/0/hls/live/index.m3u8"},
@@ -778,165 +430,20 @@
         {city: "KOTA PEKALONGAN", name: "Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/0/hls/live/index.m3u8"},
         {city: "KOTA PEKALONGAN", name: "Pertigaan Alun Alun Selatan", url: "https://rtsp.pekalongankota.go.id/stream/18aa9cf3-ae88-4d54-9831-199807df3d45/channel/1/hls/live/index.m3u8"},
 
-        // --- GUNUNG KIDUL (FULL) ---
+        // --- GUNUNG KIDUL ---
         {city: "GUNUNG KIDUL", name: "Kelurahan Jetis", url: "https://stream.gunungkidulkab.go.id:8888/6d5acbc9-33cf-4d3a-8671-a26933f1868d/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kelurahan Jetis PTZ", url: "https://stream.gunungkidulkab.go.id:8888/61947637-427d-48ad-a59e-916edc063354/main_stream.m3u8"},
         {city: "GUNUNG KIDUL", name: "Alun Alun Wonosari PTZ", url: "https://stream.gunungkidulkab.go.id:8888/cd59b3ca-9f14-4660-96a6-2e65442c52a2/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Green Village Gedangsari", url: "https://stream.gunungkidulkab.go.id:8888/bc0a365b-3b87-4fca-8bb0-66af17678e4d/main_stream.m3u8"},
         {city: "GUNUNG KIDUL", name: "Pantai Sepanjang", url: "https://stream.gunungkidulkab.go.id:8888/c4c52e15-f967-4ffc-a785-8b5e4297e0f7/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SMP 2 Patuk Barat", url: "https://stream.gunungkidulkab.go.id:8888/32588258-06cb-4628-987e-1f0748e6604e/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SMP 2 Patuk Timur", url: "https://stream.gunungkidulkab.go.id:8888/e903344a-4303-4dbb-954c-1ba2eac82c10/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Simpang 4 Gading", url: "https://stream.gunungkidulkab.go.id:8888/e08a568b-111c-43ce-88bc-503f4a3cc348/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Taman Kota", url: "https://stream.gunungkidulkab.go.id:8888/93b13543-ed56-48dc-a6b2-b73c3fc8f29a/main_stream.m3u8"},
         {city: "GUNUNG KIDUL", name: "Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/630843dd-4488-4360-8f86-b23f3e67980d/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pantai Kukup", url: "https://stream.gunungkidulkab.go.id:8888/53fa897a-dc59-435b-841b-ce544d559a20/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kelurahan Getas", url: "https://stream.gunungkidulkab.go.id:8888/097ef287-a064-4730-8b65-0fdfad75f327/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pertigaan Bunder", url: "https://stream.gunungkidulkab.go.id:8888/cdb69448-349b-460e-ac6c-545199e93599/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pertigaan Pemadang", url: "https://stream.gunungkidulkab.go.id:8888/72f5464f-8741-4449-9727-c75db9a1169f/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Puskesmas Gedangsari 2", url: "https://stream.gunungkidulkab.go.id:8888/7796317a-7669-4f52-b560-e1706a1825c9/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "JJLS Planjan", url: "https://stream.gunungkidulkab.go.id:8888/5858ca16-f730-49d1-a494-9d20a82b9b55/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SMP 1 Playen", url: "https://stream.gunungkidulkab.go.id:8888/c43d6c28-d03d-4aab-a589-7410b655908d/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SD Karangrejek", url: "https://stream.gunungkidulkab.go.id:8888/97561df3-c774-495a-b4d6-e5654108ac43/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Perempatan Patuk", url: "https://stream.gunungkidulkab.go.id:8888/d237c46b-f15b-490c-869c-b5375df3a020/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SMP3 Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/f156c1d9-9381-45f5-a20f-cd323fb3a639/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Ngringung Mulo", url: "https://stream.gunungkidulkab.go.id:8888/bbc05db8-09ae-44d1-a049-3d22bd18962b/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pertigaan Pasar Playen", url: "https://stream.gunungkidulkab.go.id:8888/3cdd4d3d-123f-4fdd-9600-5afce882d8e5/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Alun Alun Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/c066fe94-69d3-487b-990a-f0bdb24fa9e9/main_stream.m3u8"},
         {city: "GUNUNG KIDUL", name: "Bunderan Siyono", url: "https://stream.gunungkidulkab.go.id:8888/447f180a-3aa6-41af-a905-4f5567b84f1b/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pantai Drini", url: "https://stream.gunungkidulkab.go.id:8888/10aee277-d00f-45ee-b72d-c3c4962bc269/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kelurahan Nglanggeran 1", url: "https://stream.gunungkidulkab.go.id:8888/dab5e1b1-dc22-4162-8523-ada6a19585d9/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kelurahan Nglanggeran 2", url: "https://stream.gunungkidulkab.go.id:8888/a6091cbe-fbfc-401b-994b-258ba03b0387/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Puskesmas Ngawen 2", url: "https://stream.gunungkidulkab.go.id:8888/8193c0b3-0d34-43a1-9185-a534f6ffa303/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pertigaan SD Nanas", url: "https://stream.gunungkidulkab.go.id:8888/68e924c4-c94a-42e7-93ca-12b685c6513b/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Bunderan PLN", url: "https://stream.gunungkidulkab.go.id:8888/ef7bc11d-8e05-4414-8e25-edeb78929cf0/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SMP 2 Paliyan", url: "https://stream.gunungkidulkab.go.id:8888/a7891cb1-d941-4974-94cd-de33ac5d84b0/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kelurahan Rejosari", url: "https://stream.gunungkidulkab.go.id:8888/a8b41e1f-51ae-4f3c-b61f-3d3485714fee/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kelurahan Sambirejo", url: "https://stream.gunungkidulkab.go.id:8888/a4bed595-2ed8-46f5-a802-fc450bdf67e9/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "BPP Playen", url: "https://stream.gunungkidulkab.go.id:8888/40c44e72-0ef8-42b5-9410-8c88ad2d062d/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SD Trowo 1", url: "https://stream.gunungkidulkab.go.id:8888/076df88c-ce65-47f4-8d4e-4872c430eee8/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Terminal Senin", url: "https://stream.gunungkidulkab.go.id:8888/f4e65d43-ff9a-4603-b035-b2bb778fc9d1/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SD Pucung", url: "https://stream.gunungkidulkab.go.id:8888/407a2a57-0202-4303-8314-114e635549c2/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "SMPN 1 Tanjungsari", url: "https://stream.gunungkidulkab.go.id:8888/d15446f5-d59f-47f0-b6d6-5828c28dfc6b/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Puskesmas Patuk 2", url: "https://stream.gunungkidulkab.go.id:8888/565f31f5-ca89-4db2-937b-dd33f9fb5102/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "RTH 2", url: "https://stream.gunungkidulkab.go.id:8888/7ecb3678-fc9a-4d9a-9b71-d1716ab29c44/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "TPR Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/f6314dd1-a8ea-40a9-8a97-e0f2f8dc4bdd/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pasar Argosari", url: "https://stream.gunungkidulkab.go.id:8888/5b13c6d9-1295-4e5d-927a-ef546e433339/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Bunderan Siyono Timur", url: "https://stream.gunungkidulkab.go.id:8888/365d3972-8e24-4b8e-a9bd-2db5cbcbfee8/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kapenawon Saptosari", url: "https://stream.gunungkidulkab.go.id:8888/3fb627dc-e19a-4bc7-9e79-687487c840db/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kapenawon Saptosari 2", url: "https://stream.gunungkidulkab.go.id:8888/41eefc1f-8388-47b2-9dc9-59d5e65b10d7/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S3 Petoyan 1", url: "https://stream.gunungkidulkab.go.id:8888/d7c5ae4e-2c50-4fc3-a57d-84950313fe6f/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S3 Ngawen Timur", url: "https://stream.gunungkidulkab.go.id:8888/336476f5-2964-4c45-82d2-061b7fe984aa/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kapanewon Semin Utara", url: "https://stream.gunungkidulkab.go.id:8888/25a25318-0831-41ca-a84e-cb725af7a912/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kapanewon Semin Selatan", url: "https://stream.gunungkidulkab.go.id:8888/b788631e-790a-4034-a021-d70223e93e56/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S4 Karangmojo Barat", url: "https://stream.gunungkidulkab.go.id:8888/1a72b20b-83a2-44e3-b2cb-34754ec25d7d/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S4 Karangmojo Timur", url: "https://stream.gunungkidulkab.go.id:8888/80040ab9-0b70-4d40-991d-33e3850d4115/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "BPP Semanu Barat", url: "https://stream.gunungkidulkab.go.id:8888/27c0b2c4-a1bf-4ed9-95ca-9d88f046c754/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S4 Ngalang Timur", url: "https://stream.gunungkidulkab.go.id:8888/6d0d6159-4ddc-4ef6-a430-ee4ac9731e83/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S4 Ngalang Barat", url: "https://stream.gunungkidulkab.go.id:8888/ae3ead60-bed5-4f71-8613-bd4161d51aaf/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S4 Muggi Barat", url: "https://stream.gunungkidulkab.go.id:8888/95e43424-6406-45d5-9ea8-6c137e40e9fa/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "S3 Lalin Pasar Playen", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/PertigaanPasarPlayen.stream/playlist.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pantai Wediombo Jalan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/PantaiWediomboJalan.stream/playlist.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kodim Gn Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/LapanganKasatrian.stream/playlist.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kapenawon Rangkop Timur", url: "https://stream.gunungkidulkab.go.id:8888/5bc413f9-0eae-4334-9b7b-e13bf155c8dd/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Kepenawon Rangkop Barat", url: "https://stream.gunungkidulkab.go.id:8888/b344fc06-e8e9-40b2-ad80-d996918ec595/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pasar Wotgalih", url: "https://stream.gunungkidulkab.go.id:8888/d7bca391-48f3-48d5-9744-ddf548c21ca4/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang PTZ", url: "https://stream.gunungkidulkab.go.id:8888/194accd6-6fc8-4938-81c1-78206b1a0200/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang Fix", url: "https://stream.gunungkidulkab.go.id:8888/f443272b-2eee-4df1-a2bc-14474a336e29/main_stream.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Parkiran Embung Nglanggeran", url: "https://stream.gunungkidulkab.go.id:8888/0386d0d8-c1a6-429a-9996-def5e2079644/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Embung Nglanggeran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/1bea2c47-343d-408e-adf5-ad5eaf6faeec/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Simpang 4 RSUD PTZ", url: "https://stream.gunungkidulkab.go.id:8888/00817fc1-25e9-469f-a5c5-c371bdd55f07/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Bunderan Siyono PTZ", url: "https://stream.gunungkidulkab.go.id:8888/c02bf2b6-834c-4c9b-9be6-f2980d859bb8/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pantai Kukup PTZ", url: "https://stream.gunungkidulkab.go.id:8888/dfdcfa82-c168-4265-abc8-f786bb7f0313/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Pertigaan Pasar Playen PTZ", url: "https://stream.gunungkidulkab.go.id:8888/14d99ef0-eb77-4450-9fc9-eb7545a9ac16/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Simpang 4 Pancuran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/d0e1549c-170b-499e-8dee-4ec2fef57f4d/index.m3u8"},
-        {city: "GUNUNG KIDUL", name: "Bunderan PLN PTZ", url: "https://stream.gunungkidulkab.go.id:8888/de774241-aaec-4937-a43a-ab59b7525dd0/index.m3u8"},
 
-        // --- KAB. KLATEN (FULL) ---
-        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Bareng PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_ptz.m3u8"},
+        // --- KAB. KLATEN ---
         {city: "KAB. KLATEN", name: "Alun Alun PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/alunalun_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Alun Alun Panoramic Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/alunalun_panoramic.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang Tegalyoso PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangtegalyoso_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang Tegalyoso Panoramic 1 Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangtegalyoso_panoramic1.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang Tegalyoso Panoramic 2 Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangtegalyoso_panoramic2.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pemda PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 5 Matahari PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Gor PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/gor_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Gor Panoramic Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/gor_panoramic.m3u8"},
         {city: "KAB. KLATEN", name: "Simpang Al Aqsa PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangalaqsa_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang Al Aqsa Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangalaqsa_arahsolo.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang Al Aqsa Arah Kota", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangalaqsa_arahkota.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas Arah Jogja", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_arahyogyakarta.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_arahsolo.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas Arah Ronggowarsito", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_arahronggowarsito.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahsolo.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Rajawali", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahrajawali.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahyogyakarta.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Sungkur", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahsungkur.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahsolo.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Sungkur", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahsungkur.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahyogyakarta.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Matahari", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahmatahari.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahyogyakarta.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahsolo.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Pasar", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahpasar.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Pandanrejo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahpandanrejo.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahyogyakarta.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Melati", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahmelati.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Pemda", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahpemda.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahsolo.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_ptz.m3u8"},
-        {city: "KAB. KLATEN", name: "Posko Merapi Balerante 1", url: "https://stream.klaten.go.id:8080/cctv/hls/posko_balerante1.m3u8"},
-        {city: "KAB. KLATEN", name: "Posko Merapi Tegalmulyo 2", url: "https://stream.klaten.go.id:8080/cctv/hls/posko_tegalmulyo2.m3u8"},
-        {city: "KAB. KLATEN", name: "BPBD Gunung Merapi", url: "https://stream.klaten.go.id:8080/cctv/hls/cctv_merapi_bpbd.m3u8"},
-
-        // --- KAB. PEMALANG (FULL) ---
+        
+        // --- KAB. PEMALANG ---
         {city: "KAB. PEMALANG", name: "Alun-Alun", url: "https://stream.pemalangkab.go.id/alunalun/alunalun1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Masjid Agung", url: "https://stream.pemalangkab.go.id/masjidagung/masjid1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Comal", url: "https://stream.pemalangkab.go.id/2025/comal/comal.m3u8"},
-        {city: "KAB. PEMALANG", name: "Watukumpul", url: "https://stream.pemalangkab.go.id/2025/watukumpul/watukumpul.m3u8"},
-        {city: "KAB. PEMALANG", name: "Warung Pring", url: "https://stream.pemalangkab.go.id/2025/warungpring/warungpring.m3u8"},
-        {city: "KAB. PEMALANG", name: "Randudongkal", url: "https://stream.pemalangkab.go.id/2025/randudongkal/randudongkal.m3u8"},
-        {city: "KAB. PEMALANG", name: "Pulosari", url: "https://stream.pemalangkab.go.id/2025/pulosari/pulosari.m3u8"},
-        {city: "KAB. PEMALANG", name: "Pagaran Barat", url: "https://stream.pemalangkab.go.id/2025/pagaranbarat/pagaranbarat.m3u8"},
-        {city: "KAB. PEMALANG", name: "Pagaran Timur", url: "https://stream.pemalangkab.go.id/2025/pagarantimur/pagarantimur.m3u8"},
-        {city: "KAB. PEMALANG", name: "Pagaran Selatan", url: "https://stream.pemalangkab.go.id/2025/pagaranselatan/pagaranselatan.m3u8"},
-        {city: "KAB. PEMALANG", name: "Sirandu Pos", url: "https://stream.pemalangkab.go.id/sirandu_pos/sirandupos1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Sirandu Barat", url: "https://stream.pemalangkab.go.id/sirandu_barat/sirandu_barat1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Sirandu Selatan", url: "https://stream.pemalangkab.go.id/sirandu_selatan/sirandu_selatan1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Sirandu Timur", url: "https://stream.pemalangkab.go.id/sirandu_timur/sirandu_timur1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Mega Barat", url: "https://stream.pemalangkab.go.id/mega_barat/mega_barat1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Mega Selatan", url: "https://stream.pemalangkab.go.id/mega_selatan/mega_selatan1.m3u8"},
-        {city: "KAB. PEMALANG", name: "BCA Arah Utara", url: "https://stream.pemalangkab.go.id/bca_utara/bca_utara1.m3u8"},
-        {city: "KAB. PEMALANG", name: "BCA Arah Barat", url: "https://stream.pemalangkab.go.id/bca_barat/bca_barat1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Depan Kantor Pendopo", url: "https://stream.pemalangkab.go.id/kesbangpol/kesbangpol1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Area City Walk", url: "https://stream.pemalangkab.go.id/dishub/city/city.m3u8"},
-        {city: "KAB. PEMALANG", name: "Beji Barat", url: "https://stream.pemalangkab.go.id/dishub/bejibarat/bejibarat.m3u8"},
-        {city: "KAB. PEMALANG", name: "Beji Selatan", url: "https://stream.pemalangkab.go.id/dishub/bejiselatan/bejiselatan.m3u8"},
-        {city: "KAB. PEMALANG", name: "Beji Timur", url: "https://stream.pemalangkab.go.id/dishub/bejitimur/bejitimur.m3u8"},
-        {city: "KAB. PEMALANG", name: "Bojong Barat", url: "https://stream.pemalangkab.go.id/dishub/bojongbarat/bojongbarat.m3u8"},
-        {city: "KAB. PEMALANG", name: "Bojong Utara", url: "https://stream.pemalangkab.go.id/dishub/bojongutara/bojongutara.m3u8"},
-        {city: "KAB. PEMALANG", name: "Petarukan Barat", url: "https://stream.pemalangkab.go.id/dishub/petarukanbarat/petarukanbarat.m3u8"},
-        {city: "KAB. PEMALANG", name: "Petarukan Timur", url: "https://stream.pemalangkab.go.id/dishub/petarukantimur/petarukantimur.m3u8"},
-        {city: "KAB. PEMALANG", name: "Tiptop Selatan", url: "https://stream.pemalangkab.go.id/dishub/tiptopsel/tiptopsel.m3u8"},
-        {city: "KAB. PEMALANG", name: "Depan Gerbang Pendopo", url: "https://stream.pemalangkab.go.id/2026/depanpendopo1/depanpendopo1.m3u8"},
-        {city: "KAB. PEMALANG", name: "Rumdin Wabup", url: "https://stream.pemalangkab.go.id/2026/depanpendopo2/depanpendopo2.m3u8"},
-
-        // --- KOTA KEDIRI (NEW) ---
-        {city: "KOTA KEDIRI", name: "SP Muning", url: "https://pplterpadu.kedirikota.go.id:8888/muning/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "Iskandar Muda", url: "https://pplterpadu.kedirikota.go.id:8888/iskandar_muda/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Alun-Alun", url: "https://pplterpadu.kedirikota.go.id:8888/alun_alun/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Bandar Ngalim", url: "https://pplterpadu.kedirikota.go.id:8888/bandar_ngalim/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "A Yani Utara", url: "https://pplterpadu.kedirikota.go.id:8888/a_yani_utara/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Water Torn", url: "https://pplterpadu.kedirikota.go.id:8888/water_torn/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Nabatiyasa", url: "https://pplterpadu.kedirikota.go.id:8888/nabatiasa/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Mrican", url: "https://pplterpadu.kedirikota.go.id:8888/mrican/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Semampir", url: "https://pplterpadu.kedirikota.go.id:8888/semampir/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Baruna", url: "https://pplterpadu.kedirikota.go.id:8888/baruna/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Jetis", url: "https://pplterpadu.kedirikota.go.id:8888/jetis/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Dandangan", url: "https://pplterpadu.kedirikota.go.id:8888/dandangan/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "A Yani Selatan", url: "https://pplterpadu.kedirikota.go.id:8888/a_yani_selatan/stream.m3u8"},
-        {city: "KOTA KEDIRI", name: "SP Tamanan", url: "https://pplterpadu.kedirikota.go.id:8888/tamanan/stream.m3u8"}
+        {city: "KAB. PEMALANG", name: "Comal", url: "https://stream.pemalangkab.go.id/2025/comal/comal.m3u8"}
     ];
 
     // ==========================================
@@ -1022,7 +529,8 @@
             hls = new Hls({ 
                 enableWorker: true, 
                 lowLatencyMode: true, 
-                backBufferLength: 30
+                backBufferLength: 30,
+                xhrSetup: function(xhr) { xhr.withCredentials = false; }
             });
             hls.loadSource(stream.url);
             hls.attachMedia(video);
@@ -1078,8 +586,8 @@
         });
 
         const orderedGroups = Object.keys(groups).sort((a,b) => {
-            if(a.includes("SEMARANG")) return -1;
-            if(b.includes("SEMARANG")) return 1;
+            if(a.includes("KEDIRI")) return -1;
+            if(b.includes("KEDIRI")) return 1;
             return 0;
         });
 
@@ -1093,6 +601,7 @@
             header.innerHTML = `<div class="group-title"><i class="fa-solid fa-map-location-dot text-blue-700"></i> ${groupName}</div><i class="fa-solid fa-chevron-down group-icon"></i>`;
             const body = document.createElement('div');
             body.className = 'group-body';
+            if (groupName === "KOTA KEDIRI") body.classList.add('open');
             items.forEach(item => {
                 const row = document.createElement('div');
                 row.className = 'cam-item';
