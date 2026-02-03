@@ -73,7 +73,6 @@
         
         .ramadan-asset {
             position: fixed;
-            /* Z-Index 60 agar di atas navbar, tapi pointer-events-none agar bisa diklik tembus */
             z-index: 60; 
             pointer-events: none; 
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
@@ -167,6 +166,21 @@
         } 
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
+        /* JAM ANIMASI FLIP */
+        .clock-container {
+            display: flex; align-items: center; justify-content: center;
+            height: 100%; font-family: 'Courier New', Courier, monospace;
+            font-weight: bold; font-size: 11px; color: white;
+            min-width: 110px; /* Lebar tetap agar tidak goyang saat jam berubah */
+        }
+        .clock-anim {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(5px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
         /* LOGO ANIMATION (Water Drop) */
         @keyframes water-drop {
             0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
@@ -216,9 +230,7 @@
     </div>
 
     <img src="https://iili.io/fZQGdIp.md.png" class="ramadan-asset lantern-anim w-14 md:w-20 top-0 right-4 md:right-10 opacity-90 drop-shadow-md" alt="Lampion Ramadan">
-    
     <img src="https://iili.io/fZQGdIp.md.png" class="ramadan-asset lantern-anim delay-200 w-10 md:w-14 top-[-5px] right-16 md:right-28 opacity-80 drop-shadow-sm" alt="Lampion Kecil">
-    
     <img src="https://iili.io/fZQIwMl.md.png" class="ramadan-asset moon-anim w-10 md:w-16 top-20 left-4 md:left-10 opacity-80 z-[40]" alt="Bulan Ramadan">
 
     <nav class="fixed top-0 w-full z-50 bg-[#1e3a8a] shadow-lg transition-all duration-300">
@@ -399,8 +411,8 @@
         <div class="ticker-wrap relative flex-1">
             <div id="unified-ticker-mobile" class="ticker-move"></div>
         </div>
-        <div class="bg-white/10 backdrop-blur-md h-full px-3 border-l border-slate-200/50 z-20 shrink-0 font-mono text-[10px] font-bold text-white flex items-center" id="clock-mobile">
-            00:00:00
+        <div class="bg-white/10 backdrop-blur-md h-full px-3 border-l border-slate-200/50 z-20 shrink-0 flex items-center">
+            <div id="clock-mobile" class="clock-container text-[10px]">00:00:00 WIB</div>
         </div>
     </div>
 
@@ -411,8 +423,8 @@
         <div class="ticker-wrap relative flex-1">
             <div id="unified-ticker-desktop" class="ticker-move"></div>
         </div>
-        <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 font-mono text-[11px] font-bold text-white flex items-center ml-4" id="clock-desktop">
-            00:00:00
+        <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 flex items-center ml-4">
+            <div id="clock-desktop" class="clock-container text-[11px]">00:00:00 WIB</div>
         </div>
     </div>
 
@@ -464,14 +476,13 @@
                 setTimeout(() => {
                     loader.style.opacity = '0';
                     setTimeout(() => loader.style.visibility = 'hidden', 500);
-                }, 1500); // Tahan 1.5 detik agar terlihat
+                }, 1500); 
             }
         });
 
-        // Dropdown Toggle (Fix)
+        // Dropdown Toggle
         function toggleDropdown(id) {
             const el = document.getElementById(id);
-            // Close others
             document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
                 if(d.id !== id) d.classList.add('hidden');
             });
@@ -543,12 +554,50 @@
         }
         updateTicker();
         
-        setInterval(() => {
+        // --- LOGIC JAM FLIP MULTI ZONA ---
+        const zones = [
+            { label: 'WIB', offset: 7 },
+            { label: 'WITA', offset: 8 },
+            { label: 'WIT', offset: 9 }
+        ];
+        let zoneIndex = 0;
+
+        function updateClockFlip() {
             const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit', second:'2-digit'}).replace(/\./g, ':');
-            if(document.getElementById('clock-mobile')) document.getElementById('clock-mobile').innerText = timeString;
-            if(document.getElementById('clock-desktop')) document.getElementById('clock-desktop').innerText = timeString;
-        }, 1000);
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            
+            const currentZone = zones[zoneIndex];
+            const zoneTime = new Date(utc + (3600000 * currentZone.offset));
+            
+            const timeString = zoneTime.toLocaleTimeString('id-ID', {
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false
+            }).replace(/\./g, ':');
+
+            const fullString = `${timeString} ${currentZone.label}`;
+
+            const els = [document.getElementById('clock-mobile'), document.getElementById('clock-desktop')];
+            els.forEach(el => {
+                if(el) {
+                    // Hapus kelas animasi lama biar bisa re-trigger
+                    el.classList.remove('clock-anim');
+                    // Force reflow
+                    void el.offsetWidth;
+                    el.innerText = fullString;
+                    // Tambah kelas animasi baru
+                    el.classList.add('clock-anim');
+                }
+            });
+
+            // Ganti zona berikutnya
+            zoneIndex = (zoneIndex + 1) % zones.length;
+        }
+
+        // Update setiap 3 detik
+        setInterval(updateClockFlip, 3000);
+        updateClockFlip(); // Jalankan langsung saat load
 
         // Close dropdown when clicking outside
         window.addEventListener('click', function(e){   
