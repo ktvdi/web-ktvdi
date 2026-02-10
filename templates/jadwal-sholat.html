@@ -6,324 +6,308 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <style>
-    /* === THEME: DYNAMIC ROYAL GLASS === */
+    /* === THEME VARIABLES === */
     :root {
-        --glass-bg-light: rgba(255, 255, 255, 0.75);
-        --glass-bg-dark: rgba(15, 23, 42, 0.65);
-        --border-light: rgba(255, 255, 255, 0.4);
-        --border-dark: rgba(251, 191, 36, 0.3); /* Gold border */
-        --text-light: #064e3b;
-        --text-dark: #f8fafc;
+        --glass-day: rgba(255, 255, 255, 0.85);
+        --glass-night: rgba(15, 23, 42, 0.75);
+        --border-day: rgba(255, 255, 255, 0.6);
+        --border-night: rgba(251, 191, 36, 0.2);
         --gold: #fbbf24;
+        --emerald: #10b981;
     }
 
     body.theme-day {
-        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-        color: var(--text-light);
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        color: #064e3b;
     }
     body.theme-night {
-        background: radial-gradient(circle at 50% 10%, #1e3a8a, #020617); /* Royal Blue */
-        color: var(--text-dark);
+        background: radial-gradient(circle at 50% 0%, #1e293b, #020617);
+        color: #f8fafc;
     }
 
+    /* TYPOGRAPHY */
     .font-amiri { font-family: 'Amiri', serif; }
     .font-cinzel { font-family: 'Cinzel', serif; }
 
-    /* ORNAMEN LAMPION */
-    .lantern-container { position: absolute; top: -10px; width: 100%; height: 200px; pointer-events: none; z-index: 0; }
+    /* LANTERN ANIMATION (Night Only) */
+    .lantern-container { position: absolute; top: -10px; width: 100%; height: 200px; pointer-events: none; z-index: 0; display: none; }
+    .theme-night .lantern-container { display: block; }
     .lantern {
         position: absolute; top: 0;
         filter: drop-shadow(0 10px 20px rgba(251, 191, 36, 0.6));
         animation: swing ease-in-out infinite alternate;
         transform-origin: top center;
     }
-    .l-1 { right: 8%; width: 60px; animation-duration: 3.5s; }
-    .l-2 { right: 20%; width: 40px; top: -15px; animation-duration: 4.5s; opacity: 0.9; }
-    .l-3 { left: 8%; width: 70px; animation-duration: 4s; }
-    @keyframes swing { 0% { transform: rotate(2deg); } 100% { transform: rotate(-2deg); } }
+    .l-1 { right: 10%; width: 60px; animation-duration: 3.5s; }
+    .l-2 { right: 22%; width: 40px; top: -15px; animation-duration: 4.5s; opacity: 0.9; }
+    .l-3 { left: 10%; width: 70px; animation-duration: 4s; }
+    @keyframes swing { 0% { transform: rotate(3deg); } 100% { transform: rotate(-3deg); } }
 
-    /* GLASS CARD ADAPTIF */
+    /* GLASS CARD STYLE */
     .glass-card {
-        backdrop-filter: blur(40px);
-        -webkit-backdrop-filter: blur(40px);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border-radius: 24px;
-        transition: all 0.5s ease;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
-    
-    /* Siang: Putih Kaca */
     .theme-day .glass-card {
-        background: var(--glass-bg-light);
-        border: 1px solid var(--border-light);
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        background: var(--glass-day);
+        border: 1px solid var(--border-day);
+        box-shadow: 0 10px 40px -10px rgba(6, 78, 59, 0.1);
     }
-    /* Malam: Biru Tua Kaca + Emas */
     .theme-night .glass-card {
-        background: var(--glass-bg-dark);
-        border: 1px solid var(--border-dark);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    }
-
-    /* COUNTDOWN TIMER */
-    .countdown-text {
-        font-variant-numeric: tabular-nums;
-        text-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .theme-night .countdown-text {
-        text-shadow: 0 0 20px rgba(251, 191, 36, 0.5); /* Gold Glow */
-        color: var(--gold);
+        background: var(--glass-night);
+        border: 1px solid var(--border-night);
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
     }
 
     /* PRAYER CARDS */
     .prayer-card {
-        padding: 1rem; border-radius: 16px; text-align: center;
-        transition: transform 0.3s;
+        padding: 1.25rem; border-radius: 18px; text-align: center;
+        transition: transform 0.3s, box-shadow 0.3s;
+        position: relative; overflow: hidden;
     }
-    .theme-day .prayer-card { background: rgba(255,255,255,0.6); border: 1px solid rgba(0,0,0,0.05); }
+    .theme-day .prayer-card { background: rgba(255,255,255,0.5); border: 1px solid rgba(16, 185, 129, 0.2); }
     .theme-night .prayer-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
     
     .prayer-card.active {
-        transform: scale(1.05);
-        border: 1px solid var(--gold);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
-    .theme-day .prayer-card.active { background: linear-gradient(135deg, #059669, #047857); color: white; }
-    .theme-night .prayer-card.active { background: linear-gradient(135deg, #fbbf24, #d97706); color: #020617; }
+    .theme-day .prayer-card.active { 
+        background: linear-gradient(135deg, #10b981, #059669); 
+        color: white; border: none;
+    }
+    .theme-night .prayer-card.active { 
+        background: linear-gradient(135deg, #fbbf24, #d97706); 
+        color: #0f172a; border: none;
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+    }
+
+    /* SELECT2 CUSTOMIZATION */
+    .select2-container .select2-selection--single {
+        height: 50px !important;
+        border-radius: 12px !important;
+        display: flex; align-items: center;
+        padding-left: 10px;
+    }
+    .theme-day .select2-container .select2-selection--single {
+        background-color: rgba(255,255,255,0.8) !important;
+        border: 1px solid #10b981 !important;
+    }
+    .theme-night .select2-container .select2-selection--single {
+        background-color: rgba(30, 41, 59, 0.8) !important;
+        border: 1px solid #fbbf24 !important;
+        color: white !important;
+    }
+    .theme-night .select2-selection__rendered { color: white !important; }
+    .theme-night .select2-dropdown { background-color: #1e293b; border-color: #fbbf24; color: white; }
+    .theme-night .select2-results__option--highlighted { background-color: #fbbf24 !important; color: #000 !important; }
 
     /* FLIP CARDS */
-    .flip-card { height: 220px; perspective: 1000px; cursor: pointer; }
+    .flip-card { height: 240px; perspective: 1000px; cursor: pointer; }
     .flip-inner {
         position: relative; width: 100%; height: 100%; text-align: center;
-        transition: transform 0.8s; transform-style: preserve-3d;
-        border-radius: 20px;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d; border-radius: 20px;
     }
+    .flip-card:hover .flip-inner { transform: rotateY(10deg); }
     .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
     .flip-front, .flip-back {
         position: absolute; inset: 0; backface-visibility: hidden;
         display: flex; flex-direction: column; justify-content: center; align-items: center;
         padding: 1.5rem; border-radius: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    /* Front Style */
-    .theme-day .flip-front { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); }
-    .theme-night .flip-front { background: rgba(255,255,255,0.05); border: 1px solid var(--border-dark); }
-    /* Back Style */
+    
+    .theme-day .flip-front { background: rgba(255,255,255,0.8); border: 1px solid #d1fae5; }
+    .theme-night .flip-front { background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(251, 191, 36, 0.3); }
+    
     .flip-back { transform: rotateY(180deg); overflow-y: auto; }
-    .theme-day .flip-back { background: #fff; color: #064e3b; }
-    .theme-night .flip-back { background: #0f172a; color: #fbbf24; border: 1px solid var(--gold); }
-
-    /* DROPDOWN SELECT */
-    .select-wrapper select {
-        appearance: none; -webkit-appearance: none;
-        width: 100%; padding: 12px 16px; border-radius: 12px;
-        font-weight: 600; cursor: pointer; outline: none;
-    }
-    .theme-day .select-wrapper select {
-        background: rgba(255,255,255,0.8); color: #064e3b; border: 1px solid #10b981;
-    }
-    .theme-night .select-wrapper select {
-        background: rgba(0,0,0,0.3); color: #fbbf24; border: 1px solid #fbbf24;
-    }
-    .select-wrapper { position: relative; }
-    .select-wrapper::after {
-        content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900;
-        position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-        pointer-events: none; opacity: 0.7;
-    }
-    .theme-night .select-wrapper::after { color: #fbbf24; }
+    .theme-day .flip-back { background: #fff; color: #064e3b; border: 2px solid #10b981; }
+    .theme-night .flip-back { background: #0f172a; color: #fbbf24; border: 2px solid #fbbf24; }
 </style>
 
-<div class="fixed inset-0 opacity-10 pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/arabesque.png'); z-index: -1;"></div>
+<div class="fixed inset-0 opacity-5 pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/arabesque.png'); z-index: -1;"></div>
 
-<div class="lantern-container relative max-w-6xl mx-auto" id="lanterns">
+<div class="lantern-container max-w-6xl mx-auto relative" id="lanterns">
     <img src="https://cdn-icons-png.flaticon.com/512/3655/3655562.png" class="lantern l-1" alt="Lampion">
     <img src="https://cdn-icons-png.flaticon.com/512/3655/3655562.png" class="lantern l-2" alt="Lampion">
     <img src="https://cdn-icons-png.flaticon.com/512/3655/3655562.png" class="lantern l-3 hidden md:block" alt="Lampion">
 </div>
 
-<div class="min-h-screen py-12 px-4 pb-32 relative z-10">
+<div class="min-h-screen py-10 px-4 pb-32 relative z-10">
     <div class="max-w-6xl mx-auto">
 
-        <div class="text-center mb-10 mt-4">
-            <div id="ramadanBadge" class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase mb-4 shadow-sm border transition-all">
-                <i class="fa-solid fa-moon"></i> Ramadan 1447 H / 2026 M
+        <div class="text-center mb-10 mt-6 animate-fade-in-down">
+            <div id="hijriBadge" class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase mb-4 shadow-lg border transition-all transform hover:scale-105">
+                <i class="fa-solid fa-moon"></i> {{ hijri_date if hijri_date else "Memuat Tanggal Hijriah..." }}
             </div>
-            <h1 class="text-4xl md:text-6xl font-bold font-amiri mb-2 drop-shadow-md" id="headerTitle">
+            
+            <h1 class="text-4xl md:text-6xl font-bold font-amiri mb-2 drop-shadow-lg leading-tight">
                 Jadwal Sholat & Imsakiyah
             </h1>
-            <p class="font-medium opacity-80" id="headerSubtitle">
-                "Bulan Ramadan adalah bulan yang di dalamnya diturunkan Al-Qur'an sebagai petunjuk bagi manusia." (QS. Al-Baqarah: 185)
+            <p class="font-medium opacity-80 max-w-2xl mx-auto">
+                "Jadikan sholat sebagai kebutuhan, bukan beban. Karena Allah menjanjikan ketenangan bagi mereka yang sujud."
             </p>
         </div>
 
-        <div class="glass-card p-8 mb-10 overflow-hidden relative">
-            <div class="absolute -top-20 -right-20 w-64 h-64 bg-emerald-500 rounded-full blur-[100px] opacity-20"></div>
+        <div class="glass-card p-6 md:p-10 mb-10">
+            <div class="absolute -top-32 -left-32 w-80 h-80 bg-emerald-500 rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
             
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative z-10">
-                <div>
-                    <label class="block text-xs font-bold mb-3 uppercase tracking-wider opacity-80">
-                        <i class="fa-solid fa-map-location-dot mr-1"></i> Lokasi Anda (<span id="detectStatus" class="text-xs font-normal italic">Deteksi GPS...</span>)
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+                
+                <div class="space-y-4">
+                    <label class="block text-xs font-bold uppercase tracking-wider opacity-80 pl-1">
+                        <i class="fa-solid fa-map-location-dot mr-1 text-emerald-500"></i> Pilih Lokasi (150+ Kota)
                     </label>
-                    <div class="select-wrapper">
-                        <select id="kotaSelect" onchange="loadJadwal(this.value)">
-                            <option value="" disabled selected>Pilih Kota / Kabupaten...</option>
+                    
+                    <div class="relative">
+                        <select id="kotaSelect" style="width: 100%;">
+                            <option value="" disabled selected>Cari Kota / Kabupaten...</option>
                             {% for kota in daftar_kota %}
                             <option value="{{ kota }}" {% if kota == 'Jakarta' %}selected{% endif %}>{{ kota }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mt-4 flex items-center gap-2 text-xs opacity-70">
-                        <i class="fa-regular fa-calendar-check"></i> <span id="currentDate">Memuat tanggal...</span>
+
+                    <div class="flex items-center justify-between text-xs font-medium opacity-70 px-1">
+                        <span><i class="fa-regular fa-calendar-alt mr-1"></i> <span id="currentDate">Memuat tanggal...</span></span>
+                        <span id="detectStatus" class="italic cursor-pointer hover:underline" onclick="detectLocation()"><i class="fa-solid fa-crosshairs"></i> Deteksi GPS</span>
                     </div>
                 </div>
 
-                <div class="text-center lg:text-right">
+                <div class="text-center lg:text-right border-t lg:border-t-0 lg:border-l border-gray-200/20 pt-8 lg:pt-0 lg:pl-12">
+                    
                     <div id="statusNormal">
-                        <p class="text-xs font-bold uppercase tracking-widest mb-1 opacity-70">Menuju Waktu <span id="nextPrayerName" class="font-black text-yellow-500">...</span></p>
-                        <div class="text-6xl md:text-7xl font-cinzel font-bold countdown-text mb-2" id="countdownTimer">--:--:--</div>
+                        <p class="text-xs font-bold uppercase tracking-widest mb-1 opacity-70">Menuju Waktu <span id="nextPrayerName" class="font-black text-emerald-500 text-lg ml-1">...</span></p>
                         
-                        <div id="prePrayerAlert" class="hidden animate-bounce inline-block">
-                             <span class="px-3 py-1 rounded-lg text-xs font-bold border" style="background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #eab308;">
-                                <i class="fa-solid fa-bell mr-1"></i> <span id="prePrayerMessage"></span>
+                        <div class="text-6xl md:text-7xl font-cinzel font-bold mb-2 tracking-tighter tabular-nums" id="countdownTimer">
+                            --:--:--
+                        </div>
+                        
+                        <div class="w-full bg-gray-200/30 rounded-full h-1.5 mb-3 overflow-hidden">
+                            <div id="timeProgress" class="bg-emerald-500 h-1.5 rounded-full" style="width: 0%"></div>
+                        </div>
+
+                        <div id="prePrayerAlert" class="hidden animate-bounce inline-block mt-2">
+                             <span class="px-4 py-1.5 rounded-lg text-xs font-bold border flex items-center gap-2 shadow-sm bg-yellow-100 text-yellow-800 border-yellow-300">
+                                <i class="fa-solid fa-bell fa-shake"></i> <span id="prePrayerMessage"></span>
                             </span>
                         </div>
                     </div>
 
                     <div id="statusAzan" class="hidden animate-pulse">
-                        <p class="text-yellow-500 text-sm font-bold uppercase tracking-widest mb-2">SAAT WAKTU</p>
-                        <div class="text-5xl md:text-6xl font-bold font-amiri mb-2" id="azanMessage">AZAN</div>
+                        <p class="text-yellow-500 text-sm font-bold uppercase tracking-widest mb-2"><i class="fa-solid fa-volume-high"></i> SAAT WAKTU</p>
+                        <div class="text-6xl md:text-7xl font-bold font-amiri mb-2 text-emerald-600" id="azanMessage">AZAN</div>
                         <p class="text-sm font-medium opacity-90" id="azanSubMessage">Selamat Melaksanakan Ibadah</p>
                     </div>
+
                 </div>
             </div>
 
-            <div id="scheduleLoading" class="hidden absolute inset-0 z-20 flex flex-col justify-center items-center backdrop-blur-md bg-white/30">
-                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-emerald-600"></i>
-                <p class="mt-2 font-bold text-emerald-800">Sinkronisasi Data...</p>
+            <div id="scheduleLoading" class="hidden absolute inset-0 z-20 flex flex-col justify-center items-center backdrop-blur-sm bg-white/20 rounded-24">
+                <div class="bg-white p-4 rounded-full shadow-xl">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-emerald-600"></i>
+                </div>
+                <p class="mt-3 font-bold text-emerald-800 bg-white/80 px-4 py-1 rounded-full text-xs shadow-sm">Sinkronisasi Data...</p>
             </div>
         </div>
 
-        <div class="glass-card p-8 mb-12">
-            <h3 class="text-center text-lg font-bold font-amiri mb-6 opacity-90"><i class="fa-solid fa-clock mr-2"></i> Jadwal Waktu Sholat Hari Ini</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="prayerGrid">
+        <div class="mb-16">
+            <h3 class="text-center text-lg font-bold font-amiri mb-6 opacity-90 flex items-center justify-center gap-2">
+                <span class="h-px w-12 bg-current opacity-30"></span>
+                <span><i class="fa-solid fa-clock mr-2"></i> Jadwal Sholat Hari Ini</span>
+                <span class="h-px w-12 bg-current opacity-30"></span>
+            </h3>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 px-2" id="prayerGrid">
                 </div>
         </div>
 
         <div class="mb-12">
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold font-amiri opacity-90"><i class="fa-solid fa-book-open mr-2"></i> Khazanah & Wawasan</h2>
-                <span class="text-xs opacity-60"><i class="fa-solid fa-hand-pointer mr-1"></i> Ketuk kartu</span>
+            <div class="flex items-center justify-between mb-6 px-2">
+                <h2 class="text-2xl font-bold font-amiri opacity-90"><i class="fa-solid fa-book-open mr-2 text-emerald-500"></i> Khazanah & Wawasan</h2>
+                <span class="text-xs opacity-60 bg-black/5 px-2 py-1 rounded"><i class="fa-solid fa-hand-pointer mr-1"></i> Ketuk kartu</span>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5 flip-grid" id="flipContainer">
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6" id="flipContainer">
                 </div>
-            <div class="text-center mt-6">
-                <button onclick="loadMoreCards()" id="loadMoreBtn" class="px-6 py-2 rounded-full border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white transition font-bold text-sm shadow-lg">
-                    Muat Lebih Banyak...
+            
+            <div class="text-center mt-8">
+                <button onclick="loadMoreCards()" id="loadMoreBtn" class="px-8 py-3 rounded-full border border-emerald-500 text-emerald-600 hover:bg-emerald-500 hover:text-white transition font-bold text-sm shadow-lg hover:shadow-emerald-500/30">
+                    Muat Lebih Banyak Ilmu...
                 </button>
             </div>
         </div>
 
-        <div class="glass-card p-6 text-center">
-            <i class="fa-solid fa-quote-left text-3xl opacity-30 mb-2"></i>
-            <div id="quoteDisplay" class="text-lg font-serif italic font-medium h-16 flex items-center justify-center transition-all duration-500">
-                "Memuat pesan..."
+        <div class="glass-card p-8 text-center max-w-3xl mx-auto transform hover:-translate-y-1 transition duration-300">
+            <i class="fa-solid fa-quote-left text-4xl opacity-20 mb-4 text-emerald-500"></i>
+            <div id="quoteDisplay" class="text-xl font-serif italic font-medium min-h-[80px] flex items-center justify-center transition-all duration-700 leading-relaxed">
+                "Memuat Mutiara Hikmah..."
+            </div>
+            <div class="mt-4 flex justify-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 opacity-50"></span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500 opacity-30"></span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500 opacity-10"></span>
             </div>
         </div>
 
     </div>
 </div>
 
-<script type="application/json" id="cityData">
-    {{ daftar_kota | tojson }}
-</script>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script type="application/json" id="cityData">{{ daftar_kota | tojson }}</script>
+<script type="application/json" id="quotesData">{{ quotes | tojson }}</script>
 
 <script>
-    // --- 1. THEME MANAGER & AUTO GPS ---
+    // --- 1. THEME MANAGER ---
     function updateTheme() {
-        const hour = new Date().getHours();
         const body = document.body;
-        const badge = document.getElementById('ramadanBadge');
-        
+        const badge = document.getElementById('hijriBadge');
         const now = new Date();
-        const isNight = (now.getHours() > 17 || (now.getHours() === 17 && now.getMinutes() >= 31)) || now.getHours() < 6;
+        const isNight = (now.getHours() >= 18 || now.getHours() < 5); // 18:00 - 05:00
 
         if (isNight) {
-            body.className = "theme-night bg-brand-navy text-white";
-            badge.className = "inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-900/30 border border-yellow-500 text-yellow-400 text-[10px] font-bold tracking-widest uppercase mb-4 shadow-[0_0_15px_rgba(234,179,8,0.4)]";
-            document.getElementById('lanterns').style.display = 'block';
+            body.className = "theme-night";
+            badge.className = "inline-flex items-center gap-2 px-5 py-2 rounded-full bg-yellow-900/40 border border-yellow-500 text-yellow-400 text-xs font-bold tracking-widest uppercase mb-4 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
         } else {
-            body.className = "theme-day bg-emerald-50 text-emerald-900";
-            badge.className = "inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-[10px] font-bold tracking-widest uppercase mb-4 shadow-sm";
-            document.getElementById('lanterns').style.display = 'none'; 
+            body.className = "theme-day";
+            badge.className = "inline-flex items-center gap-2 px-5 py-2 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold tracking-widest uppercase mb-4 shadow-sm";
         }
     }
     updateTheme();
     setInterval(updateTheme, 60000); 
 
-    // --- 2. DATA KNOWLEDGE (18 TOPIK) ---
-    const knowledgeData = [
-        { t: "Niat Puasa", i: "fa-heart", d: "Berniat di malam hari sebelum fajar adalah rukun puasa wajib. 'Nawaitu shauma ghadin...' Niat membedakan ibadah dengan kebiasaan." },
-        { t: "Keutamaan Sahur", i: "fa-utensils", d: "Sahur penuh berkah. Rasulullah SAW bersabda: 'Bersahurlah, karena di dalamnya terdapat keberkahan.' (HR. Bukhari)." },
-        { t: "Menahan Amarah", i: "fa-face-smile", d: "Puasa bukan hanya menahan lapar, tapi juga emosi. Jika ada yang memancing marah, katakan: 'Inni shaimun' (Aku sedang berpuasa)." },
-        { t: "Toleransi Beragama", i: "fa-hands-holding-circle", d: "Ramadan mengajarkan kita berempati. Hormati mereka yang tidak berpuasa (non-muslim/berhalangan). Indahnya berbagi takjil tanpa memandang SARA." },
-        { t: "Zakat Fitrah", i: "fa-hand-holding-dollar", d: "Wajib bagi setiap muslim untuk membersihkan jiwa. Bayarlah dengan beras/uang setara 2,5 kg atau 3,5 liter sebelum Sholat Id." },
-        { t: "Lailatul Qadar", i: "fa-star", d: "Malam kemuliaan yang lebih baik dari 1000 bulan. Carilah di malam-malam ganjil pada 10 hari terakhir Ramadan." },
-        { t: "Tadarus Al-Qur'an", i: "fa-book-quran", d: "Bulan Ramadan adalah bulan Al-Qur'an. Setiap huruf yang dibaca dilipatgandakan pahalanya 10 hingga 700 kali lipat." },
-        { t: "Silaturahmi", i: "fa-users", d: "Pererat tali persaudaraan. Buka puasa bersama adalah momen menyambung kembali hubungan yang renggang dengan teman/keluarga." },
-        { t: "Kesehatan Fisik", i: "fa-notes-medical", d: "Puasa (Autophagy) membantu detoksifikasi tubuh, peremajaan sel, dan mengistirahatkan sistem pencernaan. Sehat lahir batin." },
-        { t: "Sedekah", i: "fa-gift", d: "Sedekah paling utama adalah di bulan Ramadan. Memberi makan orang berbuka pahalanya sama dengan orang yang berpuasa tersebut." },
-        { t: "Sholat Tarawih", i: "fa-mosque", d: "Sholat sunnah khusus Ramadan. 'Barangsiapa sholat malam di bulan Ramadan karena iman, diampuni dosanya yang lalu.' (HR. Bukhari)." },
-        { t: "I'tikaf", i: "fa-person-praying", d: "Berdiam diri di masjid untuk beribadah, terutama di 10 hari terakhir, meneladani sunnah Rasulullah SAW." },
-        { t: "Menjaga Lisan", i: "fa-comment-slash", d: "Puasa sia-sia jika masih berdusta, menggunjing (ghibah), atau berkata kotor. Puasa adalah perisai dari hal buruk." },
-        { t: "Sejarah Badar", i: "fa-shield-halved", d: "Perang Badar terjadi 17 Ramadan 2 H. Kemenangan besar pertama umat Islam melawan kebatilan, meski pasukan lebih sedikit." },
-        { t: "Nuzulul Qur'an", i: "fa-book-open", d: "Peristiwa turunnya Al-Qur'an pertama kali (Surah Al-Alaq 1-5) kepada Nabi Muhammad SAW di Gua Hira pada 17 Ramadan." },
-        { t: "Kejujuran", i: "fa-scale-balanced", d: "Puasa melatih kejujuran tingkat tinggi. Hanya Allah yang tahu kita benar-benar puasa atau tidak. Terapkan di kehidupan sehari-hari." },
-        { t: "Hemat & Sederhana", i: "fa-piggy-bank", d: "Jangan jadikan buka puasa ajang balas dendam makanan. Ramadan melatih kita hidup sederhana dan empati pada yang lapar." },
-        { t: "Idul Fitri", i: "fa-kaaba", d: "Hari kemenangan. Kembali suci (Fitrah). Maafkan kesalahan sesama dengan tulus. Momen persatuan bangsa." }
-    ];
-
-    let visibleCards = 6;
-    const container = document.getElementById('flipContainer');
-
-    function renderCards() {
-        container.innerHTML = '';
-        knowledgeData.slice(0, visibleCards).forEach(item => {
-            container.innerHTML += `
-                <div class="flip-card" onclick="this.classList.toggle('flipped')">
-                    <div class="flip-inner">
-                        <div class="flip-front">
-                            <i class="fa-solid ${item.i} text-4xl mb-3 text-emerald-500"></i>
-                            <h4 class="font-bold text-lg font-amiri">${item.t}</h4>
-                            <p class="text-[10px] mt-2 opacity-60">(Ketuk Info)</p>
-                        </div>
-                        <div class="flip-back">
-                            <h4 class="font-bold mb-2 border-b pb-1 border-white/20">${item.t}</h4>
-                            <p class="text-sm leading-snug">${item.d}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+    // --- 2. INITIALIZE SELECT2 (SEARCHABLE DROPDOWN) ---
+    $(document).ready(function() {
+        $('#kotaSelect').select2({
+            placeholder: "Cari Kota / Kabupaten...",
+            allowClear: false,
+            language: { noResults: () => "Kota tidak ditemukan" }
         });
-        if(visibleCards >= knowledgeData.length) document.getElementById('loadMoreBtn').style.display = 'none';
-    }
-    
-    function loadMoreCards() {
-        visibleCards += 6;
-        renderCards();
-    }
-    renderCards(); // Init
 
+        // Event Listener Change
+        $('#kotaSelect').on('change', function() {
+            loadJadwal(this.value);
+        });
 
-    // --- 3. JADWAL SHOLAT & COUNTDOWN (FIXED LOGIC) ---
+        // Initial Load (Default Jakarta or GPS fallback later)
+        loadJadwal($('#kotaSelect').val() || 'Jakarta');
+    });
+
+    // --- 3. JADWAL SHOLAT LOGIC ---
     let countdownInterval;
     const cityList = JSON.parse(document.getElementById('cityData').textContent); 
 
     function loadJadwal(city) {
         document.getElementById('scheduleLoading').classList.remove('hidden');
-        document.getElementById('kotaSelect').value = city;
-
+        
         const date = new Date();
         const url = `https://api.aladhan.com/v1/timingsByCity/${date.getDate()}-${date.getMonth()+1}-${date.getFullYear()}?city=${city}&country=Indonesia&method=20`;
 
@@ -343,17 +327,23 @@
     function renderPrayerGrid(t) {
         const grid = document.getElementById('prayerGrid');
         const list = [
-            {id:'Imsak', n:'IMSAK', t:t.Imsak}, {id:'Fajr', n:'SUBUH', t:t.Fajr},
-            {id:'Dhuhr', n:'DZUHUR', t:t.Dhuhr}, {id:'Asr', n:'ASHAR', t:t.Asr},
-            {id:'Maghrib', n:'MAGHRIB', t:t.Maghrib}, {id:'Isha', n:'ISYA', t:t.Isha}
+            {id:'Imsak', n:'IMSAK', t:t.Imsak, icon:'fa-moon'}, 
+            {id:'Fajr', n:'SUBUH', t:t.Fajr, icon:'fa-sun'},
+            {id:'Dhuhr', n:'DZUHUR', t:t.Dhuhr, icon:'fa-cloud-sun'}, 
+            {id:'Asr', n:'ASHAR', t:t.Asr, icon:'fa-cloud-sun-rain'},
+            {id:'Maghrib', n:'MAGHRIB', t:t.Maghrib, icon:'fa-cloud-moon'}, 
+            {id:'Isha', n:'ISYA', t:t.Isha, icon:'fa-star'}
         ];
         
         let html = '';
         list.forEach(p => {
             html += `
-                <div id="card-${p.id}" class="prayer-card">
-                    <div class="text-[10px] font-bold uppercase mb-1 opacity-70">${p.n}</div>
-                    <div class="text-2xl font-black font-cinzel">${p.t}</div>
+                <div id="card-${p.id}" class="prayer-card group">
+                    <div class="absolute -right-4 -top-4 text-6xl opacity-5 group-hover:opacity-10 transition-opacity">
+                        <i class="fa-solid ${p.icon}"></i>
+                    </div>
+                    <div class="text-[10px] font-bold uppercase mb-1 opacity-70 tracking-widest">${p.n}</div>
+                    <div class="text-3xl font-black font-cinzel">${p.t}</div>
                 </div>
             `;
         });
@@ -373,20 +363,32 @@
             const now = new Date();
             let next = null;
             let minDiff = Infinity;
+            let prevPrayerTime = null;
             let azanName = "";
 
-            prayers.forEach(p => {
+            prayers.forEach((p, index) => {
                 const [h,m] = p.t.split(':');
                 const pt = new Date(); pt.setHours(h,m,0);
                 let diff = pt - now;
 
-                // Azan Time (0 to -4 mins)
+                // Cek Azan (Rentang 0 s.d -4 menit)
                 if(diff <= 0 && diff > -240000) {
                     azanName = p.n;
                     highlightCard(p.id);
                 }
 
-                if(diff > 0 && diff < minDiff) { minDiff = diff; next = p; }
+                if(diff > 0 && diff < minDiff) { 
+                    minDiff = diff; 
+                    next = p;
+                    // Ambil waktu sholat sebelumnya untuk kalkulasi progress bar
+                    if(index > 0) {
+                        const [ph, pm] = prayers[index-1].t.split(':');
+                        prevPrayerTime = new Date(); prevPrayerTime.setHours(ph, pm, 0);
+                    } else {
+                        // Jika next adalah Imsak/Subuh, prev adalah Isya kemarin (approx)
+                        prevPrayerTime = new Date(); prevPrayerTime.setDate(now.getDate()-1); prevPrayerTime.setHours(20,0,0);
+                    }
+                }
             });
 
             // LOGIKA TAMPILAN STATUS
@@ -395,19 +397,23 @@
                 document.getElementById('statusAzan').classList.remove('hidden');
                 document.getElementById('azanMessage').innerText = azanName;
                 
-                let subMsg = "Selamat Menunaikan Ibadah Sholat";
-                if(azanName === 'IMSAK') subMsg = "Selamat Menunaikan Ibadah Puasa";
-                if(azanName === 'MAGHRIB') subMsg = "Selamat Berbuka Puasa";
+                let subMsg = "Mari tegakkan sholat, raih kemenangan.";
+                if(azanName === 'IMSAK') subMsg = "Waktu sahur berakhir. Niatkan puasa hari ini.";
+                if(azanName === 'MAGHRIB') subMsg = "Selamat Berbuka Puasa. Semoga amal diterima.";
                 document.getElementById('azanSubMessage').innerText = subMsg;
                 return;
             }
 
-            // TAMPILAN NORMAL (COUNTDOWN)
+            // TAMPILAN COUNTDOWN
             if(!next) { 
                 next = prayers[0];
                 const [h,m] = next.t.split(':');
                 const pt = new Date(); pt.setDate(pt.getDate()+1); pt.setHours(h,m,0);
                 minDiff = pt - now;
+                
+                // Prev prayer is Isya today
+                const [ph, pm] = prayers[prayers.length-1].t.split(':');
+                prevPrayerTime = new Date(); prevPrayerTime.setHours(ph, pm, 0);
             }
 
             document.getElementById('statusNormal').classList.remove('hidden');
@@ -422,6 +428,15 @@
 
             highlightCard(next.id);
 
+            // LOGIKA PROGRESS BAR
+            if(prevPrayerTime && next) {
+                const totalDuration = (new Date(minDiff + now).getTime()) - prevPrayerTime.getTime();
+                const elapsed = now.getTime() - prevPrayerTime.getTime();
+                let percentage = (elapsed / totalDuration) * 100;
+                percentage = Math.max(0, Math.min(100, percentage));
+                document.getElementById('timeProgress').style.width = percentage + "%";
+            }
+
             // LOGIKA PENGINGAT (REMINDER)
             const mins = Math.floor(minDiff/60000);
             const alert = document.getElementById('prePrayerAlert');
@@ -429,13 +444,9 @@
 
             if(mins <= 10) {
                 alert.classList.remove('hidden');
-                if(next.n === 'IMSAK') {
-                     alertMsg.innerText = "Waktu Imsak sebentar lagi. Segera selesaikan sahur Anda & niat puasa.";
-                } else if(next.n === 'MAGHRIB') {
-                     alertMsg.innerText = "Sebentar lagi waktu berbuka puasa. Siapkan takjil manis.";
-                } else {
-                     alertMsg.innerText = "Sobat KTVDI sudah Sholat belum? Udah mau waktu selanjutnya nih!";
-                }
+                if(next.n === 'IMSAK') alertMsg.innerText = "Imsak 10 Menit Lagi! Selesaikan Sahur.";
+                else if(next.n === 'MAGHRIB') alertMsg.innerText = "Siapkan Takjil! Sebentar lagi berbuka.";
+                else alertMsg.innerText = `Persiapkan diri! 10 Menit menuju ${next.n}`;
             } else {
                 alert.classList.add('hidden');
             }
@@ -448,66 +459,108 @@
         document.getElementById(id)?.classList.add('active');
     }
 
-    // --- 4. AUTO GPS DETECT (NOMINATIM FIX) ---
-    if (navigator.geolocation) {
-        document.getElementById('detectStatus').innerText = "Mendeteksi...";
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                // Menggunakan OpenStreetMap Nominatim
-                fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
-                .then(res => res.json())
-                .then(data => {
-                    const addr = data.address;
-                    // Gabungkan semua kemungkinan nama kota/kabupaten
-                    const detectedName = [addr.city, addr.town, addr.county, addr.state_district, addr.village]
-                                        .filter(Boolean).join(" ").toLowerCase();
-                    
-                    let foundCity = "Jakarta"; // Default fallback
-                    
-                    // Loop pencarian fuzzy (case insensitive & partial match)
-                    for(let c of cityList) {
-                        if(detectedName.includes(c.toLowerCase()) || c.toLowerCase().includes(detectedName)) {
-                            foundCity = c; break;
+    // --- 4. AUTO GPS ---
+    function detectLocation() {
+        if (navigator.geolocation) {
+            document.getElementById('detectStatus').innerText = "Mendeteksi...";
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const addr = data.address;
+                        const detectedName = [addr.city, addr.town, addr.county].filter(Boolean).join(" ").toLowerCase();
+                        let foundCity = "Jakarta";
+                        
+                        // Smart Fuzzy Search di City List
+                        for(let c of cityList) {
+                            if(detectedName.includes(c.toLowerCase()) || c.toLowerCase().includes(detectedName)) {
+                                foundCity = c; break;
+                            }
                         }
-                    }
-                    
-                    document.getElementById('detectStatus').innerText = "GPS Aktif";
-                    loadJadwal(foundCity);
-                })
-                .catch(() => {
-                    document.getElementById('detectStatus').innerText = "Gagal Deteksi";
-                    loadJadwal('Jakarta');
-                });
-            },
-            () => {
-                document.getElementById('detectStatus').innerText = "GPS Dimatikan";
-                loadJadwal('Jakarta');
-            }
-        );
-    } else {
-        loadJadwal('Jakarta');
+                        
+                        document.getElementById('detectStatus').innerHTML = `<i class="fa-solid fa-location-dot"></i> GPS Aktif`;
+                        $('#kotaSelect').val(foundCity).trigger('change');
+                    })
+                    .catch(() => {
+                        document.getElementById('detectStatus').innerText = "Gagal Deteksi";
+                        $('#kotaSelect').val('Jakarta').trigger('change');
+                    });
+                },
+                () => { document.getElementById('detectStatus').innerText = "GPS Dimatikan"; }
+            );
+        }
     }
+    // Auto detect on first load if permisison granted before
+    // detectLocation(); 
 
-    // --- 5. QUOTES ---
-    const quotes = [
-        "Integritas adalah melakukan hal benar saat tak ada yang melihat.",
-        "Perbedaan adalah rahmat, mari rajut persaudaraan.",
-        "Puasa adalah perisai dari api neraka.",
-        "Sebaik-baik manusia adalah yang bermanfaat bagi orang lain.",
-        "Kejujuran adalah mata uang yang berlaku di mana-mana."
+    // --- 5. QUOTES & KNOWLEDGE (DYNAMIC + STATIC MIX) ---
+    // Ambil quotes dari Python, jika kosong pakai fallback
+    let serverQuotes = JSON.parse(document.getElementById('quotesData').textContent);
+    let quotesList = [];
+    
+    if(serverQuotes.muslim) quotesList = [...serverQuotes.muslim, ...serverQuotes.universal];
+    else quotesList = [
+        "Sholat adalah tiang agama.", 
+        "Puasa menyehatkan jasmani dan rohani.",
+        "Sedekah tidak akan mengurangi harta."
     ];
+
     let qIdx = 0;
     setInterval(() => {
         const el = document.getElementById('quoteDisplay');
         el.style.opacity = 0;
         setTimeout(() => {
-            qIdx = (qIdx + 1) % quotes.length;
-            el.innerText = `"${quotes[qIdx]}"`;
+            qIdx = (qIdx + 1) % quotesList.length;
+            el.innerText = `"${quotesList[qIdx]}"`;
             el.style.opacity = 1;
         }, 500);
-    }, 6000);
+    }, 8000);
+
+    // Data Kartu Pengetahuan
+    const knowledgeData = [
+        { t: "Niat Puasa", i: "fa-heart", d: "Berniat di malam hari sebelum fajar adalah rukun puasa wajib. 'Nawaitu shauma ghadin...' Niat membedakan ibadah dengan kebiasaan." },
+        { t: "Keutamaan Sahur", i: "fa-utensils", d: "Sahur penuh berkah. Rasulullah SAW bersabda: 'Bersahurlah, karena di dalamnya terdapat keberkahan.' (HR. Bukhari)." },
+        { t: "Zakat Fitrah", i: "fa-hand-holding-dollar", d: "Wajib bagi setiap muslim. Bayarlah dengan beras/uang setara 2,5 kg atau 3,5 liter sebelum Sholat Id." },
+        { t: "Lailatul Qadar", i: "fa-star", d: "Malam kemuliaan yang lebih baik dari 1000 bulan. Carilah di malam-malam ganjil pada 10 hari terakhir Ramadan." },
+        { t: "Tadarus Al-Qur'an", i: "fa-book-quran", d: "Bulan Ramadan adalah bulan Al-Qur'an. Setiap huruf yang dibaca dilipatgandakan pahalanya berlipat ganda." },
+        { t: "Sholat Tarawih", i: "fa-mosque", d: "Sholat sunnah khusus Ramadan. Penghapus dosa yang lalu bagi yang mengerjakannya dengan iman." },
+        { t: "Menjaga Lisan", i: "fa-comment-slash", d: "Puasa sia-sia jika masih berdusta atau ghibah. Puasa adalah perisai dari hal buruk." },
+        { t: "Idul Fitri", i: "fa-kaaba", d: "Hari kemenangan. Kembali suci (Fitrah). Maafkan kesalahan sesama dengan tulus." }
+    ];
+
+    let visibleCards = 4;
+    const container = document.getElementById('flipContainer');
+
+    function renderCards() {
+        container.innerHTML = '';
+        knowledgeData.slice(0, visibleCards).forEach(item => {
+            container.innerHTML += `
+                <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                    <div class="flip-inner">
+                        <div class="flip-front">
+                            <i class="fa-solid ${item.i} text-4xl mb-4 text-emerald-500"></i>
+                            <h4 class="font-bold text-lg font-amiri">${item.t}</h4>
+                            <p class="text-[10px] mt-2 opacity-60 uppercase tracking-widest text-emerald-600">Ketuk Info</p>
+                        </div>
+                        <div class="flip-back">
+                            <h4 class="font-bold mb-3 border-b pb-2 border-current w-full">${item.t}</h4>
+                            <p class="text-sm leading-relaxed">${item.d}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        if(visibleCards >= knowledgeData.length) document.getElementById('loadMoreBtn').style.display = 'none';
+    }
+    
+    function loadMoreCards() {
+        visibleCards += 4;
+        renderCards();
+    }
+    renderCards();
 
 </script>
 {% endblock %}
