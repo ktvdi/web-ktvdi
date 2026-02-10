@@ -748,8 +748,8 @@ def jadwal_sholat_page():
         
         # JAWA
         "Jakarta", "Bogor", "Depok", "Tangerang", "Tangerang Selatan", "Bekasi",
-        "Bandung", "Cimahi", "Cirebon", "Sukabumi", "Tasikmalaya", "Banjar", "Garut", "Sumedang", "Indramayu", "Karawang",
-        "Semarang", "Surakarta", "Tegal", "Pekalongan", "Salatiga", "Magelang", "Kudus", "Pati", "Jepara", "Demak", "Purwokerto", "Cilacap", "Kebumen", "Purworejo", "Klaten", "Wonogiri", "Sragen", "Blora",
+        "Bandung", "Cimahi", "Cirebon", "Sukabumi", "Tasikmalaya", "Banjar", "Garut", "Sumedang", "Indramayu", "Karawang", "Subang",
+        "Semarang", "Surakarta", "Tegal", "Pekalongan", "Purwodadi", "Pemalang", "Brebes", "Salatiga", "Magelang", "Kudus", "Pati", "Jepara", "Demak", "Purwokerto", "Cilacap", "Kebumen", "Purworejo", "Klaten", "Wonogiri", "Sragen", "Blora",
         "Yogyakarta", "Sleman", "Bantul", "Wates", "Wonosari",
         "Surabaya", "Malang", "Batu", "Kediri", "Blitar", "Madiun", "Mojokerto", "Probolinggo", "Pasuruan", "Banyuwangi", "Jember", "Bondowoso", "Situbondo", "Gresik", "Sidoarjo", "Lamongan", "Tuban", "Bojonegoro", "Ngawi", "Ponorogo", "Pacitan", "Sumenep", "Pamekasan",
         "Serang", "Cilegon", "Pandeglang", "Rangkasbitung",
