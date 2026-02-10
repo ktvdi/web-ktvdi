@@ -202,15 +202,18 @@ def get_email_template(action_type, nama_user, otp_code):
     """
     return subject, body
 
-# --- IMPLEMENTASI ALGORITMA HIJRIAH (KUWAITI ALGORITHM) ---
+# --- IMPLEMENTASI ALGORITMA HIJRIAH (FIXED TIMEZONE JAKARTA) ---
 def get_hijri_date_string():
-    """Mengembalikan string tanggal Hijriah hari ini (e.g. 10 Ramadan 1447 H)"""
+    """Mengembalikan string tanggal Hijriah hari ini (WIB)"""
     try:
-        today = date.today()
-        # Algoritma konversi sederhana berbasis Julian Day
-        day = today.day
-        month = today.month
-        year = today.year
+        # UPDATE: Menggunakan Timezone Jakarta agar akurat saat pergantian hari
+        tz_jakarta = pytz.timezone('Asia/Jakarta')
+        now_wib = datetime.now(tz_jakarta)
+        
+        # Algoritma konversi Julian Day
+        day = now_wib.day
+        month = now_wib.month
+        year = now_wib.year
         
         m = month
         y = year
@@ -237,12 +240,11 @@ def get_hijri_date_string():
             "Ramadan", "Syawal", "Zulkaidah", "Zulhijah"
         ]
         
-        # Adjustment (kadang selisih 1 hari, kita ambil standar aritmatik)
-        # 0 index based for list
         month_name = hijri_months[m - 1]
         
         return f"{d} {month_name} {y} H"
-    except:
+    except Exception as e:
+        print(f"Hijri Error: {e}")
         return ""
 
 def get_news_entries():
