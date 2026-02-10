@@ -14,7 +14,7 @@ from flask import Flask, request, render_template, redirect, url_for, session, f
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import urllib3
 
 # ==========================================
@@ -145,6 +145,105 @@ def format_indo_date(time_struct):
         dt = datetime.fromtimestamp(time.mktime(time_struct))
         return dt.strftime("%A, %d %B %Y - %H:%M WIB")
     except: return "Baru Saja"
+
+def get_email_template(action_type, nama_user, otp_code):
+    """
+    Generator Template Email Profesional & Resmi
+    """
+    waktu = datetime.now().strftime("%d %B %Y, Pukul %H:%M WIB")
+    
+    if action_type == "REGISTER":
+        subject = f"🔐 VERIFIKASI KEAMANAN: Pendaftaran Akun KTVDI Anda ({otp_code})"
+        title = "Verifikasi Pendaftaran Akun Baru"
+        desc = "Kami mendeteksi permintaan pendaftaran akun baru di sistem Komunitas TV Digital Indonesia (KTVDI) menggunakan alamat email ini."
+        warning = "Jika Anda tidak merasa melakukan pendaftaran ini, abaikan email ini. Kode ini bersifat RAHASIA."
+    elif action_type == "RESET":
+        subject = f"⚠️ PERINGATAN KEAMANAN: Permintaan Reset Password ({otp_code})"
+        title = "Permintaan Atur Ulang Kata Sandi"
+        desc = "Sistem kami menerima permintaan untuk mengatur ulang kata sandi (Reset Password) akun KTVDI Anda."
+        warning = "JANGAN MEMBERIKAN kode ini kepada siapa pun, termasuk pihak yang mengaku sebagai admin KTVDI. Jika ini bukan Anda, segera amankan akun Anda."
+    else:
+        subject = "Notifikasi KTVDI"
+        title = "Notifikasi Sistem"
+        desc = "Berikut adalah informasi mengenai akun Anda."
+        warning = ""
+
+    body = f"""
+    ========================================================
+    KTVDI OFFICIAL SECURITY SYSTEM
+    Komunitas TV Digital Indonesia
+    ========================================================
+    
+    Yth. {nama_user},
+
+    {desc}
+
+    Untuk melanjutkan proses {title}, silakan gunakan Kode Verifikasi (OTP) berikut:
+
+    [ {otp_code} ]
+    
+    *Kode ini hanya berlaku selama 60 detik (1 menit).
+
+    PENTING:
+    {warning}
+
+    Detail Permintaan:
+    - Waktu Request : {waktu}
+    - Status        : Menunggu Verifikasi
+    
+    Terima kasih telah menjadi bagian dari Komunitas TV Digital Indonesia.
+    
+    Salam Hangat,
+    Tim IT & Security KTVDI
+    
+    --------------------------------------------------------
+    Email ini dibuat secara otomatis oleh sistem. Mohon tidak membalas email ini.
+    ========================================================
+    """
+    return subject, body
+
+# --- IMPLEMENTASI ALGORITMA HIJRIAH (KUWAITI ALGORITHM) ---
+def get_hijri_date_string():
+    """Mengembalikan string tanggal Hijriah hari ini (e.g. 10 Ramadan 1447 H)"""
+    try:
+        today = date.today()
+        # Algoritma konversi sederhana berbasis Julian Day
+        day = today.day
+        month = today.month
+        year = today.year
+        
+        m = month
+        y = year
+        if m < 3:
+            y -= 1
+            m += 12
+        
+        a = int(y / 100)
+        b = 2 - a + int(a / 4)
+        jd = int(365.25 * (y + 4716)) + int(30.6001 * (m + 1)) + day + b - 1524
+        
+        c = int((jd - 1948440 + 10632) / 10631)
+        jd = jd - int(((c - 1) * 10631) / 30) + 354
+        j = (int((10985 - jd) / 5316)) * (int((50 * jd) / 17719)) + (int(jd / 5670)) * (int((43 * jd) / 15238))
+        jd = jd - (int((30 - j) / 15)) * (int((17719 * j) / 50)) - (int(j / 16)) * (int((15238 * j) / 43)) + 29
+        
+        m = int((24 * jd) / 709)
+        d = jd - int((709 * m) / 24)
+        y = 30 * c + j - 30
+        
+        hijri_months = [
+            "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir",
+            "Jumadil Awal", "Jumadil Akhir", "Rajab", "Syaban",
+            "Ramadan", "Syawal", "Zulkaidah", "Zulhijah"
+        ]
+        
+        # Adjustment (kadang selisih 1 hari, kita ambil standar aritmatik)
+        # 0 index based for list
+        month_name = hijri_months[m - 1]
+        
+        return f"{d} {month_name} {y} H"
+    except:
+        return ""
 
 def get_news_entries():
     """Mengambil berita dari RSS Feed dengan Fallback"""
@@ -311,9 +410,9 @@ def normalize_dam_data(raw_data):
 
             dam = {
                 'name': name,
-                'tma': tma_cm,     
+                'tma': tma_cm,      
                 'siaga': siaga_cm, 
-                'awas': awas_cm,   
+                'awas': awas_cm,    
                 'inflow': latest.get('debit', 0),
                 'outflow': latest.get('debit_ke_saluran_induk', 0),
                 'status': status,
@@ -423,8 +522,10 @@ def register():
         expiry = time.time() + 60 
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
-            msg = Message("Verifikasi Akun KTVDI", recipients=[e])
-            msg.body = f"Kode OTP Anda (1 Menit): {otp}"
+            # Gunakan Template Email Profesional
+            subject, body = get_email_template("REGISTER", n, otp)
+            msg = Message(subject, recipients=[e])
+            msg.body = body
             mail.send(msg)
             session["pending_username"] = u
             return redirect(url_for("verify_register"))
@@ -457,16 +558,23 @@ def forgot_password():
         email_input = normalize_input(request.form.get("identifier"))
         users = ref.child("users").get() or {}
         found_uid = None
+        user_name = "Pengguna"
+        
         for uid, user_data in users.items():
             if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
-                found_uid = uid; break
+                found_uid = uid
+                user_name = user_data.get('nama', 'Pengguna')
+                break
+                
         if found_uid:
             otp = str(random.randint(100000, 999999))
             expiry = time.time() + 60
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
-                msg = Message("Reset Password", recipients=[email_input])
-                msg.body = f"Kode OTP Reset Password: {otp}"
+                # Gunakan Template Email Profesional
+                subject, body = get_email_template("RESET", user_name, otp)
+                msg = Message(subject, recipients=[email_input])
+                msg.body = body
                 mail.send(msg)
                 session["reset_uid"] = found_uid
                 return redirect(url_for("verify_otp"))
@@ -622,19 +730,59 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # Daftar Kota Lengkap (+5 Kota Baru: Demak, Cilacap, Purworejo, Kebumen, Klaten)
-    kota = ["Ambon", "Balikpapan", "Banda Aceh", "Bandar Lampung", "Bandung", "Banjar", "Banjarbaru", "Banjarmasin", "Batam", "Batu",
-        "Bau-Bau", "Bekasi", "Bengkulu", "Bima", "Binjai", "Bitung", "Blitar", "Bogor", "Bontang", "Bukittinggi", "Cilacap",
-        "Cilegon", "Cimahi", "Cirebon", "Demak", "Denpasar", "Depok", "Dumai", "Garut", "Gorontalo", "Gunungsitoli", "Jakarta", "Jambi",
-        "Jayapura", "Kebumen", "Kediri", "Kendari", "Klaten", "Kotamobagu", "Kupang", "Langsa", "Lhokseumawe", "Lubuklinggau", "Madiun", "Magelang",
-        "Makassar", "Malang", "Manado", "Mataram", "Medan", "Metro", "Mojokerto", "Padang", "Padangpanjang", "Padangsidempuan",
-        "Pagar Alam", "Palangkaraya", "Palembang", "Palopo", "Palu", "Pangkal Pinang", "Parepare", "Pariaman", "Pasuruan", "Payakumbuh",
-        "Pekalongan", "Pekanbaru", "Pematangsiantar", "Pontianak", "Prabumulih", "Probolinggo", "Purwokerto", "Purwodadi", "Purworejo", "Sabang", "Salatiga",
-        "Samarinda", "Sawahlunto", "Semarang", "Serang", "Sibolga", "Singkawang", "Solok", "Sorong", "Subulussalam", "Sukabumi",
-        "Surabaya", "Surakarta", "Tangerang", "Tangerang Selatan", "Tanjungbalai", "Tanjungpinang", "Tarakan", "Tasikmalaya", "Tebing Tinggi", "Tegal",
-        "Ternate", "Tidore Kepulauan", "Tomohon", "Tual", "Yogyakarta"
+    # Daftar 150+ Kota Merata dari Aceh sampai Papua
+    kota = [
+        # SUMATERA
+        "Ambon", "Banda Aceh", "Sabang", "Lhokseumawe", "Langsa", "Meulaboh", "Tapaktuan",
+        "Medan", "Binjai", "Pematangsiantar", "Sibolga", "Tanjungbalai", "Padangsidempuan", "Gunungsitoli",
+        "Padang", "Bukittinggi", "Payakumbuh", "Solok", "Pariaman", "Sawahlunto", "Padangpanjang",
+        "Pekanbaru", "Dumai", "Rengat", "Bengkalis", "Tembilahan",
+        "Tanjungpinang", "Batam", "Bintan", "Karimun", "Natuna", "Anambas",
+        "Jambi", "Sungai Penuh", "Muara Bungo", "Bangko",
+        "Palembang", "Lubuklinggau", "Prabumulih", "Pagar Alam", "Baturaja", "Lahut",
+        "Bengkulu", "Curup", "Mukomuko",
+        "Bandar Lampung", "Metro", "Kotabumi", "Liwa",
+        "Pangkal Pinang", "Sungailiat", "Tanjung Pandan", "Manggar",
+        
+        # JAWA
+        "Jakarta", "Bogor", "Depok", "Tangerang", "Tangerang Selatan", "Bekasi",
+        "Bandung", "Cimahi", "Cirebon", "Sukabumi", "Tasikmalaya", "Banjar", "Garut", "Sumedang", "Indramayu", "Karawang",
+        "Semarang", "Surakarta", "Tegal", "Pekalongan", "Salatiga", "Magelang", "Kudus", "Pati", "Jepara", "Demak", "Purwokerto", "Cilacap", "Kebumen", "Purworejo", "Klaten", "Wonogiri", "Sragen", "Blora",
+        "Yogyakarta", "Sleman", "Bantul", "Wates", "Wonosari",
+        "Surabaya", "Malang", "Batu", "Kediri", "Blitar", "Madiun", "Mojokerto", "Probolinggo", "Pasuruan", "Banyuwangi", "Jember", "Bondowoso", "Situbondo", "Gresik", "Sidoarjo", "Lamongan", "Tuban", "Bojonegoro", "Ngawi", "Ponorogo", "Pacitan", "Sumenep", "Pamekasan",
+        "Serang", "Cilegon", "Pandeglang", "Rangkasbitung",
+        
+        # BALI & NUSA TENGGARA
+        "Denpasar", "Singaraja", "Tabanan", "Gianyar",
+        "Mataram", "Bima", "Sumbawa Besar", "Dompu", "Selong",
+        "Kupang", "Atambua", "Ende", "Maumere", "Waingapu", "Labuan Bajo", "Ruteng", "Bajawa",
+        
+        # KALIMANTAN
+        "Pontianak", "Singkawang", "Sambas", "Ketapang", "Sintang",
+        "Palangkaraya", "Sampit", "Pangkalan Bun", "Kuala Kapuas",
+        "Banjarmasin", "Banjarbaru", "Martapura", "Tanjung", "Batulicin", "Kotabaru",
+        "Samarinda", "Balikpapan", "Bontang", "Tenggarong", "Sangatta", "Tana Paser",
+        "Tarakan", "Tanjung Selor", "Nunukan", "Malinau",
+        
+        # SULAWESI
+        "Makassar", "Parepare", "Palopo", "Bone", "Bulukumba", "Maros", "Gowa",
+        "Manado", "Bitung", "Tomohon", "Kotamobagu", "Tondano",
+        "Palu", "Luwuk", "Poso", "Toli-Toli",
+        "Kendari", "Bau-Bau", "Kolaka", "Raha",
+        "Gorontalo", "Limboto",
+        "Mamuju", "Majene", "Polewali",
+        
+        # MALUKU & PAPUA
+        "Ternate", "Tidore Kepulauan", "Tobelo", "Labuha",
+        "Tual", "Masohi", "Saumlaki",
+        "Jayapura", "Sentani", "Merauke", "Biak", "Serui", "Wamena", "Nabire", "Timika",
+        "Sorong", "Manokwari", "Fakfak", "Kaimana", "Raja Ampat"
     ]
-    return render_template("jadwal-sholat.html", daftar_kota=sorted(kota), quotes=get_quote_religi())
+    
+    # Hitung Tanggal Hijriah untuk ditampilkan
+    hijri_today = get_hijri_date_string()
+    
+    return render_template("jadwal-sholat.html", daftar_kota=sorted(list(set(kota))), quotes=get_quote_religi(), hijri_date=hijri_today)
 
 @app.route("/api/news-ticker")
 def news_ticker():
