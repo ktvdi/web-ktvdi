@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<meta name="referrer" content="no-referrer">
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
@@ -189,7 +191,7 @@
                     <div id="overlay-error" class="absolute inset-0 bg-slate-900 z-40 hidden flex flex-col items-center justify-center text-center px-6">
                         <i class="fa-solid fa-video-slash text-slate-500 text-4xl mb-3"></i>
                         <h4 class="text-white font-bold mb-2">Kamera Offline</h4>
-                        <p class="text-slate-400 text-xs mb-4">Koneksi Internet dari Kamera terputus.</p>
+                        <p class="text-slate-400 text-xs mb-4">Koneksi Internet dari Kamera terputus atau diblokir.</p>
                         <p class="text-yellow-500 text-[10px] mb-2 hidden" id="http-warning">PENTING: Kamera ini menggunakan HTTP. Mohon izinkan "Insecure Content" di pengaturan browser Anda agar bisa diputar.</p>
                         <button onclick="retryStream()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-lg">Coba Lagi</button>
                     </div>
@@ -237,7 +239,7 @@
                 <div class="relative bg-slate-50 border border-slate-200 rounded-lg h-8 flex items-center overflow-hidden">
                     <div class="bg-blue-800 h-full px-3 flex items-center justify-center shrink-0 z-10"><i class="fa-solid fa-bullhorn text-white text-xs"></i></div>
                     <div class="marquee-container w-full bg-white">
-                        <div class="marquee-content">INFORMASI PENTING: KHUSUS CCTV PEMALANG BOJONG BARAT WAJIB MENGIZINKAN 'INSECURE CONTENT' DI BROWSER KARENA MENGGUNAKAN SERVER HTTP. KLIK IKON SPEAKER UNTUK MENDENGARKAN SUARA.</div>
+                        <div class="marquee-content">INFORMASI PENTING: KHUSUS CCTV PEMALANG DAN GROBOGAN WAJIB MENUNGGU LOADING SEJENAK. KLIK IKON SPEAKER UNTUK MENDENGARKAN SUARA.</div>
                     </div>
                 </div>
             </div>
@@ -842,9 +844,27 @@
         httpWarning.classList.add('hidden'); // Reset warning
         document.getElementById('resolution-display').innerText = "DETECTING...";
 
-        // Cek apakah link HTTP, jika ya tampilkan peringatan
-        if (stream.url.startsWith("http://")) {
+        // Reset Audio Icon
+        const video = document.getElementById('video-element');
+        const icon = document.querySelector('#btn-volume i');
+        video.muted = true;
+        icon.className = 'fa-solid fa-volume-xmark text-sm';
+
+        // --- GROBOGAN FIX ---
+        // Deteksi jika Grobogan, gunakan proxy dan config khusus
+        let finalUrl = stream.url;
+        let isGrobogan = stream.city.includes("GROBOGAN") || stream.city.includes("PEMALANG");
+
+        // Jika URL adalah HTTP biasa (bukan HTTPS), tampilkan peringatan
+        if (stream.url.startsWith("http://") && !stream.url.includes("103.42.243.10")) {
             httpWarning.classList.remove('hidden');
+        }
+
+        // Khusus Grobogan: Gunakan Proxy Publik untuk memintas CORS blokir
+        // Server Dishub Grobogan memblokir akses langsung dari web lain (CORS),
+        // jadi kita "membungkus" URL-nya lewat proxy agar browser mau memutarnya.
+        if (stream.city.includes("GROBOGAN")) {
+             finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(stream.url);
         }
 
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
@@ -854,21 +874,21 @@
             activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
-        // Reset Audio Icon to Mute state on new stream load (best practice for autoplay)
-        const video = document.getElementById('video-element');
-        const icon = document.querySelector('#btn-volume i');
-        video.muted = true;
-        icon.className = 'fa-solid fa-volume-xmark text-sm';
-
         if (Hls.isSupported()) {
             if (hls) hls.destroy();
-            hls = new Hls({ 
+
+            // Config khusus: Grobogan server lama tidak support lowLatencyMode dengan baik
+            let config = { 
                 enableWorker: true, 
-                lowLatencyMode: true, 
-                backBufferLength: 30,
-                xhrSetup: function(xhr) { xhr.withCredentials = false; }
-            });
-            hls.loadSource(stream.url);
+                // Matikan Low Latency untuk Grobogan/Pemalang agar lebih stabil
+                lowLatencyMode: !isGrobogan, 
+                backBufferLength: 90,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
+            };
+
+            hls = new Hls(config);
+            hls.loadSource(finalUrl);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play().catch(() => {
@@ -886,7 +906,7 @@
                 }
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = stream.url;
+            video.src = finalUrl;
             video.addEventListener('loadedmetadata', () => { video.play().catch(() => playOverlay.classList.remove('hidden')); });
             video.addEventListener('error', showErrorState);
         }
@@ -972,6 +992,7 @@
             });
             const body = group.querySelector('.group-body');
             const header = group.querySelector('.group-header');
+            const icon = group.querySelector('.group-icon');
             if (term.length > 0) {
                 if (hasMatch) { group.style.display = 'block'; body.classList.add('open'); header.classList.add('active'); } 
                 else { group.style.display = 'none'; }
