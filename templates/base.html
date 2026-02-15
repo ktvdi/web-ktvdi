@@ -24,41 +24,64 @@
     </script>
 
     <script>
-        // 1. Disable Klik Kanan
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
+        // 1. Blokir Klik Kanan & Long Press
+        document.addEventListener('contextmenu', event => event.preventDefault());
 
-        // 2. Disable Keyboard Shortcuts (Inspect Element, View Source, dll)
+        // 2. Blokir Tombol Keyboard (Inspect, View Source, Save)
         document.onkeydown = function(e) {
-            // F12
-            if(e.keyCode == 123) {
-                return false;
-            }
-            // Ctrl+Shift+I (Inspect)
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
-                return false;
-            }
-            // Ctrl+Shift+C (Inspect Element)
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) {
-                return false;
-            }
-            // Ctrl+Shift+J (Console)
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
-                return false;
-            }
-            // Ctrl+U (View Source)
-            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
-                return false;
-            }
-            // Ctrl+S (Save Page)
-            if(e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) {
-                return false;
-            }
+            if(e.keyCode == 123) return false; // F12
+            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false; // Ctrl+Shift+I/C/J
+            if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) return false; // Ctrl+U/S/P
         }
+
+        // 3. Blokir Drag Gambar & Seleksi Teks
+        document.addEventListener('dragstart', event => event.preventDefault());
+        document.addEventListener('selectstart', event => event.preventDefault());
+
+        // 4. ADVANCED ANTI-DEVTOOLS (Khusus Kiwi Browser / Android Tools)
+        // Teknik ini akan membuat browser 'freeze' jika DevTools dibuka
+        (function() {
+            const devtools = { open: false, orientation: null };
+            const threshold = 160;
+            
+            // Debugger Trap Loop
+            // Jika user membuka DevTools di Kiwi/Chrome, script ini akan mem-pause browser
+            // sehingga mereka tidak bisa melihat/mengedit elemen.
+            setInterval(() => {
+                const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+                const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+                
+                if (widthThreshold || heightThreshold) {
+                    // Terdeteksi DevTools terbuka
+                    document.body.innerHTML = 'ACCESS DENIED';
+                    window.location.reload();
+                }
+                
+                // Trap agresif
+                (function(){}).constructor("debugger")();
+            }, 1000);
+        })();
     </script>
     
     <style>
+        /* === SECURITY CSS === */
+        /* Mencegah seleksi dan menu pop-up di Android/iOS */
+        body {
+            -webkit-user-select: none; /* Chrome/Safari/Opera */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE/Edge */
+            user-select: none; /* Standar */
+            -webkit-touch-callout: none; /* iOS Safari: mematikan callout menu */
+            -webkit-tap-highlight-color: transparent; /* Mematikan highlight tap */
+        }
+
+        /* Mencegah gambar di-save lewat drag/long-press */
+        img {
+            pointer-events: none; /* Gambar tidak bisa diklik kanan/tahan */
+            -webkit-user-drag: none;
+            user-drag: none;
+        }
+
         /* === iOS 26.3 ULTRA GLASS DESIGN SYSTEM === */
         
         /* 1. Page Loader */
@@ -259,7 +282,7 @@
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900 select-none">
+<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900">
 
     <div id="initial-loader">
         <div class="loader-content">
