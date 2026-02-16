@@ -1,179 +1,237 @@
 {% extends 'base.html' %}
 
-{% block title %}Khazanah Ramadan - KTVDI{% endblock %}
+{% block title %}Khazanah Ramadan Premium - KTVDI{% endblock %}
 
 {% block content %}
 
 <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 
 <style>
-    /* === THEME: ROYAL MIDNIGHT & GOLD === */
+    /* =========================================
+       1. THEME VARIABLES (ROYAL NAVY & GOLD)
+       ========================================= */
     :root {
-        --bg-body: #020617;
-        --glass-bg: rgba(15, 23, 42, 0.7);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --primary-gold: #fbbf24;
-        --secondary-gold: #b45309;
+        --bg-deep: #020617;       /* Slate 950 */
+        --bg-navy: #1e3a8a;       /* Blue 900 */
+        --accent-gold: #fbbf24;   /* Amber 400 */
+        --accent-gold-dark: #b45309;
         --text-white: #f8fafc;
         --text-muted: #94a3b8;
+        
+        /* Glassmorphism Effect */
+        --glass-bg: rgba(15, 23, 42, 0.75);
+        --glass-border: rgba(251, 191, 36, 0.15);
+        --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        
+        --card-radius: 20px;
     }
 
+    /* =========================================
+       2. GLOBAL LAYOUT
+       ========================================= */
     body {
-        background-color: var(--bg-body);
-        /* Background Pattern Subtle */
+        background-color: var(--bg-deep);
+        /* Latar belakang gradasi elegan */
         background-image: 
-            radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%), 
-            radial-gradient(at 100% 0%, rgba(251, 191, 36, 0.1) 0px, transparent 50%);
+            radial-gradient(circle at 10% 10%, rgba(30, 58, 138, 0.4) 0%, transparent 40%),
+            radial-gradient(circle at 90% 90%, rgba(180, 83, 9, 0.15) 0%, transparent 40%);
         color: var(--text-white);
         font-family: 'Plus Jakarta Sans', sans-serif;
         min-height: 100vh;
+        overflow-x: hidden;
     }
 
     .font-amiri { font-family: 'Amiri', serif; }
     .font-cinzel { font-family: 'Cinzel', serif; }
 
-    /* LAYOUT FIX FOR NAVBAR */
-    .main-wrapper {
-        padding-top: 110px; /* Jarak aman dari navbar KTVDI */
-        padding-bottom: 80px;
+    /* PENTING: Padding agar tidak tertutup Navbar KTVDI */
+    .dashboard-container {
+        padding-top: 140px; 
+        padding-bottom: 100px;
+        max-width: 1280px;
+        margin: 0 auto;
     }
 
-    /* GLASS CARD STYLE */
+    /* =========================================
+       3. COMPONENT STYLING
+       ========================================= */
+    
+    /* Glass Card */
     .glass-card {
         background: var(--glass-bg);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border: 1px solid var(--glass-border);
-        border-radius: 20px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        border-radius: var(--card-radius);
+        box-shadow: var(--glass-shadow);
         transition: transform 0.3s ease, border-color 0.3s ease;
     }
     .glass-card:hover {
-        border-color: rgba(251, 191, 36, 0.3);
-        transform: translateY(-2px);
+        border-color: rgba(251, 191, 36, 0.4);
+        transform: translateY(-4px);
     }
 
-    /* PRAYER CARDS */
-    .prayer-card {
+    /* Prayer Item */
+    .prayer-box {
         background: rgba(255, 255, 255, 0.03);
-        border-radius: 16px; padding: 1rem; text-align: center;
+        border-radius: 16px; padding: 1.2rem; text-align: center;
         border: 1px solid transparent; transition: all 0.3s;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
-    .prayer-card.active {
-        background: linear-gradient(135deg, var(--secondary-gold), var(--primary-gold));
-        color: #0f172a; border: none;
-        box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+    .prayer-box.active {
+        background: linear-gradient(135deg, var(--accent-gold-dark), var(--accent-gold));
+        border: none;
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
     }
-    .prayer-card.active * { color: #0f172a !important; }
+    .prayer-box.active h4, .prayer-box.active span, .prayer-box.active i {
+        color: #0f172a !important; /* Text jadi gelap saat aktif */
+    }
 
-    /* FLIP CARD */
-    .flip-card { perspective: 1000px; height: 240px; cursor: pointer; }
-    .flip-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s; transform-style: preserve-3d; }
-    .flip-card:hover .flip-inner, .flip-card.flipped .flip-inner { transform: rotateY(180deg); }
+    /* Flip Card (Insight) */
+    .flip-container { perspective: 1000px; height: 260px; cursor: pointer; }
+    .flip-inner {
+        position: relative; width: 100%; height: 100%; text-align: center;
+        transition: transform 0.8s; transform-style: preserve-3d;
+    }
+    .flip-container:hover .flip-inner, .flip-container.flipped .flip-inner {
+        transform: rotateY(180deg);
+    }
     .flip-front, .flip-back {
         position: absolute; inset: 0; backface-visibility: hidden;
-        border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: center; align-items: center;
-        border: 1px solid var(--glass-border); box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        border-radius: 16px; padding: 1.5rem;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        border: 1px solid var(--glass-border);
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
     }
     .flip-front { background: rgba(30, 41, 59, 0.8); }
-    .flip-back { background: linear-gradient(135deg, #1e3a8a, #172554); transform: rotateY(180deg); border-color: var(--primary-gold); }
-
-    /* SHOPEE SCROLL */
-    .scroll-x {
-        display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 10px; scroll-behavior: smooth;
+    .flip-back { 
+        background: linear-gradient(135deg, #1e3a8a, #0f172a); 
+        transform: rotateY(180deg); 
+        border-color: var(--accent-gold);
     }
-    .scroll-x::-webkit-scrollbar { height: 6px; }
-    .scroll-x::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-    .scroll-x::-webkit-scrollbar-thumb { background: var(--primary-gold); border-radius: 10px; }
+
+    /* Shopee Product Card */
     .product-card {
-        min-width: 140px; background: white; color: #1e293b; border-radius: 12px;
-        padding: 10px; text-decoration: none; transition: transform 0.2s;
+        background: #ffffff; color: #1e293b;
+        border-radius: 12px; padding: 10px;
+        text-decoration: none; display: block;
+        transition: transform 0.2s; height: 100%;
     }
-    .product-card:hover { transform: translateY(-3px); }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .product-img {
+        width: 100%; height: 120px; background: #f1f5f9;
+        border-radius: 8px; display: flex; align-items: center; justify-content: center;
+        margin-bottom: 10px; font-size: 2.5rem; color: #cbd5e1;
+    }
 
-    /* CUSTOM SELECT2 */
+    /* Select2 Customization */
     .select2-container .select2-selection--single {
-        height: 44px !important; background: rgba(0,0,0,0.4) !important;
-        border: 1px solid rgba(255,255,255,0.2) !important; color: white !important;
-        border-radius: 50px !important; display: flex; align-items: center;
+        height: 48px !important;
+        background-color: rgba(0, 0, 0, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 50px !important;
+        display: flex; align-items: center;
     }
-    .select2-selection__rendered { color: white !important; padding-left: 15px; font-size: 14px; }
-    .select2-dropdown { background: #0f172a !important; border: 1px solid var(--primary-gold); }
+    .select2-selection__rendered { color: #fbbf24 !important; font-weight: 700; padding-left: 20px; }
+    .select2-selection__arrow { height: 46px !important; right: 10px !important; }
+    .select2-dropdown {
+        background-color: #0f172a !important;
+        border: 1px solid var(--accent-gold) !important;
+        color: white !important;
+    }
+
+    /* Animations */
+    @keyframes goldPulse {
+        0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(251, 191, 36, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+    }
+    .pulse-gold { animation: goldPulse 2s infinite; }
 </style>
 
-<div class="main-wrapper max-w-7xl mx-auto px-4">
+<div class="dashboard-container px-4">
 
-    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-            <h1 class="text-3xl md:text-5xl font-bold font-amiri text-white flex items-center gap-3">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+        <div class="text-center md:text-left">
+            <h1 class="text-3xl md:text-5xl font-bold font-amiri text-white flex items-center justify-center md:justify-start gap-3 drop-shadow-md">
                 <i class="fa-solid fa-kaaba text-amber-400"></i> Khazanah Ramadan
             </h1>
-            <p class="text-slate-400 text-sm mt-1 ml-1">Dashboard Ibadah & Jadwal Sholat Terpercaya</p>
+            <p class="text-slate-400 text-sm mt-2 font-medium tracking-wide">Dashboard Ibadah Terintegrasi KTVDI</p>
         </div>
         
-        <div class="flex items-center gap-3 bg-slate-900/50 p-2 rounded-full border border-white/10">
-            <div id="gpsStatus" class="hidden md:flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 text-xs font-bold uppercase">
-                <i class="fa-solid fa-location-arrow animate-pulse"></i> GPS
+        <div class="flex items-center gap-3 bg-slate-900/80 p-2 pr-2 rounded-full border border-white/10 backdrop-blur-md shadow-lg">
+            <div id="gpsStatus" class="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-location-arrow animate-pulse"></i> Auto
             </div>
-            <select id="kotaSelect" class="w-48">
-                <option value="" disabled selected>Pilih Kota...</option>
+            <select id="kotaSelect" class="w-64">
+                <option value="Jakarta" selected>Jakarta (Default)</option>
                 {% for kota in daftar_kota %}
-                <option value="{{ kota }}" {% if kota == 'Jakarta' %}selected{% endif %}>{{ kota }}</option>
+                <option value="{{ kota }}">{{ kota }}</option>
                 {% endfor %}
             </select>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+        
         <div class="lg:col-span-2 glass-card p-8 flex flex-col justify-center items-center relative text-center overflow-hidden">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
+            <div class="absolute -top-20 -right-20 w-80 h-80 bg-blue-600 rounded-full blur-[120px] opacity-20 pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-600 rounded-full blur-[120px] opacity-15 pointer-events-none"></div>
 
-            <span class="inline-flex items-center gap-2 py-1 px-4 rounded-full bg-white/5 border border-white/10 text-amber-300 text-xs font-bold uppercase tracking-widest mb-6">
-                <i class="fa-regular fa-clock"></i> Menuju Waktu <span id="nextPrayerName" class="text-white">...</span>
+            <span class="inline-flex items-center gap-2 py-1.5 px-5 rounded-full bg-white/5 border border-white/10 text-amber-300 text-xs font-bold uppercase tracking-widest mb-6">
+                <i class="fa-regular fa-clock"></i> Menuju Waktu <span id="nextPrayerName" class="text-white ml-1 font-black text-sm">...</span>
             </span>
 
-            <div id="countdown" class="text-6xl md:text-8xl font-cinzel font-bold text-white mb-6 tabular-nums drop-shadow-lg">
+            <div id="countdown" class="text-6xl md:text-8xl font-cinzel font-bold text-white mb-8 tabular-nums drop-shadow-[0_0_25px_rgba(255,255,255,0.2)]">
                 --:--:--
             </div>
 
-            <div class="flex gap-4 z-10">
-                <button onclick="playAdzan()" class="px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-sm font-bold transition flex items-center gap-2 group">
-                    <i id="iconAdzan" class="fa-solid fa-volume-high text-amber-400 group-hover:scale-110 transition"></i> <span id="textAdzan">Tes Adzan</span>
+            <div class="flex flex-wrap justify-center gap-4 z-10">
+                <button onclick="playAdzan()" class="px-8 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-sm font-bold transition flex items-center gap-2 group">
+                    <i id="iconAdzan" class="fa-solid fa-volume-high text-amber-400 group-hover:scale-110 transition"></i> 
+                    <span id="textAdzan">Tes Suara Adzan</span>
                 </button>
-                <div class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-slate-300 text-sm font-amiri flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-day"></i> <span id="hijriDate">Memuat Tanggal...</span>
+                <div class="px-8 py-3 rounded-full bg-white/5 border border-white/10 text-slate-300 text-sm font-amiri flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-day text-amber-500"></i> <span id="hijriDate">Memuat Tanggal...</span>
                 </div>
             </div>
 
-            <div id="smartAlert" class="mt-6 hidden w-full max-w-lg z-10"></div>
+            <div id="smartAlert" class="mt-8 hidden w-full max-w-lg z-10 transition-all duration-500"></div>
         </div>
 
         <div class="glass-card p-6 flex flex-col justify-center text-center relative group">
-            <h3 class="text-amber-400 font-bold uppercase text-xs mb-4 tracking-widest border-b border-white/10 pb-2">Ayat Pilihan Hari Ini</h3>
-            <div id="quranContent" class="flex-1 flex flex-col justify-center min-h-[150px]">
-                <div class="animate-pulse text-slate-500 text-sm"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Mengambil Data...</div>
+            <div class="absolute top-4 right-4 text-white/5 text-6xl font-amiri"><i class="fa-solid fa-quran"></i></div>
+            <h3 class="text-amber-400 font-bold uppercase text-xs mb-4 tracking-widest border-b border-white/10 pb-3">
+                Kalam Ilahi Hari Ini
+            </h3>
+            <div id="quranContent" class="flex-1 flex flex-col justify-center min-h-[160px]">
+                <div class="animate-pulse text-slate-500 text-sm flex flex-col items-center">
+                    <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2"></i> 
+                    Mengambil Ayat...
+                </div>
             </div>
-            <button onclick="fetchQuran()" class="mt-4 text-xs text-slate-400 hover:text-white transition flex items-center justify-center gap-2">
+            <button onclick="fetchQuran()" class="mt-4 w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 hover:text-white transition flex items-center justify-center gap-2">
                 <i class="fa-solid fa-rotate"></i> Muat Ayat Lain
             </button>
         </div>
     </div>
 
-    <div class="mb-10">
-        <div class="flex items-center justify-between mb-4 px-2">
-            <h3 class="text-white font-bold text-lg flex items-center gap-2">
-                <span class="w-1 h-6 bg-amber-400 rounded-full"></span> Jadwal Sholat Hari Ini
-            </h3>
-            <span id="dateMasehi" class="text-xs text-slate-400 font-mono">...</span>
+    <div class="mb-12">
+        <div class="flex items-center justify-between mb-5 px-2 border-l-4 border-amber-500 pl-4">
+            <h3 class="text-white font-bold text-xl">Jadwal Sholat Hari Ini</h3>
+            <span id="dateMasehi" class="text-xs text-slate-400 font-mono bg-slate-800 px-3 py-1 rounded-md border border-white/10">...</span>
         </div>
         
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" id="prayerGrid">
-            <div class="col-span-full text-center py-8 text-slate-500">
-                <i class="fa-solid fa-spinner fa-spin text-2xl"></i><br>Memuat Jadwal...
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="prayerGrid">
+            <div class="col-span-full text-center py-10 text-slate-500">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-amber-500"></i><br><span class="text-sm mt-3 block">Sinkronisasi Data...</span>
             </div>
         </div>
     </div>
@@ -181,7 +239,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
         
         <div class="lg:col-span-4 flex flex-col gap-4">
-            <div class="glass-card p-5 border-l-4 border-emerald-500 relative overflow-hidden">
+            <div class="glass-card p-5 border-l-4 border-emerald-500 relative overflow-hidden group hover:bg-slate-800/80 transition">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400"><i class="fa-solid fa-hands-praying"></i></div>
                     <h4 class="font-bold text-white text-sm">Niat Puasa</h4>
@@ -189,7 +247,7 @@
                 <p class="text-xl font-amiri text-right mb-2 leading-loose text-emerald-100" dir="rtl">نَوَيْتُ صَوْمَ غَدٍ عَنْ أَدَاءِ فَرْضِ شَهْرِ رَمَضَانَ هَذِهِ السَّنَةِ لِلّٰهِ تَعَالَى</p>
                 <p class="text-[10px] text-slate-400 italic leading-relaxed">"Nawaitu shauma ghadin 'an ada'i fardhi syahri Ramadhana hadzihis sanati lillahi ta'ala."</p>
             </div>
-            <div class="glass-card p-5 border-l-4 border-amber-500 relative overflow-hidden">
+            <div class="glass-card p-5 border-l-4 border-amber-500 relative overflow-hidden group hover:bg-slate-800/80 transition">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400"><i class="fa-solid fa-mug-hot"></i></div>
                     <h4 class="font-bold text-white text-sm">Doa Berbuka</h4>
@@ -200,44 +258,48 @@
         </div>
 
         <div class="lg:col-span-4 glass-card p-5 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-3">
                 <h3 class="text-white font-bold flex items-center gap-2 text-sm">
                     <i class="fa-solid fa-bag-shopping text-orange-500"></i> Bazar Ramadan
                 </h3>
                 <span class="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded border border-white/5">Shopee</span>
             </div>
-            <div class="scroll-x flex-1" id="shopeeContainer">
-                </div>
+            <div class="swiper mySwiper w-full h-full">
+                <div class="swiper-wrapper" id="shopeeContainer">
+                    </div>
+            </div>
         </div>
 
         <div class="lg:col-span-4 flex flex-col gap-4">
-            <div class="glass-card p-4 flex items-center justify-between bg-gradient-to-br from-slate-800 to-slate-900 border-t-2 border-amber-500">
+            <div class="glass-card p-4 flex items-center justify-between bg-gradient-to-br from-slate-900 to-blue-950 border border-white/10 shadow-lg">
                 <div>
                     <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-1">Tasbih Digital</h4>
-                    <div id="tasbihCount" class="text-4xl font-mono font-bold text-white tracking-widest">0</div>
+                    <div id="tasbihCount" class="text-5xl font-mono font-bold text-white tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">0</div>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="resetTasbih()" class="w-8 h-8 rounded-full bg-slate-700 text-slate-300 hover:text-white hover:bg-red-500 transition shadow-lg">
+                    <button onclick="resetTasbih()" class="w-10 h-10 rounded-full bg-slate-700 text-slate-300 hover:text-white hover:bg-red-500 transition shadow-lg" title="Reset">
                         <i class="fa-solid fa-rotate-left text-xs"></i>
                     </button>
-                    <button onclick="countTasbih()" class="w-14 h-14 rounded-full bg-amber-500 text-black shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:scale-105 active:scale-95 transition flex items-center justify-center text-2xl border-4 border-slate-800">
+                    <button onclick="countTasbih()" class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-[0_0_20px_rgba(251,191,36,0.4)] hover:scale-105 active:scale-95 transition flex items-center justify-center text-2xl border-4 border-slate-800">
                         <i class="fa-solid fa-plus"></i>
                     </button>
                 </div>
             </div>
 
             <div class="glass-card p-4 flex-1">
-                <h4 class="text-[10px] font-bold text-emerald-400 uppercase mb-3 flex items-center gap-2"><i class="fa-solid fa-list-check"></i> Target Harian</h4>
-                <div class="space-y-3" id="trackerList">
-                    <label class="flex items-center gap-3 cursor-pointer group">
+                <h4 class="text-[10px] font-bold text-emerald-400 uppercase mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check"></i> Checklist Harian <span class="text-[9px] text-slate-500 normal-case ml-auto">(Auto-Save)</span>
+                </h4>
+                <div class="space-y-2" id="trackerList">
+                    <label class="flex items-center gap-3 cursor-pointer group p-2 rounded hover:bg-white/5 transition border border-transparent hover:border-white/5">
                         <input type="checkbox" onchange="saveTracker('puasa', this)" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
                         <span class="text-sm text-slate-300 group-hover:text-white transition">Puasa Hari Ini</span>
                     </label>
-                    <label class="flex items-center gap-3 cursor-pointer group">
+                    <label class="flex items-center gap-3 cursor-pointer group p-2 rounded hover:bg-white/5 transition border border-transparent hover:border-white/5">
                         <input type="checkbox" onchange="saveTracker('tarawih', this)" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
                         <span class="text-sm text-slate-300 group-hover:text-white transition">Sholat Tarawih</span>
                     </label>
-                    <label class="flex items-center gap-3 cursor-pointer group">
+                    <label class="flex items-center gap-3 cursor-pointer group p-2 rounded hover:bg-white/5 transition border border-transparent hover:border-white/5">
                         <input type="checkbox" onchange="saveTracker('tilawah', this)" class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">
                         <span class="text-sm text-slate-300 group-hover:text-white transition">Tilawah 1 Juz</span>
                     </label>
@@ -246,29 +308,13 @@
         </div>
     </div>
 
-    <div class="mb-12">
-        <h3 class="text-white font-bold text-lg mb-4 pl-2 border-l-4 border-purple-500">Mutiara Ramadan</h3>
+    <div class="mb-16">
+        <h3 class="text-white font-bold text-lg mb-6 pl-2 border-l-4 border-amber-500 flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-yellow-400"></i> Mutiara Ramadan 
+            <span class="text-xs font-normal text-slate-400 ml-2 bg-white/5 px-2 py-0.5 rounded-full">Klik kartu untuk membalik</span>
+        </h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="insightsGrid">
-            <div class="col-span-full text-center text-slate-500">Memuat Insights...</div>
-        </div>
-    </div>
-
-    <div class="glass-card p-8 text-center bg-gradient-to-r from-blue-900/20 to-purple-900/20 mb-8 border border-white/5">
-        <h3 class="text-xl font-cinzel font-bold text-white mb-6">Indahnya Toleransi</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            <div class="bg-black/20 p-4 rounded-xl border border-white/5">
-                <div class="text-blue-300 font-bold text-sm mb-2"><i class="fa-solid fa-cross mr-2"></i> Kristiani</div>
-                <p class="text-xs text-slate-400">Kasihilah sesamamu. Berbagi takjil adalah wujud kasih sayang (Agape) tanpa memandang sekat agama.</p>
             </div>
-            <div class="bg-black/20 p-4 rounded-xl border border-white/5">
-                <div class="text-orange-300 font-bold text-sm mb-2"><i class="fa-solid fa-om mr-2"></i> Hindu</div>
-                <p class="text-xs text-slate-400">"Tat Twam Asi". Menghormati orang berpuasa adalah menghormati Tuhan yang ada dalam diri setiap makhluk.</p>
-            </div>
-            <div class="bg-black/20 p-4 rounded-xl border border-white/5">
-                <div class="text-yellow-300 font-bold text-sm mb-2"><i class="fa-solid fa-dharmachakra mr-2"></i> Buddha</div>
-                <p class="text-xs text-slate-400">Latihan pengendalian diri saat puasa selaras dengan ajaran untuk mengurangi kemelekatan duniawi.</p>
-            </div>
-        </div>
     </div>
 
 </div>
@@ -278,63 +324,87 @@
 <script type="application/json" id="cityData">{{ daftar_kota | tojson }}</script>
 
 <script>
-    // === 1. SYSTEM INITIALIZATION ===
+    // =========================================
+    // 1. SYSTEM INIT
+    // =========================================
     $(document).ready(function() {
         // Init Select2
         $('#kotaSelect').select2({ placeholder: "Cari Kota...", width: 'resolve' });
+
+        // === SMART STARTUP LOGIC ===
+        // Supaya countdown tidak kosong, kita load default (Jakarta) DULU
+        // sambil mencoba mencari lokasi GPS user di background.
         
-        // Load City
         const savedCity = localStorage.getItem('userCity');
+        
         if(savedCity) {
             $('#kotaSelect').val(savedCity).trigger('change');
+            fetchSchedule(savedCity);
+            $('#gpsStatus').html('<i class="fa-solid fa-database"></i> Saved');
         } else {
+            // Load Default Jakarta agar UI terisi
+            $('#kotaSelect').val('Jakarta').trigger('change');
+            fetchSchedule('Jakarta'); 
+            
+            // Try Auto GPS
             autoGPS(); 
         }
 
+        // Listener Change Kota
         $('#kotaSelect').on('change', function() {
-            localStorage.setItem('userCity', this.value);
-            fetchSchedule(this.value);
+            const val = this.value;
+            localStorage.setItem('userCity', val);
+            fetchSchedule(val);
         });
 
-        // Initialize Modules
+        // Init Modules
+        initSwiper();
         renderShopee();
         renderInsights();
         loadTracker();
         fetchQuran();
     });
 
-    // === 2. AUTO GPS (FIXED & IMPROVED) ===
+    // =========================================
+    // 2. AUTO GPS (FALLBACK SYSTEM)
+    // =========================================
     function autoGPS() {
         if(navigator.geolocation) {
+            $('#gpsStatus').html('<i class="fa-solid fa-spinner fa-spin"></i> Mencari...');
+            
             navigator.geolocation.getCurrentPosition(pos => {
                 const {latitude, longitude} = pos.coords;
-                // Reverse Geocoding
+                // Reverse Geocoding via Nominatim
                 $.getJSON(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, function(data) {
                     let detected = data.address.city || data.address.town || data.address.county || '';
                     detected = detected.replace(/(Kota|Kabupaten)\s+/i, '').trim(); 
                     
                     // Fuzzy Match
                     const options = Array.from(document.querySelectorAll('#kotaSelect option')).map(o=>o.value);
+                    // Prioritas: Exact match -> Contains match -> Default
                     const match = options.find(o => o.toLowerCase() === detected.toLowerCase()) || 
-                                  options.find(o => o.toLowerCase().includes(detected.toLowerCase())) || 'Jakarta';
+                                  options.find(o => o.toLowerCase().includes(detected.toLowerCase()));
                     
-                    $('#kotaSelect').val(match).trigger('change');
-                    $('#gpsStatus').removeClass('hidden').html(`<i class="fa-solid fa-location-arrow"></i> ${match}`);
-                }).fail(() => fallbackCity());
-            }, () => fallbackCity());
-        } else { fallbackCity(); }
-    }
-    
-    function fallbackCity() {
-        $('#kotaSelect').val('Jakarta').trigger('change');
+                    if(match) {
+                        $('#kotaSelect').val(match).trigger('change');
+                        $('#gpsStatus').html(`<i class="fa-solid fa-location-arrow"></i> ${match}`);
+                    } else {
+                        $('#gpsStatus').html('GPS: N/A');
+                    }
+                }).fail(() => { $('#gpsStatus').html('GPS Error'); });
+            }, () => { $('#gpsStatus').html('GPS Off'); });
+        }
     }
 
-    // === 3. PRAYER LOGIC (FIXED DATE FORMAT) ===
-    let timer;
+    // =========================================
+    // 3. PRAYER LOGIC & COUNTDOWN
+    // =========================================
+    let timerInterval;
+
     function fetchSchedule(city) {
+        if(!city) return;
         const d = new Date();
-        // FORMAT DATE MUST BE DD-MM-YYYY for Aladhan API
-        const dateStr = `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+        const dateStr = `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`; // Format DD-MM-YYYY
         
         $.get(`https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${city}&country=Indonesia&method=20`, function(res) {
             const t = res.data.timings;
@@ -342,10 +412,11 @@
             
             $('#hijriDate').text(`${h.day} ${h.month.en} ${h.year} H`);
             $('#dateMasehi').text(res.data.date.readable);
+            
             renderPrayerGrid(t);
-            startTimer(t);
-        }).fail(function() {
-            $('#prayerGrid').html('<div class="col-span-full text-red-400 text-center">Gagal memuat jadwal. Cek koneksi internet.</div>');
+            startCountdown(t);
+        }).fail(() => {
+            console.error("Gagal mengambil jadwal sholat.");
         });
     }
 
@@ -362,23 +433,23 @@
         let html = '';
         list.forEach(p => {
             html += `
-            <div id="card-${p.k}" class="prayer-card flex flex-col items-center justify-center">
-                <i class="fa-solid ${p.i} text-xl mb-2 text-slate-500"></i>
-                <div class="text-[10px] font-bold uppercase text-slate-400 mb-1">${p.n}</div>
-                <div class="text-lg font-bold text-white font-cinzel">${p.t}</div>
+            <div id="card-${p.k}" class="prayer-box group">
+                <i class="fa-solid ${p.i} text-2xl mb-2 text-slate-500 group-hover:text-amber-400 transition"></i>
+                <div class="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-widest">${p.n}</div>
+                <div class="text-xl font-bold text-white font-cinzel">${p.t}</div>
             </div>`;
         });
         $('#prayerGrid').html(html);
     }
 
-    function startTimer(timings) {
-        if(timer) clearInterval(timer);
+    function startCountdown(timings) {
+        if(timerInterval) clearInterval(timerInterval);
         const list = [
             {n:'Imsak', t:timings.Imsak}, {n:'Subuh', t:timings.Fajr}, {n:'Dzuhur', t:timings.Dhuhr},
             {n:'Ashar', t:timings.Asr}, {n:'Maghrib', t:timings.Maghrib}, {n:'Isya', t:timings.Isha}
         ];
 
-        timer = setInterval(() => {
+        timerInterval = setInterval(() => {
             const now = new Date();
             let next = null, minDiff = Infinity;
             
@@ -387,7 +458,7 @@
                 const pt = new Date(); pt.setHours(h,m,0);
                 let diff = pt - now;
                 
-                // Highlight Logic (Active for 15 mins after time)
+                // Active Logic (15 min after)
                 const id = p.n === 'Subuh' ? 'Fajr' : (p.n === 'Dzuhur' ? 'Dhuhr' : (p.n === 'Ashar' ? 'Asr' : (p.n === 'Isya' ? 'Isha' : p.n)));
                 const el = $(`#card-${id}`);
                 
@@ -397,14 +468,14 @@
                 if(diff > 0 && diff < minDiff) { minDiff = diff; next = p; }
             });
 
-            if(!next) { // Next day
+            if(!next) { // Besok
                 next = list[0];
                 const [h,m] = next.t.split(':');
                 const tmrw = new Date(); tmrw.setDate(now.getDate()+1); tmrw.setHours(h,m,0);
                 minDiff = tmrw - now;
             }
 
-            // UI Updates
+            // Render Countdown
             $('#nextPrayerName').text(next.n);
             const hh = Math.floor(minDiff/3600000).toString().padStart(2,'0');
             const mm = Math.floor((minDiff%3600000)/60000).toString().padStart(2,'0');
@@ -423,7 +494,7 @@
         
         if(name === 'Imsak' && mins <= 20 && mins > 0) {
             html = `
-            <div class="bg-red-900/90 border border-red-500 rounded-xl p-3 flex items-center justify-between gap-3 shadow-lg animate-pulse">
+            <div class="bg-red-900/90 border border-red-500 rounded-xl p-3 flex items-center justify-between gap-3 shadow-lg pulse-gold">
                 <div><h4 class="text-xs font-bold text-red-200">WARNING SAHUR</h4><p class="text-white text-xs">Sisa ${mins} Menit!</p></div>
                 <a href="https://shopee.co.id/search?keyword=makanan%20instan" target="_blank" class="bg-white text-red-900 text-[10px] font-bold px-3 py-2 rounded hover:scale-105 transition"><i class="fa-solid fa-utensils"></i> Pesan</a>
             </div>`;
@@ -434,7 +505,13 @@
         if(html) box.html(html).removeClass('hidden'); else box.addClass('hidden');
     }
 
-    // === 4. SHOPEE CAROUSEL ===
+    // =========================================
+    // 4. SHOPEE CAROUSEL (SWIPER)
+    // =========================================
+    function initSwiper() {
+        // Simple horizontal scroll setup via CSS mostly, logic handles rendering
+    }
+    
     function renderShopee() {
         const products = [
             {n:"Kurma Ajwa", p:"Rp 85rb", i:"fa-seedling"},
@@ -449,32 +526,40 @@
         let html = '';
         products.forEach(p => {
             html += `
-            <a href="https://shopee.co.id/search?keyword=${encodeURIComponent(p.n)}" target="_blank" class="product-card text-center group">
-                <div class="w-full h-16 bg-slate-100 rounded-lg flex items-center justify-center text-2xl text-slate-300 mb-2 group-hover:text-amber-500 transition">
-                    <i class="fa-solid ${p.i}"></i>
-                </div>
-                <div class="text-[10px] font-bold text-slate-800 truncate">${p.n}</div>
-                <div class="text-xs font-bold text-orange-500">${p.p}</div>
-            </a>`;
+            <div class="swiper-slide" style="width: 150px;">
+                <a href="https://shopee.co.id/search?keyword=${encodeURIComponent(p.n)}" target="_blank" class="product-card text-center group">
+                    <div class="product-img group-hover:bg-amber-50 transition">
+                        <i class="fa-solid ${p.i} group-hover:text-amber-500 transition"></i>
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-700 truncate">${p.n}</div>
+                    <div class="text-xs font-bold text-orange-500">${p.p}</div>
+                </a>
+            </div>`;
         });
         $('#shopeeContainer').html(html);
     }
 
-    // === 5. AYAT HARIAN ===
+    // =========================================
+    // 5. AYAT HARIAN
+    // =========================================
     function fetchQuran() {
         const id = Math.floor(Math.random() * 6236) + 1;
         $.get(`https://api.alquran.cloud/v1/ayah/${id}/editions/quran-uthmani,id.indonesian`, function(res) {
             const arab = res.data[0];
             const indo = res.data[1];
             $('#quranContent').html(`
-                <p class="text-lg font-amiri leading-loose mb-2 text-white" dir="rtl">${arab.text}</p>
+                <p class="text-xl font-amiri leading-loose mb-3 text-white drop-shadow-sm" dir="rtl">${arab.text}</p>
                 <p class="text-[10px] text-slate-400 italic">"${indo.text}"</p>
-                <div class="mt-2 text-[10px] font-bold text-emerald-400 uppercase">QS. ${arab.surah.englishName}:${arab.numberInSurah}</div>
+                <div class="mt-3 text-[9px] font-bold text-emerald-400 uppercase tracking-widest border border-emerald-500/30 px-2 py-1 rounded-full inline-block">QS. ${arab.surah.englishName}:${arab.numberInSurah}</div>
             `);
+        }).fail(() => {
+            $('#quranContent').html('<span class="text-xs text-red-400">Gagal memuat ayat.</span>');
         });
     }
 
-    // === 6. INSIGHTS FLIP CARDS ===
+    // =========================================
+    // 6. INSIGHTS FLIP CARDS (ANIMATED)
+    // =========================================
     const insights = [
         {t:"Sahur", d:"Makan sahur adalah berkah pembeda puasa kita dengan umat terdahulu."},
         {t:"Doa Mustajab", d:"Doa orang berpuasa tidak akan tertolak hingga ia berbuka."},
@@ -485,16 +570,16 @@
         let html = '';
         insights.forEach(i => {
             html += `
-            <div class="flip-card">
+            <div class="flip-container">
                 <div class="flip-inner">
                     <div class="flip-front">
                         <i class="fa-solid fa-star text-4xl text-amber-400 mb-4 opacity-80"></i>
                         <h4 class="font-bold text-white text-lg">${i.t}</h4>
-                        <span class="mt-3 text-[10px] text-slate-400 border border-slate-600 px-2 py-1 rounded">Ketuk Kartu</span>
+                        <span class="mt-3 text-[10px] text-slate-400 border border-slate-600 px-2 py-1 rounded bg-black/20">Klik Kartu</span>
                     </div>
                     <div class="flip-back">
-                        <h4 class="font-bold text-amber-400 mb-2 border-b border-white/10 pb-2 w-full">${i.t}</h4>
-                        <p class="text-xs text-slate-200 leading-relaxed">${i.d}</p>
+                        <h4 class="font-bold text-amber-400 mb-2 border-b border-amber-500/30 pb-2 w-full">${i.t}</h4>
+                        <p class="text-xs text-slate-200 leading-relaxed font-medium">${i.d}</p>
                     </div>
                 </div>
             </div>`;
@@ -502,7 +587,9 @@
         $('#insightsGrid').html(html);
     }
 
-    // === 7. UTILS ===
+    // =========================================
+    // 7. UTILS (TASBIH, AUDIO, TRACKER)
+    // =========================================
     let count = 0;
     function countTasbih() { count++; $('#tasbihCount').text(count); }
     function resetTasbih() { count = 0; $('#tasbihCount').text(0); }
@@ -516,7 +603,7 @@
         } else {
             audio.pause();
             audio.currentTime = 0;
-            $('#textAdzan').text('Tes Adzan');
+            $('#textAdzan').text('Tes Suara Adzan');
             $('#iconAdzan').removeClass('fa-beat-fade');
         }
     }
