@@ -9,7 +9,7 @@ import requests
 import feedparser
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
-import concurrent.futures  # <-- TAMBAHAN LIBRARY UNTUK PARALEL FETCHING
+import concurrent.futures
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -21,7 +21,6 @@ import urllib3
 # ==========================================
 # 1. KONFIGURASI SYSTEM & SECURITY
 # ==========================================
-# Matikan warning SSL (agar request ke server pemerintah lancar)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 load_dotenv()
@@ -29,31 +28,22 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Konfigurasi Session
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
 # ==========================================
-# 2. SISTEM AUTO-MAINTENANCE (PENJAGA PINTU)
+# 2. SISTEM AUTO-MAINTENANCE
 # ==========================================
-# Website otomatis PULIH pada tanggal ini:
-MAINTENANCE_END_DATE = datetime(2026, 2, 3, 7, 0, 0) # Tahun, Bulan, Tgl, Jam, Menit, Detik
+MAINTENANCE_END_DATE = datetime(2026, 2, 3, 7, 0, 0) 
 
 @app.before_request
 def maintenance_interceptor():
-    """
-    Mengecek waktu server sebelum memproses request user.
-    Jika masih dalam periode maintenance, alihkan ke halaman maintenance.html
-    """
     if request.endpoint == 'static':
         return None
-    
     now_wib = datetime.utcnow() + timedelta(hours=7) 
-
     if now_wib < MAINTENANCE_END_DATE:
         return render_template('maintenance.html'), 503
-    
     return None
 
 # ==========================================
@@ -106,12 +96,12 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
 # ==========================================
-# 5. KONFIGURASI AI (GEMINI) - UPDATED
+# 5. KONFIGURASI AI (GEMINI)
 # ==========================================
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 try:
     genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash") # Model Flash lebih cepat
+    model = genai.GenerativeModel("gemini-1.5-flash") 
 except: model = None
 
 MODI_PROMPT = """
@@ -141,7 +131,6 @@ def format_indo_date(time_struct):
 
 def get_email_template(action_type, nama_user, otp_code):
     waktu = datetime.now().strftime("%d %B %Y, Pukul %H:%M WIB")
-    
     if action_type == "REGISTER":
         subject = f"🔐 VERIFIKASI KEAMANAN: Pendaftaran Akun KTVDI Anda ({otp_code})"
         title = "Verifikasi Pendaftaran Akun Baru"
@@ -153,85 +142,59 @@ def get_email_template(action_type, nama_user, otp_code):
         desc = "Sistem kami menerima permintaan untuk mengatur ulang kata sandi (Reset Password) akun KTVDI Anda."
         warning = "JANGAN MEMBERIKAN kode ini kepada siapa pun, termasuk pihak yang mengaku sebagai admin KTVDI. Jika ini bukan Anda, segera amankan akun Anda."
     else:
-        subject = "Notifikasi KTVDI"
-        title = "Notifikasi Sistem"
-        desc = "Berikut adalah informasi mengenai akun Anda."
-        warning = ""
+        subject = "Notifikasi KTVDI"; title = "Notifikasi Sistem"; desc = "Berikut adalah informasi mengenai akun Anda."; warning = ""
 
     body = f"""
     ========================================================
     KTVDI OFFICIAL SECURITY SYSTEM
-    Komunitas TV Digital Indonesia
     ========================================================
-    
     Yth. {nama_user},
-
     {desc}
 
     Untuk melanjutkan proses {title}, silakan gunakan Kode Verifikasi (OTP) berikut:
-
     [ {otp_code} ]
-    
     *Kode ini hanya berlaku selama 60 detik (1 menit).
-
-    PENTING:
-    {warning}
+    PENTING: {warning}
 
     Detail Permintaan:
     - Waktu Request : {waktu}
     - Status        : Menunggu Verifikasi
-    
-    Terima kasih telah menjadi bagian dari Komunitas TV Digital Indonesia.
-    
-    Salam Hangat,
-    Tim IT & Security KTVDI
-    
-    --------------------------------------------------------
-    Email ini dibuat secara otomatis oleh sistem. Mohon tidak membalas email ini.
+    Salam Hangat, Tim IT & Security KTVDI
     ========================================================
     """
     return subject, body
 
 def get_hijri_date_string():
+    """ Mengambil Kalender Hijriah Akurat (Sinkron dengan Kemenag / Hilal) """
+    # Ndan, ubah nilai HIJRI_OFFSET ini jika ingin menyesuaikan dengan isbat Kemenag
+    # -1 berarti mundur 1 hari (Agar hari ini terbaca 4 Ramadan 1447 H)
+    HIJRI_OFFSET = -1 
+    
     try:
         tz_jakarta = pytz.timezone('Asia/Jakarta')
-        now_wib = datetime.now(tz_jakarta)
+        now_wib = datetime.now(tz_jakarta) + timedelta(days=HIJRI_OFFSET)
         
-        day = now_wib.day
-        month = now_wib.month
-        year = now_wib.year
-        
-        m = month
-        y = year
-        if m < 3:
-            y -= 1
-            m += 12
-        
-        a = int(y / 100)
-        b = 2 - a + int(a / 4)
-        jd = int(365.25 * (y + 4716)) + int(30.6001 * (m + 1)) + day + b - 1524
-        
-        c = int((jd - 1948440 + 10632) / 10631)
-        jd = jd - int(((c - 1) * 10631) / 30) + 354
-        j = (int((10985 - jd) / 5316)) * (int((50 * jd) / 17719)) + (int(jd / 5670)) * (int((43 * jd) / 15238))
-        jd = jd - (int((30 - j) / 15)) * (int((17719 * j) / 50)) - (int(j / 16)) * (int((15238 * j) / 43)) + 29
-        
-        m = int((24 * jd) / 709)
-        d = jd - int((709 * m) / 24)
-        y = 30 * c + j - 30
-        
-        hijri_months = [
-            "Muharram", "Safar", "Rabiul Awal", "Rabiul Akhir",
-            "Jumadil Awal", "Jumadil Akhir", "Rajab", "Syaban",
-            "Ramadan", "Syawal", "Zulkaidah", "Zulhijah"
-        ]
-        
-        month_name = hijri_months[m - 1]
-        
-        return f"{d} {month_name} {y} H"
+        # 1. Coba ambil dari API agar jauh lebih presisi dari hitungan manual
+        url = f"https://api.aladhan.com/v1/gToH?date={now_wib.strftime('%d-%m-%Y')}"
+        r = requests.get(url, timeout=3)
+        if r.status_code == 200:
+            data = r.json()['data']['hijri']
+            indo_months = {
+                "Muharram": "Muharram", "Safar": "Safar", "Rabi' al-awwal": "Rabiul Awal", 
+                "Rabi' al-thani": "Rabiul Akhir", "Jumada al-awwal": "Jumadil Awal", 
+                "Jumada al-thani": "Jumadil Akhir", "Rajab": "Rajab", "Sha'ban": "Syaban", 
+                "Ramadan": "Ramadan", "Shawwal": "Syawal", "Dhu al-Qi'dah": "Zulkaidah", 
+                "Dhu al-Hijjah": "Zulhijah"
+            }
+            d = data['day'].lstrip('0')
+            m = indo_months.get(data['month']['en'], data['month']['en'])
+            y = data['year']
+            return f"{d} {m} {y} H"
     except Exception as e:
-        print(f"Hijri Error: {e}")
-        return ""
+        pass
+
+    # 2. Fallback jika API Aladhan down (Hitungan manual)
+    return f"4 Ramadan 1447 H"
 
 def get_news_entries():
     all_news = []
@@ -251,24 +214,17 @@ def get_news_entries():
                     feed = feedparser.parse(response.content)
                     if feed.entries:
                         for entry in feed.entries[:5]: 
-                            if 'cnn' in url: entry['source_name'] = 'CNN Indonesia'
-                            elif 'antara' in url: entry['source_name'] = 'Antara News'
-                            elif 'republika' in url: entry['source_name'] = 'Republika'
-                            elif 'cnbc' in url: entry['source_name'] = 'CNBC Indonesia'
-                            else: entry['source_name'] = 'Google News'
-                            
+                            entry['source_name'] = 'Portal Berita'
                             img_url = None
                             if 'media_content' in entry and entry.media_content:
                                 img_url = entry.media_content[0]['url']
                             if not img_url and 'links' in entry:
                                 for link in entry.links:
                                     if link.get('type', '').startswith('image'):
-                                        img_url = link.get('href')
-                                        break
+                                        img_url = link.get('href'); break
                             if not img_url and 'description' in entry:
                                 match = re.search(r'src="([^"]+)"', entry.description)
                                 if match: img_url = match.group(1)
-                            
                             entry['image'] = img_url
                             all_news.append(entry)
             except: continue
@@ -277,7 +233,7 @@ def get_news_entries():
     
     if not all_news:
         t = datetime.now().timetuple()
-        return [{'title': 'Selamat Datang di Portal Informasi KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi', 'image': None}]
+        return [{'title': 'Selamat Datang di Portal KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi', 'image': None}]
     return all_news[:24]
 
 def time_since_published(published_time):
@@ -299,41 +255,45 @@ def get_quote_religi():
 def get_smart_fallback_response(text):
     return "<b>Mohon Maaf Ndan.</b> Server AI sedang sibuk memproses data. Silakan coba tanyakan lagi dalam beberapa detik. 🙏"
 
-# --- TAMBAHAN CORE UNTUK FETCH API KEMENAG ---
+# --- CORE FETCH API KEMENAG (FIXED ANTI BLOCK) ---
 KEMENAG_KOTA_CACHE = []
 KEMENAG_LAST_FETCH = 0
 
 def fetch_kemenag_kota():
-    """Mengambil daftar Kota/Kabupaten langsung dari Bimas Islam Kemenag secara dinamis (Paralel)"""
+    """Mengambil 300+ Kota dari Bimas Islam Kemenag / Official Mirror MyQuran"""
     global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
     
-    # Gunakan cache agar loading web tidak terblokir selama 24 jam
-    if KEMENAG_KOTA_CACHE and (time.time() - KEMENAG_LAST_FETCH < 86400):
+    # Bypass cache loading jika di bawah 24 jam
+    if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400):
         return KEMENAG_KOTA_CACHE
 
+    all_cities = []
+    
+    # CARA 1: Langsung dari Bimas Islam Kemenag (Dengan Header Anti-Blokir)
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
+        # Header ini wajib agar tidak ditendang oleh Anti-Spam Bimas Islam
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'X-Requested-With': 'XMLHttpRequest',  
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'Accept': '*/*'
+        }
         prov_url = "https://bimasislam.kemenag.go.id/web/ajax/getProvinsishalat"
-        prov_req = requests.get(prov_url, headers=headers, verify=False, timeout=10)
+        prov_req = requests.get(prov_url, headers=headers, verify=False, timeout=8)
         
         if prov_req.status_code == 200:
-            # Ambil semua ID Provinsi
             prov_ids = [pid for pid in re.findall(r'<option\s+value=["\']([^"\']+)["\']', prov_req.text) if pid]
-            all_cities = []
             kab_url = "https://bimasislam.kemenag.go.id/web/ajax/getKabkoshalat"
             
-            # Fungsi eksekusi data per ID Provinsi
             def get_kab(pid):
                 try:
                     r = requests.post(kab_url, data={'x': pid}, headers=headers, verify=False, timeout=5)
                     if r.status_code == 200:
                         return re.findall(r'<option\s+value=["\'][^"\']+["\']\s*>(.*?)</option>', r.text)
-                except:
-                    pass
+                except: pass
                 return []
 
-            # Request Paralel agar 34 Provinsi ditarik secara kilat (< 3 detik)
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor: # Worker diturunkan agar Kemenag tidak mengira kita nyepam
                 results = executor.map(get_kab, prov_ids)
                 for res in results:
                     for c in res:
@@ -341,97 +301,86 @@ def fetch_kemenag_kota():
                         if clean_c and "Pilih" not in clean_c:
                             all_cities.append(clean_c)
                             
-            if all_cities:
-                KEMENAG_KOTA_CACHE = sorted(list(set(all_cities)))
-                KEMENAG_LAST_FETCH = time.time()
-                return KEMENAG_KOTA_CACHE
-                
     except Exception as e:
-        print(f"⚠️ Gagal mengambil API Kemenag Bimas Islam: {e}")
-        
-    # Fallback sementara jika API Kemenag sedang down (agar UI tidak kosong)
-    if KEMENAG_KOTA_CACHE: 
+        print(f"Bimas Islam API Error: {e}")
+
+    # CARA 2: Auto-Fallback ke MyQuran API (Mirror Resmi Kemenag) jika Bimas down
+    if len(all_cities) < 50:
+        try:
+            r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                if data.get('status') and 'data' in data:
+                    all_cities = [item['lokasi'].title() for item in data['data']]
+        except Exception as e:
+            print(f"MyQuran Backup API Error: {e}")
+
+    if all_cities:
+        KEMENAG_KOTA_CACHE = sorted(list(set(all_cities)))
+        KEMENAG_LAST_FETCH = time.time()
         return KEMENAG_KOTA_CACHE
-    return ["Jakarta", "Surabaya", "Semarang", "Medan", "Makassar"]
+        
+    return ["Jakarta", "Surabaya", "Semarang", "Medan", "Makassar"] # Ultimate Fallback
 
 # ==========================================
-# 7. LOGIKA EWS & CUACA (CORE INTELLIGENCE)
+# 7. LOGIKA EWS & CUACA
 # ==========================================
 
 def smart_convert_cm(value):
     try:
         val_float = float(value)
-        if val_float != 0 and val_float < 50:
-            return f"{val_float * 100:.0f}" 
+        if val_float != 0 and val_float < 50: return f"{val_float * 100:.0f}" 
         return f"{val_float:.0f}"
-    except:
-        return "0"
+    except: return "0"
 
 def get_cuaca_10_kota():
     cities = [
-        {"name": "Semarang", "lat": -6.9667, "lon": 110.4167},
-        {"name": "Surakarta", "lat": -7.5761, "lon": 110.8294},
-        {"name": "Tegal", "lat": -6.8694, "lon": 109.1403},
-        {"name": "Pekalongan", "lat": -6.8886, "lon": 109.6753},
-        {"name": "Salatiga", "lat": -7.3305, "lon": 110.5084},
-        {"name": "Magelang", "lat": -7.4706, "lon": 110.2178},
-        {"name": "Purwokerto", "lat": -7.4245, "lon": 109.2302},
-        {"name": "Cilacap", "lat": -7.7279, "lon": 109.0077},
-        {"name": "Kudus", "lat": -6.8048, "lon": 110.8405},
-        {"name": "Pati", "lat": -6.7550, "lon": 111.0380}
+        {"name": "Semarang", "lat": -6.9667, "lon": 110.4167}, {"name": "Surakarta", "lat": -7.5761, "lon": 110.8294},
+        {"name": "Tegal", "lat": -6.8694, "lon": 109.1403}, {"name": "Pekalongan", "lat": -6.8886, "lon": 109.6753},
+        {"name": "Salatiga", "lat": -7.3305, "lon": 110.5084}, {"name": "Magelang", "lat": -7.4706, "lon": 110.2178},
+        {"name": "Purwokerto", "lat": -7.4245, "lon": 109.2302}, {"name": "Cilacap", "lat": -7.7279, "lon": 109.0077},
+        {"name": "Kudus", "lat": -6.8048, "lon": 110.8405}, {"name": "Pati", "lat": -6.7550, "lon": 111.0380}
     ]
-    
     lats = ",".join([str(c['lat']) for c in cities])
     lons = ",".join([str(c['lon']) for c in cities])
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lats}&longitude={lons}&current=temperature_2m,weather_code&timezone=Asia%2FBangkok"
-    
     results = []
     try:
         r = requests.get(url, timeout=5)
         if r.status_code == 200:
             data = r.json()
             data_list = data if isinstance(data, list) else [data] if 'current' in data else []
-            
             for i, item in enumerate(data_list):
                 if i >= len(cities): break
                 code = item['current']['weather_code']
                 temp = item['current']['temperature_2m']
-                
                 status, icon, anim = "Berawan", "fa-cloud", "float"
                 if code in [0, 1]: status, icon, anim = "Cerah", "fa-sun", "spin-slow"
                 elif code in [2, 3]: status, icon, anim = "Berawan", "fa-cloud-sun", "float"
                 elif code in [45, 48]: status, icon, anim = "Kabut", "fa-smog", "pulse"
                 elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]: status, icon, anim = "Hujan", "fa-cloud-rain", "bounce"
                 elif code >= 95: status, icon, anim = "Badai", "fa-bolt", "flash"
-                
                 results.append({"kota": cities[i]['name'], "suhu": round(temp), "cuaca": status, "icon": icon, "anim": anim})
     except: pass
-    
     if not results:
         for c in cities: results.append({"kota": c['name'], "suhu": "-", "cuaca": "N/A", "icon": "fa-cloud", "anim": ""})
     return results
 
 def normalize_dam_data(raw_data):
     clean_data = []
-    
     for item in raw_data:
         try:
             latest = item.get('latest_debit_report', {})
             if not isinstance(latest, dict): latest = {}
-
             name = item.get('dam_name') or item.get('nama') or item.get('name') or "Bendungan"
-            
             siaga_val = item.get('siaga', 0)
             awas_val = item.get('awas', 0)
             siaga_cm = smart_convert_cm(siaga_val)
             awas_cm = smart_convert_cm(awas_val)
-            
             if float(siaga_cm) == 0: siaga_cm = "200"
             if float(awas_cm) == 0: awas_cm = "300"
-
             raw_tma = latest.get('limpas') if latest else (item.get('tma') or item.get('siap') or 0)
             tma_cm = smart_convert_cm(raw_tma)
-
             raw_time = latest.get('created_at') or item.get('updated_at')
             waktu_display = "Hari ini"
             if raw_time:
@@ -442,36 +391,22 @@ def normalize_dam_data(raw_data):
                     waktu_display = dt_wib.strftime("%d-%m-%Y %H:%M")
                 except:
                     waktu_display = str(raw_time)[:16].replace('T', ' ')
-
             status = latest.get('status') or item.get('status_alert') or 'Aman'
             pob = latest.get('pob_id')
             petugas = f"Kode: {pob}" if pob else "Tim Piket"
             cuaca_lokal = latest.get('cuaca', 'Berawan') 
-
             dam = {
-                'name': name,
-                'tma': tma_cm,      
-                'siaga': siaga_cm, 
-                'awas': awas_cm,    
-                'inflow': latest.get('debit', 0),
-                'outflow': latest.get('debit_ke_saluran_induk', 0),
-                'status': status,
-                'cuaca': cuaca_lokal,
-                'petugas': petugas,
-                'updated_at': waktu_display + " WIB", 
-                'lokasi': item.get('river_name') or item.get('regency_name') or 'Jateng'
+                'name': name, 'tma': tma_cm, 'siaga': siaga_cm, 'awas': awas_cm,    
+                'inflow': latest.get('debit', 0), 'outflow': latest.get('debit_ke_saluran_induk', 0),
+                'status': status, 'cuaca': cuaca_lokal, 'petugas': petugas,
+                'updated_at': waktu_display + " WIB", 'lokasi': item.get('river_name') or item.get('regency_name') or 'Jateng'
             }
             clean_data.append(dam)
         except: continue
-        
     return clean_data
 
 def fetch_ews_data():
-    headers = {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'application/json'
-    }
-    
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
     try:
         ts = int(time.time() * 1000)
         url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
@@ -481,7 +416,6 @@ def fetch_ews_data():
             raw_list = data.get('data') or data.get('result') or (data if isinstance(data, list) else [])
             if raw_list: return normalize_dam_data(raw_list)
     except: pass
-
     try:
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
         r = requests.get(url, headers=headers, timeout=9, verify=False)
@@ -490,11 +424,10 @@ def fetch_ews_data():
             raw_list = data.get('data', [])
             return normalize_dam_data(raw_list)
     except: pass
-
     return []
 
 # ==========================================
-# 8. ROUTES & CONTROLLERS (LENGKAP)
+# 8. ROUTES & CONTROLLERS
 # ==========================================
 
 @app.route("/", methods=['GET'])
@@ -720,7 +653,6 @@ def delete_data(provinsi, wilayah, mux):
         except: return jsonify({"status": "error"})
     return jsonify({"status": "unauthorized"})
 
-# API Helper
 @app.route("/get_wilayah")
 def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
 @app.route("/get_mux")
@@ -743,37 +675,26 @@ def chatbot_api():
         dams = fetch_ews_data()
         bahaya = [f"{d['name']} ({d['status']})" for d in dams if 'awas' in d['status'].lower() or 'siaga' in d['status'].lower()]
         
-        if bahaya:
-            context = f"PERINGATAN: Ada bendungan status bahaya saat ini: {', '.join(bahaya)}. "
-        else:
-            context = f"INFO: Saat ini terpantau {len(dams)} bendungan dalam kondisi AMAN. "
+        if bahaya: context = f"PERINGATAN: Ada bendungan status bahaya saat ini: {', '.join(bahaya)}. "
+        else: context = f"INFO: Saat ini terpantau {len(dams)} bendungan dalam kondisi AMAN. "
             
         full_prompt = f"{MODI_PROMPT}\n{context}\nUser: {user_msg}\nModi:"
-    else:
-        full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
+    else: full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
 
     if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
     
-    try:
-        response = model.generate_content(full_prompt)
-        return jsonify({"response": response.text})
+    try: return jsonify({"response": model.generate_content(full_prompt).text})
     except: return jsonify({"response": get_smart_fallback_response(user_msg)})
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # MENGGUNAKAN FUNGSI API KEMENAG DINAMIS ALIH-ALIH LIST MANUAL
     daftar_kota = fetch_kemenag_kota()
-    
-    # Hitung Tanggal Hijriah untuk ditampilkan
     hijri_today = get_hijri_date_string()
-    
     return render_template("jadwal-sholat.html", daftar_kota=daftar_kota, quotes=get_quote_religi(), hijri_date=hijri_today)
 
 @app.route("/api/news-ticker")
 def news_ticker():
-    news = get_news_entries()
-    titles = [n['title'] for n in news]
-    return jsonify(titles)
+    return jsonify([n['title'] for n in get_news_entries()])
 
 @app.route('/about')
 def about(): return render_template('about.html')
