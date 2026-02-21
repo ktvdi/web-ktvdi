@@ -5,13 +5,11 @@
 {% block content %}
 
 <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
 <script src="https://cdn.tailwindcss.com"></script>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 
 <style>
@@ -71,19 +69,6 @@
         font-weight: 700;
     }
 
-    /* Select2 Dark Mode Customization */
-    .select2-container--default .select2-selection--single {
-        background-color: var(--c-navy-light) !important;
-        border: 1px solid #334155 !important;
-        border-radius: 99px !important;
-        height: 42px !important;
-        display: flex; align-items: center;
-    }
-    .select2-selection__rendered { color: #fff !important; font-size: 14px; padding-left: 15px !important; }
-    .select2-dropdown { background-color: var(--c-navy-card) !important; border: 1px solid var(--c-gold-dim) !important; }
-    .select2-search__field { background-color: var(--c-navy-dark) !important; color: white !important; }
-    .select2-results__option--highlighted { background-color: var(--c-gold-main) !important; color: black !important; }
-
     /* Animations */
     @keyframes pulse-gold {
         0% { box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
@@ -134,6 +119,21 @@
     }
     @keyframes ripple { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.5); opacity: 0; } }
 
+    /* Custom Select Style for Default Browser Dropdown */
+    #kotaSelect {
+        background-color: var(--c-navy-light);
+        color: white;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        appearance: auto; /* Force default arrow */
+    }
+    #kotaSelect:focus {
+        outline: none;
+        border-color: var(--c-gold-main);
+    }
+
 </style>
 
 <div class="pt-[140px] pb-20 px-4 max-w-7xl mx-auto min-h-screen">
@@ -155,24 +155,25 @@
                 <span>Khazanah <span class="text-gold-gradient">Islam</span></span>
             </h1>
             <p class="text-slate-400 text-xs md:text-sm tracking-[0.2em] uppercase pl-1 mt-2">Portal Ibadah Profesional</p>
+            <p class="text-[#d4af37] text-xs md:text-sm italic mt-1">Kedamaian untuk seluruh umat manusia, rahmat bagi semesta alam.</p>
         </div>
 
         <div class="w-full lg:w-auto flex flex-col gap-2">
             <label class="text-[10px] uppercase text-slate-500 font-bold tracking-widest lg:text-right hidden lg:block">Lokasi Anda</label>
-            <div class="bg-[#1e293b] p-1 rounded-full border border-slate-700 flex items-center w-full lg:w-[320px] shadow-lg focus-within:border-[#d4af37] transition">
-                <div id="gpsIcon" class="w-10 h-10 rounded-full bg-[#0f172a] flex items-center justify-center text-[#d4af37] mr-2 shrink-0 gps-scan cursor-pointer" onclick="forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
+            <div class="flex items-center w-full lg:w-[320px] transition gap-2">
+                <div id="gpsIcon" class="w-10 h-10 rounded-full bg-[#1e293b] border border-slate-700 flex items-center justify-center text-[#d4af37] shrink-0 gps-scan cursor-pointer" onclick="forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
                     <i class="fa-solid fa-location-crosshairs"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <select id="kotaSelect" class="w-full bg-transparent text-white text-sm outline-none">
-                        <option value="" disabled selected>Mendeteksi Lokasi...</option>
+                    <select id="kotaSelect" class="w-full text-sm">
+                        <option value="" disabled selected>Pilih Kota/Kabupaten...</option>
                         {% for kota in daftar_kota %}
                         <option value="{{ kota.id }}">{{ kota.nama }}</option>
                         {% endfor %}
                     </select>
                 </div>
             </div>
-            <div id="locStatus" class="text-[10px] lg:text-right text-center text-[#d4af37] h-4 italic">Sedang mengunci GPS...</div>
+            <div id="locStatus" class="text-[10px] lg:text-right text-center text-[#d4af37] h-4 italic">Memeriksa ketersediaan GPS...</div>
         </div>
     </div>
 
@@ -191,6 +192,7 @@
                 <div class="text-right">
                     <span class="block text-slate-500 text-[10px] uppercase font-bold tracking-widest">Lokasi Terkunci</span>
                     <div class="text-white font-bold" id="currentCityLabel">...</div>
+                    <div class="text-xs text-[#d4af37] mt-1 hidden" id="currentKecamatanLabel"></div>
                 </div>
             </div>
 
@@ -224,10 +226,11 @@
     </div>
 
     <div class="mb-12">
-        <h3 class="text-white font-luxury text-lg mb-6 border-l-4 border-[#d4af37] pl-4 flex items-center">
-            Jadwal Sholat Harian Kemenag RI
-            <span class="ml-auto text-[10px] text-slate-500 font-sans font-normal italic">*Berdasarkan Data Bimas Islam</span>
+        <h3 class="text-white font-luxury text-lg mb-2 border-l-4 border-[#d4af37] pl-4 flex items-center">
+            Jadwal Sholat Harian
         </h3>
+        <p class="text-xs text-slate-400 mb-6 pl-5 italic">*Waktu setempat. Data jadwal Imsakiyah bersumber dari Sistem Informasi Bimas Islam Kemenag RI.</p>
+        
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="prayerGrid">
             <div class="col-span-full py-12 text-center text-slate-600">
                 <i class="fa-solid fa-circle-notch fa-spin text-2xl text-[#d4af37] mb-3"></i>
@@ -328,16 +331,19 @@
     // Default Fallback ID (1301 = Kota Jakarta)
     let userCityId = localStorage.getItem('userCityId') || '1301'; 
     let userCityName = localStorage.getItem('userCityName') || 'Kota Jakarta';
+    let userKecamatan = localStorage.getItem('userKecamatan') || '';
     let gpsLocked = false;
 
     $(document).ready(function() {
-        $('#kotaSelect').select2({ width: '100%', dropdownAutoWidth: true });
         initAsmaulHusna();
         fetchQuran();
 
         // 1. Set State Awal berdasarkan Storage
-        $('#kotaSelect').val(userCityId).trigger('change.select2');
+        $('#kotaSelect').val(userCityId);
         $('#currentCityLabel').text(userCityName);
+        if(userKecamatan) {
+            $('#currentKecamatanLabel').text("Kec. " + userKecamatan).removeClass('hidden');
+        }
         
         // 2. Tarik Data Jadwal Perdana
         fetchSchedule(userCityId);
@@ -352,17 +358,22 @@
             
             userCityId = idKota;
             userCityName = namaKota;
+            userKecamatan = ""; // Reset kecamatan if manual selection
+
             localStorage.setItem('userCityId', idKota);
             localStorage.setItem('userCityName', namaKota);
+            localStorage.setItem('userKecamatan', "");
             
             $('#currentCityLabel').text(namaKota);
+            $('#currentKecamatanLabel').addClass('hidden');
             $('#locStatus').text("Lokasi Diset Manual").removeClass("animate-pulse").css('color', '#94a3b8');
+            
             fetchSchedule(idKota);
         });
     });
 
     function forceGPS() {
-        $('#locStatus').text("Sedang mencari koordinat...").addClass("animate-pulse").css('color', '#d4af37');
+        $('#locStatus').text("Sedang mencari koordinat GPS...").addClass("animate-pulse").css('color', '#d4af37');
         $('#gpsIcon').addClass("animate-spin text-white").removeClass("text-[#d4af37] text-emerald-400 shadow-[0_0_10px_#10b981]");
 
         if (navigator.geolocation) {
@@ -372,7 +383,10 @@
                     const lon = position.coords.longitude;
                     
                     $.getJSON(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, function(data) {
+                        
                         let detected = data.address.city || data.address.town || data.address.county || 'Jakarta';
+                        let detectedKecamatan = data.address.village || data.address.suburb || data.address.neighbourhood || '';
+
                         detected = detected.replace(/(Kota|Kabupaten|City of)\s+/i, '').trim();
 
                         let matchId = null;
@@ -389,27 +403,50 @@
                         });
 
                         if (matchId) {
-                            $('#kotaSelect').val(matchId).trigger('change');
-                            $('#locStatus').text("GPS Terkunci: " + matchName).removeClass("animate-pulse").addClass("text-emerald-400").css('color', '#10b981');
+                            $('#kotaSelect').val(matchId);
+                            
+                            userCityId = matchId;
+                            userCityName = matchName;
+                            userKecamatan = detectedKecamatan;
+
+                            localStorage.setItem('userCityId', matchId);
+                            localStorage.setItem('userCityName', matchName);
+                            localStorage.setItem('userKecamatan', detectedKecamatan);
+
+                            $('#currentCityLabel').text(matchName);
+                            
+                            let locStatusText = "GPS Terkunci: " + matchName;
+
+                            if(detectedKecamatan) {
+                                $('#currentKecamatanLabel').text("Kec. " + detectedKecamatan).removeClass('hidden');
+                                locStatusText += " (Kec. " + detectedKecamatan + ")";
+                            } else {
+                                $('#currentKecamatanLabel').addClass('hidden');
+                            }
+
+                            $('#locStatus').text(locStatusText).removeClass("animate-pulse").addClass("text-emerald-400").css('color', '#10b981');
                             $('#gpsIcon').removeClass("animate-spin text-white").addClass("text-emerald-400 shadow-[0_0_10px_#10b981]");
                             gpsLocked = true;
+
+                            fetchSchedule(matchId);
+
                         } else {
-                            fallbackLocation("Koordinat ditemukan, tapi kota tidak terdaftar.");
+                            fallbackLocation("Koordinat ditemukan, tapi kota tidak terdaftar di database Kemenag.");
                         }
                     }).fail(function() {
-                        fallbackLocation("Gagal menerjemahkan satelit wilayah.");
+                        fallbackLocation("Gagal menerjemahkan data satelit wilayah.");
                     });
                 },
-                (error) => { fallbackLocation("Akses GPS ditolak/dimatikan perangkat."); },
+                (error) => { fallbackLocation("Akses GPS ditolak atau dimatikan oleh perangkat."); },
                 { timeout: 10000, enableHighAccuracy: true }
             );
         } else {
-            fallbackLocation("Browser tidak mendukung lokasi.");
+            fallbackLocation("Browser tidak mendukung deteksi lokasi.");
         }
     }
 
     function fallbackLocation(reasonMsg = "") {
-        $('#locStatus').text(reasonMsg + " Pakai riwayat.").removeClass("animate-pulse").css('color', '#94a3b8');
+        $('#locStatus').text(reasonMsg + " Menggunakan riwayat lokasi.").removeClass("animate-pulse").css('color', '#94a3b8');
         $('#gpsIcon').removeClass("animate-spin").addClass("text-slate-500");
     }
 
@@ -504,11 +541,12 @@
                 
                 const el = $(`#card-${p.id}`);
                 
-                // Menyorot box jadwal jika masuk waktu (durasi nyala 30 menit)
-                if (diff <= 0 && diff > -1800000) {
+                // Menyorot box jadwal jika masuk waktu. 
+                // DURASI NYALA: 15 Menit = 900.000 milidetik
+                if (diff <= 0 && diff > -900000) {
                     el.addClass('active pulse-active');
-                    // Kondisi spesial Azan Berlangsung (5 menit nyala alert UI)
-                    if (diff > -300000 && p.id !== 'Imsak') {
+                    // Kondisi spesial Azan Berlangsung (15 menit nyala alert UI)
+                    if (p.id !== 'Imsak') {
                         activeAzanPrayer = p;
                     }
                 } else {
@@ -536,7 +574,7 @@
             
             // Logic update tampilan utama
             if (activeAzanPrayer) {
-                $('#prayerLabelText').text(`Saat Azan ${activeAzanPrayer.name} untuk wilayah ${userCityName} dan Sekitarnya`);
+                $('#prayerLabelText').text(`Saat Waktu ${activeAzanPrayer.name} untuk wilayah ${userCityName} dan Sekitarnya`);
                 $('#nextPrayerName').text('');
                 $('#countdown').text('WAKTUNYA SHOLAT').addClass('text-emerald-400 text-3xl md:text-5xl mt-4').removeClass('text-gold-gradient text-red-500 text-6xl md:text-8xl font-luxury');
             } else {
