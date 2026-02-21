@@ -9,6 +9,7 @@ import requests
 import feedparser
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
+import concurrent.futures  # <-- TAMBAHAN LIBRARY UNTUK PARALEL FETCHING
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -45,19 +46,14 @@ def maintenance_interceptor():
     Mengecek waktu server sebelum memproses request user.
     Jika masih dalam periode maintenance, alihkan ke halaman maintenance.html
     """
-    # 1. Izinkan file statis (CSS/JS/Gambar) lewat agar tampilan tidak rusak
     if request.endpoint == 'static':
         return None
     
-    # 2. Hitung Waktu WIB (UTC+7)
     now_wib = datetime.utcnow() + timedelta(hours=7) 
 
-    # 3. Cek Status Maintenance
     if now_wib < MAINTENANCE_END_DATE:
-        # Jika user mengakses halaman selain maintenance, paksa render maintenance.html
         return render_template('maintenance.html'), 503
     
-    # Jika waktu sudah lewat, website berjalan normal
     return None
 
 # ==========================================
@@ -65,7 +61,6 @@ def maintenance_interceptor():
 # ==========================================
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
-        # Konfigurasi Cloud (Vercel / Production)
         cred = credentials.Certificate({
             "type": "service_account",
             "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
@@ -80,7 +75,6 @@ try:
             "universe_domain": "googleapis.com"
         })
     else:
-        # Konfigurasi Lokal (Development)
         if os.path.exists("credentials.json"):
             cred = credentials.Certificate("credentials.json")
         else:
@@ -120,7 +114,6 @@ try:
     model = genai.GenerativeModel("gemini-1.5-flash") # Model Flash lebih cepat
 except: model = None
 
-# Prompt Persona AI
 MODI_PROMPT = """
 Anda adalah MODI, Asisten Virtual Resmi dari KTVDI (Komunitas TV Digital Indonesia).
 Karakter: Profesional, Ramah, Solutif, dan Menggunakan Bahasa Indonesia Baku namun hangat.
@@ -147,9 +140,6 @@ def format_indo_date(time_struct):
     except: return "Baru Saja"
 
 def get_email_template(action_type, nama_user, otp_code):
-    """
-    Generator Template Email Profesional & Resmi
-    """
     waktu = datetime.now().strftime("%d %B %Y, Pukul %H:%M WIB")
     
     if action_type == "REGISTER":
@@ -202,15 +192,11 @@ def get_email_template(action_type, nama_user, otp_code):
     """
     return subject, body
 
-# --- IMPLEMENTASI ALGORITMA HIJRIAH (FIXED TIMEZONE JAKARTA) ---
 def get_hijri_date_string():
-    """Mengembalikan string tanggal Hijriah hari ini (WIB)"""
     try:
-        # UPDATE: Menggunakan Timezone Jakarta agar akurat saat pergantian hari
         tz_jakarta = pytz.timezone('Asia/Jakarta')
         now_wib = datetime.now(tz_jakarta)
         
-        # Algoritma konversi Julian Day
         day = now_wib.day
         month = now_wib.month
         year = now_wib.year
@@ -248,9 +234,8 @@ def get_hijri_date_string():
         return ""
 
 def get_news_entries():
-    """Mengambil berita dari RSS Feed dengan Fallback"""
     all_news = []
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
@@ -272,7 +257,6 @@ def get_news_entries():
                             elif 'cnbc' in url: entry['source_name'] = 'CNBC Indonesia'
                             else: entry['source_name'] = 'Google News'
                             
-                            # Ekstraksi Gambar Pintar
                             img_url = None
                             if 'media_content' in entry and entry.media_content:
                                 img_url = entry.media_content[0]['url']
@@ -315,6 +299,61 @@ def get_quote_religi():
 def get_smart_fallback_response(text):
     return "<b>Mohon Maaf Ndan.</b> Server AI sedang sibuk memproses data. Silakan coba tanyakan lagi dalam beberapa detik. 🙏"
 
+# --- TAMBAHAN CORE UNTUK FETCH API KEMENAG ---
+KEMENAG_KOTA_CACHE = []
+KEMENAG_LAST_FETCH = 0
+
+def fetch_kemenag_kota():
+    """Mengambil daftar Kota/Kabupaten langsung dari Bimas Islam Kemenag secara dinamis (Paralel)"""
+    global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
+    
+    # Gunakan cache agar loading web tidak terblokir selama 24 jam
+    if KEMENAG_KOTA_CACHE and (time.time() - KEMENAG_LAST_FETCH < 86400):
+        return KEMENAG_KOTA_CACHE
+
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        prov_url = "https://bimasislam.kemenag.go.id/web/ajax/getProvinsishalat"
+        prov_req = requests.get(prov_url, headers=headers, verify=False, timeout=10)
+        
+        if prov_req.status_code == 200:
+            # Ambil semua ID Provinsi
+            prov_ids = [pid for pid in re.findall(r'<option\s+value=["\']([^"\']+)["\']', prov_req.text) if pid]
+            all_cities = []
+            kab_url = "https://bimasislam.kemenag.go.id/web/ajax/getKabkoshalat"
+            
+            # Fungsi eksekusi data per ID Provinsi
+            def get_kab(pid):
+                try:
+                    r = requests.post(kab_url, data={'x': pid}, headers=headers, verify=False, timeout=5)
+                    if r.status_code == 200:
+                        return re.findall(r'<option\s+value=["\'][^"\']+["\']\s*>(.*?)</option>', r.text)
+                except:
+                    pass
+                return []
+
+            # Request Paralel agar 34 Provinsi ditarik secara kilat (< 3 detik)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                results = executor.map(get_kab, prov_ids)
+                for res in results:
+                    for c in res:
+                        clean_c = c.strip().title()
+                        if clean_c and "Pilih" not in clean_c:
+                            all_cities.append(clean_c)
+                            
+            if all_cities:
+                KEMENAG_KOTA_CACHE = sorted(list(set(all_cities)))
+                KEMENAG_LAST_FETCH = time.time()
+                return KEMENAG_KOTA_CACHE
+                
+    except Exception as e:
+        print(f"⚠️ Gagal mengambil API Kemenag Bimas Islam: {e}")
+        
+    # Fallback sementara jika API Kemenag sedang down (agar UI tidak kosong)
+    if KEMENAG_KOTA_CACHE: 
+        return KEMENAG_KOTA_CACHE
+    return ["Jakarta", "Surabaya", "Semarang", "Medan", "Makassar"]
+
 # ==========================================
 # 7. LOGIKA EWS & CUACA (CORE INTELLIGENCE)
 # ==========================================
@@ -329,7 +368,6 @@ def smart_convert_cm(value):
         return "0"
 
 def get_cuaca_10_kota():
-    """Mengambil Data Cuaca 10 Kota Jateng dari Open-Meteo"""
     cities = [
         {"name": "Semarang", "lat": -6.9667, "lon": 110.4167},
         {"name": "Surakarta", "lat": -7.5761, "lon": 110.8294},
@@ -430,11 +468,10 @@ def normalize_dam_data(raw_data):
 
 def fetch_ews_data():
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0',
         'Accept': 'application/json'
     }
     
-    # 1. UTAMA: SIAGA KRANJI (Update Cepat & Timestamp Buster)
     try:
         ts = int(time.time() * 1000)
         url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
@@ -445,7 +482,6 @@ def fetch_ews_data():
             if raw_list: return normalize_dam_data(raw_list)
     except: pass
 
-    # 2. BACKUP: EWS JATENG (Resmi Pemerintah)
     try:
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
         r = requests.get(url, headers=headers, timeout=9, verify=False)
@@ -519,12 +555,10 @@ def register():
                 flash("Email ini sudah terdaftar.", "error")
                 return render_template("register.html")
         
-        # OTP 1 MENIT
         otp = str(random.randint(100000, 999999))
         expiry = time.time() + 60 
         ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
         try:
-            # Gunakan Template Email Profesional
             subject, body = get_email_template("REGISTER", n, otp)
             msg = Message(subject, recipients=[e])
             msg.body = body
@@ -573,7 +607,6 @@ def forgot_password():
             expiry = time.time() + 60
             ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
             try:
-                # Gunakan Template Email Profesional
                 subject, body = get_email_template("RESET", user_name, otp)
                 msg = Message(subject, recipients=[email_input])
                 msg.body = body
@@ -616,7 +649,6 @@ def logout(): session.clear(); return redirect(url_for('login'))
 
 @app.route('/berita')
 def berita_page():
-    # Menggunakan fungsi baru get_news_entries()
     entries = get_news_entries()
     page = request.args.get('page', 1, type=int)
     per_page = 9
@@ -624,7 +656,6 @@ def berita_page():
     end = start + per_page
     current = entries[start:end]
     
-    # Format tanggal untuk UI
     for a in current:
         if 'published_parsed' in a and a['published_parsed']:
             a['formatted_date'] = format_indo_date(a['published_parsed'])
@@ -697,7 +728,6 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-# --- EWS BENDUNGAN & AI CHAT ---
 @app.route('/ews-jateng')
 def ews_jateng_page():
     dams = fetch_ews_data()
@@ -709,7 +739,6 @@ def chatbot_api():
     data = request.get_json()
     user_msg = data.get('prompt', '')
     
-    # Injeksi Data Real-time ke AI
     if "bendungan" in user_msg.lower() or "banjir" in user_msg.lower():
         dams = fetch_ews_data()
         bahaya = [f"{d['name']} ({d['status']})" for d in dams if 'awas' in d['status'].lower() or 'siaga' in d['status'].lower()]
@@ -732,59 +761,13 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
-    # Daftar 150+ Kota Merata dari Aceh sampai Papua
-    kota = [
-        # SUMATERA
-        "Ambon", "Banda Aceh", "Sabang", "Lhokseumawe", "Langsa", "Meulaboh", "Tapaktuan",
-        "Medan", "Binjai", "Pematangsiantar", "Sibolga", "Tanjungbalai", "Padangsidempuan", "Gunungsitoli",
-        "Padang", "Bukittinggi", "Payakumbuh", "Solok", "Pariaman", "Sawahlunto", "Padangpanjang",
-        "Pekanbaru", "Dumai", "Rengat", "Bengkalis", "Tembilahan",
-        "Tanjungpinang", "Batam", "Bintan", "Karimun", "Natuna", "Anambas",
-        "Jambi", "Sungai Penuh", "Muara Bungo", "Bangko",
-        "Palembang", "Lubuklinggau", "Prabumulih", "Pagar Alam", "Baturaja", "Lahut",
-        "Bengkulu", "Curup", "Mukomuko",
-        "Bandar Lampung", "Metro", "Kotabumi", "Liwa",
-        "Pangkal Pinang", "Sungailiat", "Tanjung Pandan", "Manggar",
-        
-        # JAWA
-        "Jakarta", "Bogor", "Depok", "Tangerang", "Tangerang Selatan", "Bekasi",
-        "Bandung", "Cimahi", "Cirebon", "Sukabumi", "Tasikmalaya", "Banjar", "Garut", "Sumedang", "Indramayu", "Karawang", "Subang",
-        "Semarang", "Surakarta", "Tegal", "Pekalongan", "Purwodadi", "Pemalang", "Brebes", "Salatiga", "Magelang", "Kudus", "Pati", "Jepara", "Demak", "Purwokerto", "Cilacap", "Kebumen", "Purworejo", "Klaten", "Wonogiri", "Sragen", "Blora",
-        "Yogyakarta", "Sleman", "Bantul", "Wates", "Wonosari",
-        "Surabaya", "Malang", "Batu", "Kediri", "Blitar", "Madiun", "Mojokerto", "Probolinggo", "Pasuruan", "Banyuwangi", "Jember", "Bondowoso", "Situbondo", "Gresik", "Sidoarjo", "Lamongan", "Tuban", "Bojonegoro", "Ngawi", "Ponorogo", "Pacitan", "Sumenep", "Pamekasan",
-        "Serang", "Cilegon", "Pandeglang", "Rangkasbitung",
-        
-        # BALI & NUSA TENGGARA
-        "Denpasar", "Singaraja", "Tabanan", "Gianyar",
-        "Mataram", "Bima", "Sumbawa Besar", "Dompu", "Selong",
-        "Kupang", "Atambua", "Ende", "Maumere", "Waingapu", "Labuan Bajo", "Ruteng", "Bajawa",
-        
-        # KALIMANTAN
-        "Pontianak", "Singkawang", "Sambas", "Ketapang", "Sintang",
-        "Palangkaraya", "Sampit", "Pangkalan Bun", "Kuala Kapuas",
-        "Banjarmasin", "Banjarbaru", "Martapura", "Tanjung", "Batulicin", "Kotabaru",
-        "Samarinda", "Balikpapan", "Bontang", "Tenggarong", "Sangatta", "Tana Paser",
-        "Tarakan", "Tanjung Selor", "Nunukan", "Malinau",
-        
-        # SULAWESI
-        "Makassar", "Parepare", "Palopo", "Bone", "Bulukumba", "Maros", "Gowa",
-        "Manado", "Bitung", "Tomohon", "Kotamobagu", "Tondano",
-        "Palu", "Luwuk", "Poso", "Toli-Toli",
-        "Kendari", "Bau-Bau", "Kolaka", "Raha",
-        "Gorontalo", "Limboto",
-        "Mamuju", "Majene", "Polewali",
-        
-        # MALUKU & PAPUA
-        "Ternate", "Tidore Kepulauan", "Tobelo", "Labuha",
-        "Tual", "Masohi", "Saumlaki",
-        "Jayapura", "Sentani", "Merauke", "Biak", "Serui", "Wamena", "Nabire", "Timika",
-        "Sorong", "Manokwari", "Fakfak", "Kaimana", "Raja Ampat"
-    ]
+    # MENGGUNAKAN FUNGSI API KEMENAG DINAMIS ALIH-ALIH LIST MANUAL
+    daftar_kota = fetch_kemenag_kota()
     
     # Hitung Tanggal Hijriah untuk ditampilkan
     hijri_today = get_hijri_date_string()
     
-    return render_template("jadwal-sholat.html", daftar_kota=sorted(list(set(kota))), quotes=get_quote_religi(), hijri_date=hijri_today)
+    return render_template("jadwal-sholat.html", daftar_kota=daftar_kota, quotes=get_quote_religi(), hijri_date=hijri_today)
 
 @app.route("/api/news-ticker")
 def news_ticker():
