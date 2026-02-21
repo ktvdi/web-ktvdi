@@ -165,16 +165,11 @@ def get_email_template(action_type, nama_user, otp_code):
     return subject, body
 
 def get_hijri_date_string():
-    """ Mengambil Kalender Hijriah Akurat (Sinkron dengan Kemenag / Hilal) """
-    # Ndan, ubah nilai HIJRI_OFFSET ini jika ingin menyesuaikan dengan isbat Kemenag
-    # -1 berarti mundur 1 hari (Agar hari ini terbaca 4 Ramadan 1447 H)
     HIJRI_OFFSET = -1 
-    
     try:
         tz_jakarta = pytz.timezone('Asia/Jakarta')
         now_wib = datetime.now(tz_jakarta) + timedelta(days=HIJRI_OFFSET)
         
-        # 1. Coba ambil dari API agar jauh lebih presisi dari hitungan manual
         url = f"https://api.aladhan.com/v1/gToH?date={now_wib.strftime('%d-%m-%Y')}"
         r = requests.get(url, timeout=3)
         if r.status_code == 200:
@@ -192,8 +187,6 @@ def get_hijri_date_string():
             return f"{d} {m} {y} H"
     except Exception as e:
         pass
-
-    # 2. Fallback jika API Aladhan down (Hitungan manual)
     return f"4 Ramadan 1447 H"
 
 def get_news_entries():
@@ -255,23 +248,19 @@ def get_quote_religi():
 def get_smart_fallback_response(text):
     return "<b>Mohon Maaf Ndan.</b> Server AI sedang sibuk memproses data. Silakan coba tanyakan lagi dalam beberapa detik. 🙏"
 
-# --- CORE FETCH API KEMENAG (FIXED ANTI BLOCK) ---
+# --- CORE FETCH API KEMENAG (FIXED WITH ID MAP) ---
 KEMENAG_KOTA_CACHE = []
 KEMENAG_LAST_FETCH = 0
 
 def fetch_kemenag_kota():
-    """Mengambil 300+ Kota dari Bimas Islam Kemenag / Official Mirror MyQuran"""
+    """Mengambil Data Kota Beserta ID Resmi Kemenag"""
     global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
     
-    # Bypass cache loading jika di bawah 24 jam
     if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400):
         return KEMENAG_KOTA_CACHE
 
     all_cities = []
-    
-    # CARA 1: Langsung dari Bimas Islam Kemenag (Dengan Header Anti-Blokir)
     try:
-        # Header ini wajib agar tidak ditendang oleh Anti-Spam Bimas Islam
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'X-Requested-With': 'XMLHttpRequest',  
@@ -289,38 +278,34 @@ def fetch_kemenag_kota():
                 try:
                     r = requests.post(kab_url, data={'x': pid}, headers=headers, verify=False, timeout=5)
                     if r.status_code == 200:
-                        return re.findall(r'<option\s+value=["\'][^"\']+["\']\s*>(.*?)</option>', r.text)
+                        # TANGKAP ID dan NAMA (Format Dictionary)
+                        return re.findall(r'<option\s+value=["\']([^"\']+)["\']\s*>(.*?)</option>', r.text)
                 except: pass
                 return []
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor: # Worker diturunkan agar Kemenag tidak mengira kita nyepam
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
                 results = executor.map(get_kab, prov_ids)
                 for res in results:
-                    for c in res:
-                        clean_c = c.strip().title()
+                    for id_kab, nama_kab in res:
+                        clean_c = nama_kab.strip().title()
                         if clean_c and "Pilih" not in clean_c:
-                            all_cities.append(clean_c)
+                            all_cities.append({"id": id_kab, "nama": clean_c})
                             
     except Exception as e:
         print(f"Bimas Islam API Error: {e}")
 
-    # CARA 2: Auto-Fallback ke MyQuran API (Mirror Resmi Kemenag) jika Bimas down
-    if len(all_cities) < 50:
-        try:
-            r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=5)
-            if r.status_code == 200:
-                data = r.json()
-                if data.get('status') and 'data' in data:
-                    all_cities = [item['lokasi'].title() for item in data['data']]
-        except Exception as e:
-            print(f"MyQuran Backup API Error: {e}")
+    # Fallback darurat (Menggunakan ID Asli Kemenag)
+    if not all_cities:
+        all_cities = [
+            {"id": "1301", "nama": "Kota Jakarta"},
+            {"id": "1604", "nama": "Kota Semarang"},
+            {"id": "1638", "nama": "Kota Surabaya"},
+            {"id": "0418", "nama": "Kota Medan"}
+        ]
 
-    if all_cities:
-        KEMENAG_KOTA_CACHE = sorted(list(set(all_cities)))
-        KEMENAG_LAST_FETCH = time.time()
-        return KEMENAG_KOTA_CACHE
-        
-    return ["Jakarta", "Surabaya", "Semarang", "Medan", "Makassar"] # Ultimate Fallback
+    KEMENAG_KOTA_CACHE = sorted(all_cities, key=lambda x: x['nama'])
+    KEMENAG_LAST_FETCH = time.time()
+    return KEMENAG_KOTA_CACHE
 
 # ==========================================
 # 7. LOGIKA EWS & CUACA
@@ -688,9 +673,41 @@ def chatbot_api():
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
+    # Mengirimkan list of dictionary (id dan nama) ke template HTML
     daftar_kota = fetch_kemenag_kota()
     hijri_today = get_hijri_date_string()
     return render_template("jadwal-sholat.html", daftar_kota=daftar_kota, quotes=get_quote_religi(), hijri_date=hijri_today)
+
+# --- API INTERNAL BARU UNTUK MENARIK JADWAL RESMI KEMENAG ---
+@app.route("/api/jadwal-imsakiyah")
+def get_jadwal_kemenag():
+    """
+    API ini bertugas menjembatani frontend Ndan langsung ke Kemenag.
+    Format pemanggilan dari JavaScript: /api/jadwal-imsakiyah?id_kota=1301&bulan=3&tahun=2026
+    """
+    id_kota = request.args.get("id_kota")
+    bulan = request.args.get("bulan", datetime.now().month)
+    tahun = request.args.get("tahun", datetime.now().year)
+
+    if not id_kota:
+        return jsonify({"status": "error", "message": "Parameter id_kota wajib diisi."})
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'X-Requested-With': 'XMLHttpRequest',  
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+    }
+
+    try:
+        url = "https://bimasislam.kemenag.go.id/web/ajax/getShalat"
+        r = requests.post(url, data={'x': id_kota, 'y': bulan, 'z': tahun}, headers=headers, verify=False, timeout=10)
+        
+        if r.status_code == 200:
+            return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+    return jsonify({"status": "error", "message": "Gagal menghubungi Bimas Islam"})
 
 @app.route("/api/news-ticker")
 def news_ticker():
