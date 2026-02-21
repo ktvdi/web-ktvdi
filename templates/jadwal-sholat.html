@@ -160,14 +160,14 @@
         <div class="w-full lg:w-auto flex flex-col gap-2">
             <label class="text-[10px] uppercase text-slate-500 font-bold tracking-widest lg:text-right hidden lg:block">Lokasi Anda</label>
             <div class="bg-[#1e293b] p-1 rounded-full border border-slate-700 flex items-center w-full lg:w-[320px] shadow-lg focus-within:border-[#d4af37] transition">
-                <div id="gpsIcon" class="w-10 h-10 rounded-full bg-[#0f172a] flex items-center justify-center text-[#d4af37] mr-2 shrink-0 gps-scan cursor-pointer" onclick="forceGPS()">
+                <div id="gpsIcon" class="w-10 h-10 rounded-full bg-[#0f172a] flex items-center justify-center text-[#d4af37] mr-2 shrink-0 gps-scan cursor-pointer" onclick="forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
                     <i class="fa-solid fa-location-crosshairs"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                     <select id="kotaSelect" class="w-full bg-transparent text-white text-sm outline-none">
                         <option value="" disabled selected>Mendeteksi Lokasi...</option>
                         {% for kota in daftar_kota %}
-                        <option value="{{ kota }}">{{ kota }}</option>
+                        <option value="{{ kota.id }}">{{ kota.nama }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -185,7 +185,7 @@
             <div class="flex justify-between items-start z-10">
                 <div>
                     <span class="block text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Tanggal Hari Ini</span>
-                    <div class="text-xl md:text-2xl font-luxury text-white" id="hijriDate">-- Ramadhan 1446 H</div>
+                    <div class="text-xl md:text-2xl font-luxury text-white" id="hijriDate">{{ hijri_date }}</div>
                     <div class="text-sm text-[#d4af37]" id="dateMasehi">...</div>
                 </div>
                 <div class="text-right">
@@ -225,8 +225,8 @@
 
     <div class="mb-12">
         <h3 class="text-white font-luxury text-lg mb-6 border-l-4 border-[#d4af37] pl-4 flex items-center">
-            Jadwal Sholat
-            <span class="ml-auto text-[10px] text-slate-500 font-sans font-normal italic">*Waktu setempat</span>
+            Jadwal Sholat Harian Kemenag RI
+            <span class="ml-auto text-[10px] text-slate-500 font-sans font-normal italic">*Berdasarkan Data Bimas Islam</span>
         </h3>
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="prayerGrid">
             <div class="col-span-full py-12 text-center text-slate-600">
@@ -256,7 +256,7 @@
                     <i class="fa-solid fa-utensils text-2xl text-emerald-500"></i>
                     <h4 class="text-white font-bold text-lg">Doa Berbuka Puasa</h4>
                 </div>
-                <p class="text-2xl md:text-3xl font-arab text-white leading-loose mb-4">اللَّهُمَّ لَكَ صُمْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ إِنْ شَاءَ اللَّهُ</p>
+                <p class="text-2xl md:text-3xl font-arab text-white leading-loose mb-4">اللَّهُمَّ لَكَ صُمْتُ وَعَلَى رِزْقِكَ أَفْطَرْتُ ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الأَجْرُ إِنْ شَاءَ اللَّهُ</p>
                 <p class="text-sm font-bold text-emerald-400 mb-2">Allahumma laka shumtu wa 'alaa rizqika afthartu, dzahabazh zhama'u wabtallatil 'uruuqu wa tsabatal ajru, insyaa Allah.</p>
                 <p class="text-xs text-slate-400 italic">"Ya Allah, untuk-Mu aku berpuasa, dan dengan rezeki-Mu aku berbuka. Telah hilang rasa haus, telah basah urat-urat, dan telah pasti pahala, insya Allah."</p>
             </div>
@@ -264,7 +264,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-        
         <div class="islamic-card p-6 flex flex-col">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-8 h-8 rounded bg-[#d4af37]/20 flex items-center justify-center text-[#d4af37]">
@@ -317,38 +316,54 @@
             </button>
         </div>
     </div>
-
 </div>
-
-<script type="application/json" id="cityData">{{ daftar_kota | tojson }}</script>
 
 <script>
     // =========================================
     // 1. SYSTEM INITIALIZATION & GPS LOCK
     // =========================================
     let currentSchedule = null;
-    let userCity = localStorage.getItem('userCity') || 'Jakarta'; 
+    let timerInterval = null;
+    
+    // Default Fallback ID (1301 = Kota Jakarta)
+    let userCityId = localStorage.getItem('userCityId') || '1301'; 
+    let userCityName = localStorage.getItem('userCityName') || 'Kota Jakarta';
     let gpsLocked = false;
 
     $(document).ready(function() {
         $('#kotaSelect').select2({ width: '100%', dropdownAutoWidth: true });
         initAsmaulHusna();
         fetchQuran();
+
+        // 1. Set State Awal berdasarkan Storage
+        $('#kotaSelect').val(userCityId).trigger('change.select2');
+        $('#currentCityLabel').text(userCityName);
+        
+        // 2. Tarik Data Jadwal Perdana
+        fetchSchedule(userCityId);
+        
+        // 3. Coba Deteksi GPS otomatis
         forceGPS();
 
+        // Handler saat user manual memilih kota
         $('#kotaSelect').on('change', function() {
-            const city = this.value;
-            userCity = city;
-            localStorage.setItem('userCity', city);
-            $('#currentCityLabel').text(city);
-            $('#locStatus').text("Lokasi Manual").removeClass("animate-pulse");
-            fetchSchedule(city);
+            const idKota = $(this).val();
+            const namaKota = $("#kotaSelect option:selected").text();
+            
+            userCityId = idKota;
+            userCityName = namaKota;
+            localStorage.setItem('userCityId', idKota);
+            localStorage.setItem('userCityName', namaKota);
+            
+            $('#currentCityLabel').text(namaKota);
+            $('#locStatus').text("Lokasi Diset Manual").removeClass("animate-pulse").css('color', '#94a3b8');
+            fetchSchedule(idKota);
         });
     });
 
     function forceGPS() {
-        $('#locStatus').text("Sedang mencari satelit...").addClass("animate-pulse");
-        $('#gpsIcon').addClass("animate-spin text-white").removeClass("text-[#d4af37]");
+        $('#locStatus').text("Sedang mencari koordinat...").addClass("animate-pulse").css('color', '#d4af37');
+        $('#gpsIcon').addClass("animate-spin text-white").removeClass("text-[#d4af37] text-emerald-400 shadow-[0_0_10px_#10b981]");
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -360,65 +375,95 @@
                         let detected = data.address.city || data.address.town || data.address.county || 'Jakarta';
                         detected = detected.replace(/(Kota|Kabupaten|City of)\s+/i, '').trim();
 
-                        const options = Array.from(document.querySelectorAll('#kotaSelect option')).map(o => o.value);
-                        const match = options.find(o => o.toLowerCase() === detected.toLowerCase()) || 
-                                      options.find(o => o.toLowerCase().includes(detected.toLowerCase()));
+                        let matchId = null;
+                        let matchName = null;
+                        
+                        // Cari kota di opsi select yang paling cocok dengan hasil GPS
+                        $('#kotaSelect option').each(function() {
+                            const optText = $(this).text().toLowerCase();
+                            if (optText.includes(detected.toLowerCase())) {
+                                matchId = $(this).val();
+                                matchName = $(this).text();
+                                return false; // Break loop
+                            }
+                        });
 
-                        const finalCity = match || 'Jakarta';
-                        
-                        $('#kotaSelect').val(finalCity).trigger('change');
-                        $('#currentCityLabel').text(finalCity);
-                        $('#locStatus').text("GPS Terkunci Akurat").removeClass("animate-pulse").addClass("text-emerald-400");
-                        $('#gpsIcon').removeClass("animate-spin text-white").addClass("text-emerald-400 shadow-[0_0_10px_#10b981]");
-                        
-                        userCity = finalCity;
-                        fetchSchedule(finalCity);
-                        gpsLocked = true;
+                        if (matchId) {
+                            $('#kotaSelect').val(matchId).trigger('change');
+                            $('#locStatus').text("GPS Terkunci: " + matchName).removeClass("animate-pulse").addClass("text-emerald-400").css('color', '#10b981');
+                            $('#gpsIcon').removeClass("animate-spin text-white").addClass("text-emerald-400 shadow-[0_0_10px_#10b981]");
+                            gpsLocked = true;
+                        } else {
+                            fallbackLocation("Koordinat ditemukan, tapi kota tidak terdaftar.");
+                        }
+                    }).fail(function() {
+                        fallbackLocation("Gagal menerjemahkan satelit wilayah.");
                     });
                 },
-                (error) => { fallbackLocation(); },
+                (error) => { fallbackLocation("Akses GPS ditolak/dimatikan perangkat."); },
                 { timeout: 10000, enableHighAccuracy: true }
             );
         } else {
-            fallbackLocation();
+            fallbackLocation("Browser tidak mendukung lokasi.");
         }
     }
 
-    function fallbackLocation() {
-        $('#locStatus').text("GPS tidak aktif. Menggunakan lokasi tersimpan.").removeClass("animate-pulse").css('color', '#94a3b8');
-        $('#gpsIcon').removeClass("animate-spin").addClass("text-red-500");
-        $('#kotaSelect').val(userCity).trigger('change'); 
-        fetchSchedule(userCity);
+    function fallbackLocation(reasonMsg = "") {
+        $('#locStatus').text(reasonMsg + " Pakai riwayat.").removeClass("animate-pulse").css('color', '#94a3b8');
+        $('#gpsIcon').removeClass("animate-spin").addClass("text-slate-500");
     }
 
     // =========================================
-    // 2. PRAYER SCHEDULE & ALERTS
+    // 2. PRAYER SCHEDULE API (INTERNAL) & ALERTS
     // =========================================
-    function fetchSchedule(city) {
-        if(!city) return;
-        const d = new Date();
-        const dateStr = `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+    function fetchSchedule(id_kota) {
+        if(!id_kota) return;
 
-        $.get(`https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${city}&country=Indonesia&method=20`, function(res) {
-            const t = res.data.timings;
-            const h = res.data.date.hijri;
-            
-            $('#hijriDate').text(`${h.day} ${h.month.en} ${h.year} H`);
-            $('#dateMasehi').text(res.data.date.readable);
+        // Tampilkan indikator Loading sebelum data masuk
+        $('#prayerGrid').html(`
+            <div class="col-span-full py-12 text-center text-slate-600">
+                <i class="fa-solid fa-circle-notch fa-spin text-2xl text-[#d4af37] mb-3"></i>
+                <p class="text-xs uppercase tracking-widest">Menarik Data Kemenag...</p>
+            </div>
+        `);
 
-            renderPrayerGrid(t);
-            startCountdownEngine(t);
+        // Panggil API Python/Flask Ndan sendiri (yang diteruskan dari MyQuran)
+        $.get(`/api/jadwal-imsakiyah?id_kota=${id_kota}`, function(res) {
+            if(res.status && res.data && res.data.jadwal) {
+                // Mendapatkan format tanggal hari ini (YYYY-MM-DD)
+                const d = new Date();
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const todayDateStr = `${yyyy}-${mm}-${dd}`;
+                
+                // Cari jadwal spesifik untuk TANGGAL HARI INI dari respon API
+                let todayJadwal = res.data.jadwal.find(j => j.date === todayDateStr);
+                
+                // Jika server tidak memiliki tanggal hari ini (misal pergantian bulan/timezone), pakai index 0
+                if (!todayJadwal) todayJadwal = res.data.jadwal[0]; 
+
+                $('#dateMasehi').text(todayJadwal.tanggal);
+                
+                renderPrayerGrid(todayJadwal);
+                startCountdownEngine(todayJadwal);
+            } else {
+                $('#prayerGrid').html('<div class="col-span-full py-12 text-center text-red-500 font-bold">Gagal mengambil jadwal Kemenag. Coba segarkan halaman.</div>');
+            }
+        }).fail(function() {
+            $('#prayerGrid').html('<div class="col-span-full py-12 text-center text-red-500 font-bold">Server Offline. Gagal menghubungi Kemenag.</div>');
         });
     }
 
     function renderPrayerGrid(t) {
+        // Mapping kunci lowercase karena JSON API MyQuran menggunakan huruf kecil
         const prayers = [
-            {id:'Imsak', n:'Imsak', t:t.Imsak},
-            {id:'Fajr', n:'Subuh', t:t.Fajr},
-            {id:'Dhuhr', n:'Dzuhur', t:t.Dhuhr},
-            {id:'Asr', n:'Ashar', t:t.Asr},
-            {id:'Maghrib', n:'Maghrib', t:t.Maghrib},
-            {id:'Isha', n:'Isya', t:t.Isha}
+            {id:'Imsak', n:'Imsak', t:t.imsak},
+            {id:'Fajr', n:'Subuh', t:t.subuh},
+            {id:'Dhuhr', n:'Dzuhur', t:t.dzuhur},
+            {id:'Asr', n:'Ashar', t:t.ashar},
+            {id:'Maghrib', n:'Maghrib', t:t.maghrib},
+            {id:'Isha', n:'Isya', t:t.isya}
         ];
 
         let html = '';
@@ -432,17 +477,16 @@
         $('#prayerGrid').html(html);
     }
 
-    let timerInterval;
     function startCountdownEngine(timings) {
         if(timerInterval) clearInterval(timerInterval);
 
         const prayers = [
-            {name:'Imsak', time:timings.Imsak, id:'Imsak'},
-            {name:'Subuh', time:timings.Fajr, id:'Fajr'},
-            {name:'Dzuhur', time:timings.Dhuhr, id:'Dhuhr'},
-            {name:'Ashar', time:timings.Asr, id:'Asr'},
-            {name:'Maghrib', time:timings.Maghrib, id:'Maghrib'},
-            {name:'Isya', time:timings.Isha, id:'Isha'}
+            {name:'Imsak', time:timings.imsak, id:'Imsak'},
+            {name:'Subuh', time:timings.subuh, id:'Fajr'},
+            {name:'Dzuhur', time:timings.dzuhur, id:'Dhuhr'},
+            {name:'Ashar', time:timings.ashar, id:'Asr'},
+            {name:'Maghrib', time:timings.maghrib, id:'Maghrib'},
+            {name:'Isya', time:timings.isya, id:'Isha'}
         ];
 
         timerInterval = setInterval(() => {
@@ -460,10 +504,10 @@
                 
                 const el = $(`#card-${p.id}`);
                 
-                // Jika sudah masuk waktu (batas active box = 30 menit)
+                // Menyorot box jadwal jika masuk waktu (durasi nyala 30 menit)
                 if (diff <= 0 && diff > -1800000) {
                     el.addClass('active pulse-active');
-                    // REVISI 3: Status khusus 5 menit pertama untuk menaruh teks Azan
+                    // Kondisi spesial Azan Berlangsung (5 menit nyala alert UI)
                     if (diff > -300000 && p.id !== 'Imsak') {
                         activeAzanPrayer = p;
                     }
@@ -477,6 +521,7 @@
                 }
             });
 
+            // Rollover logic: Jika isya sudah lewat, target = besok Imsak
             if (!nextP) {
                 nextP = prayers[0];
                 const [h, m] = nextP.time.split(':');
@@ -489,19 +534,18 @@
             const mm = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
             const ss = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
             
-            // REVISI 3 & 4: Logic update tampilan teks dan warna Merah
+            // Logic update tampilan utama
             if (activeAzanPrayer) {
-                $('#prayerLabelText').text(`Saat Azan ${activeAzanPrayer.name} untuk wilayah ${userCity} dan Sekitarnya`);
+                $('#prayerLabelText').text(`Saat Azan ${activeAzanPrayer.name} untuk wilayah ${userCityName} dan Sekitarnya`);
                 $('#nextPrayerName').text('');
-                // Sembunyikan countdown dan tampilkan alert
                 $('#countdown').text('WAKTUNYA SHOLAT').addClass('text-emerald-400 text-3xl md:text-5xl mt-4').removeClass('text-gold-gradient text-red-500 text-6xl md:text-8xl font-luxury');
             } else {
                 $('#prayerLabelText').text('Menuju Waktu ');
                 $('#nextPrayerName').text(nextP.name);
                 $('#countdown').text(`${hh}:${mm}:${ss}`).removeClass('text-emerald-400 text-3xl md:text-5xl mt-4').addClass('text-6xl md:text-8xl font-luxury');
                 
-                // REVISI 4: Ubah jadi merah jika sisa kurang dari 1 menit (60 detik)
-                if (totalSeconds < 60) {
+                // Beri warna peringatan jika kurang 60 detik
+                if (totalSeconds <= 60) {
                     $('#countdown').addClass('text-red-500').removeClass('text-gold-gradient');
                 } else {
                     $('#countdown').removeClass('text-red-500').addClass('text-gold-gradient');
@@ -512,22 +556,18 @@
             const percentage = Math.max(0, Math.min(100, 100 - ((minDiff / oneHour) * 100)));
             $('#timeProgressBar').css('width', `${percentage}%`);
 
-            // REVISI 2: Alert Logic
+            // Notifikasi Toast
             const minutesLeft = Math.floor(totalSeconds / 60);
             const secondsLeft = totalSeconds % 60;
 
-            // Peringatan H-15 Menit (Kecuali Subuh & Imsak)
             if (nextP.name !== 'Subuh' && nextP.name !== 'Imsak' && minutesLeft === 15 && secondsLeft === 0) {
                 showToast(`Persiapan ${nextP.name}`, `Waktu ${nextP.name} akan masuk dalam 15 menit.`);
             }
-            
-            // Peringatan Imsak H-10 Menit
             if (nextP.name === 'Imsak' && minutesLeft === 10 && secondsLeft === 0) {
                 showToast(`⚠️ Peringatan Imsak`, `Waktu Imsak tersisa 10 menit lagi. Segera selesaikan sahur.`);
             }
-            
             if (totalSeconds === 0) {
-                showToast(`Adzan ${nextP.name}`, `Telah masuk waktu sholat ${nextP.name} untuk wilayah ${userCity}.`);
+                showToast(`Waktu ${nextP.name}`, `Telah masuk waktu sholat ${nextP.name} untuk wilayah ${userCityName}.`);
             }
 
         }, 1000);
@@ -546,7 +586,6 @@
     // =========================================
     
     function initAsmaulHusna() {
-        // REVISI 1: Lengkap 99 Asmaul Husna
         const asmaulHusna = [
             { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" },
             { Arab: "الرَّحِيمُ", Latin: "Ar Rahiim", Arti: "Yang Maha Penyayang" },
