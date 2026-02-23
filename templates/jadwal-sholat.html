@@ -187,6 +187,24 @@
         </div>
     </div>
 
+    <div id="promoBannersContainer" class="mb-10 hidden transition-all duration-500">
+        <div id="sahurBanners" class="hidden grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="islamic-card p-2">
+                <img src="https://iili.io/qKR2s99.md.jpg" alt="Promosi Channel LCN MNC Group" class="w-full h-auto rounded-lg shadow-md border border-white/5 object-cover">
+            </div>
+            <div class="islamic-card p-2">
+                <img src="https://iili.io/qKRC2AN.md.jpg" alt="Iklan Masyarakat Polri" class="w-full h-auto rounded-lg shadow-md border border-white/5 object-cover">
+            </div>
+        </div>
+        <div id="bukaBanners" class="hidden grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="islamic-card p-2">
+                <img src="https://iili.io/qKRzaIV.md.jpg" alt="Promo Kanal UHF Indosiar" class="w-full h-auto rounded-lg shadow-md border border-white/5 object-cover">
+            </div>
+            <div class="islamic-card p-2">
+                <img src="https://iili.io/qKR5yyg.md.webp" alt="Promo Program AKSI 2026" class="w-full h-auto rounded-lg shadow-md border border-white/5 object-cover">
+            </div>
+        </div>
+    </div>
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
         <div class="lg:col-span-8 islamic-card p-8 flex flex-col justify-between min-h-[300px] relative">
             <div class="absolute top-0 right-0 opacity-5 text-9xl text-white transform translate-x-10 -translate-y-10 pointer-events-none transition-transform duration-700 hover:scale-110">
@@ -610,6 +628,35 @@
                 $('#sahurReminder').removeClass('hidden').addClass('block');
             } else {
                 $('#sahurReminder').removeClass('block').addClass('hidden');
+            }
+            // -----------------------------
+
+            // --- PROMO BANNERS LOGIC ---
+            const limitPromoDate = new Date('2026-03-16T00:00:00'); // Batas 15 Maret 2026
+            
+            if (now < limitPromoDate) {
+                // Sahur: 02.00 - 03.15
+                const isPromoSahur = (currentHour === 2) || (currentHour === 3 && currentMinute <= 15);
+                // Buka: 17.15 - 18.15
+                const isPromoBuka = (currentHour === 17 && currentMinute >= 15) || (currentHour === 18 && currentMinute <= 15);
+                
+                if (isPromoSahur || isPromoBuka) {
+                    $('#promoBannersContainer').removeClass('hidden').addClass('block');
+                    if (isPromoSahur) {
+                        $('#sahurBanners').removeClass('hidden').addClass('grid');
+                        $('#bukaBanners').removeClass('grid').addClass('hidden');
+                    } else {
+                        $('#bukaBanners').removeClass('hidden').addClass('grid');
+                        $('#sahurBanners').removeClass('grid').addClass('hidden');
+                    }
+                } else {
+                    $('#promoBannersContainer').removeClass('block').addClass('hidden');
+                    $('#sahurBanners').removeClass('grid').addClass('hidden');
+                    $('#bukaBanners').removeClass('grid').addClass('hidden');
+                }
+            } else {
+                // Sembunyikan sepenuhnya setelah tanggal 15 maret lewat
+                $('#promoBannersContainer').removeClass('block').addClass('hidden');
             }
             // -----------------------------
 
