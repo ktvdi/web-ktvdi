@@ -416,26 +416,46 @@
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     
-                    // Zoom level 18 memastikan tingkat detail sampai kecamatan/kelurahan
                     $.getJSON(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18`, function(data) {
                         
-                        let detected = data.address.city || data.address.town || data.address.county || 'Jakarta';
-                        
-                        // Perbaikan hierarki akurasi kelurahan/kecamatan
-                        let detectedKecamatan = data.address.city_district || data.address.suburb || data.address.village || data.address.neighbourhood || '';
+                        let addr = data.address;
+                        let detected = addr.city || addr.town || addr.county || 'Jakarta';
+                        let detectedKecamatan = addr.city_district || addr.suburb || addr.village || addr.neighbourhood || '';
 
-                        detected = detected.replace(/(Kota|Kabupaten|City of)\s+/i, '').trim();
+                        // Analisis Tipe Wilayah (Kota vs Kabupaten) dari data satelit
+                        let isKota = !!addr.city; 
+                        let isKabupaten = !!addr.county && !addr.city;
+
+                        // Bersihkan nama untuk pencarian dasar
+                        let cleanName = detected.replace(/(Kota|Kabupaten|City of)\s+/ig, '').trim().toLowerCase();
 
                         let matchId = null;
                         let matchName = null;
+                        let highestScore = -1;
                         
-                        // Cari kota di opsi select yang paling cocok dengan hasil GPS
+                        // Sistem Scoring untuk akurasi dropdown
                         $('#kotaSelect option').each(function() {
                             const optText = $(this).text().toLowerCase();
-                            if (optText.includes(detected.toLowerCase())) {
-                                matchId = $(this).val();
-                                matchName = $(this).text();
-                                return false; // Break loop
+                            
+                            if (optText.includes(cleanName)) {
+                                let score = 1; 
+                                
+                                let optIsKota = optText.includes('kota ');
+                                let optIsKab = optText.includes('kab.') || optText.includes('kabupaten ');
+                                
+                                // Cocokkan identitas persis Kota / Kabupaten
+                                if (isKota && optIsKota) score += 5;
+                                if (isKabupaten && optIsKab) score += 5;
+                                
+                                // Penalti skor jika bersilangan
+                                if (isKota && optIsKab) score -= 5;
+                                if (isKabupaten && optIsKota) score -= 5;
+
+                                if (score > highestScore) {
+                                    highestScore = score;
+                                    matchId = $(this).val();
+                                    matchName = $(this).text();
+                                }
                             }
                         });
 
@@ -703,11 +723,7 @@
             { Arab: "الْجَبَّارُ", Latin: "Al Jabbar", Arti: "Yang Memiliki Mutlak Kegagahan" },
             { Arab: "الْمُتَكَبِّرُ", Latin: "Al Mutakabbir", Arti: "Yang Maha Megah" },
             { Arab: "الْخَالِقُ", Latin: "Al Khaliq", Arti: "Yang Maha Pencipta" }
-            // Hanya dipersingkat di script ini, di aslinya tetap full array 99 kalau diperlukan
         ];
-
-        // Jika Anda punya array asmaul husna penuh yang sebelumnya, Anda bisa menyisipkannya kembali di sini.
-        // Saya menyingkat array di script response agar lebih efisien, tapi sistemnya sama persis.
 
         let html = '';
         asmaulHusna.forEach(a => {
