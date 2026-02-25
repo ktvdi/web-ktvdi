@@ -771,34 +771,26 @@
         setInterval(updateClockFlip, 3000);
         updateClockFlip();
 
-        // --- DETEKTOR PENGUNJUNG (MOCK DATA / SIMULASI API) ---
-        let mockDaily = 158;
-        let mockOnline = 12;
-
+        // --- DETEKTOR PENGUNJUNG (REAL API) ---
         async function fetchVisitorStats() {
             try {
-                // TODO: Aktifkan 2 baris ini jika endpoint backend Flask (e.g. Supabase/PostgreSQL) sudah siap
-                // const res = await fetch('/api/visitor-stats');
-                // const data = await res.json();
+                const res = await fetch('/api/visitor-stats');
+                if (!res.ok) return;
+                const data = await res.json();
                 
-                // Lempar error paksa agar masuk ke mode catch (simulasi animasi angka)
-                throw new Error("Gunakan mock data sementara sampai API siap"); 
-            } catch (error) {
-                // Animasi dummy agar angka terlihat hidup/real-time
-                mockOnline = Math.max(1, mockOnline + Math.floor(Math.random() * 5) - 2); 
-                mockDaily += Math.floor(Math.random() * 2);
-
                 // Update UI Desktop
                 const desktopOnline = document.getElementById('desktop-online-count');
                 const desktopDaily = document.getElementById('desktop-daily-count');
-                if(desktopOnline) desktopOnline.innerText = mockOnline;
-                if(desktopDaily) desktopDaily.innerText = mockDaily;
+                if(desktopOnline) desktopOnline.innerText = data.online;
+                if(desktopDaily) desktopDaily.innerText = data.daily;
 
                 // Update UI Mobile
                 const mobileOnline = document.getElementById('mobile-online-count');
                 const mobileDaily = document.getElementById('mobile-daily-count');
-                if(mobileOnline) mobileOnline.innerText = mockOnline;
-                if(mobileDaily) mobileDaily.innerText = mockDaily;
+                if(mobileOnline) mobileOnline.innerText = data.online;
+                if(mobileDaily) mobileDaily.innerText = data.daily;
+            } catch (error) {
+                console.error("Gagal mengambil data pengunjung:", error);
             }
         }
         
