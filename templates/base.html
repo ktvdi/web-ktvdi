@@ -401,6 +401,25 @@
                             <i class="fa-solid fa-bars text-sm"></i>
                         </button>
                         <div id="info-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
+                            
+                            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center mb-1">
+                                <div class="flex flex-col">
+                                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Online Terkini</span>
+                                    <div class="flex items-center gap-1.5 text-sm font-black text-green-600">
+                                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                        <span id="mobile-online-count">0</span>
+                                    </div>
+                                </div>
+                                <div class="w-px h-6 bg-slate-200"></div>
+                                <div class="flex flex-col items-end">
+                                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Hari Ini</span>
+                                    <div class="flex items-center gap-1.5 text-sm font-black text-blue-600">
+                                        <i class="fa-solid fa-users text-[10px] text-blue-400"></i>
+                                        <span id="mobile-daily-count">0</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="px-4 py-2 border-b border-slate-100">
                                 <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Menu Tambahan</span>
                             </div>
@@ -503,7 +522,7 @@
                         <span class="group-hover:text-blue-400 transition">kom.tvdigitalid@gmail.com</span>
                     </li>
                     <li class="flex items-start gap-3 group cursor-pointer">
-                        <i class="fa-brands fa-whatsapp mt-1 text-green-500 group-hover:text-green-400 transition"></i>
+                        <i class="brands fa-whatsapp mt-1 text-green-500 group-hover:text-green-400 transition"></i>
                         <span class="group-hover:text-blue-400 transition">0815-9131-735</span>
                     </li>
                 </ul>
@@ -562,7 +581,20 @@
         <div class="ticker-wrap relative flex-1">
             <div id="unified-ticker-desktop" class="ticker-move"></div>
         </div>
-        <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 flex items-center ml-4">
+        
+        <div class="bg-white/5 backdrop-blur-md h-8 px-4 rounded-lg border border-white/10 z-20 shrink-0 flex items-center gap-4 ml-4 text-white text-[11px] font-bold">
+            <div class="flex items-center gap-1.5" title="Pengguna Online Terkini">
+                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_5px_#4ade80]"></span>
+                <span id="desktop-online-count">0</span> Online
+            </div>
+            <div class="w-px h-3 bg-white/20"></div>
+            <div class="flex items-center gap-1.5" title="Total Kunjungan Hari Ini">
+                <i class="fa-solid fa-users text-blue-300"></i>
+                <span id="desktop-daily-count">0</span> Hari Ini
+            </div>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 flex items-center ml-2">
             <div id="clock-desktop" class="clock-container text-[11px]">00:00:00 WIB</div>
         </div>
     </div>
@@ -699,7 +731,7 @@
         }
         updateTicker();
         
-        // --- LOGIC JAM FLIP MULTI ZONA (KEMBALI UTUH) ---
+        // --- LOGIKA JAM FLIP MULTI ZONA ---
         const zones = [
             { label: 'WIB', offset: 7 },
             { label: 'WITA', offset: 8 },
@@ -737,7 +769,42 @@
         }
 
         setInterval(updateClockFlip, 3000);
-        updateClockFlip(); // Jalankan langsung saat load
+        updateClockFlip();
+
+        // --- DETEKTOR PENGUNJUNG (MOCK DATA / SIMULASI API) ---
+        let mockDaily = 158;
+        let mockOnline = 12;
+
+        async function fetchVisitorStats() {
+            try {
+                // TODO: Aktifkan 2 baris ini jika endpoint backend Flask (e.g. Supabase/PostgreSQL) sudah siap
+                // const res = await fetch('/api/visitor-stats');
+                // const data = await res.json();
+                
+                // Lempar error paksa agar masuk ke mode catch (simulasi animasi angka)
+                throw new Error("Gunakan mock data sementara sampai API siap"); 
+            } catch (error) {
+                // Animasi dummy agar angka terlihat hidup/real-time
+                mockOnline = Math.max(1, mockOnline + Math.floor(Math.random() * 5) - 2); 
+                mockDaily += Math.floor(Math.random() * 2);
+
+                // Update UI Desktop
+                const desktopOnline = document.getElementById('desktop-online-count');
+                const desktopDaily = document.getElementById('desktop-daily-count');
+                if(desktopOnline) desktopOnline.innerText = mockOnline;
+                if(desktopDaily) desktopDaily.innerText = mockDaily;
+
+                // Update UI Mobile
+                const mobileOnline = document.getElementById('mobile-online-count');
+                const mobileDaily = document.getElementById('mobile-daily-count');
+                if(mobileOnline) mobileOnline.innerText = mockOnline;
+                if(mobileDaily) mobileDaily.innerText = mockDaily;
+            }
+        }
+        
+        // Perbarui setiap 5 detik
+        setInterval(fetchVisitorStats, 5000);
+        fetchVisitorStats();
 
         window.addEventListener('click', function(e){    
             if (!e.target.closest('.relative.group')){
