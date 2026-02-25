@@ -47,6 +47,34 @@ def maintenance_interceptor():
     return None
 
 # ==========================================
+# 2.5. SISTEM TRACKER PENGUNJUNG
+# ==========================================
+TRACKER_DATA = {
+    "date": datetime.now(pytz.timezone('Asia/Jakarta')).date(),
+    "daily_ips": set(),
+    "online_ips": {}  # Format: {"IP": timestamp_terakhir}
+}
+
+@app.before_request
+def visitor_tracker():
+    # Abaikan aset statis agar perhitungan fokus ke kunjungan halaman asli
+    if request.endpoint and 'static' not in request.endpoint:
+        tz = pytz.timezone('Asia/Jakarta')
+        today = datetime.now(tz).date()
+        
+        # Reset data harian secara otomatis jika sudah berganti hari
+        if TRACKER_DATA["date"] != today:
+            TRACKER_DATA["date"] = today
+            TRACKER_DATA["daily_ips"].clear()
+            
+        # Ambil IP pengunjung (dukung Reverse Proxy/Hosting seperti Vercel/VPS)
+        user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if user_ip:
+            user_ip = user_ip.split(',')[0].strip()
+            TRACKER_DATA["daily_ips"].add(user_ip)
+            TRACKER_DATA["online_ips"][user_ip] = time.time()
+
+# ==========================================
 # 3. KONEKSI DATABASE (FIREBASE)
 # ==========================================
 try:
@@ -691,6 +719,19 @@ def get_jadwal_kemenag():
 @app.route("/api/news-ticker")
 def news_ticker():
     return jsonify([n['title'] for n in get_news_entries()])
+
+# --- API STATISTIK PENGUNJUNG ---
+@app.route('/api/visitor-stats')
+def visitor_stats():
+    current_time = time.time()
+    # Bersihkan IP yang sudah tidak aktif lebih dari 5 menit (300 detik)
+    active_ips = {ip: ts for ip, ts in TRACKER_DATA["online_ips"].items() if current_time - ts <= 300}
+    TRACKER_DATA["online_ips"] = active_ips
+    
+    return jsonify({
+        "daily": len(TRACKER_DATA["daily_ips"]),
+        "online": max(1, len(active_ips)) # Pastikan minimal 1 karena user yang akses pasti sedang online
+    })
 
 @app.route('/about')
 def about(): return render_template('about.html')
