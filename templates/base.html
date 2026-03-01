@@ -13,6 +13,15 @@
     
     <script>
         (function() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+                document.documentElement.classList.add('is-ios');
+            }
+        })();
+    </script>
+
+    <script>
+        (function() {
             // Deteksi User Agent untuk ToolsBrowser / Kiwi / Bot
             const ua = navigator.userAgent.toLowerCase();
             // Daftar hitam browser/tools "jahat"
@@ -76,7 +85,6 @@
         document.addEventListener('selectstart', event => event.preventDefault());
 
         // 3. LOGIKA ANTI-RECORD / ANTI-SS (BLUR EFFECT)
-        // Saat user membuka Control Center atau pindah tab, halaman akan nge-blur total
         function enablePrivacyMode() {
             document.body.classList.add('privacy-blur');
             document.getElementById('security-overlay').style.display = 'flex';
@@ -87,11 +95,9 @@
             document.getElementById('security-overlay').style.display = 'none';
         }
 
-        // Trigger saat window kehilangan fokus (misal: tarik notifikasi bar)
         window.addEventListener('blur', enablePrivacyMode);
         window.addEventListener('focus', disablePrivacyMode);
         
-        // Trigger saat tab disembunyikan
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) enablePrivacyMode();
             else disablePrivacyMode();
@@ -100,7 +106,6 @@
     
     <style>
         /* === SECURITY STYLES === */
-        /* Mencegah seleksi di iOS */
         body {
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -112,12 +117,11 @@
 
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
-        /* Efek Blur saat mode privasi aktif */
         .privacy-blur > *:not(#security-overlay) {
             filter: blur(30px) grayscale(100%);
             pointer-events: none;
             opacity: 0.1;
-            transition: 0s; /* Instan blur */
+            transition: 0s; 
         }
 
         #security-overlay {
@@ -126,6 +130,69 @@
             background: rgba(0,0,0,0.95);
             flex-direction: column; align-items: center; justify-content: center;
             color: white; text-align: center;
+        }
+
+        /* === TEMA KHUSUS IOS (APPLE STYLE) === */
+        /* Navbar iOS */
+        html.is-ios nav {
+            background-color: rgba(30, 58, 138, 0.65) !important; /* Biru transparan */
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 0.5px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        /* Mobile Dock iOS (Mirip Home Screen iOS) */
+        html.is-ios .ios-dock {
+            background-color: rgba(250, 250, 250, 0.75) !important;
+            backdrop-filter: saturate(180%) blur(25px);
+            -webkit-backdrop-filter: saturate(180%) blur(25px);
+            border: 0.5px solid rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        /* Warna Teks/Ikon Dock untuk iOS (Abu-abu ke Biru) */
+        html.is-ios .nav-item { color: #8e8e93 !important; }
+        html.is-ios .nav-item.active { color: #007aff !important; }
+        html.is-ios .cctv-label { color: #8e8e93 !important; }
+        html.is-ios .cctv-wrapper.active .cctv-label { color: #007aff !important; }
+        
+        /* Tombol CCTV di Dock iOS */
+        html.is-ios .cctv-circle {
+            background: #fff !important;
+            color: #007aff !important;
+            border: 0.5px solid rgba(0,0,0,0.1) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05) !important;
+        }
+        html.is-ios .cctv-wrapper.active .cctv-circle {
+            background: #007aff !important;
+            color: #fff !important;
+        }
+
+        /* Dropdown/Menu Context iOS */
+        html.is-ios .dropdown-menu-mobile {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: saturate(180%) blur(25px);
+            -webkit-backdrop-filter: saturate(180%) blur(25px);
+            border: 0.5px solid rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* Chat Input iOS (iMessage Style) */
+        html.is-ios #chat-input {
+            background-color: #e5e5ea !important;
+            border: 1px solid transparent !important;
+            border-radius: 20px !important;
+            padding-left: 16px !important;
+        }
+        html.is-ios #chat-input:focus {
+            background-color: #d1d1d6 !important;
+        }
+
+        /* Buttons iOS (Daftar/Masuk) */
+        html.is-ios a.bg-white.text-\\[\\#1e3a8a\\] {
+            background-color: #f2f2f7 !important;
+            color: #007aff !important;
+            box-shadow: none !important;
+            font-weight: 600 !important;
         }
 
         /* === DESAIN ASLI (DIPERTAHANKAN) === */
