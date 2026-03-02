@@ -132,7 +132,14 @@ def get_gemini_model():
     """Menginisialisasi ulang Gemini setiap kali dipanggil agar tidak offline permanen."""
     try:
         genai.configure(api_key=GEMINI_KEY)
-        return genai.GenerativeModel("gemini-1.5-flash") 
+        # MATIKAN FILTER SAFETY AGAR AI TIDAK SERING MEMBLOKIR RESPONS (PENYEBAB AI GAGAL MENJAWAB)
+        safety_settings = [
+            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+        ]
+        return genai.GenerativeModel("gemini-1.5-flash", safety_settings=safety_settings) 
     except Exception as e:
         print(f"Error Konfigurasi Gemini: {e}")
         return None
@@ -229,12 +236,37 @@ NEWS_LAST_FETCH = 0
 def get_news_entries():
     global NEWS_CACHE, NEWS_LAST_FETCH
     
-    # Cache berita selama 15 menit (900 detik) untuk menghemat performa server
-    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 900):
+    # Update otomatis setiap 60 detik (1 menit)
+    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 60):
         return NEWS_CACHE
 
     all_news = []
     headers = {'User-Agent': 'Mozilla/5.0'}
+
+    # 1. FETCH DATA BMKG (GEMPA TERKINI) - Parsing Manual karena format XML BMKG unik
+    try:
+        r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=5)
+        if r_bmkg.status_code == 200:
+            root = ET.fromstring(r_bmkg.content)
+            gempa = root.find('gempa')
+            if gempa is not None:
+                wilayah = gempa.find('Wilayah').text
+                magnitude = gempa.find('Magnitude').text
+                potensi = gempa.find('Potensi').text
+                shakemap = gempa.find('Shakemap').text
+                
+                # Masukkan ke list berita
+                all_news.append({
+                    'title': f"INFO GEMPA BMKG: {magnitude} SR di {wilayah} ({potensi})",
+                    'link': "https://warning.bmkg.go.id/",
+                    'published_parsed': datetime.now().timetuple(),
+                    'source_name': 'BMKG Resmi',
+                    'image': f"https://data.bmkg.go.id/DataMKG/TEWS/{shakemap}"
+                })
+    except Exception as e:
+        print(f"Gagal memuat info BMKG: {e}")
+
+    # 2. FETCH DARI RSS PORTAL BERITA LAINNYA
     try:
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
@@ -242,10 +274,10 @@ def get_news_entries():
             'https://www.antaranews.com/rss/top-news.xml',
             'https://www.republika.co.id/rss',
             'https://www.cnbcindonesia.com/news/rss',
-            'https://www.kompas.tv/rss',
-            'https://www.medcom.id/rss/news', # Portal berita resmi Metro TV
-            'https://www.dailyforex.com/forex-rss', # Update Forex
-            'https://rss.app/feeds/viory.xml' # Alternative fallback feed untuk Viory
+            'https://www.kompas.com/feed',             # Kompas
+            'https://www.liputan6.com/rss',            # Liputan 6
+            'https://www.dailyforex.com/forex-rss',    # Forex Update
+            'https://rss.app/feeds/viory.xml'          # Viory
         ]
         for url in sources:
             try:
@@ -253,9 +285,17 @@ def get_news_entries():
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        # Ditingkatkan menjadi 25 artikel per sumber agar mendapatkan kuantitas besar
+                        # Mengambil maksimal 25 artikel dari setiap sumber
                         for entry in feed.entries[:25]: 
-                            entry['source_name'] = url.split('.')[1].capitalize() if 'google' not in url else 'Google News'
+                            # Identifikasi Nama Sumber berdasarkan URL
+                            if 'kompas' in url: source_name = 'Kompas'
+                            elif 'liputan6' in url: source_name = 'Liputan 6'
+                            elif 'forex' in url: source_name = 'Forex Update'
+                            elif 'google' in url: source_name = 'Google News'
+                            else: source_name = url.split('.')[1].capitalize()
+                            
+                            entry['source_name'] = source_name
+                            
                             img_url = None
                             if 'media_content' in entry and entry.media_content:
                                 img_url = entry.media_content[0]['url']
@@ -278,7 +318,7 @@ def get_news_entries():
         t = datetime.now().timetuple()
         return [{'title': 'Selamat Datang di Portal KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi', 'image': None}]
     
-    # Menyimpan 150 berita terbaru sekaligus ke memori
+    # Menyimpan hingga 150 berita terbaru sekaligus ke memori
     NEWS_CACHE = all_news[:150]
     NEWS_LAST_FETCH = time.time()
     
@@ -711,7 +751,13 @@ def chatbot_api():
     
     try: 
         response = model.generate_content(full_prompt)
-        return jsonify({"response": response.text})
+        # Perlindungan dari error 'ValueError' karena Safety Settings memblokir kata-kata tertentu
+        try:
+            teks_balasan = response.text
+        except ValueError:
+            teks_balasan = "Mohon maaf Ndan, sistem AI memblokir respons ini karena dianggap sensitif atau tidak aman untuk dijawab. 🙏"
+            
+        return jsonify({"response": teks_balasan})
     except Exception as e: 
         print(f"Gemini API Error: {e}")
         return jsonify({"response": get_smart_fallback_response(user_msg)})
