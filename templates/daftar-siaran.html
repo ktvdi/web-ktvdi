@@ -3,144 +3,270 @@
 
 {% block content %}
 <style>
-    /* === iOS 26.3 GLASS THEME === */
+    /* === MODERN 3D GLASS & SHIMMER THEME === */
+    
+    /* Background Mesh Gradient KTVDI */
+    .bg-ktvdi-mesh {
+        background-color: #f8fafc;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(30, 64, 175, 0.15) 0px, transparent 50%),
+            radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+            radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
+        background-attachment: fixed;
+    }
+
+    /* Main Glass Panel */
     .glass-panel {
-        background: rgba(255, 255, 255, 0.75);
+        background: rgba(255, 255, 255, 0.7);
         backdrop-filter: blur(40px) saturate(180%);
         -webkit-backdrop-filter: blur(40px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.6);
+        box-shadow: 
+            0 20px 40px -10px rgba(0, 0, 0, 0.05),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        border-radius: 32px;
+        position: relative;
+        overflow: hidden;
     }
 
+    /* Kilatan Cahaya pada Panel Utama */
+    .glass-panel::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%; width: 50%; height: 100%;
+        background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+        transform: skewX(-20deg);
+        animation: shimmer-panel 6s infinite;
+        pointer-events: none;
+    }
+    @keyframes shimmer-panel {
+        0%, 100% { left: -100%; opacity: 0; }
+        50% { left: 200%; opacity: 1; }
+    }
+
+    /* Custom Input Select */
     .glass-input {
-        background: rgba(255, 255, 255, 0.5);
+        background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 14px;
-        transition: all 0.3s ease;
+        border: 2px solid rgba(226, 232, 240, 0.8);
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: #1e293b;
+        font-weight: 700;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .glass-input:hover:not(:disabled) {
+        border-color: #cbd5e1;
+        background: rgba(255, 255, 255, 0.95);
     }
     .glass-input:focus {
-        background: rgba(255, 255, 255, 0.9);
-        border-color: #1e40af; /* KTVDI Blue */
-        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
+        background: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0,0,0,0.02);
+        outline: none;
     }
-    .glass-input:disabled { opacity: 0.6; cursor: not-allowed; }
+    .glass-input:disabled { 
+        opacity: 0.5; 
+        cursor: not-allowed; 
+        background: rgba(241, 245, 249, 0.5); 
+    }
 
+    /* Ikon di dalam input saat fokus */
+    .input-wrapper:focus-within i.icon-left { color: #3b82f6; transform: scale(1.1); }
+    .icon-left { transition: all 0.3s ease; }
+
+    /* 3D Channel Card */
     .channel-card {
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-        border-radius: 16px;
-        transition: all 0.2s;
-    }
-    .channel-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(30, 64, 175, 0.1);
-        border-color: #1e40af;
+        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 20px;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+        box-shadow: 
+            0 4px 6px -1px rgba(0, 0, 0, 0.05),
+            0 2px 4px -1px rgba(0, 0, 0, 0.03),
+            inset 0 1px 0 rgba(255, 255, 255, 1);
+        transform-style: preserve-3d;
+        cursor: default;
     }
 
-    /* Background Gradient KTVDI */
-    .bg-ktvdi-mesh {
-        background: radial-gradient(circle at 10% 10%, #eff6ff 0%, #f8fafc 100%);
+    /* Efek Hover 3D pada Card */
+    .channel-card:hover {
+        transform: translateY(-8px) scale(1.02) rotateX(5deg);
+        box-shadow: 
+            0 20px 25px -5px rgba(30, 64, 175, 0.15),
+            0 10px 10px -5px rgba(30, 64, 175, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 1);
+        border-color: #bfdbfe;
+        z-index: 10;
+    }
+
+    /* Kilatan cahaya pada Card saat Hover */
+    .channel-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%; width: 50%; height: 100%;
+        background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+        transform: skewX(-20deg);
+        transition: 0.5s;
+        z-index: 1;
+    }
+    .channel-card:hover::before {
+        left: 200%;
+        transition: 0.7s ease-in-out;
+    }
+
+    /* Elemen di dalam Card (Logo TV) */
+    .tv-icon-wrapper {
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 8px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .channel-card:hover .tv-icon-wrapper {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+        transform: translateZ(20px); /* Efek pop-out 3D untuk ikon */
+        box-shadow: 0 8px 15px rgba(37, 99, 235, 0.3);
     }
     
-    .animate-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .channel-name { transition: all 0.3s ease; }
+    .channel-card:hover .channel-name { transform: translateZ(15px); color: #1e3a8a; } /* Efek pop-out 3D untuk teks */
+
+    /* Animasi Pop In */
+    .animate-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    @keyframes popIn { 
+        from { opacity: 0; transform: scale(0.9) translateY(20px); } 
+        to { opacity: 1; transform: scale(1) translateY(0); } 
+    }
+    
+    /* Delay berurutan untuk list card */
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
 </style>
 
-<div class="min-h-screen bg-ktvdi-mesh py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] relative">
+<div class="min-h-screen bg-ktvdi-mesh py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] relative pb-32">
     
-    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+    <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+    <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-cyan-400/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
 
-    <div class="max-w-5xl mx-auto relative z-10">
-        <div class="text-center mb-10">
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100/50 border border-blue-200 text-blue-800 text-[10px] font-bold tracking-widest uppercase mb-4 shadow-sm">
-                <i class="fa-solid fa-tower-broadcast"></i> Data Frekuensi Nasional
+    <div class="max-w-6xl mx-auto relative z-10">
+        
+        <div class="text-center mb-12 animate-pop">
+            <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/80 border border-blue-100 text-blue-700 text-[10px] font-black tracking-widest uppercase mb-6 shadow-sm backdrop-blur-sm">
+                <i class="fa-solid fa-satellite-dish animate-pulse"></i> Data Frekuensi Nasional
             </div>
-            <h1 class="text-4xl md:text-5xl font-extrabold text-brand-navy mb-3 tracking-tight">Database Siaran Digital</h1>
-            <p class="text-slate-500 text-lg max-w-2xl mx-auto">Cek ketersediaan saluran TV digital (MUX) di wilayah Anda dengan data akurat dan terupdate.</p>
+            <h1 class="text-4xl md:text-6xl font-black text-slate-900 mb-4 tracking-tight drop-shadow-sm">
+                Database <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Siaran Digital</span>
+            </h1>
+            <p class="text-slate-500 text-lg max-w-2xl mx-auto font-medium">Cek ketersediaan saluran TV digital (MUX) di wilayah Anda dengan visualisasi data yang elegan dan terupdate.</p>
         </div>
 
-        <div class="glass-panel p-6 md:p-10">
+        <div class="glass-panel p-6 md:p-10 animate-pop delay-100">
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="group">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Provinsi</label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 bg-slate-50/50 p-6 rounded-3xl border border-white/80 shadow-inner">
+                
+                <div class="group input-wrapper">
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-3 pl-1 tracking-wider">
+                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">1</span> Provinsi
+                    </label>
                     <div class="relative">
-                        <i class="fa-solid fa-map absolute left-4 top-4 text-slate-400"></i>
-                        <select id="provinsi" onchange="loadWilayah()" class="glass-input w-full p-3 pl-11 outline-none text-slate-700 font-bold appearance-none cursor-pointer">
-                            <option value="">Pilih Provinsi</option>
+                        <i class="fa-solid fa-map icon-left absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <select id="provinsi" onchange="loadWilayah()" class="glass-input w-full p-3.5 pl-12 pr-10 outline-none appearance-none cursor-pointer">
+                            <option value="">Pilih Provinsi Anda</option>
                             {% for p in provinsi_list %}
                             <option value="{{ p }}">{{ p }}</option>
                             {% endfor %}
                         </select>
-                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="group">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Wilayah Layanan</label>
+                <div class="group input-wrapper">
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-3 pl-1 tracking-wider">
+                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">2</span> Wilayah Layanan
+                    </label>
                     <div class="relative">
-                        <i class="fa-solid fa-location-crosshairs absolute left-4 top-4 text-slate-400"></i>
-                        <select id="wilayah" onchange="loadMux()" disabled class="glass-input w-full p-3 pl-11 outline-none text-slate-700 font-bold appearance-none cursor-pointer">
+                        <i class="fa-solid fa-location-crosshairs icon-left absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <select id="wilayah" onchange="loadMux()" disabled class="glass-input w-full p-3.5 pl-12 pr-10 outline-none appearance-none cursor-pointer">
                             <option value="">Pilih Wilayah</option>
                         </select>
-                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="group">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Penyelenggara MUX</label>
+                <div class="group input-wrapper">
+                    <label class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-3 pl-1 tracking-wider">
+                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">3</span> Penyelenggara MUX
+                    </label>
                     <div class="relative">
-                        <i class="fa-solid fa-tower-cell absolute left-4 top-4 text-slate-400"></i>
-                        <select id="mux" onchange="loadSiaran()" disabled class="glass-input w-full p-3 pl-11 outline-none text-slate-700 font-bold appearance-none cursor-pointer">
-                            <option value="">Pilih MUX</option>
+                        <i class="fa-solid fa-tower-cell icon-left absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <select id="mux" onchange="loadSiaran()" disabled class="glass-input w-full p-3.5 pl-12 pr-10 outline-none appearance-none cursor-pointer">
+                            <option value="">Pilih Jaringan MUX</option>
                         </select>
-                        <i class="fa-solid fa-chevron-down absolute right-4 top-4 text-slate-400 text-xs pointer-events-none"></i>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center pointer-events-none">
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div id="loading" class="hidden text-center py-12">
-                <div class="w-12 h-12 border-4 border-blue-100 border-t-brand-blue rounded-full animate-spin mx-auto mb-3"></div>
-                <p class="text-brand-blue font-bold text-sm animate-pulse">Mengambil Data Siaran...</p>
-            </div>
-
-            <div id="empty-state" class="text-center py-16">
-                <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-satellite-dish text-3xl text-slate-300"></i>
+            <div id="loading" class="hidden text-center py-16">
+                <div class="relative w-20 h-20 mx-auto mb-6">
+                    <div class="absolute inset-0 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+                    <div class="absolute inset-2 border-4 border-cyan-100 border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                    <i class="fa-solid fa-satellite absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-600 text-xl animate-pulse"></i>
                 </div>
-                <h3 class="text-slate-600 font-bold text-lg">Belum ada data ditampilkan</h3>
-                <p class="text-slate-400 text-sm mt-1">Silakan pilih lokasi di atas untuk melihat daftar saluran.</p>
+                <p class="text-blue-600 font-bold text-lg animate-pulse tracking-wide">Sinkronisasi Data Satelit...</p>
+                <p class="text-slate-400 text-sm mt-2">Mohon tunggu sebentar, mengambil channel MUX.</p>
             </div>
 
-            <div id="result-container" class="hidden animate-pop">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-6 border-b border-slate-100 gap-4">
+            <div id="empty-state" class="text-center py-16 animate-pop delay-200">
+                <div class="w-32 h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner relative">
+                    <div class="absolute inset-0 rounded-full border-2 border-white pointer-events-none"></div>
+                    <i class="fa-solid fa-tv text-5xl text-slate-300"></i>
+                </div>
+                <h3 class="text-slate-700 font-black text-2xl mb-2 tracking-tight">Belum Ada Sinyal</h3>
+                <p class="text-slate-500 text-base max-w-md mx-auto">Silakan lengkapi pilihan Lokasi dan Penyelenggara MUX di atas untuk memindai daftar saluran televisi digital.</p>
+            </div>
+
+            <div id="result-container" class="hidden">
+                
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white/60 p-5 rounded-2xl border border-white shadow-sm gap-4">
                     <div>
-                        <h3 class="text-2xl font-bold text-brand-navy flex items-center gap-2">
-                            <i class="fa-solid fa-circle-check text-green-500 text-lg"></i>
-                            <span id="mux-title">Nama MUX</span>
-                        </h3>
-                        <div class="flex items-center gap-4 mt-2 text-xs text-slate-500">
-                            <span class="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-md">
-                                <i class="fa-regular fa-clock"></i> <span id="update-date">Date</span>
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="relative flex h-3 w-3">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                             </span>
-                            <span class="flex items-center gap-1">
-                                <i class="fa-solid fa-user-pen"></i> <span id="updater" class="font-bold text-brand-blue">User</span>
+                            <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="mux-title">Nama MUX</h3>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs font-semibold text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-lg inline-flex">
+                            <span class="flex items-center gap-1.5 border-r border-slate-300 pr-4">
+                                <i class="fa-regular fa-calendar-check text-green-600"></i> <span id="update-date">Date</span>
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-shield text-blue-600"></i> <span id="updater">User</span>
                             </span>
                         </div>
                     </div>
-                    {% if session.get('user') %}
-                    <div class="flex gap-2">
-                         </div>
-                    {% endif %}
+                    
+                    <div class="px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl text-center min-w-[120px]">
+                        <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-1">Total Saluran</p>
+                        <p class="text-3xl font-black text-blue-700 leading-none" id="total-channel">0</p>
+                    </div>
                 </div>
                 
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" id="channel-list">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5" id="channel-list">
                     </div>
 
-                <div class="mt-8 pt-4 border-t border-slate-100 text-center">
-                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Data © Komunitas TV Digital Indonesia</p>
+                <div class="mt-12 pt-6 border-t border-slate-200/50 text-center flex flex-col items-center justify-center">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="w-8 h-8 mb-3 opacity-30 grayscale">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Terverifikasi © Komunitas TV Digital Indonesia</p>
                 </div>
             </div>
 
@@ -152,11 +278,16 @@
     async function loadWilayah() {
         const prov = document.getElementById('provinsi').value;
         const wilSelect = document.getElementById('wilayah');
+        const muxSelect = document.getElementById('mux');
         
         wilSelect.innerHTML = '<option value="">Memuat...</option>';
         wilSelect.disabled = true;
-        document.getElementById('mux').innerHTML = '<option value="">Pilih MUX</option>';
-        document.getElementById('mux').disabled = true;
+        muxSelect.innerHTML = '<option value="">Pilih Jaringan MUX</option>';
+        muxSelect.disabled = true;
+        
+        // Reset view
+        document.getElementById('result-container').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
         
         if(!prov) return;
 
@@ -164,7 +295,7 @@
             const res = await fetch(`/get_wilayah?provinsi=${prov}`);
             const data = await res.json();
             
-            wilSelect.innerHTML = '<option value="">Pilih Wilayah</option>';
+            wilSelect.innerHTML = '<option value="">Pilih Wilayah Anda</option>';
             data.wilayah.forEach(w => {
                 wilSelect.innerHTML += `<option value="${w}">${w}</option>`;
             });
@@ -183,17 +314,24 @@
         muxSelect.innerHTML = '<option value="">Memuat...</option>';
         muxSelect.disabled = true;
 
+        // Reset view
+        document.getElementById('result-container').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
+
+        if(!wil) return;
+
         try {
             const res = await fetch(`/get_mux?provinsi=${prov}&wilayah=${wil}`);
             const data = await res.json();
             
-            muxSelect.innerHTML = '<option value="">Pilih MUX</option>';
+            muxSelect.innerHTML = '<option value="">Pilih Jaringan MUX</option>';
             data.mux.forEach(m => {
                 muxSelect.innerHTML += `<option value="${m}">${m}</option>`;
             });
             muxSelect.disabled = false;
         } catch(e) {
             console.error(e);
+            muxSelect.innerHTML = '<option value="">Gagal Memuat</option>';
         }
     }
 
@@ -204,6 +342,7 @@
         
         if(!mux) return;
 
+        // Show loading, hide others
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('result-container').classList.add('hidden');
         document.getElementById('empty-state').classList.add('hidden');
@@ -212,32 +351,58 @@
             const res = await fetch(`/get_siaran?provinsi=${prov}&wilayah=${wil}&mux=${mux}`);
             const data = await res.json();
 
+            // Setup Header Info
             document.getElementById('mux-title').innerText = mux;
-            document.getElementById('updater').innerText = data.last_updated_by_name || 'Admin';
-            document.getElementById('update-date').innerText = (data.last_updated_date || '-') + ' ' + (data.last_updated_time || '');
+            document.getElementById('updater').innerText = data.last_updated_by_name || 'Sistem Pusat';
+            
+            let dateStr = (data.last_updated_date || '-') + ' • ' + (data.last_updated_time || '').replace('WIB', '').trim();
+            document.getElementById('update-date').innerText = dateStr;
 
+            // Setup List Channel
             const list = document.getElementById('channel-list');
             list.innerHTML = '';
             
-            if(data.siaran) {
-                data.siaran.forEach(ch => {
+            if(data.siaran && data.siaran.length > 0) {
+                document.getElementById('total-channel').innerText = data.siaran.length;
+                
+                data.siaran.forEach((ch, index) => {
+                    // Penambahan class animate-pop dan delay berurutan agar munculnya estetik
+                    const delayClass = index < 10 ? `style="animation-delay: ${index * 0.05}s"` : '';
+                    
                     list.innerHTML += `
-                        <div class="channel-card p-4 flex flex-col items-center justify-center text-center gap-2 cursor-default group">
-                            <div class="w-10 h-10 rounded-full bg-blue-50 text-brand-blue flex items-center justify-center group-hover:bg-brand-blue group-hover:text-white transition-colors duration-300">
-                                <i class="fa-solid fa-tv text-lg"></i>
+                        <div class="channel-card p-5 flex flex-col items-center justify-center text-center gap-3 animate-pop z-10" ${delayClass}>
+                            <div class="tv-icon-wrapper w-14 h-14 rounded-2xl text-blue-600 flex items-center justify-center text-2xl relative z-10">
+                                <i class="fa-solid fa-tv"></i>
                             </div>
-                            <span class="text-sm font-bold text-slate-700 leading-tight group-hover:text-brand-navy transition-colors">${ch}</span>
+                            <span class="channel-name text-sm md:text-base font-extrabold text-slate-700 leading-tight relative z-10">${ch}</span>
                         </div>
                     `;
                 });
+            } else {
+                document.getElementById('total-channel').innerText = '0';
+                list.innerHTML = `
+                    <div class="col-span-full py-8 text-center bg-red-50 rounded-2xl border border-red-100">
+                        <i class="fa-solid fa-triangle-exclamation text-red-400 text-3xl mb-3"></i>
+                        <p class="text-red-600 font-bold">Data siaran kosong atau belum diinput untuk MUX ini.</p>
+                    </div>
+                `;
             }
             
+            // Hide loading, show result
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('result-container').classList.remove('hidden');
+            
+            // Re-trigger animation
+            const container = document.getElementById('result-container');
+            container.classList.remove('animate-pop');
+            void container.offsetWidth; // trigger reflow
+            container.classList.add('animate-pop');
+
         } catch(e) {
             console.error(e);
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('empty-state').classList.remove('hidden');
+            alert("Terjadi kesalahan saat mengambil data jaringan.");
         }
     }
 </script>
