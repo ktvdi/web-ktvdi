@@ -127,10 +127,15 @@ mail = Mail(app)
 # 5. KONFIGURASI AI (GEMINI)
 # ==========================================
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
-try:
-    genai.configure(api_key=GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash") 
-except: model = None
+
+def get_gemini_model():
+    """Menginisialisasi ulang Gemini setiap kali dipanggil agar tidak offline permanen."""
+    try:
+        genai.configure(api_key=GEMINI_KEY)
+        return genai.GenerativeModel("gemini-1.5-flash") 
+    except Exception as e:
+        print(f"Error Konfigurasi Gemini: {e}")
+        return None
 
 MODI_PROMPT = """
 Anda adalah MODI, Asisten Virtual Resmi dari KTVDI (Komunitas TV Digital Indonesia).
@@ -217,7 +222,17 @@ def get_hijri_date_string():
         pass
     return f"4 Ramadan 1447 H"
 
+# --- CACHE UNTUK BERITA AGAR LEBIH CEPAT DAN BISA MENYIMPAN BANYAK ---
+NEWS_CACHE = []
+NEWS_LAST_FETCH = 0
+
 def get_news_entries():
+    global NEWS_CACHE, NEWS_LAST_FETCH
+    
+    # Cache berita selama 15 menit (900 detik) untuk menghemat performa server
+    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 900):
+        return NEWS_CACHE
+
     all_news = []
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -226,16 +241,21 @@ def get_news_entries():
             'https://www.cnnindonesia.com/nasional/rss',
             'https://www.antaranews.com/rss/top-news.xml',
             'https://www.republika.co.id/rss',
-            'https://www.cnbcindonesia.com/news/rss'
+            'https://www.cnbcindonesia.com/news/rss',
+            'https://www.kompas.tv/rss',
+            'https://www.medcom.id/rss/news', # Portal berita resmi Metro TV
+            'https://www.dailyforex.com/forex-rss', # Update Forex
+            'https://rss.app/feeds/viory.xml' # Alternative fallback feed untuk Viory
         ]
         for url in sources:
             try:
-                response = requests.get(url, headers=headers, timeout=4)
+                response = requests.get(url, headers=headers, timeout=5)
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        for entry in feed.entries[:5]: 
-                            entry['source_name'] = 'Portal Berita'
+                        # Ditingkatkan menjadi 25 artikel per sumber agar mendapatkan kuantitas besar
+                        for entry in feed.entries[:25]: 
+                            entry['source_name'] = url.split('.')[1].capitalize() if 'google' not in url else 'Google News'
                             img_url = None
                             if 'media_content' in entry and entry.media_content:
                                 img_url = entry.media_content[0]['url']
@@ -249,13 +269,20 @@ def get_news_entries():
                             entry['image'] = img_url
                             all_news.append(entry)
             except: continue
+        
         all_news.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.gmtime(0), reverse=True)
     except: pass
     
     if not all_news:
+        if NEWS_CACHE: return NEWS_CACHE
         t = datetime.now().timetuple()
         return [{'title': 'Selamat Datang di Portal KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi', 'image': None}]
-    return all_news[:24]
+    
+    # Menyimpan 150 berita terbaru sekaligus ke memori
+    NEWS_CACHE = all_news[:150]
+    NEWS_LAST_FETCH = time.time()
+    
+    return NEWS_CACHE
 
 def time_since_published(published_time):
     try:
@@ -677,10 +704,17 @@ def chatbot_api():
         full_prompt = f"{MODI_PROMPT}\n{context}\nUser: {user_msg}\nModi:"
     else: full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
 
-    if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    # Panggil model on-the-fly, AI selalu mencoba reconnect saat ada pesan masuk
+    model = get_gemini_model()
+    if not model: 
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
     
-    try: return jsonify({"response": model.generate_content(full_prompt).text})
-    except: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    try: 
+        response = model.generate_content(full_prompt)
+        return jsonify({"response": response.text})
+    except Exception as e: 
+        print(f"Gemini API Error: {e}")
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
 
 @app.route("/jadwal-sholat")
 def jadwal_sholat_page():
