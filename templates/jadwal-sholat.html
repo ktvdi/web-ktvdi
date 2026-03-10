@@ -372,6 +372,23 @@
         initAsmaulHusna();
         fetchQuran();
 
+        // [BARU] Perbaikan: Override tanggal Hijriah dari backend dengan API AlAdhan 
+        // agar akurat dan selalu realtime menyesuaikan hari ini
+        const dNow = new Date();
+        const dStr = String(dNow.getDate()).padStart(2, '0') + '-' + String(dNow.getMonth() + 1).padStart(2, '0') + '-' + dNow.getFullYear();
+        $.get(`https://api.aladhan.com/v1/gToH?date=${dStr}`, function(res) {
+            if(res.code === 200) {
+                const h = res.data.hijri;
+                const monthIndo = {
+                    "Muharram": "Muharram", "Safar": "Safar", "Rabi' al-awwal": "Rabiul Awal", "Rabi' al-thani": "Rabiul Akhir",
+                    "Jumada al-awwal": "Jumadil Awal", "Jumada al-thani": "Jumadil Akhir", "Rajab": "Rajab", "Sha'ban": "Sya'ban",
+                    "Ramadan": "Ramadhan", "Shawwal": "Syawal", "Dhu al-Qi'dah": "Dzulqa'dah", "Dhu al-Hijjah": "Dzulhijjah"
+                };
+                const mName = monthIndo[h.month.en] || h.month.en;
+                $('#hijriDate').text(`${h.day} ${mName} ${h.year} H`);
+            }
+        });
+
         // 1. Set State Awal berdasarkan Storage
         $('#kotaSelect').val(userCityId);
         $('#currentCityLabel').text(userCityName);
