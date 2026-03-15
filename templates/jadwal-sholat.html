@@ -375,10 +375,14 @@
         // [BARU] Perbaikan: Override tanggal Hijriah dari backend dengan API AlAdhan 
         // agar akurat dan selalu realtime menyesuaikan hari ini
         const dNow = new Date();
+        
+        // TRICK KOREKSI: Mundurkan 1 hari Masehi yang dikirim ke API 
+        // agar output Hijriahnya sinkron dengan ketetapan Kemenag RI
+        dNow.setDate(dNow.getDate() - 1);
+        
         const dStr = String(dNow.getDate()).padStart(2, '0') + '-' + String(dNow.getMonth() + 1).padStart(2, '0') + '-' + dNow.getFullYear();
         
-        // MENAMBAHKAN PARAMETER &adjustment=-1 DI SINI UNTUK KOREKSI HARI
-        $.get(`https://api.aladhan.com/v1/gToH?date=${dStr}&adjustment=-1`, function(res) {
+        $.get(`https://api.aladhan.com/v1/gToH?date=${dStr}`, function(res) {
             if(res.code === 200) {
                 const h = res.data.hijri;
                 const monthIndo = {
