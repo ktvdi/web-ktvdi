@@ -196,9 +196,18 @@
 
             <div class="flex justify-between items-start z-10">
                 <div>
-                    <span class="block txt-secondary text-xs font-bold uppercase tracking-widest mb-1">Tanggal Hari Ini</span>
+                    <span class="block txt-secondary text-xs font-bold uppercase tracking-widest mb-1">Waktu & Tanggal Hari Ini</span>
                     <div class="text-xl md:text-2xl font-luxury txt-primary" id="hijriDate">{{ hijri_date }}</div>
-                    <div class="text-sm txt-gold font-medium" id="dateMasehi">...</div>
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                        <div class="text-sm txt-gold font-medium" id="dateMasehi">...</div>
+                        <div class="hidden sm:block text-gray-500/50">•</div>
+                        <div class="text-sm txt-primary font-bold bg-black/10 px-2.5 py-1 rounded-md border border-gray-500/20 inline-flex items-center w-max shadow-inner">
+                            <i class="fa-regular fa-clock txt-gold mr-2"></i>
+                            <span id="realtimeClock" class="tabular-nums tracking-wider">--:--:--</span>
+                            <span id="timezoneLabel" class="ml-1 text-xs txt-secondary">WIB</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="text-right">
                     <span class="block txt-secondary text-[10px] uppercase font-bold tracking-widest">Lokasi Terkunci</span>
@@ -251,14 +260,14 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
         
-        <div class="islamic-card p-6 flex flex-col">
+        <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-8 h-8 rounded bg-[#d4af37]/20 flex items-center justify-center txt-gold shadow-inner">
                     <i class="fa-solid fa-book-open-reader"></i>
                 </div>
-                <h4 class="txt-primary font-bold text-sm tracking-wide">Ayat Pilihan</h4>
+                <h4 class="txt-primary font-bold text-sm tracking-wide">Renungan Ayat Pilihan</h4>
             </div>
-            <div id="quranContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[120px]">
+            <div id="quranContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[160px]">
                 <div class="animate-pulse flex space-x-4">
                     <div class="flex-1 space-y-4 py-1">
                         <div class="h-4 bg-gray-500/30 rounded w-3/4 mx-auto"></div>
@@ -266,8 +275,8 @@
                     </div>
                 </div>
             </div>
-            <button onclick="fetchQuran()" class="w-full py-2.5 rounded border border-gray-500/50 bg-black/5 txt-secondary hover:txt-primary hover:border-[#d4af37] transition-all duration-300 font-medium text-xs">
-                <i class="fa-solid fa-refresh mr-1"></i> Acak Ayat
+            <button onclick="fetchQuran()" class="w-full py-2.5 rounded border border-gray-500/50 bg-black/5 txt-secondary hover:txt-primary hover:border-[#d4af37] transition-all duration-300 font-medium text-xs mt-auto">
+                <i class="fa-solid fa-refresh mr-1"></i> Baca Renungan Lain
             </button>
         </div>
 
@@ -322,6 +331,27 @@
     applyDynamicTheme();
     setInterval(applyDynamicTheme, 60000);
 
+    // =========================================
+    // JAM REAL TIME & ZONA WAKTU
+    // =========================================
+    function initRealtimeClock() {
+        setInterval(() => {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            
+            // Hitung zona waktu (GMT offset dalam jam)
+            const offset = -(now.getTimezoneOffset() / 60);
+            let tz = "LOKAL";
+            if (offset === 7) tz = "WIB";
+            else if (offset === 8) tz = "WITA";
+            else if (offset === 9) tz = "WIT";
+
+            $('#realtimeClock').text(`${hh}:${mm}:${ss}`);
+            $('#timezoneLabel').text(tz);
+        }, 1000);
+    }
 
     // =========================================
     // SYSTEM INITIALIZATION & GPS LOCK
@@ -338,6 +368,7 @@
         initAsmaulHusna();
         fetchQuran();
         randomHadits();
+        initRealtimeClock(); // Jalankan Jam
 
         const dNow = new Date();
         dNow.setDate(dNow.getDate() - 1); // Koreksi hijriah API
@@ -454,7 +485,7 @@
 
                             fetchSchedule(matchId);
                         } else {
-                            fallbackLocation("Koordinat ditemukan, tapi tidak terdaftar di Kemenag.");
+                            fallbackLocation("Koordinat ditemukan, tapi tidak terdaftar di database Kemenag.");
                         }
                     }).fail(function() { fallbackLocation("Gagal menerjemahkan data satelit wilayah."); });
                 },
@@ -484,7 +515,7 @@
             </div>
         `);
 
-        // Tetap menggunakan Endpoint Kemenag milik KTVDI
+        // Endpoint Kemenag milik KTVDI
         $.get(`/api/jadwal-imsakiyah?id_kota=${id_kota}`, function(res) {
             if(res.status && res.data && res.data.jadwal) {
                 const d = new Date();
@@ -620,7 +651,7 @@
     }
 
     // =========================================
-    // FEATURES (QURAN, ASMAUL HUSNA, HADITS)
+    // FEATURES (QURAN TEMATIK, ASMAUL HUSNA, HADITS)
     // =========================================
     function initAsmaulHusna() {
         const asmaulHusna = [
@@ -629,7 +660,6 @@
             { Arab: "الْمَلِكُ", Latin: "Al Malik", Arti: "Yang Maha Merajai" },
             { Arab: "الْقُدُّوسُ", Latin: "Al Quddus", Arti: "Yang Maha Suci" },
             { Arab: "السَّلاَمُ", Latin: "As Salaam", Arti: "Yang Maha Memberi Kesejahteraan" }
-            // Tambahkan list Asmaul Husna lainnya jika diperlukan
         ];
 
         let html = '';
@@ -650,19 +680,68 @@
         });
     }
 
+    // Koleksi ayat tematik berfokus pada pendirian, bahaya narkoba, dan sholat
+    const kumpulanRenunganQuran = [
+        { 
+            ref: "29:45", 
+            tag: "Pagar Diri", 
+            pesan: "Sholat yang benar adalah alarm otomatis yang menahanmu dari melangkah ke tongkrongan toxic dan perbuatan merusak masa depan." 
+        },
+        { 
+            ref: "18:28", 
+            tag: "Memilih Circle", 
+            pesan: "Jangan korbankan prinsip dan agama hanya karena takut dibilang 'nggak asik'. Jauhilah orang yang mengajakmu melupakan Tuhan." 
+        },
+        { 
+            ref: "5:90", 
+            tag: "Bahaya Narkoba & Miras", 
+            pesan: "Miras dan Narkoba (khamr) itu jebakan ilusi. Mereka menjanjikan ketenangan sesaat, tapi membayarnya dengan menghancurkan mental, akal sehat, dan masa depanmu." 
+        },
+        { 
+            ref: "41:30", 
+            tag: "Berani Beda (Prinsip)", 
+            pesan: "Jadilah keren dengan punya pendirian. Tidak ikut-ikutan tren maksiat membuktikan kamu punya value, teguhlah pendirian di jalan yang benar." 
+        },
+        { 
+            ref: "43:67", 
+            tag: "Pertemanan Toxic", 
+            pesan: "Persahabatan yang dilandasi kenakalan dan maksiat kelak akan berubah menjadi permusuhan di akhirat. Carilah teman yang saling mengingatkan kebaikan." 
+        },
+        { 
+            ref: "2:45", 
+            tag: "Bantuan Terkuat", 
+            pesan: "Saat merasa lelah, overthinking, atau ditekan oleh ekspektasi lingkungan, jadikan sabar dan sholat sebagai tempat pelarianmu, bukan obat-obatan terlarang." 
+        }
+    ];
+
     function fetchQuran() {
-        $('#quranContent').html('<div class="text-xs txt-secondary flex justify-center py-4"><i class="fa-solid fa-circle-notch fa-spin txt-gold mr-2"></i> Memuat ayat...</div>');
-        const id = Math.floor(Math.random() * 6236) + 1;
-        $.get(`https://api.alquran.cloud/v1/ayah/${id}/editions/quran-uthmani,id.indonesian`, function(res) {
+        $('#quranContent').html('<div class="text-xs txt-secondary flex justify-center items-center h-full"><i class="fa-solid fa-circle-notch fa-spin txt-gold mr-2"></i> Mengambil renungan...</div>');
+        
+        // Pilih ayat secara acak dari kumpulan di atas
+        const quran = kumpulanRenunganQuran[Math.floor(Math.random() * kumpulanRenunganQuran.length)];
+        
+        $.get(`https://api.alquran.cloud/v1/ayah/${quran.ref}/editions/quran-uthmani,id.indonesian`, function(res) {
             const arab = res.data[0];
             const indo = res.data[1];
             $('#quranContent').html(`
+                <div class="mb-3">
+                    <span class="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">${quran.tag}</span>
+                </div>
                 <p class="text-xl font-arab text-right txt-primary leading-loose mb-3 drop-shadow-sm" dir="rtl">${arab.text}</p>
-                <p class="text-xs txt-secondary italic">"${indo.text}"</p>
-                <div class="mt-3 text-[10px] font-bold txt-gold uppercase text-right tracking-widest border-t border-gray-500/20 pt-2">QS. ${arab.surah.englishName} : ${arab.numberInSurah}</div>
+                <p class="text-xs txt-secondary italic mb-4">"${indo.text}"</p>
+                
+                <div class="bg-black/5 border-l-2 border-[#d4af37] p-3 rounded-r-lg mb-3 shadow-inner">
+                    <p class="text-xs txt-primary font-medium leading-relaxed">
+                        <i class="fa-solid fa-lightbulb txt-gold mr-1"></i>
+                        <span class="txt-gold font-bold">Pesan Renungan:</span><br/>
+                        ${quran.pesan}
+                    </p>
+                </div>
+
+                <div class="text-[10px] font-bold txt-gold uppercase text-right tracking-widest border-t border-gray-500/20 pt-2">QS. ${arab.surah.englishName} : ${arab.numberInSurah}</div>
             `);
         }).fail(function() {
-            $('#quranContent').html('<p class="text-xs text-red-500 text-center">Gagal memuat ayat.</p>');
+            $('#quranContent').html('<p class="text-xs text-red-500 text-center">Server Al-Qur\'an sedang sibuk, gagal memuat renungan.</p>');
         });
     }
 
@@ -670,9 +749,9 @@
         const kumpulahHadits = [
             { text: "Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya.", rawi: "HR. Bukhari" },
             { text: "Senyummu di hadapan saudaramu adalah sedekah bagimu.", rawi: "HR. Tirmidzi" },
-            { text: "Barangsiapa menempuh suatu jalan untuk menuntut ilmu, maka Allah akan mudahkan baginya jalan menuju Surga.", rawi: "HR. Muslim" },
-            { text: "Kebersihan itu sebagian dari iman.", rawi: "HR. Muslim" },
-            { text: "Amalan yang paling dicintai Allah adalah amalan yang rutin dilakukan meskipun sedikit.", rawi: "HR. Bukhari & Muslim" }
+            { text: "Seseorang itu tergantung pada agama temannya. Maka perhatikanlah dengan siapa kamu berteman.", rawi: "HR. Abu Daud & Tirmidzi" },
+            { text: "Barangsiapa meniru suatu kaum, maka ia termasuk golongan mereka.", rawi: "HR. Abu Daud" },
+            { text: "Setiap yang memabukkan adalah khamr, dan setiap khamr adalah haram.", rawi: "HR. Muslim" }
         ];
         
         const h = kumpulahHadits[Math.floor(Math.random() * kumpulahHadits.length)];
