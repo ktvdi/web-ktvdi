@@ -154,6 +154,23 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--theme-gold); border-radius: 10px; }
+
+    /* RUNNING TEXT ANIMATION */
+    .marquee-wrapper {
+        width: 100%;
+        overflow: hidden;
+        white-space: nowrap;
+        position: relative;
+    }
+    .marquee-text {
+        display: inline-block;
+        padding-left: 100%;
+        animation: marqueeScroll 35s linear infinite;
+    }
+    @keyframes marqueeScroll {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-100%); }
+    }
 </style>
 
 <div class="pt-[140px] pb-20 px-4 max-w-7xl mx-auto min-h-screen">
@@ -235,6 +252,19 @@
                     <span id="nextPrayerName" class="txt-primary font-bold">...</span>
                 </p>
                 <div id="countdown" class="text-6xl md:text-8xl font-bold text-gold-gradient tabular-nums tracking-tight font-luxury drop-shadow-lg transition-all duration-300">--:--:--</div>
+                
+                <div id="nightReminder" class="hidden mt-6 w-full max-w-2xl bg-black/20 border border-gray-500/30 rounded-lg p-2 backdrop-blur-sm shadow-inner relative">
+                    <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--theme-card-bg)] to-transparent z-10 rounded-l-lg pointer-events-none"></div>
+                    <div class="marquee-wrapper text-xs md:text-sm txt-primary font-medium flex items-center">
+                        <span class="marquee-text inline-flex items-center gap-2">
+                            <i class="fa-solid fa-moon txt-gold"></i>
+                            Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Jauhilah gemerlap dunia malam (dugem) dan maksiat yang hanya membawa kesenangan semu serta merusak keimanan, mental, dan masa depanmu. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan. Segeralah beristirahat, persiapkan diri untuk meraih keberkahan di sepertiga malam terakhir dan ibadah Subuh esok hari.
+                            <i class="fa-solid fa-star-and-crescent txt-gold ml-2"></i>
+                        </span>
+                    </div>
+                    <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--theme-card-bg)] to-transparent z-10 rounded-r-lg pointer-events-none"></div>
+                </div>
+
             </div>
 
             <div class="w-full bg-gray-500/20 h-2 rounded-full overflow-hidden mt-4 shadow-inner relative">
@@ -364,13 +394,16 @@
     setInterval(applyDynamicTheme, 60000);
 
     // =========================================
-    // JAM REAL TIME
+    // JAM REAL TIME & CHECKER NIGHT REMINDER
     // =========================================
     function initRealtimeClock() {
         setInterval(() => {
             const now = new Date();
-            const hh = String(now.getHours()).padStart(2, '0');
-            const mm = String(now.getMinutes()).padStart(2, '0');
+            const hhNum = now.getHours();
+            const mmNum = now.getMinutes();
+            
+            const hh = String(hhNum).padStart(2, '0');
+            const mm = String(mmNum).padStart(2, '0');
             const ss = String(now.getSeconds()).padStart(2, '0');
             
             const offset = -(now.getTimezoneOffset() / 60);
@@ -381,6 +414,23 @@
 
             $('#realtimeClock').text(`${hh}:${mm}:${ss}`);
             $('#timezoneLabel').text(tz);
+            
+            // Logic Pop Running Text (Muncul di Jam 23:35 - 01:30)
+            let showNightReminder = false;
+            if (hhNum === 23 && mmNum >= 35) {
+                showNightReminder = true;
+            } else if (hhNum === 0) {
+                showNightReminder = true;
+            } else if (hhNum === 1 && mmNum <= 30) {
+                showNightReminder = true;
+            }
+
+            if (showNightReminder) {
+                $('#nightReminder').removeClass('hidden').addClass('block');
+            } else {
+                $('#nightReminder').addClass('hidden').removeClass('block');
+            }
+            
         }, 1000);
     }
 
@@ -394,7 +444,7 @@
     let userKecamatan = localStorage.getItem('userKecamatan') || '';
 
     $(document).ready(function() {
-        initAsmaulHusna();
+        initAsmaulHusna(); // Fungsi direstore secara penuh di bawah
         fetchQuran();
         randomHadits();
         initRealtimeClock();
@@ -435,7 +485,9 @@
         });
     });
 
-    // ... GPS Code tetap sama ...
+    // =========================================
+    // GPS & LOKASI
+    // =========================================
     function forceGPS() {
         $('#locStatus').text("Sedang mencari koordinat GPS...").addClass("animate-pulse").css('color', 'var(--theme-gold)');
         $('#gpsIcon').addClass("animate-spin txt-primary").removeClass("txt-gold text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]");
@@ -534,7 +586,6 @@
             const now = new Date();
             let timeline = [];
             
-            // Build 3-day timeline to properly handle progress bar spans (Yesterday, Today, Tomorrow)
             prayersRaw.forEach(p => {
                 const [h, m] = p.time.split(':');
                 [-1, 0, 1].forEach(offset => {
@@ -550,7 +601,6 @@
             for (let i = 0; i < timeline.length; i++) {
                 const diff = timeline[i].dateObj - now;
                 
-                // Cek status Azan (berlangsung 10 menit = 600,000 ms), kecualikan waktu Terbit
                 if (diff <= 0 && diff > -600000 && timeline[i].id !== 'Terbit') {
                     activeAzanPrayer = timeline[i];
                 }
@@ -558,9 +608,8 @@
                 if (diff > 0 && diff < minDiff) {
                     minDiff = diff;
                     nextP = timeline[i];
-                    prevP = timeline[i - 1]; // Jadwal sholat sebelumnya (untuk hitung progress)
+                    prevP = timeline[i - 1]; 
                     
-                    // Logic H-10 Menit Toast
                     if (Math.floor(diff/1000) === 600) { 
                         showToast(`Peringatan Sholat`, `Waktu ${nextP.name} akan masuk dalam 10 menit.`);
                     }
@@ -570,14 +619,12 @@
                 }
             }
 
-            // Update UI Active Box
             prayersRaw.forEach(p => {
                 const el = $(`#card-${p.id}`);
                 if (activeAzanPrayer && activeAzanPrayer.id === p.id) el.addClass('active pulse-active');
                 else el.removeClass('active pulse-active');
             });
 
-            // Update Progress Bar Continuously based on interval span
             if(prevP && nextP) {
                 const totalSpan = nextP.dateObj - prevP.dateObj;
                 const elapsed = now - prevP.dateObj;
@@ -585,7 +632,6 @@
                 $('#timeProgressBar').css('width', `${percentage}%`);
             }
 
-            // Update Text & Countdown
             const totalSecs = Math.floor(minDiff / 1000);
             const hh = Math.floor(totalSecs / 3600).toString().padStart(2, '0');
             const mm = Math.floor((totalSecs % 3600) / 60).toString().padStart(2, '0');
@@ -620,7 +666,6 @@
         const card = $('#yasinModalCard');
         
         modal.removeClass('hidden').addClass('flex');
-        // Simple entry animation
         setTimeout(() => { modal.removeClass('opacity-0'); card.removeClass('scale-95'); }, 10);
 
         if ($('#yasinContent').html().trim() === '') {
@@ -658,7 +703,40 @@
     // =========================================
     // FITUR WIDGET LAINNYA
     // =========================================
-    function initAsmaulHusna() { /* ... kode asmaul husna tetap sama ... */ }
+    
+    // Asmaul Husna (RESTORED COMPLETELY)
+    function initAsmaulHusna() {
+        const asmaulHusna = [
+            { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" },
+            { Arab: "الرَّحِيمُ", Latin: "Ar Rahiim", Arti: "Yang Maha Penyayang" },
+            { Arab: "الْمَلِكُ", Latin: "Al Malik", Arti: "Yang Maha Merajai" },
+            { Arab: "الْقُدُّوسُ", Latin: "Al Quddus", Arti: "Yang Maha Suci" },
+            { Arab: "السَّلاَمُ", Latin: "As Salaam", Arti: "Yang Maha Memberi Kesejahteraan" },
+            { Arab: "الْمُؤْمِنُ", Latin: "Al Mu'min", Arti: "Yang Maha Memberi Keamanan" },
+            { Arab: "الْمُهَيْمِنُ", Latin: "Al Muhaimin", Arti: "Yang Maha Pemelihara" },
+            { Arab: "الْعَزِيزُ", Latin: "Al 'Aziz", Arti: "Yang Maha Perkasa" },
+            { Arab: "الْجَبَّارُ", Latin: "Al Jabbar", Arti: "Yang Memiliki Mutlak Kegagahan" },
+            { Arab: "الْمُتَكَبِّرُ", Latin: "Al Mutakabbir", Arti: "Yang Maha Megah" },
+            { Arab: "الْخَالِقُ", Latin: "Al Khaliq", Arti: "Yang Maha Pencipta" }
+        ];
+
+        let html = '';
+        asmaulHusna.forEach(a => {
+            html += `
+            <div class="swiper-slide flex flex-col items-center justify-center text-center px-4">
+                <div class="text-3xl md:text-4xl font-arab txt-primary mb-2 drop-shadow-md hover:scale-105 transition-transform cursor-default">${a.Arab}</div>
+                <div class="text-sm font-bold txt-gold tracking-wide">${a.Latin}</div>
+                <div class="text-[10px] txt-secondary italic mt-1">"${a.Arti}"</div>
+            </div>`;
+        });
+        $('#asmaulWrapper').html(html);
+
+        new Swiper(".asmaulSwiper", {
+            navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
+            autoplay: { delay: 3500, disableOnInteraction: false },
+            loop: true, effect: "fade", fadeEffect: { crossFade: true }
+        });
+    }
     
     // Ayat Tematik
     const kumpulanRenunganQuran = [
@@ -704,10 +782,8 @@
         tasbih++; 
         $('#tasbihCount').text(tasbih); 
         
-        // Haptic Feedback (Jika didukung browser HP)
         if(navigator.vibrate) navigator.vibrate(50);
 
-        // Visual Animation
         const tc = $('#tasbihCount');
         const bg = $('#tasbihBg');
         
