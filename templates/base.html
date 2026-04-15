@@ -56,11 +56,44 @@
     </script>
 
     <script>
-        document.addEventListener('contextmenu', event => event.preventDefault());
+        // LOGIKA PERINGATAN KLIK KANAN & INSPECT
+        let inspectWarningTimer;
+        function showInspectWarning() {
+            const warningEl = document.getElementById('inspect-warning-toast');
+            if (warningEl) {
+                // Tampilkan Toast
+                warningEl.classList.remove('hidden', 'opacity-0', '-translate-y-full');
+                warningEl.classList.add('opacity-100', 'translate-y-0');
+                
+                // Sembunyikan setelah 4 detik
+                clearTimeout(inspectWarningTimer);
+                inspectWarningTimer = setTimeout(() => {
+                    warningEl.classList.remove('opacity-100', 'translate-y-0');
+                    warningEl.classList.add('opacity-0', '-translate-y-full');
+                    setTimeout(() => warningEl.classList.add('hidden'), 300); // Tunggu transisi selesai
+                }, 4000);
+            } else {
+                // Fallback jika elemen HTML belum ter-load
+                alert("TIM Security KTVDI mendeteksi Anda ingin melakukan inspect atau klik kanan. Untuk alasan keamanan dan privasi, mohon maaf belum kami izinkan. Terima kasih.");
+            }
+        }
+
+        document.addEventListener('contextmenu', event => {
+            event.preventDefault();
+            showInspectWarning();
+        });
+
         document.onkeydown = function(e) {
-            if(e.keyCode == 123) return false; 
-            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
-            if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) return false;
+            let isBlocked = false;
+            if(e.keyCode == 123) isBlocked = true; // F12
+            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) isBlocked = true; // Ctrl+Shift+I/C/J
+            if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true; // Ctrl+U/S/P
+            
+            if(isBlocked) {
+                e.preventDefault();
+                showInspectWarning();
+                return false;
+            }
         }
 
         document.addEventListener('dragstart', event => event.preventDefault());
@@ -328,6 +361,13 @@
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900">
 
     <audio id="security-audio" src="https://l.top4top.io/m_342514jhj1.mp3" loop preload="auto"></audio>
+
+    <div id="inspect-warning-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[10005] bg-[#ff3b30]/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 transition-all duration-300 hidden opacity-0 -translate-y-full w-[90vw] max-w-md border border-white/20">
+        <i class="fa-solid fa-shield-halved text-2xl animate-pulse shrink-0"></i>
+        <p class="text-[11px] md:text-xs font-bold leading-relaxed">
+            TIM Security KTVDI mendeteksi Anda ingin melakukan inspect atau klik kanan. Untuk alasan keamanan dan privasi, mohon maaf belum kami izinkan. Terima kasih.
+        </p>
+    </div>
 
     <div id="security-overlay">
         <div class="p-8 max-w-sm bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
