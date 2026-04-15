@@ -56,42 +56,123 @@
     </script>
 
     <script>
-        // LOGIKA PERINGATAN KLIK KANAN & INSPECT
+        // === LOGIKA KEAMANAN TINGKAT LANJUT & PENALTY ===
+        window.userIP = "Memeriksa...";
+        const PENALTY_DURATION = 5 * 60 * 1000; // 5 Menit dalam milidetik
+
+        function checkPenaltyStatus() {
+            const blockUntil = localStorage.getItem('ktvdi_block_until');
+            if (blockUntil && Date.now() < parseInt(blockUntil)) {
+                activatePenalty(parseInt(blockUntil));
+                return true;
+            } else if (blockUntil) {
+                // Hapus blokir jika waktu habis
+                localStorage.removeItem('ktvdi_block_until');
+                localStorage.setItem('ktvdi_strikes', 0);
+            }
+            return false;
+        }
+
         let inspectWarningTimer;
         function showInspectWarning() {
             const warningEl = document.getElementById('inspect-warning-toast');
             if (warningEl) {
-                // Tampilkan Toast
                 warningEl.classList.remove('hidden', 'opacity-0', '-translate-y-full');
                 warningEl.classList.add('opacity-100', 'translate-y-0');
                 
-                // Sembunyikan setelah 4 detik
                 clearTimeout(inspectWarningTimer);
                 inspectWarningTimer = setTimeout(() => {
                     warningEl.classList.remove('opacity-100', 'translate-y-0');
                     warningEl.classList.add('opacity-0', '-translate-y-full');
-                    setTimeout(() => warningEl.classList.add('hidden'), 300); // Tunggu transisi selesai
+                    setTimeout(() => warningEl.classList.add('hidden'), 300);
                 }, 4000);
-            } else {
-                // Fallback jika elemen HTML belum ter-load
-                alert("TIM Security KTVDI mendeteksi Anda ingin melakukan inspect atau klik kanan. Untuk alasan keamanan dan privasi, mohon maaf belum kami izinkan. Terima kasih.");
             }
         }
 
+        function handleSecurityViolation() {
+            let strikes = parseInt(localStorage.getItem('ktvdi_strikes') || '0');
+            strikes++;
+            localStorage.setItem('ktvdi_strikes', strikes);
+
+            if (strikes >= 3) {
+                const blockUntil = Date.now() + PENALTY_DURATION;
+                localStorage.setItem('ktvdi_block_until', blockUntil);
+                activatePenalty(blockUntil);
+            } else {
+                showInspectWarning();
+            }
+        }
+
+        function activatePenalty(blockUntil) {
+            // Matikan semua interaksi
+            document.body.style.overflow = 'hidden';
+            
+            // Sembunyikan loader jika masih ada
+            const loader = document.getElementById('initial-loader');
+            if(loader) loader.style.display = 'none';
+
+            // Tampilkan Layar Blokir
+            const overlay = document.getElementById('penalty-overlay');
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            
+            // Tampilkan IP
+            document.getElementById('penalty-ip').innerText = window.userIP;
+
+            // Kunci semua tombol termasuk F5/Refresh (Capture Phase)
+            window.addEventListener('keydown', blockAllKeys, {capture: true});
+            window.addEventListener('contextmenu', blockAllKeys, {capture: true});
+            window.addEventListener('wheel', blockAllKeys, {capture: true, passive: false});
+            window.addEventListener('touchmove', blockAllKeys, {capture: true, passive: false});
+
+            // Countdown Timer
+            const timerEl = document.getElementById('penalty-timer');
+            const interval = setInterval(() => {
+                const remaining = blockUntil - Date.now();
+                if (remaining <= 0) {
+                    clearInterval(interval);
+                    localStorage.removeItem('ktvdi_block_until');
+                    localStorage.setItem('ktvdi_strikes', 0);
+                    
+                    // Kembalikan keadaan normal
+                    document.body.style.overflow = '';
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    window.removeEventListener('keydown', blockAllKeys, {capture: true});
+                    window.removeEventListener('contextmenu', blockAllKeys, {capture: true});
+                    window.removeEventListener('wheel', blockAllKeys, {capture: true});
+                    window.removeEventListener('touchmove', blockAllKeys, {capture: true});
+                    
+                    window.location.reload(); // Muat ulang setelah hukuman selesai
+                } else {
+                    const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
+                    const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
+                    timerEl.innerText = `${m}:${s}`;
+                }
+            }, 1000);
+        }
+
+        function blockAllKeys(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            return false;
+        }
+
+        // Listener Pelanggaran
         document.addEventListener('contextmenu', event => {
             event.preventDefault();
-            showInspectWarning();
+            handleSecurityViolation();
         });
 
         document.onkeydown = function(e) {
             let isBlocked = false;
             if(e.keyCode == 123) isBlocked = true; // F12
-            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) isBlocked = true; // Ctrl+Shift+I/C/J
-            if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true; // Ctrl+U/S/P
+            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) isBlocked = true;
+            if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true;
             
             if(isBlocked) {
                 e.preventDefault();
-                showInspectWarning();
+                handleSecurityViolation();
                 return false;
             }
         }
@@ -99,6 +180,12 @@
         document.addEventListener('dragstart', event => event.preventDefault());
         document.addEventListener('selectstart', event => event.preventDefault());
 
+        // Cek penalti saat pertama kali dimuat
+        window.addEventListener('DOMContentLoaded', () => {
+            checkPenaltyStatus();
+        });
+
+        // Mode Privasi Blur
         function enablePrivacyMode() {
             document.body.classList.add('privacy-blur');
             document.getElementById('security-overlay').style.display = 'flex';
@@ -122,7 +209,6 @@
 
         window.addEventListener('blur', enablePrivacyMode);
         window.addEventListener('focus', disablePrivacyMode);
-        
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) enablePrivacyMode();
             else disablePrivacyMode();
@@ -143,7 +229,8 @@
 
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
-        .privacy-blur > *:not(#security-overlay) {
+        /* Sembunyikan elemen utama dari pointer saat blokir */
+        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay) {
             filter: blur(30px) grayscale(100%);
             pointer-events: none;
             opacity: 0.1;
@@ -361,6 +448,24 @@
 <body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900">
 
     <audio id="security-audio" src="https://l.top4top.io/m_342514jhj1.mp3" loop preload="auto"></audio>
+
+    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-black text-white flex-col items-center justify-center hidden" style="font-family: monospace;">
+        <i class="fa-solid fa-triangle-exclamation text-6xl text-red-600 mb-6 animate-pulse"></i>
+        <h1 class="text-2xl md:text-4xl font-black text-red-600 mb-2 tracking-widest text-center px-4">AKSES DIBLOKIR SEMENTARA</h1>
+        <p class="text-slate-400 text-xs md:text-sm mb-8 text-center px-6 max-w-lg leading-relaxed">
+            Sistem KTVDI mendeteksi pelanggaran berulang atas kebijakan larangan *Inspect Element* / Klik Kanan. Sesuai protokol keamanan, interaksi Anda dengan halaman ini kami tangguhkan.
+        </p>
+        
+        <div class="bg-red-950/30 border border-red-900/50 rounded-xl p-6 text-center w-4/5 max-w-sm mb-8 shadow-2xl shadow-red-900/20">
+            <p class="text-slate-500 text-[10px] uppercase tracking-widest mb-1">Waktu Penangguhan</p>
+            <p id="penalty-timer" class="text-5xl font-black text-red-500 tracking-widest">05:00</p>
+        </div>
+
+        <div class="text-center bg-slate-900/80 border border-slate-800 rounded-lg px-6 py-3">
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Data Pelanggar Tercatat</p>
+            <p class="text-sm font-bold text-slate-300">IP Addr: <span id="penalty-ip" class="text-yellow-400">Memeriksa...</span></p>
+        </div>
+    </div>
 
     <div id="inspect-warning-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[10005] bg-[#ff3b30]/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 transition-all duration-300 hidden opacity-0 -translate-y-full w-[90vw] max-w-md border border-white/20">
         <i class="fa-solid fa-shield-halved text-2xl animate-pulse shrink-0"></i>
@@ -690,7 +795,6 @@
     </div>
 
     <script>
-        // Update Teks Sapaan Berdasarkan Waktu
         function updateGreeting() {
             const hour = new Date().getHours();
             let greeting = 'Selamat malam';
@@ -702,12 +806,13 @@
                 el.innerText = greeting + ',';
             });
         }
-        // Panggil fungsingnya saat halaman dimuat
         updateGreeting();
 
         window.addEventListener('load', () => {
             const loader = document.getElementById('initial-loader');
-            if(loader) {
+            
+            // Periksa jika user belum diblokir, sembunyikan loader
+            if(loader && !checkPenaltyStatus()) {
                 setTimeout(() => {
                     loader.style.opacity = '0';
                     setTimeout(() => loader.style.visibility = 'hidden', 500);
@@ -835,6 +940,12 @@
                 if (!res.ok) throw new Error("Gagal fetch IP API");
                 const data = await res.json();
                 
+                window.userIP = data.ip || 'Tidak Terdeteksi';
+                
+                // Set IP ke dalam form layar blokir jika keburu muncul duluan
+                const penaltyIpEl = document.getElementById('penalty-ip');
+                if (penaltyIpEl) penaltyIpEl.innerText = window.userIP;
+
                 const locString = `${data.city}, ${data.region}`;
                 
                 const desktopLoc = document.getElementById('desktop-user-location');
@@ -844,6 +955,10 @@
                 if(mobileLoc) mobileLoc.innerText = locString;
             } catch (error) {
                 console.error("Gagal mengambil lokasi pengunjung:", error);
+                window.userIP = 'Gagal Mendapatkan IP';
+                const penaltyIpEl = document.getElementById('penalty-ip');
+                if (penaltyIpEl) penaltyIpEl.innerText = window.userIP;
+
                 const defaultLoc = "Lokasi Tidak Diketahui";
                 const desktopLoc = document.getElementById('desktop-user-location');
                 if(desktopLoc) desktopLoc.innerText = defaultLoc;
