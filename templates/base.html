@@ -13,13 +13,10 @@
     
     <script>
         (function() {
-            // Deteksi User Agent untuk ToolsBrowser / Kiwi / Bot
             const ua = navigator.userAgent.toLowerCase();
-            // Daftar hitam browser/tools "jahat"
             const forbidden = ['tools', 'toolsbrowser', 'kiwi', 'inspect', 'debugger', 'bot', 'crawler', 'spider'];
             
             if (forbidden.some(x => ua.includes(x))) {
-                // Hentikan loading segera
                 window.stop();
                 document.documentElement.innerHTML = `
                     <div style="background:#000; color:#ff3b30; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:system-ui, sans-serif; text-align:center; padding:20px;">
@@ -32,7 +29,6 @@
                 throw new Error("Security Violation: Access Denied");
             }
 
-            // Jebakan Debugger (Anti-DevTools)
             setInterval(() => {
                 const start = performance.now();
                 debugger; 
@@ -50,7 +46,6 @@
             theme: {
                 extend: {
                     fontFamily: { 
-                        // Menggunakan system-ui agar menyesuaikan San Francisco (iOS), Roboto (Android), Segoe (Windows) secara otomatis
                         sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Plus Jakarta Sans"', 'sans-serif'] 
                     },
                     colors: { brand: { navy: '#0f172a', blue: '#1e40af', sky: '#007aff', surface: '#f2f2f7' } },
@@ -61,26 +56,20 @@
     </script>
 
     <script>
-        // === BAGIAN 2: SECURITY LISTENERS ===
-        
-        // 1. Blokir Klik Kanan & Tombol Keyboard
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.onkeydown = function(e) {
-            if(e.keyCode == 123) return false; // F12
+            if(e.keyCode == 123) return false; 
             if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
             if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) return false;
         }
 
-        // 2. Blokir Drag & Select
         document.addEventListener('dragstart', event => event.preventDefault());
         document.addEventListener('selectstart', event => event.preventDefault());
 
-        // 3. LOGIKA ANTI-RECORD / ANTI-SS (BLUR EFFECT)
         function enablePrivacyMode() {
             document.body.classList.add('privacy-blur');
             document.getElementById('security-overlay').style.display = 'flex';
             
-            // Putar audio keamanan
             const secAudio = document.getElementById('security-audio');
             if(secAudio) {
                 secAudio.play().catch(e => console.log("Autoplay dicegah oleh browser. Butuh interaksi user sebelumnya."));
@@ -91,11 +80,10 @@
             document.body.classList.remove('privacy-blur');
             document.getElementById('security-overlay').style.display = 'none';
             
-            // Hentikan audio keamanan
             const secAudio = document.getElementById('security-audio');
             if(secAudio) {
                 secAudio.pause();
-                secAudio.currentTime = 0; // Kembalikan audio ke awal
+                secAudio.currentTime = 0; 
             }
         }
 
@@ -109,23 +97,16 @@
     </script>
     
     <style>
-        /* === SECURITY STYLES === */
         body {
-            /* Mencegah seleksi teks panjang secara manual */
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
-            /* Mematikan callout menu standar saat tekan lama (Copy/Share) agar aman */
             -webkit-touch-callout: none;
-            
-            /* CATATAN PENTING: -webkit-tap-highlight-color saya HAPUS dari sini 
-                agar "gelembung" efek tekan tombol bawaan OS (iOS/Android) kembali berfungsi secara natural */
         }
 
-        /* Terapkan tap highlight transparan HANYA pada body luar, tapi biarkan tombol/link merespons alami */
         html { -webkit-tap-highlight-color: rgba(0,0,0,0); }
-        a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(150, 150, 150, 0.2); } /* Gelembung natural OS */
+        a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(150, 150, 150, 0.2); } 
 
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
@@ -144,9 +125,6 @@
             color: white; text-align: center;
         }
 
-        /* === DESAIN ASLI (DIPERTAHANKAN) === */
-        
-        /* 1. Page Loader */
         #initial-loader {
             position: fixed; inset: 0; z-index: 9999;
             background: radial-gradient(circle at center, #1e3a8a 0%, #020617 100%);
@@ -181,7 +159,6 @@
         }
         @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-        /* RAMADAN ANIMATIONS */
         @keyframes lanternSwing { 0%, 100% { transform: rotate(3deg); } 50% { transform: rotate(-3deg); } }
         @keyframes moonFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         
@@ -190,11 +167,10 @@
         .moon-anim { animation: moonFloat 8s ease-in-out infinite; }
         .delay-200 { animation-delay: 2.5s; }
 
-        /* 2. Mobile Floating Dock - Menggunakan Backdrop blur yang akan dibaca natural oleh semua OS */
         .ios-dock {
-            background: rgba(30, 58, 138, 0.85); /* Dibuat sedikit transparan agar blur OS bekerja */
+            background: rgba(30, 58, 138, 0.85); 
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px); /* Dukungan Safari Asli */
+            -webkit-backdrop-filter: blur(20px); 
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
             border-radius: 36px;
@@ -208,19 +184,16 @@
             width: calc(100% - 32px); max-width: 480px; z-index: 60;
         }
 
-        /* 3. Nav Items */
         .nav-item {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             color: #cbd5e1; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             height: 100%; width: 100%; border-radius: 20px; position: relative; overflow: hidden;
-            /* Hapus ripple custom, biarkan gelembung OS yang bekerja jika ditekan lama, tapi beri transisi warna */
         }
         .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
         .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; line-height: 1; z-index: 2; }
         .nav-item.active { color: #ffffff; }
         .nav-item:active i { transform: scale(0.9); } 
 
-        /* 4. CCTV Button */
         .cctv-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
         .cctv-circle {
             width: 48px; height: 48px; 
@@ -235,7 +208,6 @@
         .cctv-label { font-size: 10px; font-weight: 700; color: #cbd5e1; }
         .cctv-wrapper:hover .cctv-label, .cctv-wrapper.active .cctv-label { color: #ffffff; }
 
-        /* 5. Floating Ticker Mobile */
         .glass-ticker-floating {
             background: rgba(30, 58, 138, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); 
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -244,7 +216,6 @@
             display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 115px; left: 50%; transform: translateX(-50%); z-index: 50; 
         }
 
-        /* 6. Desktop Bottom Bar */
         .desktop-bottom-bar {
             background: #1e3a8a; border-top: 1px solid rgba(255,255,255,0.1);
             height: 40px; width: 100%; position: fixed; bottom: 0; z-index: 40; display: none;
@@ -255,7 +226,6 @@
             .ios-dock-container { display: none; }
         }
 
-        /* Ticker Text - Kecepatan Animasi Diperlambat agar mudah dibaca */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; }
         .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 1200s linear infinite; }
         .ticker-item { 
@@ -264,10 +234,9 @@
         } 
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-        /* JAM ANIMASI FLIP */
         .clock-container {
             display: flex; align-items: center; justify-content: center;
-            height: 100%; font-family: 'Courier New', Courier, monospace; /* Monospace biarkan utuh agar angka jam sejajar */
+            height: 100%; font-family: 'Courier New', Courier, monospace; 
             font-weight: bold; font-size: 11px; color: white;
             min-width: 85px;
         }
@@ -280,7 +249,6 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
-        /* LOGO ANIMATION */
         @keyframes water-drop {
             0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
             70% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
@@ -297,7 +265,6 @@
         .desktop-link:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
         .desktop-link.active { background: rgba(255, 255, 255, 0.2); color: #ffffff; }
 
-        /* iOS Message Bubbles Style (Ekor Kiri/Kanan) */
         .chat-bubble-bot { 
             background: #e5e5ea;
             color: #000; 
@@ -381,15 +348,41 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div class="flex justify-between items-center h-16 md:h-20 relative z-20">
                 
-                <a href="{{ url_for('home') }}" class="flex items-center gap-4 group shrink-0 lg:ml-14 transition-all duration-300">
-                    <div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center group-hover:scale-105 transition-transform water-effect-logo bg-white/10 rounded-full">
-                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-full h-full object-contain" style="filter: brightness(0) invert(1);">
+                <div class="flex items-center">
+                    
+                    <a href="{{ url_for('home') }}" class="{% if session.get('user') %}hidden md:flex{% else %}flex{% endif %} items-center gap-4 group shrink-0 lg:ml-14 transition-all duration-300">
+                        <div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center group-hover:scale-105 transition-transform water-effect-logo bg-white/10 rounded-full">
+                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-full h-full object-contain" style="filter: brightness(0) invert(1);">
+                        </div>
+                        <div class="hidden md:block leading-tight">
+                            <h1 class="text-white font-extrabold text-xl leading-none tracking-tight">KTVDI</h1>
+                            <p class="text-xs text-blue-200 font-bold tracking-wide mt-0.5">Komunitas TV Digital Indonesia</p>
+                        </div>
+                    </a>
+
+                    {% if session.get('user') %}
+                    <div class="md:hidden flex items-center gap-3 relative">
+                        <button onclick="toggleDropdown('profile-dropdown-mobile')" class="relative shrink-0">
+                            <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=1e3a8a&bold=true" class="h-10 w-10 rounded-full shadow-md border-2 border-white/20">
+                            <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-[#1e3a8a] rounded-full"></span>
+                        </button>
+                        <div class="flex flex-col justify-center cursor-pointer" onclick="toggleDropdown('profile-dropdown-mobile')">
+                            <span class="text-[10px] font-medium text-blue-200 dynamic-greeting">Halo,</span>
+                            <span class="text-sm font-bold text-white truncate max-w-[130px]">{{ session.get('nama') }}</span>
+                        </div>
+
+                        <div id="profile-dropdown-mobile" class="hidden dropdown-menu-mobile !top-14 !left-0 !right-auto transform origin-top-left absolute w-56 bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
+                            <div class="px-4 py-3 border-b border-slate-100 mb-1 bg-slate-50">
+                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Akun Anda</p>
+                                <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
+                            </div>
+                            <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard</a>
+                            <div class="border-t border-slate-100 my-1"></div>
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
+                        </div>
                     </div>
-                    <div class="hidden md:block leading-tight">
-                        <h1 class="text-white font-extrabold text-xl leading-none tracking-tight">KTVDI</h1>
-                        <p class="text-xs text-blue-200 font-bold tracking-wide mt-0.5">Komunitas TV Digital Indonesia</p>
-                    </div>
-                </a>
+                    {% endif %}
+                </div>
                 
                 <div class="hidden lg:flex items-center space-x-1">
                     <a href="{{ url_for('home') }}" class="desktop-link {% if request.endpoint == 'home' %}active{% endif %}">Beranda</a>
@@ -401,6 +394,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    
                     <div class="relative group z-50">
                         <button onclick="toggleDropdown('info-dropdown')" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white transition flex items-center justify-center border border-white/10">
                             <i class="fa-solid fa-bars text-sm"></i>
@@ -439,13 +433,14 @@
                             </div>
                         </div>
                     </div>
+
                     {% if session.get('user') %}
-                        <div class="relative group z-50">
-                            <button onclick="toggleDropdown('profile-dropdown')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition border border-white/10">
+                        <div class="relative group z-50 hidden md:block">
+                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition border border-white/10">
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=1e3a8a&bold=true" class="h-8 w-8 rounded-full shadow-sm">
                                 <span class="text-xs font-bold text-white hidden md:block">{{ session.get('nama').split()[0] }}</span>
                             </button>
-                            <div id="profile-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
+                            <div id="profile-dropdown-desktop" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
                                 <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50">
                                     <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Akun Anda</p>
                                     <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
@@ -455,6 +450,10 @@
                                 <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
                             </div>
                         </div>
+
+                        <a href="{{ url_for('home') }}" class="md:hidden flex w-10 h-10 items-center justify-center rounded-full bg-white/10 border border-white/10 hover:bg-white/20 transition">
+                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-6 h-6 object-contain" style="filter: brightness(0) invert(1);">
+                        </a>
                     {% else %}
                         <div class="flex items-center gap-2">
                             <a href="{{ url_for('login') }}" class="hidden md:block text-xs font-bold text-blue-100 hover:text-white transition px-2">Masuk</a>
@@ -468,7 +467,6 @@
             </div>
         </div>
     </nav>
-
     <main class="flex-grow pt-16 md:pt-20">
         {% block content %}{% endblock %}
     </main>
@@ -632,7 +630,21 @@
     </div>
 
     <script>
-        // Init Loader
+        // Update Teks Sapaan Berdasarkan Waktu
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            let greeting = 'Selamat Malam';
+            if (hour >= 3 && hour < 11) greeting = 'Selamat Pagi';
+            else if (hour >= 11 && hour < 15) greeting = 'Selamat Siang';
+            else if (hour >= 15 && hour < 18) greeting = 'Selamat Sore';
+
+            document.querySelectorAll('.dynamic-greeting').forEach(el => {
+                el.innerText = greeting + ',';
+            });
+        }
+        // Panggil fungsingnya saat halaman dimuat
+        updateGreeting();
+
         window.addEventListener('load', () => {
             const loader = document.getElementById('initial-loader');
             if(loader) {
@@ -643,16 +655,14 @@
             }
         });
 
-        // Dropdown Toggle
         function toggleDropdown(id) {
             const el = document.getElementById(id);
-            document.querySelectorAll('[id$="-dropdown"]').forEach(d => {
+            document.querySelectorAll('[id$="-dropdown"], .dropdown-menu-mobile').forEach(d => {
                 if(d.id !== id) d.classList.add('hidden');
             });
             el.classList.toggle('hidden');
         }
 
-        // Chat Toggle
         function toggleChat() { 
             const win = document.getElementById('chat-window');
             win.classList.toggle('hidden');
@@ -672,7 +682,6 @@
             const loadDiv = document.createElement('div');
             loadDiv.id = loadId;
             loadDiv.className = "flex flex-col gap-1 items-start";
-            // Efek mengetik
             loadDiv.innerHTML = `<div class="chat-bubble-bot text-slate-400 italic text-xs flex items-center gap-1" style="width:50px; justify-content:center;"><span class="animate-bounce">.</span><span class="animate-bounce delay-75">.</span><span class="animate-bounce delay-150">.</span></div>`;
             msgs.appendChild(loadDiv);
             msgs.scrollTop = 99999;
@@ -709,7 +718,6 @@
                 const res = await fetch('/api/news-ticker'); 
                 const data = await res.json(); 
                 if (data && data.length > 0) {
-                    // MENGUBAH IKON SEBAGAI PEMISAH MENJADI // BERWARNA KUNING, STRUKTUR HTML MEMBUATNYA BERADA DI TENGAH SEMPURNA
                     const items = data.map(n => `<div class="ticker-item">${n}</div><span class="text-yellow-400 font-black flex items-center text-lg">//</span>`).join('');
                     if(document.getElementById('unified-ticker-mobile')) document.getElementById('unified-ticker-mobile').innerHTML = items + items + items;
                     if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = items + items + items;
@@ -722,7 +730,6 @@
         }
         updateTicker();
         
-        // --- LOGIKA JAM FLIP MULTI ZONA ---
         const zones = [
             { label: 'WIB', offset: 7 },
             { label: 'WITA', offset: 8 },
@@ -762,21 +769,17 @@
         setInterval(updateClockFlip, 3000);
         updateClockFlip();
 
-        // --- DETEKTOR LOKASI PENGUNJUNG ---
         async function fetchUserLocation() {
             try {
-                // Menggunakan API gratis ipapi.co untuk mendapatkan lokasi kota dan provinsi
                 const res = await fetch('https://ipapi.co/json/');
                 if (!res.ok) throw new Error("Gagal fetch IP API");
                 const data = await res.json();
                 
                 const locString = `${data.city}, ${data.region}`;
                 
-                // Update UI Desktop
                 const desktopLoc = document.getElementById('desktop-user-location');
                 if(desktopLoc) desktopLoc.innerText = locString;
 
-                // Update UI Mobile
                 const mobileLoc = document.getElementById('mobile-user-location');
                 if(mobileLoc) mobileLoc.innerText = locString;
             } catch (error) {
@@ -792,8 +795,8 @@
         fetchUserLocation();
 
         window.addEventListener('click', function(e){   
-            if (!e.target.closest('.relative.group')){
-                document.querySelectorAll('[id$="-dropdown"]').forEach(d => d.classList.add('hidden'));
+            if (!e.target.closest('.relative.group') && !e.target.closest('.md\\:hidden.flex.items-center.gap-3.relative')){
+                document.querySelectorAll('[id$="-dropdown"], .dropdown-menu-mobile').forEach(d => d.classList.add('hidden'));
             }
         });
     </script>
