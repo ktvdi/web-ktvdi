@@ -350,13 +350,18 @@
                 
                 <div class="flex items-center">
                     
-                    <a href="{{ url_for('home') }}" class="{% if session.get('user') %}hidden md:flex{% else %}flex{% endif %} items-center gap-4 group shrink-0 lg:ml-14 transition-all duration-300">
-                        <div class="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center group-hover:scale-105 transition-transform water-effect-logo bg-white/10 rounded-full">
+                    <a href="{{ url_for('home') }}" class="{% if session.get('user') %}hidden md:flex{% else %}flex{% endif %} items-center gap-3 group shrink-0 lg:ml-14 transition-all duration-300">
+                        <div class="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center group-hover:scale-105 transition-transform water-effect-logo bg-white/10 rounded-full">
                             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-full h-full object-contain" style="filter: brightness(0) invert(1);">
                         </div>
-                        <div class="hidden md:block leading-tight">
-                            <h1 class="text-white font-extrabold text-xl leading-none tracking-tight">KTVDI</h1>
-                            <p class="text-xs text-blue-200 font-bold tracking-wide mt-0.5">Komunitas TV Digital Indonesia</p>
+                        <div class="leading-tight {% if session.get('user') %}hidden md:block{% endif %}">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-white font-extrabold text-lg md:text-xl leading-none tracking-tight">KTVDI</h1>
+                                {% if not session.get('user') %}
+                                    <span class="px-2 py-0.5 bg-slate-600/80 border border-slate-500/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm">VISITOR</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-[10px] md:text-xs text-blue-200 font-bold tracking-wide mt-1 hidden sm:block">Komunitas TV Digital Indonesia</p>
                         </div>
                     </a>
 
@@ -376,8 +381,8 @@
                             </div>
                             <div class="flex items-center gap-1.5 mt-0.5">
                                 <span class="text-[10px] text-white/90 tracking-wide">08159131735</span>
-                                <span class="px-2 py-0.5 bg-gradient-to-r from-slate-600 to-slate-800 border border-slate-500/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm">
-                                    Platinum
+                                <span class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-600 border border-yellow-400/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                    <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
                                 </span>
                             </div>
                         </div>
@@ -396,15 +401,6 @@
 
                 <div class="flex items-center gap-3 sm:gap-4">
                     
-                    {% if session.get('user') %}
-                        <button class="md:hidden text-white/90 hover:text-white transition">
-                            <i class="fa-solid fa-magnifying-glass text-[15px]"></i>
-                        </button>
-                        <button class="md:hidden text-white/90 hover:text-white transition relative">
-                            <i class="fa-regular fa-bell text-[17px]"></i>
-                        </button>
-                    {% endif %}
-
                     <div class="relative group z-50">
                         <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white transition flex items-center justify-center border border-white/10">
                             <i class="fa-solid fa-bars text-xs"></i>
@@ -444,9 +440,14 @@
 
                     {% if session.get('user') %}
                         <div class="relative group z-50 hidden md:block">
-                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition border border-white/10">
+                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition border border-white/10 text-left">
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=1e3a8a&bold=true" class="h-8 w-8 rounded-full shadow-sm">
-                                <span class="text-xs font-bold text-white">{{ session.get('nama').split()[0] }}</span>
+                                <div class="hidden md:flex flex-col">
+                                    <span class="text-xs font-bold text-white leading-tight">{{ session.get('nama').split()[0] }}</span>
+                                    <span class="text-[8px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                        <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
+                                    </span>
+                                </div>
                             </button>
                             <div id="profile-dropdown-desktop" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
                                 <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50">
@@ -462,9 +463,6 @@
                         <div class="relative md:hidden shrink-0">
                             <button onclick="toggleDropdown('profile-dropdown-mobile')" class="relative flex items-center justify-center transition-transform active:scale-95">
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=1e3a8a&bold=true" class="h-8 w-8 rounded-full shadow-md border-2 border-white/20">
-                                <div class="absolute -top-1 -left-2 bg-white rounded-md px-1 py-0.5 shadow-sm border border-slate-200">
-                                    <i class="fa-solid fa-comment-dots text-[8px] text-slate-700"></i>
-                                </div>
                             </button>
                             
                             <div id="profile-dropdown-mobile" class="hidden dropdown-menu-mobile !top-12 !right-0 transform origin-top-right absolute w-52 bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
