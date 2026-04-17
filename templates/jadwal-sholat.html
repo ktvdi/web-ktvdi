@@ -12,6 +12,17 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 
+<script>
+    // Memaksa loader hilang maksimal dalam 1.5 detik agar halaman tidak mental/stuck
+    setTimeout(() => {
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+        }
+    }, 1500);
+</script>
+
 <style>
     /* =========================================
        DYNAMIC THEME CONFIGURATION
@@ -277,7 +288,7 @@
                     <div class="marquee-wrapper text-xs md:text-sm txt-primary font-medium flex items-center">
                         <span class="marquee-text inline-flex items-center gap-2" id="nightReminderText">
                             <i class="fa-solid fa-moon txt-gold"></i>
-                            Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Jauhilah gemerlap dunia malam (dugem) dan maksiat yang hanya membawa kesenangan semu serta merusak keimanan, mental, dan masa depanmu. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan. Segeralah beristirahat, persiapkan diri untuk meraih keberkahan di sepertiga malam terakhir dan ibadah Subuh esok hari.
+                            Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Jauhilah gemerlap dunia malam dan maksiat yang hanya membawa kesenangan semu serta merusak keimanan, mental, dan masa depanmu. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan. Segeralah beristirahat, persiapkan diri untuk meraih keberkahan di sepertiga malam terakhir dan ibadah Subuh esok hari.
                             <i class="fa-solid fa-star-and-crescent txt-gold ml-2"></i>
                         </span>
                     </div>
@@ -446,12 +457,11 @@
             return;
         }
         
-        // Hentikan suara yang sedang berjalan
         stopAIVoice();
 
         let utter = new SpeechSynthesisUtterance(text);
-        utter.lang = 'id-ID'; // Menggunakan suara bahasa Indonesia
-        utter.rate = isYasin ? 0.85 : 0.95; // Yasin dibaca lebih lambat dan tenang
+        utter.lang = 'id-ID';
+        utter.rate = isYasin ? 0.85 : 0.95;
         utter.pitch = 1.0;
 
         utter.onstart = () => {
@@ -480,7 +490,6 @@
         $('#aiSpeakingIndicator').addClass('hidden');
     }
 
-    // Fungsi Pembaca Spesifik Konten
     function readAyatPilihan() {
         let textToRead = "Renungan Ayat Pilihan. " + $('#quranContent').text().replace(/ACAK AYAT|BACA YASIN/ig, '').trim();
         playAIVoice(textToRead);
@@ -492,7 +501,6 @@
     }
 
     function readAsmaulHusna() {
-        // Ambil slide yang sedang aktif
         let activeSlide = document.querySelector('.asmaulSwiper .swiper-slide-active');
         if(activeSlide) {
             let latin = activeSlide.querySelector('.txt-gold').innerText;
@@ -501,7 +509,6 @@
         }
     }
 
-    // Variabel untuk Yasin
     let yasinTranslations = [];
     
     function readYasinTeksIndo() {
@@ -509,13 +516,29 @@
             playAIVoice("Maaf, data terjemahan Yasin belum selesai dimuat.");
             return;
         }
-        let fullText = "Membaca Terjemahan Surat Yasin. Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang. ";
-        // Gabungkan 10 ayat pertama agar tidak terlalu panjang membebani browser
-        for(let i=0; i<Math.min(10, yasinTranslations.length); i++) {
-            fullText += `Ayat ${i+1}. ${yasinTranslations[i]}. `;
+        
+        stopAIVoice();
+        $('#aiSpeakingIndicator').removeClass('hidden');
+        
+        let intro = new SpeechSynthesisUtterance("Membaca Terjemahan Surat Yasin. Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.");
+        intro.lang = 'id-ID';
+        intro.rate = 0.85;
+        ttsSynth.speak(intro);
+
+        // Memecah bacaan menjadi antrean agar browser tidak error/crash
+        for(let i = 0; i < Math.min(15, yasinTranslations.length); i++) {
+            let u = new SpeechSynthesisUtterance(`Ayat ${i+1}. ${yasinTranslations[i]}`);
+            u.lang = 'id-ID';
+            u.rate = 0.85;
+            ttsSynth.speak(u);
         }
-        fullText += "Demikian terjemahan sepuluh ayat pertama.";
-        playAIVoice(fullText, true);
+
+        let outro = new SpeechSynthesisUtterance("Demikian terjemahan lima belas ayat pertama surat Yasin.");
+        outro.lang = 'id-ID';
+        outro.rate = 0.85;
+        outro.onend = () => { $('#aiSpeakingIndicator').addClass('hidden'); };
+        outro.onerror = () => { $('#aiSpeakingIndicator').addClass('hidden'); };
+        ttsSynth.speak(outro);
     }
 
     // =========================================
@@ -530,11 +553,9 @@
             return;
         }
 
-        // Mainkan suara indikasi
         playAIVoice("Sistem AI KTVDI sedang memindai masjid terdekat dari lokasi Anda untuk keamanan ibadah Anda. Mohon tunggu sebentar.");
         $('#radarMasjidBtn').addClass('animate-pulse bg-blue-500/30');
 
-        // Gunakan Nominatim OSM untuk mencari Masjid di sekitar
         const query = encodeURIComponent(`masjid in ${userKecamatan} ${userCityName}`);
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`;
         
@@ -546,7 +567,6 @@
                 let responseText = `Radar AI mendeteksi Anda sedang berada di wilayah ${userKecamatan}, ${userCityName}. Tempat ibadah terdekat dari posisi Anda saat ini adalah ${masjidName}. Tetap berhati-hati saat bertugas dan jangan lupa menunaikan ibadah tepat waktu. KTVDI senantiasa memantau dan menjaga Anda.`;
                 playAIVoice(responseText);
             } else {
-                // Fallback jika API tidak spesifik menemukan nama masjid, gunakan koordinat radius
                 $.getJSON(`https://nominatim.openstreetmap.org/search?format=json&amenity=place_of_worship&religion=muslim&limit=1&lat=${window.currentLat}&lon=${window.currentLon}`, function(data2) {
                     if(data2 && data2.length > 0) {
                         let msj = data2[0].name || "sebuah masjid";
@@ -584,7 +604,6 @@
             $('#realtimeClock').text(`${hh}:${mm}:${ss}`);
             $('#timezoneLabel').text(tz);
             
-            // Logic Pop Running Text (Muncul di Jam 23:35 - 01:30)
             let showNightReminder = false;
             if (hhNum === 23 && mmNum >= 35) {
                 showNightReminder = true;
@@ -667,7 +686,6 @@
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
                     
-                    // Simpan ke variabel global untuk fitur AI Radar Masjid
                     window.currentLat = lat;
                     window.currentLon = lon;
 
@@ -849,7 +867,7 @@
                 const arab = res.data[0].ayahs;
                 const indo = res.data[1].ayahs;
                 
-                yasinTranslations = indo.map(item => item.text); // Simpan untuk AI
+                yasinTranslations = indo.map(item => item.text); 
                 
                 let html = '<div class="text-center mb-8"><p class="font-arab text-4xl txt-gold mb-2">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</p><p class="text-xs txt-secondary italic">Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.</p></div>';
                 
@@ -872,7 +890,7 @@
     }
 
     function closeYasin() {
-        stopAIVoice(); // Hentikan suara jika sedang baca Yasin
+        stopAIVoice(); 
         $('#yasinModal').addClass('opacity-0');
         $('#yasinModalCard').addClass('scale-95');
         setTimeout(() => { $('#yasinModal').addClass('hidden').removeClass('flex'); }, 300);
@@ -882,7 +900,6 @@
     // FITUR WIDGET LAINNYA
     // =========================================
     
-    // Asmaul Husna (RESTORED COMPLETELY)
     function initAsmaulHusna() {
         const asmaulHusna = [
             { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" },
@@ -916,7 +933,6 @@
         });
     }
     
-    // Ayat Tematik
     const kumpulanRenunganQuran = [
         { ref: "29:45", tag: "Pagar Diri", pesan: "Sholat yang benar adalah alarm otomatis yang menahanmu dari melangkah ke tongkrongan toxic dan perbuatan merusak masa depan." },
         { ref: "18:28", tag: "Memilih Circle", pesan: "Jangan korbankan prinsip dan agama hanya karena takut dibilang 'nggak asik'. Jauhilah orang yang mengajakmu melupakan Tuhan." },
@@ -954,7 +970,6 @@
         $('#haditsContent').html(`<div class="flex-1 flex flex-col justify-center"><i class="fa-solid fa-quote-left text-2xl text-emerald-500/30 mb-2"></i><p class="text-sm txt-primary font-medium leading-relaxed">"${h.text}"</p><p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-4 text-right">— ${h.rawi}</p></div>`);
     }
 
-    // Interactive Digital Tasbih
     let tasbih = 0;
     function countTasbih() { 
         tasbih++; 
