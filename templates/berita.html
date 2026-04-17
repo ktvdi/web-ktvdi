@@ -17,6 +17,38 @@
         background-attachment: fixed;
     }
 
+    /* === NEW: BREAKING NEWS HIGHLIGHT STYLES === */
+    .breaking-grid {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    @media (min-width: 768px) { .breaking-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 1024px) { .breaking-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+    .breaking-card {
+        background: rgba(220, 38, 38, 0.1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: 16px;
+        padding: 16px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .breaking-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3);
+    }
+    .breaking-indicator {
+        position: absolute;
+        top: 0; left: 0; width: 4px; height: 100%;
+        background: #ef4444;
+        box-shadow: 0 0 10px #ef4444;
+    }
+
     /* Swiper Container */
     .news-swiper {
         width: 100%;
@@ -75,7 +107,7 @@
         text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
 
-    /* AI Summary Box (Kini menggunakan isi berita asli) */
+    /* AI Summary Box */
     .ai-box {
         background: rgba(15, 23, 42, 0.7);
         backdrop-filter: blur(15px);
@@ -92,7 +124,6 @@
         overflow: hidden;
     }
 
-    /* Efek kilap pada AI Box */
     .ai-box::before {
         content: '';
         position: absolute;
@@ -102,27 +133,64 @@
         animation: ai-shine 3s infinite;
     }
 
-    @keyframes ai-shine {
-        100% { left: 200%; }
-    }
+    @keyframes ai-shine { 100% { left: 200%; } }
 
     .swiper-pagination-bullet { background: rgba(255,255,255,0.5); }
     .swiper-pagination-bullet-active { background: #38bdf8; }
 </style>
 
+<div id="tts-audio-indicator" class="fixed top-24 right-4 z-50 bg-slate-900/80 backdrop-blur-md border border-slate-700 p-3 rounded-2xl shadow-2xl flex items-center gap-3 transition-all duration-500 transform translate-y-[-20px] opacity-0 pointer-events-none">
+    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center relative">
+        <i class="fa-solid fa-robot text-white text-xs z-10"></i>
+        <div id="tts-wave" class="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping hidden"></div>
+    </div>
+    <div class="flex flex-col">
+        <span class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">AI Anchor KTVDI</span>
+        <span id="tts-status-text" class="text-xs text-white font-medium">Menunggu interaksi...</span>
+    </div>
+    <button onclick="stopAITTS()" class="ml-2 w-6 h-6 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center">
+        <i class="fa-solid fa-stop text-[10px]"></i>
+    </button>
+</div>
+
 <div class="min-h-screen bg-space-mesh py-8 px-4 font-['Plus_Jakarta_Sans'] pb-32">
     <div class="max-w-7xl mx-auto relative z-10">
         
         <div class="text-center mb-8 animate-fade-in-up">
-            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 shadow-lg backdrop-blur-md mb-4">
-                <i class="fa-solid fa-bolt text-yellow-400"></i>
-                <span class="text-[10px] font-bold text-white uppercase tracking-widest">KTVDI News Update</span>
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 shadow-lg backdrop-blur-md mb-4 cursor-pointer hover:bg-white/20 transition" onclick="forcePlayTTS()">
+                <i class="fa-solid fa-volume-high text-yellow-400"></i>
+                <span class="text-[10px] font-bold text-white uppercase tracking-widest">Dengarkan Rangkuman AI</span>
             </div>
             <h1 class="text-3xl md:text-5xl font-black text-white mb-2 tracking-tight">
                 Berita <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Terkini</span>
             </h1>
-            <p class="text-slate-400 text-sm md:text-base font-medium">Geser untuk melihat berita, atau biarkan berjalan otomatis.</p>
+            <p class="text-slate-400 text-sm md:text-base font-medium">Geser untuk melihat berita, atau biarkan AI kami membacakannya.</p>
         </div>
+
+        {% if breaking_news %}
+        <div class="mb-12 animate-fade-in-up" style="animation-delay: 0.1s;">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                </span>
+                <h2 class="text-xl font-black text-white tracking-widest uppercase">Breaking News</h2>
+            </div>
+            
+            <div class="breaking-grid">
+                {% for b_news in breaking_news %}
+                <a href="{{ b_news.link }}" target="_blank" class="breaking-card block">
+                    <div class="breaking-indicator"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-[10px] font-bold text-red-400 uppercase tracking-widest">{{ b_news.source_name }}</span>
+                        <span class="text-[10px] text-slate-400 date-display" data-iso="{{ b_news.published }}"></span>
+                    </div>
+                    <h3 class="text-sm font-bold text-white leading-snug line-clamp-2 breaking-title-data">{{ b_news.title }}</h3>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         {% if articles %}
         <div class="swiper news-swiper animate-fade-in-up" style="animation-delay: 0.2s;">
@@ -165,7 +233,7 @@
                                 <i class="fa-solid fa-bolt text-cyan-400 text-xs"></i>
                                 <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Cuplikan Berita</span>
                             </div>
-                            <p class="text-xs text-slate-200 leading-relaxed font-medium line-clamp-4">
+                            <p class="text-xs text-slate-200 leading-relaxed font-medium line-clamp-4 summary-text-data">
                                 {% if article.summary %}
                                     {{ article.summary | striptags | truncate(150) }}
                                 {% else %}
@@ -229,6 +297,11 @@
 </style>
 
 <script>
+    // Variabel Global untuk TTS AI
+    let synth = window.speechSynthesis;
+    let aiUtterance;
+    let isTTSActive = false;
+
     document.addEventListener('DOMContentLoaded', function() {
         
         // 1. FORMAT TANGGAL
@@ -244,7 +317,7 @@
         });
 
         // 2. BERSIHKAN JUDUL DARI NAMA MEDIA
-        document.querySelectorAll('.title-text').forEach(el => {
+        document.querySelectorAll('.title-text, .breaking-title-data').forEach(el => {
             let title = el.innerText;
             if (title.includes(' - ')) {
                 const parts = title.split(' - ');
@@ -258,7 +331,7 @@
         // 3. INISIALISASI SWIPER 3D COVERFLOW DENGAN AUTO-SLIDE
         if (document.querySelector('.news-swiper')) {
             const swiper = new Swiper('.news-swiper', {
-                effect: 'coverflow', // Menggunakan efek geser 3D
+                effect: 'coverflow',
                 grabCursor: true,
                 centeredSlides: true,
                 slidesPerView: 'auto',
@@ -269,10 +342,9 @@
                     modifier: 1,
                     slideShadows: true,
                 },
-                // Mengaktifkan fitur Auto-Slide
                 autoplay: {
-                    delay: 5000, // Geser otomatis setiap 5 detik
-                    disableOnInteraction: false, // Tetap auto-slide walau user pernah menggeser
+                    delay: 5000, 
+                    disableOnInteraction: false, 
                 },
                 loop: false,
                 pagination: {
@@ -281,6 +353,91 @@
                 }
             });
         }
+
+        // 4. LOGIKA AI TTS: SUSUN TEKS BERITA & TRIGGER MENDADAK
+        setupAITTS();
     });
+
+    function setupAITTS() {
+        const breakingEls = document.querySelectorAll('.breaking-title-data');
+        const regularEls = document.querySelectorAll('.title-text');
+        
+        let ttsMessage = "";
+        let hasBreaking = breakingEls.length > 0;
+
+        if (hasBreaking) {
+            ttsMessage += "Peringatan! Ada Breaking News mendadak. ";
+            breakingEls.forEach((el, i) => {
+                if (i < 3) ttsMessage += `Berita pertama: ${el.innerText}. `; // Batasi baca 3 Breaking News agar tidak kepanjangan
+            });
+            ttsMessage += "Berikutnya, rangkuman berita utama. ";
+        } else {
+            ttsMessage += "Halo, berikut adalah rangkuman berita utama dari KTVDI. ";
+        }
+
+        regularEls.forEach((el, index) => {
+            if(index < 3) ttsMessage += el.innerText + ". "; // Baca 3 berita teratas di swiper
+        });
+
+        ttsMessage += "Demikian rangkuman berita saat ini. Silakan geser layar untuk membaca selengkapnya.";
+
+        aiUtterance = new SpeechSynthesisUtterance(ttsMessage);
+        aiUtterance.lang = 'id-ID';
+        aiUtterance.rate = 0.95; // Sedikit lebih lambat agar jelas
+        aiUtterance.pitch = 1.0;
+
+        aiUtterance.onstart = () => {
+            isTTSActive = true;
+            const indicator = document.getElementById('tts-audio-indicator');
+            indicator.classList.remove('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+            indicator.classList.add('opacity-100', 'translate-y-0', 'pointer-events-auto');
+            document.getElementById('tts-wave').classList.remove('hidden');
+            
+            if(hasBreaking) {
+                document.getElementById('tts-status-text').innerText = "Mengabarkan Breaking News...";
+                document.getElementById('tts-status-text').classList.add('text-red-400');
+            } else {
+                document.getElementById('tts-status-text').innerText = "Membacakan Rangkuman...";
+            }
+        };
+
+        aiUtterance.onend = () => {
+            resetTTSUI();
+        };
+
+        aiUtterance.onerror = () => {
+            resetTTSUI();
+        };
+
+        // Efek Mendadak: Putar otomatis pada klik pertama pengguna di mana saja di web ini
+        document.body.addEventListener('click', function ttsTrigger() {
+            if(!sessionStorage.getItem('ktvdi_tts_played')) {
+                sessionStorage.setItem('ktvdi_tts_played', 'true');
+                forcePlayTTS();
+            }
+        }, {once: true});
+    }
+
+    function forcePlayTTS() {
+        if(synth.speaking) synth.cancel(); // Hentikan yang lama jika ada
+        synth.speak(aiUtterance);
+    }
+
+    function stopAITTS() {
+        if(synth.speaking) synth.cancel();
+        resetTTSUI();
+        // Cegah agar tidak auto-play lagi di sesi ini jika di-stop manual
+        sessionStorage.setItem('ktvdi_tts_played', 'true'); 
+    }
+
+    function resetTTSUI() {
+        isTTSActive = false;
+        const indicator = document.getElementById('tts-audio-indicator');
+        indicator.classList.add('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
+        indicator.classList.remove('opacity-100', 'translate-y-0', 'pointer-events-auto');
+        document.getElementById('tts-wave').classList.add('hidden');
+        document.getElementById('tts-status-text').classList.remove('text-red-400');
+        document.getElementById('tts-status-text').innerText = "Menunggu interaksi...";
+    }
 </script>
 {% endblock %}
