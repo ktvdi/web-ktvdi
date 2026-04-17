@@ -222,12 +222,8 @@
         </div>
 
         <div class="w-full lg:w-auto flex flex-col gap-2">
-            <label class="text-[10px] uppercase txt-secondary font-bold tracking-widest lg:text-right hidden lg:block">Lokasi & AI Deteksi</label>
-            <div class="flex items-center w-full lg:w-[350px] transition gap-2">
-                <button id="radarMasjidBtn" class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-500/20 transition ai-btn-anim group relative" onclick="scanNearbyMosque()" title="Tanya AI: Masjid Terdekat">
-                    <i class="fa-solid fa-tower-broadcast group-hover:animate-ping absolute opacity-50"></i>
-                    <i class="fa-solid fa-mosque relative z-10"></i>
-                </button>
+            <label class="text-[10px] uppercase txt-secondary font-bold tracking-widest lg:text-right hidden lg:block">Sinkronisasi Lokasi</label>
+            <div class="flex items-center w-full lg:w-[320px] transition gap-2">
                 <div id="gpsIcon" class="w-10 h-10 rounded-full bg-black/10 border border-gray-500/30 flex items-center justify-center txt-gold shrink-0 gps-scan cursor-pointer hover:bg-[#d4af37]/10" onclick="forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
                     <i class="fa-solid fa-location-crosshairs"></i>
                 </div>
@@ -336,6 +332,26 @@
         </div>
     </div>
 
+    <div class="islamic-card p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div class="absolute -right-10 -top-10 text-9xl text-emerald-500/5 rotate-12 pointer-events-none">
+            <i class="fa-solid fa-mosque"></i>
+        </div>
+        <div class="flex items-center gap-4 relative z-10 w-full md:w-auto">
+            <button id="radarMasjidBtn" class="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-500/20 transition shadow-[0_0_15px_rgba(16,185,129,0.2)] group ai-btn-anim" onclick="scanNearbyMosque()" title="Tanya AI: Masjid Terdekat">
+                <i class="fa-solid fa-tower-broadcast group-hover:animate-ping absolute opacity-50"></i>
+                <i class="fa-solid fa-mosque relative z-10 text-xl"></i>
+            </button>
+            <div>
+                <h3 class="txt-primary font-bold text-lg leading-tight">AI Radar Masjid</h3>
+                <p class="text-xs txt-secondary">Deteksi lokasi dan jarak masjid terdekat.</p>
+            </div>
+        </div>
+        
+        <div id="radarResult" class="relative z-10 w-full md:w-1/2 bg-black/10 border border-gray-500/20 p-4 rounded-xl backdrop-blur-sm text-center md:text-left min-h-[76px] flex flex-col justify-center">
+            <p class="text-xs txt-secondary italic">Ketuk ikon radar di sebelah kiri untuk memindai tempat ibadah di sekitar Anda...</p>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
         
         <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
@@ -427,8 +443,7 @@
                 </button>
             </div>
         </div>
-        <div id="yasinContent" class="p-6 overflow-y-auto flex-1 scroll-smooth">
-            </div>
+        <div id="yasinContent" class="p-6 overflow-y-auto flex-1 scroll-smooth"></div>
     </div>
 </div>
 
@@ -525,7 +540,6 @@
         intro.rate = 0.85;
         ttsSynth.speak(intro);
 
-        // Memecah bacaan menjadi antrean agar browser tidak error/crash
         for(let i = 0; i < Math.min(15, yasinTranslations.length); i++) {
             let u = new SpeechSynthesisUtterance(`Ayat ${i+1}. ${yasinTranslations[i]}`);
             u.lang = 'id-ID';
@@ -542,43 +556,91 @@
     }
 
     // =========================================
-    // FITUR RADAR MASJID (AI PENDETEKSI)
+    // FITUR RADAR MASJID DENGAN PERHITUNGAN JARAK
     // =========================================
     window.currentLat = null;
     window.currentLon = null;
 
+    // Fungsi menghitung jarak (Haversine formula dalam satuan Meter)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // radius bumi dalam meter
+        const p1 = lat1 * Math.PI/180;
+        const p2 = lat2 * Math.PI/180;
+        const dp = (lat2-lat1) * Math.PI/180;
+        const dl = (lon2-lon1) * Math.PI/180;
+        
+        const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return Math.floor(R * c); // Hasil dalam Meter
+    }
+
     function scanNearbyMosque() {
         if(!window.currentLat || !window.currentLon) {
-            playAIVoice("Maaf, koordinat Anda belum terkunci. Silakan ketuk tombol target GPS terlebih dahulu agar saya bisa mendeteksi posisi Anda.");
+            playAIVoice("Maaf, koordinat Anda belum terkunci. Silakan ketuk tombol target GPS di bagian atas terlebih dahulu.");
             return;
         }
 
-        playAIVoice("Sistem AI KTVDI sedang memindai masjid terdekat dari lokasi Anda untuk keamanan ibadah Anda. Mohon tunggu sebentar.");
-        $('#radarMasjidBtn').addClass('animate-pulse bg-blue-500/30');
+        playAIVoice("Sistem AI KTVDI sedang memindai masjid terdekat dari lokasi Anda. Mohon tunggu sebentar.");
+        $('#radarMasjidBtn').addClass('animate-pulse bg-emerald-500/30');
+        
+        // Indikasi visual loading
+        $('#radarResult').html(`
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-circle-notch fa-spin txt-gold text-2xl"></i>
+                <div class="text-left">
+                    <p class="text-xs font-bold txt-primary">Memindai satelit...</p>
+                    <p class="text-[10px] txt-secondary">Mencari titik masjid terdekat</p>
+                </div>
+            </div>
+        `);
 
-        const query = encodeURIComponent(`masjid in ${userKecamatan} ${userCityName}`);
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`;
+        // Mencari hingga 10 hasil dari API nominatim untuk difilter jarak terdekatnya
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=masjid&lat=${window.currentLat}&lon=${window.currentLon}&limit=10`;
         
         $.getJSON(url, function(data) {
-            $('#radarMasjidBtn').removeClass('animate-pulse bg-blue-500/30');
+            $('#radarMasjidBtn').removeClass('animate-pulse bg-emerald-500/30');
             
             if(data && data.length > 0) {
-                let masjidName = data[0].name || "Masjid terdekat";
-                let responseText = `Radar AI mendeteksi Anda sedang berada di wilayah ${userKecamatan}, ${userCityName}. Tempat ibadah terdekat dari posisi Anda saat ini adalah ${masjidName}. Tetap berhati-hati saat bertugas dan jangan lupa menunaikan ibadah tepat waktu. KTVDI senantiasa memantau dan menjaga Anda.`;
-                playAIVoice(responseText);
-            } else {
-                $.getJSON(`https://nominatim.openstreetmap.org/search?format=json&amenity=place_of_worship&religion=muslim&limit=1&lat=${window.currentLat}&lon=${window.currentLon}`, function(data2) {
-                    if(data2 && data2.length > 0) {
-                        let msj = data2[0].name || "sebuah masjid";
-                        playAIVoice(`Berdasarkan koordinat GPS Anda, terdapat ${msj} di sekitar Anda. Tetap aman di lapangan dan jangan lupa beribadah.`);
-                    } else {
-                        playAIVoice(`Radar AI mencatat Anda berada di ${userCityName}. Kami tidak menemukan nama spesifik masjid di database satelit terdekat, namun pastikan Anda selalu aman dan beribadah tepat waktu.`);
+                let nearestPlace = null;
+                let minDistance = Infinity;
+
+                // Cari titik terdekat dengan iterasi koordinat
+                data.forEach(place => {
+                    let dist = calculateDistance(window.currentLat, window.currentLon, parseFloat(place.lat), parseFloat(place.lon));
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        nearestPlace = place;
                     }
                 });
+
+                if (nearestPlace) {
+                    let masjidName = nearestPlace.name || "Masjid Terdekat";
+                    if(!masjidName.toLowerCase().includes("masjid")) masjidName = "Masjid " + masjidName;
+
+                    // Mengubah Tampilan UI Hasil
+                    $('#radarResult').html(`
+                        <div class="flex justify-between items-center w-full">
+                            <div>
+                                <p class="text-[10px] font-bold txt-gold uppercase tracking-widest mb-1">Masjid Terdekat Ditemukan</p>
+                                <h4 class="text-base font-bold txt-primary leading-tight">${masjidName}</h4>
+                                <p class="text-xs text-emerald-400 font-medium mt-1"><i class="fa-solid fa-route mr-1"></i> Jarak: ${minDistance} meter</p>
+                            </div>
+                            <i class="fa-solid fa-location-dot text-3xl text-emerald-500/30 ml-2 md:ml-4"></i>
+                        </div>
+                    `);
+
+                    let responseText = `Perhatian. Masjid terdekat dari lokasi Anda adalah ${masjidName}, berjarak sekitar ${minDistance} meter. Segeralah bersiap dan melangkah ke masjid untuk menunaikan ibadah. KTVDI senantiasa memantau dan menjaga Anda.`;
+                    
+                    setTimeout(() => { playAIVoice(responseText); }, 1500); // Mainkan suara setelah hasil ketemu
+                }
+            } else {
+                $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Tidak menemukan data masjid spesifik dalam jangkauan satelit saat ini.</p>');
+                setTimeout(() => { playAIVoice("Maaf, kami tidak dapat menemukan masjid di jangkauan satelit terdekat. Pastikan Anda tetap menjaga waktu ibadah Anda."); }, 1500);
             }
         }).fail(function() {
-            $('#radarMasjidBtn').removeClass('animate-pulse bg-blue-500/30');
-            playAIVoice("Maaf, radar AI gagal terhubung ke satelit pemetaan. Pastikan koneksi internet Anda stabil.");
+            $('#radarMasjidBtn').removeClass('animate-pulse bg-emerald-500/30');
+            $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal terhubung ke satelit. Periksa koneksi internet Anda.</p>');
+            setTimeout(() => { playAIVoice("Maaf, radar AI gagal terhubung ke satelit pemetaan. Pastikan koneksi internet Anda stabil."); }, 1500);
         });
     }
 
