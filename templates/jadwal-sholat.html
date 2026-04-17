@@ -171,6 +171,9 @@
         0% { transform: translateX(0); }
         100% { transform: translateX(-100%); }
     }
+    
+    /* Tombol AI Animasi */
+    .ai-btn-anim:active { transform: scale(0.9); }
 </style>
 
 <div class="pt-[140px] pb-20 px-4 max-w-7xl mx-auto min-h-screen">
@@ -181,6 +184,18 @@
             <h4 class="txt-primary font-bold text-sm uppercase tracking-wider mb-1" id="toastTitle">Peringatan Waktu</h4>
             <p class="txt-secondary text-xs" id="toastMessage">Waktu sholat segera tiba.</p>
         </div>
+    </div>
+
+    <div id="aiSpeakingIndicator" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-[#0f172a]/90 border border-[#38bdf8]/50 text-white px-5 py-2 rounded-full shadow-[0_0_20px_rgba(56,189,248,0.4)] z-[9999] flex items-center gap-3 hidden backdrop-blur-md">
+        <div class="flex items-center gap-1">
+            <span class="w-1.5 h-4 bg-[#38bdf8] rounded-full animate-pulse"></span>
+            <span class="w-1.5 h-6 bg-[#38bdf8] rounded-full animate-pulse delay-75"></span>
+            <span class="w-1.5 h-4 bg-[#38bdf8] rounded-full animate-pulse delay-150"></span>
+        </div>
+        <span class="text-xs font-bold tracking-widest uppercase text-[#38bdf8]">AI KTVDI Sedang Membaca</span>
+        <button onclick="stopAIVoice()" class="ml-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition">
+            <i class="fa-solid fa-stop text-[10px]"></i>
+        </button>
     </div>
 
     <div class="flex flex-col lg:flex-row justify-between items-center lg:items-end mb-10 border-b border-gray-500/20 pb-6 gap-6 text-center lg:text-left">
@@ -196,8 +211,12 @@
         </div>
 
         <div class="w-full lg:w-auto flex flex-col gap-2">
-            <label class="text-[10px] uppercase txt-secondary font-bold tracking-widest lg:text-right hidden lg:block">Lokasi Anda</label>
-            <div class="flex items-center w-full lg:w-[320px] transition gap-2">
+            <label class="text-[10px] uppercase txt-secondary font-bold tracking-widest lg:text-right hidden lg:block">Lokasi & AI Deteksi</label>
+            <div class="flex items-center w-full lg:w-[350px] transition gap-2">
+                <button id="radarMasjidBtn" class="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-500/20 transition ai-btn-anim group relative" onclick="scanNearbyMosque()" title="Tanya AI: Masjid Terdekat">
+                    <i class="fa-solid fa-tower-broadcast group-hover:animate-ping absolute opacity-50"></i>
+                    <i class="fa-solid fa-mosque relative z-10"></i>
+                </button>
                 <div id="gpsIcon" class="w-10 h-10 rounded-full bg-black/10 border border-gray-500/30 flex items-center justify-center txt-gold shrink-0 gps-scan cursor-pointer hover:bg-[#d4af37]/10" onclick="forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
                     <i class="fa-solid fa-location-crosshairs"></i>
                 </div>
@@ -256,15 +275,17 @@
                 <div id="nightReminder" class="hidden mt-6 w-full max-w-2xl bg-black/20 border border-gray-500/30 rounded-lg p-2 backdrop-blur-sm shadow-inner relative">
                     <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--theme-card-bg)] to-transparent z-10 rounded-l-lg pointer-events-none"></div>
                     <div class="marquee-wrapper text-xs md:text-sm txt-primary font-medium flex items-center">
-                        <span class="marquee-text inline-flex items-center gap-2">
+                        <span class="marquee-text inline-flex items-center gap-2" id="nightReminderText">
                             <i class="fa-solid fa-moon txt-gold"></i>
                             Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Jauhilah gemerlap dunia malam (dugem) dan maksiat yang hanya membawa kesenangan semu serta merusak keimanan, mental, dan masa depanmu. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan. Segeralah beristirahat, persiapkan diri untuk meraih keberkahan di sepertiga malam terakhir dan ibadah Subuh esok hari.
                             <i class="fa-solid fa-star-and-crescent txt-gold ml-2"></i>
                         </span>
                     </div>
+                    <button onclick="playAIVoice(document.getElementById('nightReminderText').innerText)" class="absolute -right-2 -top-2 w-8 h-8 rounded-full bg-[#38bdf8] text-white flex items-center justify-center shadow-lg hover:scale-110 transition z-20" title="Dengarkan Pesan Malam via AI">
+                        <i class="fa-solid fa-volume-high text-xs"></i>
+                    </button>
                     <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--theme-card-bg)] to-transparent z-10 rounded-r-lg pointer-events-none"></div>
                 </div>
-
             </div>
 
             <div class="w-full bg-gray-500/20 h-2 rounded-full overflow-hidden mt-4 shadow-inner relative">
@@ -281,6 +302,9 @@
                 <div class="swiper asmaulSwiper w-full h-full">
                     <div class="swiper-wrapper" id="asmaulWrapper"></div>
                 </div>
+                <button onclick="readAsmaulHusna()" class="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/30 flex items-center justify-center hover:bg-[#38bdf8] hover:text-white transition z-20" title="Baca Asmaul Husna via AI">
+                    <i class="fa-solid fa-volume-high text-xs"></i>
+                </button>
                 <div class="swiper-button-next txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
                 <div class="swiper-button-prev txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
             </div>
@@ -303,13 +327,19 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
         
-        <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded bg-[#d4af37]/20 flex items-center justify-center txt-gold shadow-inner">
-                    <i class="fa-solid fa-book-open-reader"></i>
+        <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-[#d4af37]/20 flex items-center justify-center txt-gold shadow-inner">
+                        <i class="fa-solid fa-book-open-reader"></i>
+                    </div>
+                    <h4 class="txt-primary font-bold text-sm tracking-wide">Renungan Ayat Pilihan</h4>
                 </div>
-                <h4 class="txt-primary font-bold text-sm tracking-wide">Renungan Ayat Pilihan</h4>
+                <button onclick="readAyatPilihan()" class="w-8 h-8 rounded-full bg-[#38bdf8]/10 text-[#38bdf8] hover:bg-[#38bdf8] hover:text-white transition flex items-center justify-center" title="Dengarkan Ayat via AI">
+                    <i class="fa-solid fa-volume-high text-xs"></i>
+                </button>
             </div>
+            
             <div id="quranContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[160px]">
                 <div class="animate-pulse flex space-x-4">
                     <div class="flex-1 space-y-4 py-1">
@@ -329,13 +359,19 @@
             </div>
         </div>
 
-        <div class="islamic-card p-6 flex flex-col">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-8 h-8 rounded bg-emerald-500/20 flex items-center justify-center text-emerald-600 shadow-inner">
-                    <i class="fa-solid fa-feather-pointed"></i>
+        <div class="islamic-card p-6 flex flex-col relative">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-emerald-500/20 flex items-center justify-center text-emerald-600 shadow-inner">
+                        <i class="fa-solid fa-feather-pointed"></i>
+                    </div>
+                    <h4 class="txt-primary font-bold text-sm tracking-wide">Hadits Pilihan</h4>
                 </div>
-                <h4 class="txt-primary font-bold text-sm tracking-wide">Hadits Pilihan</h4>
+                <button onclick="readHadits()" class="w-8 h-8 rounded-full bg-[#38bdf8]/10 text-[#38bdf8] hover:bg-[#38bdf8] hover:text-white transition flex items-center justify-center" title="Dengarkan Hadits via AI">
+                    <i class="fa-solid fa-volume-high text-xs"></i>
+                </button>
             </div>
+
             <div id="haditsContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[120px]">
                 <p class="text-xs txt-secondary text-center italic">Memuat hikmah hari ini...</p>
             </div>
@@ -371,9 +407,14 @@
                 <h3 class="txt-primary font-luxury font-bold text-xl"><i class="fa-solid fa-book-quran txt-gold mr-2"></i> Surat Yasin</h3>
                 <p class="text-xs txt-secondary mt-1 tracking-widest uppercase">Makkah • 83 Ayat</p>
             </div>
-            <button onclick="closeYasin()" class="w-10 h-10 rounded-full bg-gray-500/20 txt-secondary flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
+            <div class="flex items-center gap-2">
+                <button onclick="readYasinTeksIndo()" class="px-3 py-1.5 rounded-full bg-[#38bdf8] text-white text-[10px] font-bold uppercase flex items-center gap-2 hover:bg-blue-600 transition" title="Minta AI Membacakan Terjemahan">
+                    <i class="fa-solid fa-robot"></i> Baca Terjemahan
+                </button>
+                <button onclick="closeYasin()" class="w-10 h-10 rounded-full bg-gray-500/20 txt-secondary flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
         </div>
         <div id="yasinContent" class="p-6 overflow-y-auto flex-1 scroll-smooth">
             </div>
@@ -392,6 +433,134 @@
     }
     applyDynamicTheme();
     setInterval(applyDynamicTheme, 60000);
+
+    // =========================================
+    // GLOBAL AI TTS (TEXT-TO-SPEECH) ENGINE
+    // =========================================
+    let ttsSynth = window.speechSynthesis;
+    let ttsActive = false;
+
+    function playAIVoice(text, isYasin = false) {
+        if (!ttsSynth) {
+            alert("Maaf, browser Anda tidak mendukung fitur Suara AI.");
+            return;
+        }
+        
+        // Hentikan suara yang sedang berjalan
+        stopAIVoice();
+
+        let utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'id-ID'; // Menggunakan suara bahasa Indonesia
+        utter.rate = isYasin ? 0.85 : 0.95; // Yasin dibaca lebih lambat dan tenang
+        utter.pitch = 1.0;
+
+        utter.onstart = () => {
+            ttsActive = true;
+            $('#aiSpeakingIndicator').removeClass('hidden');
+        };
+
+        utter.onend = () => {
+            ttsActive = false;
+            $('#aiSpeakingIndicator').addClass('hidden');
+        };
+
+        utter.onerror = () => {
+            ttsActive = false;
+            $('#aiSpeakingIndicator').addClass('hidden');
+        };
+
+        ttsSynth.speak(utter);
+    }
+
+    function stopAIVoice() {
+        if(ttsSynth && ttsSynth.speaking) {
+            ttsSynth.cancel();
+        }
+        ttsActive = false;
+        $('#aiSpeakingIndicator').addClass('hidden');
+    }
+
+    // Fungsi Pembaca Spesifik Konten
+    function readAyatPilihan() {
+        let textToRead = "Renungan Ayat Pilihan. " + $('#quranContent').text().replace(/ACAK AYAT|BACA YASIN/ig, '').trim();
+        playAIVoice(textToRead);
+    }
+
+    function readHadits() {
+        let textToRead = "Hadits Pilihan hari ini. " + $('#haditsContent').text().trim();
+        playAIVoice(textToRead);
+    }
+
+    function readAsmaulHusna() {
+        // Ambil slide yang sedang aktif
+        let activeSlide = document.querySelector('.asmaulSwiper .swiper-slide-active');
+        if(activeSlide) {
+            let latin = activeSlide.querySelector('.txt-gold').innerText;
+            let arti = activeSlide.querySelector('.txt-secondary').innerText;
+            playAIVoice(`${latin}, yang artinya ${arti}`);
+        }
+    }
+
+    // Variabel untuk Yasin
+    let yasinTranslations = [];
+    
+    function readYasinTeksIndo() {
+        if(yasinTranslations.length === 0) {
+            playAIVoice("Maaf, data terjemahan Yasin belum selesai dimuat.");
+            return;
+        }
+        let fullText = "Membaca Terjemahan Surat Yasin. Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang. ";
+        // Gabungkan 10 ayat pertama agar tidak terlalu panjang membebani browser
+        for(let i=0; i<Math.min(10, yasinTranslations.length); i++) {
+            fullText += `Ayat ${i+1}. ${yasinTranslations[i]}. `;
+        }
+        fullText += "Demikian terjemahan sepuluh ayat pertama.";
+        playAIVoice(fullText, true);
+    }
+
+    // =========================================
+    // FITUR RADAR MASJID (AI PENDETEKSI)
+    // =========================================
+    window.currentLat = null;
+    window.currentLon = null;
+
+    function scanNearbyMosque() {
+        if(!window.currentLat || !window.currentLon) {
+            playAIVoice("Maaf, koordinat Anda belum terkunci. Silakan ketuk tombol target GPS terlebih dahulu agar saya bisa mendeteksi posisi Anda.");
+            return;
+        }
+
+        // Mainkan suara indikasi
+        playAIVoice("Sistem AI KTVDI sedang memindai masjid terdekat dari lokasi Anda untuk keamanan ibadah Anda. Mohon tunggu sebentar.");
+        $('#radarMasjidBtn').addClass('animate-pulse bg-blue-500/30');
+
+        // Gunakan Nominatim OSM untuk mencari Masjid di sekitar
+        const query = encodeURIComponent(`masjid in ${userKecamatan} ${userCityName}`);
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`;
+        
+        $.getJSON(url, function(data) {
+            $('#radarMasjidBtn').removeClass('animate-pulse bg-blue-500/30');
+            
+            if(data && data.length > 0) {
+                let masjidName = data[0].name || "Masjid terdekat";
+                let responseText = `Radar AI mendeteksi Anda sedang berada di wilayah ${userKecamatan}, ${userCityName}. Tempat ibadah terdekat dari posisi Anda saat ini adalah ${masjidName}. Tetap berhati-hati saat bertugas dan jangan lupa menunaikan ibadah tepat waktu. KTVDI senantiasa memantau dan menjaga Anda.`;
+                playAIVoice(responseText);
+            } else {
+                // Fallback jika API tidak spesifik menemukan nama masjid, gunakan koordinat radius
+                $.getJSON(`https://nominatim.openstreetmap.org/search?format=json&amenity=place_of_worship&religion=muslim&limit=1&lat=${window.currentLat}&lon=${window.currentLon}`, function(data2) {
+                    if(data2 && data2.length > 0) {
+                        let msj = data2[0].name || "sebuah masjid";
+                        playAIVoice(`Berdasarkan koordinat GPS Anda, terdapat ${msj} di sekitar Anda. Tetap aman di lapangan dan jangan lupa beribadah.`);
+                    } else {
+                        playAIVoice(`Radar AI mencatat Anda berada di ${userCityName}. Kami tidak menemukan nama spesifik masjid di database satelit terdekat, namun pastikan Anda selalu aman dan beribadah tepat waktu.`);
+                    }
+                });
+            }
+        }).fail(function() {
+            $('#radarMasjidBtn').removeClass('animate-pulse bg-blue-500/30');
+            playAIVoice("Maaf, radar AI gagal terhubung ke satelit pemetaan. Pastikan koneksi internet Anda stabil.");
+        });
+    }
 
     // =========================================
     // JAM REAL TIME & CHECKER NIGHT REMINDER
@@ -444,7 +613,7 @@
     let userKecamatan = localStorage.getItem('userKecamatan') || '';
 
     $(document).ready(function() {
-        initAsmaulHusna(); // Fungsi direstore secara penuh di bawah
+        initAsmaulHusna();
         fetchQuran();
         randomHadits();
         initRealtimeClock();
@@ -497,6 +666,11 @@
                 (position) => {
                     const lat = position.coords.latitude;
                     const lon = position.coords.longitude;
+                    
+                    // Simpan ke variabel global untuk fitur AI Radar Masjid
+                    window.currentLat = lat;
+                    window.currentLon = lon;
+
                     $.getJSON(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18`, function(data) {
                         let addr = data.address;
                         let detected = addr.city || addr.town || addr.county || 'Jakarta';
@@ -674,6 +848,9 @@
             $.get('https://api.alquran.cloud/v1/surah/36/editions/quran-uthmani,id.indonesian', function(res) {
                 const arab = res.data[0].ayahs;
                 const indo = res.data[1].ayahs;
+                
+                yasinTranslations = indo.map(item => item.text); // Simpan untuk AI
+                
                 let html = '<div class="text-center mb-8"><p class="font-arab text-4xl txt-gold mb-2">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</p><p class="text-xs txt-secondary italic">Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.</p></div>';
                 
                 arab.forEach((ayah, i) => {
@@ -695,6 +872,7 @@
     }
 
     function closeYasin() {
+        stopAIVoice(); // Hentikan suara jika sedang baca Yasin
         $('#yasinModal').addClass('opacity-0');
         $('#yasinModalCard').addClass('scale-95');
         setTimeout(() => { $('#yasinModal').addClass('hidden').removeClass('flex'); }, 300);
