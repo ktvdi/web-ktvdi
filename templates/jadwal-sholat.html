@@ -56,7 +56,7 @@
         background-attachment: fixed;
         color: var(--theme-text-main);
         font-family: 'Plus Jakarta Sans', sans-serif;
-        overflow-x: hidden;
+        /* overflow-x: hidden telah dihapus agar Running Text KTVDI tidak hilang/terpotong */
         transition: background 1s ease, color 0.5s ease;
     }
 
@@ -343,12 +343,12 @@
             </button>
             <div>
                 <h3 class="txt-primary font-bold text-lg leading-tight">AI Radar Masjid</h3>
-                <p class="text-xs txt-secondary">Deteksi lokasi dan jarak masjid terdekat.</p>
+                <p class="text-xs txt-secondary">Deteksi data resmi OSM & jarak otomatis.</p>
             </div>
         </div>
         
         <div id="radarResult" class="relative z-10 w-full md:w-1/2 bg-black/10 border border-gray-500/20 p-4 rounded-xl backdrop-blur-sm text-center md:text-left min-h-[76px] flex flex-col justify-center">
-            <p class="text-xs txt-secondary italic">Ketuk ikon radar di sebelah kiri untuk memindai tempat ibadah di sekitar Anda...</p>
+            <p class="text-xs txt-secondary italic">Ketuk ikon radar di sebelah kiri untuk memindai tempat ibadah bersertifikat di sekitar Anda...</p>
         </div>
     </div>
 
@@ -556,14 +556,14 @@
     }
 
     // =========================================
-    // FITUR RADAR MASJID DENGAN PERHITUNGAN JARAK
+    // FITUR RADAR MASJID (DATA RESMI OVERPASS API)
     // =========================================
     window.currentLat = null;
     window.currentLon = null;
 
-    // Fungsi menghitung jarak (Haversine formula dalam satuan Meter)
+    // Kalkulasi Jarak Geografis (Haversine Formula -> Meter)
     function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // radius bumi dalam meter
+        const R = 6371e3; // Radius Bumi (Meter)
         const p1 = lat1 * Math.PI/180;
         const p2 = lat2 * Math.PI/180;
         const dp = (lat2-lat1) * Math.PI/180;
@@ -571,42 +571,47 @@
         
         const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return Math.floor(R * c); // Hasil dalam Meter
+        return Math.floor(R * c); 
     }
 
     function scanNearbyMosque() {
         if(!window.currentLat || !window.currentLon) {
-            playAIVoice("Maaf, koordinat Anda belum terkunci. Silakan ketuk tombol target GPS di bagian atas terlebih dahulu.");
+            playAIVoice("Sistem mendeteksi koordinat Anda belum terkunci. Mengaktifkan GPS sekarang, mohon izinkan akses lokasi di browser Anda.");
+            forceGPS(true); // Panggil paksa GPS lalu Auto-Scan
             return;
         }
+        executeMosqueScan();
+    }
 
-        playAIVoice("Sistem AI KTVDI sedang memindai masjid terdekat dari lokasi Anda. Mohon tunggu sebentar.");
+    function executeMosqueScan() {
+        playAIVoice("Sistem AI KTVDI sedang memindai data satelit untuk mencari masjid terdekat dari lokasi Anda.");
         $('#radarMasjidBtn').addClass('animate-pulse bg-emerald-500/30');
         
-        // Indikasi visual loading
         $('#radarResult').html(`
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-circle-notch fa-spin txt-gold text-2xl"></i>
                 <div class="text-left">
-                    <p class="text-xs font-bold txt-primary">Memindai satelit...</p>
-                    <p class="text-[10px] txt-secondary">Mencari titik masjid terdekat</p>
+                    <p class="text-xs font-bold txt-primary">Memindai peta satelit...</p>
+                    <p class="text-[10px] txt-secondary">Mengambil data OpenStreetMap resmi</p>
                 </div>
             </div>
         `);
 
-        // Mencari hingga 10 hasil dari API nominatim untuk difilter jarak terdekatnya
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=masjid&lat=${window.currentLat}&lon=${window.currentLon}&limit=10`;
+        // OVERPASS API - Mencari node/way bertagged Amenity=Place_of_worship & Religion=Muslim radius 3KM
+        const radius = 3000;
+        const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];(node["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon}););out center 5;`;
         
-        $.getJSON(url, function(data) {
+        $.getJSON(overpassUrl, function(data) {
             $('#radarMasjidBtn').removeClass('animate-pulse bg-emerald-500/30');
             
-            if(data && data.length > 0) {
+            if(data && data.elements && data.elements.length > 0) {
                 let nearestPlace = null;
                 let minDistance = Infinity;
 
-                // Cari titik terdekat dengan iterasi koordinat
-                data.forEach(place => {
-                    let dist = calculateDistance(window.currentLat, window.currentLon, parseFloat(place.lat), parseFloat(place.lon));
+                data.elements.forEach(place => {
+                    let plat = place.lat || place.center.lat;
+                    let plon = place.lon || place.center.lon;
+                    let dist = calculateDistance(window.currentLat, window.currentLon, plat, plon);
                     if (dist < minDistance) {
                         minDistance = dist;
                         nearestPlace = place;
@@ -614,33 +619,34 @@
                 });
 
                 if (nearestPlace) {
-                    let masjidName = nearestPlace.name || "Masjid Terdekat";
-                    if(!masjidName.toLowerCase().includes("masjid")) masjidName = "Masjid " + masjidName;
+                    let masjidName = nearestPlace.tags.name || "Masjid Terdekat (Tanpa Nama)";
+                    if(!masjidName.toLowerCase().includes("masjid") && !masjidName.toLowerCase().includes("mushola")) {
+                        masjidName = "Masjid " + masjidName;
+                    }
 
-                    // Mengubah Tampilan UI Hasil
                     $('#radarResult').html(`
                         <div class="flex justify-between items-center w-full">
                             <div>
-                                <p class="text-[10px] font-bold txt-gold uppercase tracking-widest mb-1">Masjid Terdekat Ditemukan</p>
+                                <p class="text-[10px] font-bold txt-gold uppercase tracking-widest mb-1">Masjid Resmi Terdekat</p>
                                 <h4 class="text-base font-bold txt-primary leading-tight">${masjidName}</h4>
-                                <p class="text-xs text-emerald-400 font-medium mt-1"><i class="fa-solid fa-route mr-1"></i> Jarak: ${minDistance} meter</p>
+                                <p class="text-xs text-emerald-400 font-medium mt-1"><i class="fa-solid fa-route mr-1"></i> Jarak Tepat: ${minDistance} meter</p>
                             </div>
                             <i class="fa-solid fa-location-dot text-3xl text-emerald-500/30 ml-2 md:ml-4"></i>
                         </div>
                     `);
 
-                    let responseText = `Perhatian. Masjid terdekat dari lokasi Anda adalah ${masjidName}, berjarak sekitar ${minDistance} meter. Segeralah bersiap dan melangkah ke masjid untuk menunaikan ibadah. KTVDI senantiasa memantau dan menjaga Anda.`;
+                    let responseText = `Deteksi satelit berhasil. Masjid terdekat dari lokasi resmi Anda adalah ${masjidName}, dengan jarak tepat ${minDistance} meter. Segeralah bersiap dan melangkah ke masjid untuk menunaikan ibadah. KTVDI senantiasa memantau dan menjaga keamanan Anda.`;
                     
-                    setTimeout(() => { playAIVoice(responseText); }, 1500); // Mainkan suara setelah hasil ketemu
+                    setTimeout(() => { playAIVoice(responseText); }, 1000); 
                 }
             } else {
-                $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Tidak menemukan data masjid spesifik dalam jangkauan satelit saat ini.</p>');
-                setTimeout(() => { playAIVoice("Maaf, kami tidak dapat menemukan masjid di jangkauan satelit terdekat. Pastikan Anda tetap menjaga waktu ibadah Anda."); }, 1500);
+                $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Tidak ada masjid yang tercatat di peta satelit pada radius 3KM.</p>');
+                setTimeout(() => { playAIVoice("Maaf, radar kami tidak menemukan data masjid resmi dalam radius 3 kilometer di peta satelit. Pastikan Anda tetap menjaga waktu ibadah Anda."); }, 1000);
             }
         }).fail(function() {
             $('#radarMasjidBtn').removeClass('animate-pulse bg-emerald-500/30');
-            $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal terhubung ke satelit. Periksa koneksi internet Anda.</p>');
-            setTimeout(() => { playAIVoice("Maaf, radar AI gagal terhubung ke satelit pemetaan. Pastikan koneksi internet Anda stabil."); }, 1500);
+            $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal terhubung ke satelit pemetaan resmi.</p>');
+            setTimeout(() => { playAIVoice("Maaf, radar AI gagal terhubung ke satelit pemetaan resmi. Pastikan koneksi internet Anda stabil."); }, 1000);
         });
     }
 
@@ -738,7 +744,7 @@
     // =========================================
     // GPS & LOKASI
     // =========================================
-    function forceGPS() {
+    function forceGPS(autoScanAfter = false) {
         $('#locStatus').text("Sedang mencari koordinat GPS...").addClass("animate-pulse").css('color', 'var(--theme-gold)');
         $('#gpsIcon').addClass("animate-spin txt-primary").removeClass("txt-gold text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]");
 
@@ -784,6 +790,8 @@
                             $('#locStatus').text(locStatusText).removeClass("animate-pulse").css('color', '#10b981');
                             $('#gpsIcon').removeClass("animate-spin txt-primary").addClass("text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]");
                             fetchSchedule(matchId);
+                            
+                            if (autoScanAfter) { setTimeout(() => executeMosqueScan(), 1000); }
                         } else { fallbackLocation("Koordinat ditemukan, tapi tidak terdaftar di database."); }
                     }).fail(function() { fallbackLocation("Gagal menerjemahkan satelit."); });
                 }, (error) => { fallbackLocation("Akses GPS ditolak/dimatikan."); }, { timeout: 10000, enableHighAccuracy: true }
@@ -957,102 +965,6 @@
         $('#yasinModalCard').addClass('scale-95');
         setTimeout(() => { $('#yasinModal').addClass('hidden').removeClass('flex'); }, 300);
     }
-
-    // =========================================
-    // FITUR WIDGET LAINNYA
-    // =========================================
-    
-    function initAsmaulHusna() {
-        const asmaulHusna = [
-            { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" },
-            { Arab: "الرَّحِيمُ", Latin: "Ar Rahiim", Arti: "Yang Maha Penyayang" },
-            { Arab: "الْمَلِكُ", Latin: "Al Malik", Arti: "Yang Maha Merajai" },
-            { Arab: "الْقُدُّوسُ", Latin: "Al Quddus", Arti: "Yang Maha Suci" },
-            { Arab: "السَّلاَمُ", Latin: "As Salaam", Arti: "Yang Maha Memberi Kesejahteraan" },
-            { Arab: "الْمُؤْمِنُ", Latin: "Al Mu'min", Arti: "Yang Maha Memberi Keamanan" },
-            { Arab: "الْمُهَيْمِنُ", Latin: "Al Muhaimin", Arti: "Yang Maha Pemelihara" },
-            { Arab: "الْعَزِيزُ", Latin: "Al 'Aziz", Arti: "Yang Maha Perkasa" },
-            { Arab: "الْجَبَّارُ", Latin: "Al Jabbar", Arti: "Yang Memiliki Mutlak Kegagahan" },
-            { Arab: "الْمُتَكَبِّرُ", Latin: "Al Mutakabbir", Arti: "Yang Maha Megah" },
-            { Arab: "الْخَالِقُ", Latin: "Al Khaliq", Arti: "Yang Maha Pencipta" }
-        ];
-
-        let html = '';
-        asmaulHusna.forEach(a => {
-            html += `
-            <div class="swiper-slide flex flex-col items-center justify-center text-center px-4">
-                <div class="text-3xl md:text-4xl font-arab txt-primary mb-2 drop-shadow-md hover:scale-105 transition-transform cursor-default">${a.Arab}</div>
-                <div class="text-sm font-bold txt-gold tracking-wide">${a.Latin}</div>
-                <div class="text-[10px] txt-secondary italic mt-1">"${a.Arti}"</div>
-            </div>`;
-        });
-        $('#asmaulWrapper').html(html);
-
-        new Swiper(".asmaulSwiper", {
-            navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
-            autoplay: { delay: 3500, disableOnInteraction: false },
-            loop: true, effect: "fade", fadeEffect: { crossFade: true }
-        });
-    }
-    
-    const kumpulanRenunganQuran = [
-        { ref: "29:45", tag: "Pagar Diri", pesan: "Sholat yang benar adalah alarm otomatis yang menahanmu dari melangkah ke tongkrongan toxic dan perbuatan merusak masa depan." },
-        { ref: "18:28", tag: "Memilih Circle", pesan: "Jangan korbankan prinsip dan agama hanya karena takut dibilang 'nggak asik'. Jauhilah orang yang mengajakmu melupakan Tuhan." },
-        { ref: "5:90", tag: "Bahaya Narkoba & Miras", pesan: "Miras dan Narkoba (khamr) itu jebakan ilusi. Mereka menjanjikan ketenangan sesaat, tapi membayarnya dengan menghancurkan mental, akal sehat, dan masa depanmu." },
-        { ref: "41:30", tag: "Berani Beda (Prinsip)", pesan: "Jadilah keren dengan punya pendirian. Tidak ikut-ikutan tren maksiat membuktikan kamu punya value, teguhlah pendirian di jalan yang benar." },
-        { ref: "43:67", tag: "Pertemanan Toxic", pesan: "Persahabatan yang dilandasi kenakalan dan maksiat kelak akan berubah menjadi permusuhan di akhirat. Carilah teman yang saling mengingatkan kebaikan." },
-        { ref: "2:45", tag: "Bantuan Terkuat", pesan: "Saat merasa lelah, overthinking, atau ditekan oleh ekspektasi lingkungan, jadikan sabar dan sholat sebagai tempat pelarianmu, bukan pelarian yang merusak diri." }
-    ];
-
-    function fetchQuran() {
-        $('#quranContent').html('<div class="text-xs txt-secondary flex justify-center items-center h-full"><i class="fa-solid fa-circle-notch fa-spin txt-gold mr-2"></i> Mengambil renungan...</div>');
-        const quran = kumpulanRenunganQuran[Math.floor(Math.random() * kumpulanRenunganQuran.length)];
-        $.get(`https://api.alquran.cloud/v1/ayah/${quran.ref}/editions/quran-uthmani,id.indonesian`, function(res) {
-            const arab = res.data[0]; const indo = res.data[1];
-            $('#quranContent').html(`
-                <div class="mb-3"><span class="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">${quran.tag}</span></div>
-                <p class="text-xl font-arab text-right txt-primary leading-loose mb-3 drop-shadow-sm" dir="rtl">${arab.text}</p>
-                <p class="text-xs txt-secondary italic mb-4">"${indo.text}"</p>
-                <div class="bg-black/5 border-l-2 border-[#d4af37] p-3 rounded-r-lg mb-3 shadow-inner">
-                    <p class="text-xs txt-primary font-medium leading-relaxed"><i class="fa-solid fa-lightbulb txt-gold mr-1"></i> <span class="txt-gold font-bold">Pesan Renungan:</span><br/>${quran.pesan}</p>
-                </div>
-                <div class="text-[10px] font-bold txt-gold uppercase text-right tracking-widest border-t border-gray-500/20 pt-2">QS. ${arab.surah.englishName} : ${arab.numberInSurah}</div>
-            `);
-        });
-    }
-
-    function randomHadits() {
-        const kumpulahHadits = [
-            { text: "Senyummu di hadapan saudaramu adalah sedekah bagimu.", rawi: "HR. Tirmidzi" },
-            { text: "Seseorang itu tergantung pada agama temannya. Maka perhatikanlah dengan siapa kamu berteman.", rawi: "HR. Abu Daud & Tirmidzi" },
-            { text: "Barangsiapa meniru suatu kaum, maka ia termasuk golongan mereka.", rawi: "HR. Abu Daud" },
-            { text: "Setiap yang memabukkan adalah khamr, dan setiap khamr adalah haram.", rawi: "HR. Muslim" }
-        ];
-        const h = kumpulahHadits[Math.floor(Math.random() * kumpulahHadits.length)];
-        $('#haditsContent').html(`<div class="flex-1 flex flex-col justify-center"><i class="fa-solid fa-quote-left text-2xl text-emerald-500/30 mb-2"></i><p class="text-sm txt-primary font-medium leading-relaxed">"${h.text}"</p><p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-4 text-right">— ${h.rawi}</p></div>`);
-    }
-
-    let tasbih = 0;
-    function countTasbih() { 
-        tasbih++; 
-        $('#tasbihCount').text(tasbih); 
-        
-        if(navigator.vibrate) navigator.vibrate(50);
-
-        const tc = $('#tasbihCount');
-        const bg = $('#tasbihBg');
-        
-        tc.css({'transform':'scale(1.15)', 'color':'var(--theme-gold)'});
-        bg.css({'transform':'scale(1.5)', 'opacity':'1'});
-        
-        setTimeout(() => { 
-            tc.css({'transform':'scale(1)', 'color':''});
-            bg.css({'transform':'scale(0)', 'opacity':'0'});
-        }, 150);
-    }
-    
-    function resetTasbih() { tasbih=0; $('#tasbihCount').text(0); }
-
 </script>
 
 {% endblock %}
