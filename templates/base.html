@@ -15,6 +15,7 @@
         (function() {
             const ua = navigator.userAgent.toLowerCase();
             const forbidden = ['tools', 'toolsbrowser', 'kiwi', 'inspect', 'debugger', 'bot', 'crawler', 'spider'];
+            
             if (forbidden.some(x => ua.includes(x))) {
                 window.stop();
                 document.documentElement.innerHTML = `
@@ -27,6 +28,7 @@
                 `;
                 throw new Error("Security Violation: Access Denied");
             }
+
             setInterval(() => {
                 const start = performance.now();
                 debugger; 
@@ -44,11 +46,9 @@
             theme: {
                 extend: {
                     fontFamily: { 
-                        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'] 
+                        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Plus Jakarta Sans"', 'sans-serif'] 
                     },
-                    colors: { 
-                        brand: { navy: '#0b2046', blue: '#0056b3', sky: '#007aff', surface: '#f8fafc' } 
-                    },
+                    colors: { brand: { navy: '#0f172a', blue: '#1e40af', sky: '#007aff', surface: '#0f172a' } },
                     padding: { 'safe': 'env(safe-area-inset-bottom)' }
                 }
             }
@@ -56,8 +56,9 @@
     </script>
 
     <script>
+        // === LOGIKA KEAMANAN TINGKAT LANJUT & PENALTY ===
         window.userIP = "Memeriksa...";
-        const PENALTY_DURATION = 5 * 60 * 1000;
+        const PENALTY_DURATION = 5 * 60 * 1000; // 5 Menit dalam milidetik
 
         function checkPenaltyStatus() {
             const blockUntil = localStorage.getItem('ktvdi_block_until');
@@ -65,6 +66,7 @@
                 activatePenalty(parseInt(blockUntil));
                 return true;
             } else if (blockUntil) {
+                // Hapus blokir jika waktu habis
                 localStorage.removeItem('ktvdi_block_until');
                 localStorage.setItem('ktvdi_strikes', 0);
             }
@@ -77,6 +79,7 @@
             if (warningEl) {
                 warningEl.classList.remove('hidden', 'opacity-0', '-translate-y-full');
                 warningEl.classList.add('opacity-100', 'translate-y-0');
+                
                 clearTimeout(inspectWarningTimer);
                 inspectWarningTimer = setTimeout(() => {
                     warningEl.classList.remove('opacity-100', 'translate-y-0');
@@ -90,6 +93,7 @@
             let strikes = parseInt(localStorage.getItem('ktvdi_strikes') || '0');
             strikes++;
             localStorage.setItem('ktvdi_strikes', strikes);
+
             if (strikes >= 3) {
                 const blockUntil = Date.now() + PENALTY_DURATION;
                 localStorage.setItem('ktvdi_block_until', blockUntil);
@@ -100,19 +104,28 @@
         }
 
         function activatePenalty(blockUntil) {
+            // Matikan semua interaksi
             document.body.style.overflow = 'hidden';
+            
+            // Sembunyikan loader jika masih ada
             const loader = document.getElementById('initial-loader');
             if(loader) loader.style.display = 'none';
+
+            // Tampilkan Layar Blokir
             const overlay = document.getElementById('penalty-overlay');
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
+            
+            // Tampilkan IP
             document.getElementById('penalty-ip').innerText = window.userIP;
 
+            // Kunci semua tombol termasuk F5/Refresh (Capture Phase)
             window.addEventListener('keydown', blockAllKeys, {capture: true});
             window.addEventListener('contextmenu', blockAllKeys, {capture: true});
             window.addEventListener('wheel', blockAllKeys, {capture: true, passive: false});
             window.addEventListener('touchmove', blockAllKeys, {capture: true, passive: false});
 
+            // Countdown Timer
             const timerEl = document.getElementById('penalty-timer');
             const interval = setInterval(() => {
                 const remaining = blockUntil - Date.now();
@@ -120,7 +133,17 @@
                     clearInterval(interval);
                     localStorage.removeItem('ktvdi_block_until');
                     localStorage.setItem('ktvdi_strikes', 0);
-                    window.location.reload(); 
+                    
+                    // Kembalikan keadaan normal
+                    document.body.style.overflow = '';
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    window.removeEventListener('keydown', blockAllKeys, {capture: true});
+                    window.removeEventListener('contextmenu', blockAllKeys, {capture: true});
+                    window.removeEventListener('wheel', blockAllKeys, {capture: true});
+                    window.removeEventListener('touchmove', blockAllKeys, {capture: true});
+                    
+                    window.location.reload(); // Muat ulang setelah hukuman selesai
                 } else {
                     const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
                     const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
@@ -130,85 +153,183 @@
         }
 
         function blockAllKeys(e) {
-            e.stopPropagation(); e.preventDefault(); return false;
+            e.stopPropagation();
+            e.preventDefault();
+            return false;
         }
 
-        document.addEventListener('contextmenu', event => { event.preventDefault(); handleSecurityViolation(); });
+        // Listener Pelanggaran
+        document.addEventListener('contextmenu', event => {
+            event.preventDefault();
+            handleSecurityViolation();
+        });
+
         document.onkeydown = function(e) {
             let isBlocked = false;
-            if(e.keyCode == 123) isBlocked = true; 
+            if(e.keyCode == 123) isBlocked = true; // F12
             if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) isBlocked = true;
             if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true;
-            if(isBlocked) { e.preventDefault(); handleSecurityViolation(); return false; }
+            
+            if(isBlocked) {
+                e.preventDefault();
+                handleSecurityViolation();
+                return false;
+            }
         }
+
         document.addEventListener('dragstart', event => event.preventDefault());
         document.addEventListener('selectstart', event => event.preventDefault());
 
-        window.addEventListener('DOMContentLoaded', () => checkPenaltyStatus());
+        // Cek penalti saat pertama kali dimuat
+        window.addEventListener('DOMContentLoaded', () => {
+            checkPenaltyStatus();
+        });
 
+        // Mode Privasi Blur
         function enablePrivacyMode() {
             document.body.classList.add('privacy-blur');
             document.getElementById('security-overlay').style.display = 'flex';
+            
+            const secAudio = document.getElementById('security-audio');
+            if(secAudio) {
+                secAudio.play().catch(e => console.log("Autoplay dicegah oleh browser. Butuh interaksi user sebelumnya."));
+            }
         }
+
         function disablePrivacyMode() {
             document.body.classList.remove('privacy-blur');
             document.getElementById('security-overlay').style.display = 'none';
+            
+            const secAudio = document.getElementById('security-audio');
+            if(secAudio) {
+                secAudio.pause();
+                secAudio.currentTime = 0; 
+            }
         }
+
         window.addEventListener('blur', enablePrivacyMode);
         window.addEventListener('focus', disablePrivacyMode);
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) enablePrivacyMode(); else disablePrivacyMode();
+            if (document.hidden) enablePrivacyMode();
+            else disablePrivacyMode();
         });
     </script>
     
     <style>
-        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
         html { -webkit-tap-highlight-color: rgba(0,0,0,0); }
+        a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(150, 150, 150, 0.2); } 
+
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
+        /* Sembunyikan elemen utama dari pointer saat blokir */
         .privacy-blur > *:not(#security-overlay):not(#penalty-overlay) {
-            filter: blur(30px) grayscale(100%); pointer-events: none; opacity: 0.1; transition: 0s; 
+            filter: blur(30px) grayscale(100%);
+            pointer-events: none;
+            opacity: 0.1;
+            transition: 0s; 
         }
 
         #security-overlay {
-            display: none; position: fixed; inset: 0; z-index: 10000; background: rgba(255,255,255,0.95);
-            flex-direction: column; align-items: center; justify-content: center; color: #1e293b; text-align: center;
+            display: none;
+            position: fixed; inset: 0; z-index: 10000;
+            background: rgba(0,0,0,0.95);
+            flex-direction: column; align-items: center; justify-content: center;
+            color: white; text-align: center;
         }
 
-        /* Update Loader: Lebih profesional dan bersih */
         #initial-loader {
-            position: fixed; inset: 0; z-index: 9999; background: #ffffff;
+            position: fixed; inset: 0; z-index: 9999;
+            background: radial-gradient(circle at center, #1e3a8a 0%, #020617 100%);
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 0.5s ease, visibility 0.5s ease;
+            overflow: hidden;
+        }
+        #initial-loader::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            animation: shine 4s infinite linear; pointer-events: none;
+        }
+        @keyframes shine { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .loader-content {
+            position: relative; z-index: 10;
+            display: flex; flex-direction: column; align-items: center;
+            background: rgba(255, 255, 255, 0.1); 
+            backdrop-filter: blur(20px);
+            padding: 2.5rem; border-radius: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
         .loader-logo { 
-            width: 70px; height: 70px; 
-            animation: pulse-logo 2s infinite ease-in-out; 
+            width: 80px; height: 80px; 
+            filter: brightness(0) invert(1) drop-shadow(0 0 20px rgba(56, 189, 248, 0.5));
+            animation: breath 2s infinite ease-in-out; 
         }
-        .loader-ring {
-            position: absolute; width: 120px; height: 120px; border: 4px solid transparent; 
-            border-top-color: #0056b3; border-radius: 50%; animation: spin 1s linear infinite;
+        .loader-text {
+            margin-top: 1.5rem; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.25em;
+            color: rgba(255, 255, 255, 0.9); text-transform: uppercase;
         }
-        @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.95); opacity: 0.8; } }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-        /* Update Navbar: Terang & Bersih */
-        .desktop-link { 
-            color: #475569; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.9rem; 
+        .ios-dock {
+            background: rgba(30, 58, 138, 0.85); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+            border-radius: 36px;
+            margin: 0;
+            width: 100%; height: 76px;
+            display: grid; grid-template-columns: repeat(5, 1fr);
+            align-items: center; padding: 0 8px; position: relative;
         }
-        .desktop-link:hover { background: #f1f5f9; color: #0056b3; }
-        .desktop-link.active { background: #e0f2fe; color: #007aff; }
+        .ios-dock-container {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            width: calc(100% - 32px); max-width: 480px; z-index: 60;
+        }
+
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #cbd5e1; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            height: 100%; width: 100%; border-radius: 20px; position: relative; overflow: hidden;
+        }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
+        .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: -0.2px; line-height: 1; z-index: 2; }
+        .nav-item.active { color: #ffffff; }
+        .nav-item:active i { transform: scale(0.9); } 
+
+        .cctv-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
+        .cctv-circle {
+            width: 48px; height: 48px; 
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255,255,255,0.4); 
+            transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 2px;
+        }
+        .cctv-wrapper:active .cctv-circle { transform: scale(0.9); box-shadow: 0 0 20px rgba(255, 255, 255, 0.4); }
+        .cctv-wrapper.active .cctv-circle { background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
+        .cctv-label { font-size: 10px; font-weight: 700; color: #cbd5e1; }
+        .cctv-wrapper:hover .cctv-label, .cctv-wrapper.active .cctv-label { color: #ffffff; }
 
         .glass-ticker-floating {
-            background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0, 0, 0, 0.05); 
+            background: rgba(30, 58, 138, 0.9); border: 1px solid rgba(255, 255, 255, 0.2); 
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); border-radius: 18px; 
-            width: calc(100% - 32px); max-width: 480px; height: 38px; display: flex; align-items: center; 
-            overflow: hidden; position: fixed; bottom: 115px; left: 50%; transform: translateX(-50%); z-index: 50; 
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 18px; width: calc(100% - 32px); max-width: 480px; height: 38px;
+            display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 115px; left: 50%; transform: translateX(-50%); z-index: 50; 
         }
 
         .desktop-bottom-bar {
-            background: #ffffff; border-top: 1px solid #e2e8f0; box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
+            background: #1e3a8a; border-top: 1px solid rgba(255,255,255,0.1);
             height: 40px; width: 100%; position: fixed; bottom: 0; z-index: 40; display: none;
         }
         @media (min-width: 1024px) {
@@ -218,109 +339,224 @@
         }
 
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; }
-        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 120s linear infinite; }
+        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 1200s linear infinite; }
         .ticker-item { 
             padding: 0 3rem; display: flex; align-items: center; 
-            color: #1e293b; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; 
+            color: #ffffff; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; 
         } 
-        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-        /* iOS Dock (Mobile Navigation) - Clean Light Mode */
-        .ios-dock {
-            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); 
-            border: 1px solid rgba(0, 0, 0, 0.05); box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
-            border-radius: 36px; margin: 0; width: 100%; height: 76px;
-            display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; padding: 0 8px; position: relative;
+        .clock-container {
+            display: flex; align-items: center; justify-content: center;
+            height: 100%; font-family: 'Courier New', Courier, monospace; 
+            font-weight: bold; font-size: 11px; color: white;
+            min-width: 85px;
         }
-        .ios-dock-container {
-            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 480px; z-index: 60;
+        @media (min-width: 1024px) {
+            .clock-container { min-width: 110px; }
         }
-        .nav-item {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: #64748b; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            height: 100%; width: 100%; border-radius: 20px; position: relative; overflow: hidden;
+        .clock-anim { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp {
+            from { transform: translateY(5px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-        .nav-item.active { color: #0056b3; }
+
+        @keyframes water-drop {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
+            70% { box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+        .water-effect-logo {
+            animation: water-drop 2s infinite ease-out;
+            border-radius: 50%;
+        }
+
+        .desktop-link { 
+            color: #e2e8f0; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.9rem; 
+        }
+        .desktop-link:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+        .desktop-link.active { background: rgba(255, 255, 255, 0.2); color: #ffffff; }
+
+        .chat-bubble-bot { 
+            background: #e5e5ea; color: #000; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%;
+            position: relative; margin-bottom: 5px; margin-left: 10px;
+        }
+        .chat-bubble-bot::before {
+            content: ""; position: absolute; bottom: 0; left: -6px; height: 20px; width: 20px;
+            background: #e5e5ea; border-bottom-right-radius: 15px; z-index: 0;
+        }
+        .chat-bubble-bot::after {
+            content: ""; position: absolute; bottom: 0; left: -10px; height: 20px; width: 10px;
+            background: #f8fafc; border-bottom-right-radius: 10px; z-index: 1;
+        }
+
+        .chat-bubble-user { 
+            background: #007aff; color: white; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; 
+            margin-left: auto; position: relative; margin-bottom: 5px; margin-right: 10px;
+        }
+        .chat-bubble-user::before {
+            content: ""; position: absolute; bottom: 0; right: -6px; height: 20px; width: 20px;
+            background: #007aff; border-bottom-left-radius: 15px; z-index: 0;
+        }
+        .chat-bubble-user::after {
+            content: ""; position: absolute; bottom: 0; right: -10px; height: 20px; width: 10px;
+            background: #f8fafc; border-bottom-left-radius: 10px; z-index: 1;
+        }
         
-        /* CCTVs Button */
-        .cctv-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
-        .cctv-circle {
-            width: 48px; height: 48px; background: linear-gradient(135deg, #007aff, #0056b3);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; 
-            box-shadow: 0 4px 10px rgba(0, 86, 179, 0.3); border: 2px solid white; transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 2px;
-        }
-        .cctv-wrapper.active .cctv-circle { background: linear-gradient(135deg, #dc2626, #991b1b); box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4); }
-        .cctv-label { font-size: 10px; font-weight: 700; color: #64748b; }
-        .cctv-wrapper.active .cctv-label { color: #dc2626; }
+        .footer-link { transition: color 0.2s; color: #94a3b8; display: block; margin-bottom: 0.6rem; font-size: 0.9rem; }
+        .footer-link:hover { color: #38bdf8; padding-left: 4px; }
 
-        /* Chat Chatbot Updates */
-        .chat-bubble-bot { background: #f1f5f9; color: #1e293b; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; border-bottom-left-radius: 4px; }
-        .chat-bubble-user { background: #0056b3; color: white; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; margin-left: auto; border-bottom-right-radius: 4px; }
+        .logo-container {
+            width: 44px; height: 44px; background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            border-radius: 14px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.25); padding: 9px;
+        }
+
+        .dropdown-menu-mobile {
+            position: fixed !important; top: 70px !important; right: 16px !important; width: 250px !important;
+            z-index: 9999 !important; transform-origin: top right; animation: scaleIn 0.2s ease-out; max-height: 80vh; overflow-y: auto;
+        }
+        @media (min-width: 1024px) {
+            .dropdown-menu-mobile { position: absolute !important; top: 100% !important; right: 0 !important; margin-top: 10px; }
+        }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="bg-brand-surface text-slate-800 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-200 selection:text-blue-900">
+<body class="bg-[#0f172a] text-slate-100 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900">
 
     <audio id="security-audio" src="https://l.top4top.io/m_342514jhj1.mp3" loop preload="auto"></audio>
 
-    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-slate-900 text-white flex-col items-center justify-center hidden">
-        <i class="fa-solid fa-triangle-exclamation text-6xl text-red-500 mb-6 animate-bounce"></i>
-        <h1 class="text-2xl md:text-4xl font-black text-red-500 mb-2 tracking-widest text-center px-4">AKSES DIBLOKIR</h1>
-        <p class="text-slate-300 text-xs md:text-sm mb-8 text-center px-6 max-w-lg">Sistem kami mendeteksi pelanggaran keamanan (Inspect Element). Akses Anda ditangguhkan sementara.</p>
-        <div class="bg-white/10 rounded-xl p-6 text-center w-4/5 max-w-sm mb-8 backdrop-blur-md">
-            <p class="text-slate-400 text-[10px] uppercase tracking-widest mb-1">Waktu Tunggu</p>
-            <p id="penalty-timer" class="text-5xl font-black text-white tracking-widest">05:00</p>
+    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-black text-white flex-col items-center justify-center hidden" style="font-family: monospace;">
+        <i class="fa-solid fa-triangle-exclamation text-6xl text-red-600 mb-6 animate-pulse"></i>
+        <h1 class="text-2xl md:text-4xl font-black text-red-600 mb-2 tracking-widest text-center px-4">AKSES DIBLOKIR SEMENTARA</h1>
+        <p class="text-slate-400 text-xs md:text-sm mb-8 text-center px-6 max-w-lg leading-relaxed">
+            Sistem KTVDI mendeteksi pelanggaran berulang atas kebijakan larangan *Inspect Element* / Klik Kanan. Sesuai protokol keamanan, interaksi Anda dengan halaman ini kami tangguhkan.
+        </p>
+        
+        <div class="bg-red-950/30 border border-red-900/50 rounded-xl p-6 text-center w-4/5 max-w-sm mb-8 shadow-2xl shadow-red-900/20">
+            <p class="text-slate-500 text-[10px] uppercase tracking-widest mb-1">Waktu Penangguhan</p>
+            <p id="penalty-timer" class="text-5xl font-black text-red-500 tracking-widest">05:00</p>
         </div>
-        <p class="text-sm font-bold text-slate-400">IP Terdeteksi: <span id="penalty-ip" class="text-yellow-400"></span></p>
+
+        <div class="text-center bg-slate-900/80 border border-slate-800 rounded-lg px-6 py-3">
+            <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Data Pelanggar Tercatat</p>
+            <p class="text-sm font-bold text-slate-300">IP Addr: <span id="penalty-ip" class="text-yellow-400">Memeriksa...</span></p>
+        </div>
     </div>
 
-    <div id="tts-widget" class="fixed top-20 right-4 lg:right-8 z-[55] bg-white border border-slate-200 shadow-2xl rounded-2xl p-4 w-72 transition-all duration-500 transform translate-y-[-20px] opacity-0 pointer-events-none">
-        <div class="flex justify-between items-start mb-3">
-            <div class="flex items-center gap-3">
-                <div class="bg-blue-50 text-blue-600 p-2.5 rounded-full flex items-center justify-center">
-                    <i class="fa-solid fa-volume-high text-lg"></i>
-                </div>
-                <div>
-                    <h4 class="text-sm font-bold text-slate-800 leading-tight">Pembaca Suara</h4>
-                    <p class="text-[10px] text-slate-500">Google Cloud TTS API</p>
-                </div>
-            </div>
-            <button onclick="closeTTS()" class="text-slate-400 hover:text-red-500 transition"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="bg-slate-50 rounded-lg p-2 border border-slate-100 mb-3">
-            <p id="tts-text-display" class="text-xs text-slate-600 line-clamp-2">"Selamat datang di Komunitas TV Digital..."</p>
-        </div>
-        <div class="flex items-center gap-3">
-            <button id="tts-play-btn" onclick="toggleTTS()" class="bg-blue-600 hover:bg-blue-700 text-white w-10 h-10 rounded-full flex items-center justify-center transition shadow-md shrink-0">
-                <i class="fa-solid fa-play" id="tts-icon"></i>
-            </button>
-            <div class="flex-1 bg-slate-200 h-1.5 rounded-full overflow-hidden relative">
-                <div id="tts-progress" class="bg-blue-500 h-full w-0 transition-all duration-75"></div>
-            </div>
+    <div id="inspect-warning-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[10005] bg-[#ff3b30]/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 transition-all duration-300 hidden opacity-0 -translate-y-full w-[90vw] max-w-md border border-white/20">
+        <i class="fa-solid fa-shield-halved text-2xl animate-pulse shrink-0"></i>
+        <p class="text-[11px] md:text-xs font-bold leading-relaxed">
+            TIM Security KTVDI mendeteksi Anda ingin melakukan inspect atau klik kanan. Untuk alasan keamanan dan privasi, mohon maaf belum kami izinkan. Terima kasih.
+        </p>
+    </div>
+
+    <div id="security-overlay">
+        <div class="p-8 max-w-sm bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
+            <i class="fa-solid fa-eye-slash text-5xl text-red-500 mb-4 animate-pulse"></i>
+            <h2 class="text-xl font-bold mb-2">Konten Diamankan</h2>
+            <p class="text-xs text-gray-200">KTVDI mendeteksi upaya perekaman layar atau perpindahan aplikasi. Konten disembunyikan demi privasi.</p>
         </div>
     </div>
 
     <div id="initial-loader">
-        <div class="relative flex justify-center items-center">
-            <div class="loader-ring"></div>
+        <div class="loader-content">
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="loader-logo" alt="Loading...">
+            <p class="loader-text">MEMUAT KTVDI...</p>
         </div>
-        <p class="mt-8 text-sm font-bold tracking-[0.3em] text-brand-navy uppercase">Memuat KTVDI</p>
     </div>
 
-    <nav class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200 transition-all duration-300">
+    <div id="tts-widget-container" class="fixed top-24 left-4 lg:left-8 z-[45] w-[340px] bg-[#111827] rounded-2xl shadow-2xl border border-slate-700 p-4 transition-all duration-500 opacity-0 pointer-events-none translate-y-[-10px]">
+        <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-blue-400">
+                    <i class="fa-solid fa-volume-high"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-white leading-none">Pembaca Berita</h3>
+                    <p class="text-[11px] text-blue-400 mt-1">Google Cloud TTS</p>
+                </div>
+            </div>
+            <button onclick="hideTTSWidget()" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="flex justify-between text-[10px] text-slate-400 mb-2">
+            <span>Paragraf 1 / 1</span>
+            <span id="tts-percent-text">0%</span>
+        </div>
+        
+        <div class="w-full bg-slate-800 h-1 rounded-full mb-5 overflow-hidden relative">
+            <div id="tts-progress-bar" class="absolute top-0 left-0 bg-blue-500 h-full w-0 transition-all duration-300"></div>
+        </div>
+
+        <div class="flex justify-center items-center gap-6 mb-5">
+            <button class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-backward-fast"></i></button>
+            <button onclick="toggleTTS()" class="w-10 h-10 bg-[#007aff] hover:bg-blue-600 rounded-full flex items-center justify-center text-white transition shadow-lg shadow-blue-500/30">
+                <i id="tts-play-icon" class="fa-solid fa-play ml-0.5"></i>
+            </button>
+            <button class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-forward-fast"></i></button>
+            <button onclick="stopTTS()" class="text-slate-500 hover:text-white transition"><i class="fa-regular fa-square"></i></button>
+        </div>
+
+        <div class="flex items-center justify-between text-[10px] mb-2">
+            <div class="flex items-center gap-2">
+                <span class="text-slate-400">Suara:</span>
+                <button class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 transition">👩 Wanita</button>
+                <button class="px-2 py-1 rounded bg-[#007aff] text-white font-bold">👨 Pria</button>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 text-[10px]">
+            <span class="text-slate-400">Kecepatan:</span>
+            <button class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 transition">0.75x</button>
+            <button class="px-2 py-1 rounded bg-[#007aff] text-white font-bold">1x</button>
+            <button class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 transition">1.25x</button>
+            <button class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700 transition">1.5x</button>
+        </div>
+    </div>
+
+    <nav class="fixed top-0 w-full z-50 bg-[#1e3a8a]/95 backdrop-blur-md shadow-lg transition-all duration-300" style="-webkit-backdrop-filter: blur(10px);">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 relative">
             <div class="flex justify-between items-center h-16 md:h-20 relative z-20">
                 
                 <div class="flex items-center">
-                    <a href="{{ url_for('home') }}" class="flex items-center gap-3 group shrink-0 transition-all duration-300">
-                        <div class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-blue-600 rounded-xl shadow-md">
-                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-2/3 h-2/3 object-contain brightness-0 invert">
+                    
+                    <a href="{{ url_for('home') }}" class="{% if session.get('user') %}hidden md:flex{% else %}flex{% endif %} items-center gap-3 group shrink-0 lg:ml-14 transition-all duration-300">
+                        <div class="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center group-hover:scale-105 transition-transform water-effect-logo bg-white/10 rounded-full">
+                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-full h-full object-contain" style="filter: brightness(0) invert(1);">
                         </div>
-                        <div class="leading-tight">
-                            <h1 class="text-brand-navy font-extrabold text-lg md:text-xl leading-none tracking-tight">KTVDI</h1>
-                            <p class="text-[10px] md:text-[11px] text-slate-500 font-semibold tracking-wide mt-0.5 hidden sm:block">Komunitas TV Digital Indonesia</p>
+                        <div class="leading-tight {% if session.get('user') %}hidden md:block{% endif %}">
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-white font-extrabold text-lg md:text-xl leading-none tracking-tight">KTVDI</h1>
+                                {% if not session.get('user') %}
+                                    <span class="px-2 py-0.5 bg-slate-600/80 border border-slate-500/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm">VISITOR</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-[10px] md:text-xs text-blue-200 font-bold tracking-wide mt-1 hidden sm:block">Komunitas TV Digital Indonesia</p>
                         </div>
                     </a>
+
+                    {% if session.get('user') %}
+                    <div class="md:hidden flex items-center gap-2">
+                        <a href="{{ url_for('home') }}" class="flex items-center gap-1.5 bg-black/20 border border-white/10 rounded-full px-1.5 py-1 transition shadow-inner shrink-0">
+                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-4 h-4 object-contain brightness-0 invert ml-0.5">
+                            <div class="w-5 h-5 rounded-full bg-slate-500/80 flex items-center justify-center text-white text-[10px] font-bold">
+                                {{ session.get('nama')[0].upper() }}
+                            </div>
+                        </a>
+
+                        <div class="flex flex-col justify-center cursor-pointer ml-1" onclick="toggleDropdown('profile-dropdown-mobile')">
+                            <div class="flex items-center gap-1 text-[11px] font-bold text-white leading-tight">
+                                <span class="dynamic-greeting font-medium">Selamat pagi,</span>
+                                <span class="truncate max-w-[85px]">{{ session.get('nama') }}</span>
+                            </div>
+                            <div class="flex items-center mt-0.5">
+                                <span class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-600 border border-yellow-400/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                    <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <div class="hidden lg:flex items-center space-x-1">
@@ -332,242 +568,503 @@
                     <a href="{{ url_for('berita_page') }}" class="desktop-link {% if request.endpoint == 'berita_page' %}active{% endif %}">Berita</a>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    {% if not session.get('user') %}
-                        <a href="{{ url_for('login') }}" class="text-sm font-bold text-slate-600 hover:text-blue-600 transition px-2">Masuk</a>
-                        <a href="{{ url_for('register') }}" class="px-5 py-2 bg-blue-600 text-white text-sm font-bold rounded-full hover:bg-blue-700 transition shadow-md">Daftar</a>
-                    {% else %}
-                        <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 py-1.5 px-3 rounded-full">
-                            <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=0056b3&color=fff&bold=true" class="h-8 w-8 rounded-full">
-                            <div class="hidden md:block text-left">
-                                <p class="text-xs font-bold text-slate-800">{{ session.get('nama').split()[0] }}</p>
-                                <p class="text-[9px] text-slate-500">Member</p>
+                <div class="flex items-center gap-3 sm:gap-4">
+                    
+                    <div class="relative group z-50">
+                        <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white transition flex items-center justify-center border border-white/10">
+                            <i class="fa-solid fa-bars text-xs"></i>
+                        </button>
+                        <div id="info-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
+                            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center mb-1">
+                                <div class="flex flex-col w-full">
+                                    <span class="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Lokasi Anda</span>
+                                    <div class="flex items-center gap-2 text-sm font-black text-blue-600">
+                                        <i class="fa-solid fa-location-dot text-red-500"></i>
+                                        <span id="mobile-user-location" class="truncate">Mendeteksi...</span>
+                                    </div>
+                                </div>
                             </div>
+                            <div class="px-4 py-2 border-b border-slate-100">
+                                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Menu Tambahan</span>
+                            </div>
+                            <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition flex items-center gap-3">
+                                <i class="fa-solid fa-users text-blue-600 w-5"></i> Tentang Kami
+                            </a>
+                            <a href="{{ url_for('ews_jateng_page') }}" class="block lg:hidden px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition flex items-center gap-3">
+                                <i class="fa-solid fa-water text-blue-600 w-5"></i> EWS Bendungan
+                            </a>
+                            <div class="border-t border-slate-100 my-1"></div>
+                            <div class="px-4 py-2">
+                                <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Narahubung</p>
+                                <div class="flex items-center gap-2 text-sm text-slate-700">
+                                    <i class="fa-brands fa-whatsapp text-green-500 text-lg"></i>
+                                    <div>
+                                        <div class="font-bold">Pak Lukas</div>
+                                        <div class="text-xs text-slate-500">Admin KTVDI</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if session.get('user') %}
+                        <div class="relative group z-50 hidden md:block">
+                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition border border-white/10 text-left">
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=1e3a8a&bold=true" class="h-8 w-8 rounded-full shadow-sm">
+                                <div class="hidden md:flex flex-col">
+                                    <span class="text-xs font-bold text-white leading-tight">{{ session.get('nama').split()[0] }}</span>
+                                    <span class="text-[8px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                        <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
+                                    </span>
+                                </div>
+                            </button>
+                            <div id="profile-dropdown-desktop" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
+                                <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50">
+                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Akun Anda</p>
+                                    <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
+                                </div>
+                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard</a>
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
+                            </div>
+                        </div>
+
+                        <div class="relative md:hidden shrink-0">
+                            <button onclick="toggleDropdown('profile-dropdown-mobile')" class="relative flex items-center justify-center transition-transform active:scale-95">
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=1e3a8a&bold=true" class="h-8 w-8 rounded-full shadow-md border-2 border-white/20">
+                            </button>
+                            
+                            <div id="profile-dropdown-mobile" class="hidden dropdown-menu-mobile !top-12 !right-0 transform origin-top-right absolute w-52 bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
+                                <div class="px-4 py-3 border-b border-slate-100 mb-1 bg-slate-50">
+                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Akun Anda</p>
+                                    <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
+                                </div>
+                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard</a>
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url_for('login') }}" class="hidden md:block text-xs font-bold text-blue-100 hover:text-white transition px-2">Masuk</a>
+                            <a href="{{ url_for('login') }}" class="md:hidden w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white border border-white/20">
+                                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                            </a>
+                            <a href="{{ url_for('register') }}" class="px-5 py-2.5 bg-white text-[#1e3a8a] text-xs font-bold rounded-full hover:bg-blue-50 transition shadow-lg active:scale-95">Daftar</a>
                         </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </nav>
-
     <main class="flex-grow pt-16 md:pt-20">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-white text-slate-700 pt-16 pb-48 lg:pb-16 font-sans border-t border-slate-200 mt-12">
+    <footer class="bg-[#0f172a] text-[#f5f5f7] pt-16 pb-48 lg:pb-16 font-sans border-t border-slate-800">
         <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
-            <div class="space-y-4">
+            <div class="space-y-5">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-5 w-5 brightness-0 invert">
+                    <div class="logo-container w-10 h-10 rounded-lg">
+                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="h-6 w-6 brightness-0 invert">
                     </div>
-                    <h4 class="text-lg font-bold text-brand-navy">KTVDI</h4>
+                    <div>
+                        <h4 class="text-lg font-bold tracking-tight">KTVDI</h4>
+                        <p class="text-[10px] text-gray-400 font-medium">Komunitas TV Digital Indonesia</p>
+                    </div>
                 </div>
-                <p class="text-slate-500 text-sm leading-relaxed">Pusat informasi independen perkembangan teknologi penyiaran digital, frekuensi, dan infrastruktur STB di Indonesia.</p>
+                <p class="text-gray-400 text-sm leading-relaxed">
+                    Pusat informasi independen mengenai perkembangan teknologi penyiaran digital, frekuensi, dan perangkat STB di Indonesia.
+                </p>
             </div>
             <div>
-                <h4 class="font-bold text-sm text-slate-800 mb-4">Navigasi Utama</h4>
-                <ul class="space-y-2 text-sm text-slate-500">
-                    <li><a href="#" class="hover:text-blue-600">Beranda</a></li>
-                    <li><a href="#" class="hover:text-blue-600">Database Frekuensi</a></li>
-                    <li><a href="#" class="hover:text-blue-600">Pantauan CCTV</a></li>
+                <h4 class="font-bold text-xs text-gray-500 uppercase tracking-widest mb-4">Navigasi Utama</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="{{ url_for('home') }}" class="footer-link">Beranda</a></li>
+                    <li><a href="{{ url_for('daftar_siaran') }}" class="footer-link">Database Frekuensi</a></li>
+                    <li><a href="{{ url_for('cctv_page') }}" class="footer-link">Pantauan CCTV</a></li>
+                    <li><a href="{{ url_for('ews_jateng_page') }}" class="footer-link">Info Bencana (EWS)</a></li>
                 </ul>
             </div>
             <div>
-                <h4 class="font-bold text-sm text-slate-800 mb-4">Layanan</h4>
-                <ul class="space-y-2 text-sm text-slate-500">
-                    <li><a href="#" class="hover:text-blue-600">Tentang Kami</a></li>
-                    <li><a href="#" class="hover:text-blue-600">Hubungi Kami</a></li>
+                <h4 class="font-bold text-xs text-gray-500 uppercase tracking-widest mb-4">Layanan</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="#" class="footer-link">Tentang Kami</a></li>
+                    <li><a href="#" class="footer-link">Hubungi Kami</a></li>
+                    <li><a href="#" class="footer-link">Pasang Iklan</a></li>
+                    <li><a href="#" class="footer-link">Kebijakan Privasi</a></li>
                 </ul>
             </div>
             <div>
-                <h4 class="font-bold text-sm text-slate-800 mb-4">Kontak Resmi</h4>
-                <ul class="space-y-3 text-sm text-slate-500">
-                    <li class="flex items-center gap-2"><i class="fa-solid fa-envelope text-blue-500"></i> kom.tvdigitalid@gmail.com</li>
-                    <li class="flex items-center gap-2"><i class="fa-brands fa-whatsapp text-green-500"></i> 0815-9131-735</li>
+                <h4 class="font-bold text-xs text-gray-500 uppercase tracking-widest mb-4">Kontak Resmi</h4>
+                <ul class="space-y-4 text-sm text-slate-400">
+                    <li class="flex items-start gap-3 group cursor-pointer">
+                        <i class="fa-solid fa-user-tie mt-1 text-blue-500 group-hover:text-white transition"></i>
+                        <span class="group-hover:text-blue-400 transition">Pak Lukas (Admin)</span>
+                    </li>
+                    <li class="flex items-start gap-3 group cursor-pointer">
+                        <i class="fa-solid fa-envelope mt-1 text-blue-500 group-hover:text-white transition"></i>
+                        <span class="group-hover:text-blue-400 transition">kom.tvdigitalid@gmail.com</span>
+                    </li>
+                    <li class="flex items-start gap-3 group cursor-pointer">
+                        <i class="fa-brands fa-whatsapp mt-1 text-green-500 group-hover:text-green-400 transition"></i>
+                        <span class="group-hover:text-blue-400 transition">0815-9131-735</span>
+                    </li>
                 </ul>
             </div>
         </div>
-        <div class="border-t border-slate-100 pt-6 text-center">
-            <p class="text-xs text-slate-400">&copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.</p>
+        <div class="border-t border-slate-800 pt-8 text-center">
+            <p class="text-xs text-slate-500">&copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.</p>
         </div>
     </footer>
 
     <div class="ios-dock-container lg:hidden">
         <nav class="ios-dock">
             <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %}">
-                <i class="fa-solid fa-house text-lg"></i>
-                <span class="text-[10px] font-semibold mt-1">Beranda</span>
+                <i class="fa-solid fa-house"></i>
+                <span>Beranda</span>
             </a>
             <a href="{{ url_for('jadwal_sholat_page') }}" class="nav-item {% if request.endpoint == 'jadwal_sholat_page' %}active{% endif %}">
-                <i class="fa-solid fa-mosque text-lg"></i>
-                <span class="text-[10px] font-semibold mt-1">Religi</span>
+                <i class="fa-solid fa-mosque"></i>
+                <span>Religi</span>
             </a>
+            
             <a href="{{ url_for('cctv_page') }}" class="nav-item cctv-wrapper {% if request.endpoint == 'cctv_page' %}active{% endif %}">
                 <div class="cctv-circle">
                     <i class="fa-solid fa-video text-lg"></i>
                 </div>
-                <span class="cctv-label mt-1">CCTV</span>
+                <span class="cctv-label">CCTV</span>
             </a>
+
             <a href="{{ url_for('daftar_siaran') }}" class="nav-item {% if request.endpoint == 'daftar_siaran' %}active{% endif %}">
-                <i class="fa-solid fa-database text-lg"></i>
-                <span class="text-[10px] font-semibold mt-1">Data</span>
+                <i class="fa-solid fa-database"></i>
+                <span>Data</span>
             </a>
             <a href="{{ url_for('berita_page') }}" class="nav-item {% if request.endpoint == 'berita_page' %}active{% endif %}">
-                <i class="fa-regular fa-newspaper text-lg"></i>
-                <span class="text-[10px] font-semibold mt-1">Berita</span>
+                <i class="fa-regular fa-newspaper"></i>
+                <span>Berita</span>
             </a>
         </nav>
     </div>
 
-    <div class="desktop-bottom-bar items-center px-4 max-w-[1920px] mx-auto">
-        <div class="bg-red-600 h-6 flex items-center px-3 rounded text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4">
-            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> INFO TERKINI
+    <div class="glass-ticker-floating lg:hidden">
+        <div class="bg-[#ff3b30] h-full flex items-center px-3 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-2">
+            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE
         </div>
-        <div class="ticker-wrap relative flex-1 text-slate-800">
-            <div id="unified-ticker-desktop" class="ticker-move"></div>
+        <div class="ticker-wrap relative flex-1">
+            <div id="unified-ticker-mobile" class="ticker-move"></div>
         </div>
-        <div class="h-8 px-4 border-l border-slate-200 z-20 shrink-0 flex items-center ml-2">
-            <div id="clock-desktop" class="text-slate-600 font-bold text-[11px] font-mono">00:00:00 WIB</div>
+        <div class="bg-white/10 backdrop-blur-md h-full px-2 border-l border-slate-200/50 z-20 shrink-0 flex items-center">
+            <div id="clock-mobile" class="clock-container text-[10px]">00:00:00 WIB</div>
         </div>
     </div>
 
+    <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto">
+        <div class="bg-[#ff3b30] h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4">
+            <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> BERITA TERKINI
+        </div>
+        <div class="ticker-wrap relative flex-1">
+            <div id="unified-ticker-desktop" class="ticker-move"></div>
+        </div>
+        
+        <div class="bg-white/5 backdrop-blur-md h-8 px-4 rounded-lg border border-white/10 z-20 shrink-0 flex items-center gap-2 ml-4 text-white text-[11px] font-bold" title="Lokasi Anda">
+            <i class="fa-solid fa-location-dot text-red-400 animate-bounce"></i>
+            <span id="desktop-user-location">Mendeteksi Lokasi...</span>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 flex items-center ml-2">
+            <div id="clock-desktop" class="clock-container text-[11px]">00:00:00 WIB</div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-[160px] lg:bottom-24 left-4 z-[60] group pb-safe">
+        <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-xl border border-red-100 hover:scale-110 transition-transform active:scale-95">
+            <i class="fa-solid fa-phone-volume text-lg animate-pulse"></i>
+        </a>
+    </div>
+
     <div class="fixed bottom-[160px] lg:bottom-24 right-4 z-[60] pb-safe flex flex-col items-end">
-        <div id="chat-window" class="hidden w-[85vw] max-w-[340px] bg-white rounded-2xl shadow-2xl overflow-hidden mb-4 border border-slate-200 flex flex-col">
-            <div class="bg-blue-600 p-3 flex justify-between items-center text-white shadow-sm">
+        <div id="chat-window" class="hidden w-[85vw] max-w-[340px] bg-slate-50 rounded-3xl shadow-2xl overflow-hidden mb-4 border border-slate-100 flex flex-col transform origin-bottom-right transition-all animate-fade-in-up">
+            <div class="bg-white/80 backdrop-blur-xl p-3 flex justify-between items-center text-slate-800 shadow-sm border-b border-slate-200">
                 <div class="flex items-center gap-3">
-                    <div class="bg-white text-blue-600 w-8 h-8 rounded-full flex justify-center items-center">
-                        <i class="fa-solid fa-headset"></i>
+                    <div class="relative">
+                        <img src="https://iili.io/f87Ctjt.md.png" class="h-9 w-9 rounded-full bg-white p-0.5 border-2 border-slate-100">
+                        <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"></span>
                     </div>
                     <div>
-                        <div class="font-bold text-sm">Layanan Bantuan</div>
-                        <div class="text-[10px] text-blue-100">KTVDI Siap Membantu</div>
+                        <div class="font-bold text-sm">Modi AI</div>
+                        <div class="text-[10px] text-slate-500 opacity-90">Online • Integrasi Data KTVDI</div>
                     </div>
                 </div>
-                <button onclick="toggleChat()" class="text-white opacity-80 hover:opacity-100"><i class="fa-solid fa-chevron-down"></i></button>
+                <button onclick="toggleChat()" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"><i class="fa-solid fa-chevron-down text-xs text-slate-500"></i></button>
             </div>
-            <div id="chat-messages" class="h-72 p-4 overflow-y-auto flex flex-col gap-2 bg-slate-50">
+            
+            <div id="chat-messages" class="h-72 p-4 overflow-y-auto flex flex-col gap-1 custom-scroll">
                 <div class="flex flex-col gap-1 items-start">
-                    <div class="chat-bubble-bot">Halo! Ada yang bisa kami bantu seputar siaran TV Digital?</div>
+                    <div class="chat-bubble-bot shadow-sm">Halo! Saya Modi AI, asisten virtual KTVDI. 👋 Saya telah terhubung dengan seluruh database siaran, pantauan CCTV, dan informasi frekuensi terbaru di web ini. Ada yang bisa saya bantu temukan?</div>
+                    <span class="text-[10px] text-slate-400 ml-2">Delivered</span>
                 </div>
             </div>
-            <div class="p-3 bg-white border-t border-slate-200">
+
+            <div class="p-3 bg-white border-t border-slate-100">
                 <form onsubmit="handleChat(event)" class="flex gap-2 relative">
-                    <input type="text" id="chat-input" placeholder="Tulis pesan..." class="w-full bg-slate-100 border-none text-sm px-4 py-2.5 rounded-full focus:ring-2 focus:ring-blue-500 outline-none" autocomplete="off">
-                    <button type="submit" class="absolute right-1 top-1 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-blue-700"><i class="fa-solid fa-paper-plane text-xs"></i></button>
+                    <input type="text" id="chat-input" placeholder="Tanyakan seputar TV Digital..." class="w-full bg-white border border-slate-300 text-sm px-4 py-2.5 rounded-full focus:outline-none focus:border-blue-500 transition text-slate-700 shadow-sm" autocomplete="off">
+                    <button type="submit" class="absolute right-1.5 top-1.5 bg-[#007aff] text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-blue-600 transition shadow-sm active:scale-95"><i class="fa-solid fa-arrow-up text-xs"></i></button>
                 </form>
             </div>
         </div>
-        <button onclick="toggleChat()" class="w-14 h-14 rounded-full bg-blue-600 shadow-lg text-white flex items-center justify-center hover:scale-105 transition active:scale-95 border-4 border-white relative">
-             <i class="fa-solid fa-comment-dots text-xl"></i>
-             <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+        <button onclick="toggleChat()" class="w-14 h-14 rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center hover:scale-105 transition active:scale-95 border-2 border-white relative overflow-hidden group bg-white">
+             <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover">
+             <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
         </button>
     </div>
 
     <script>
-        // Logika Ticker dan Jam
-        function updateTicker() {
-            const def = `<div class="ticker-item">SELAMAT DATANG DI KOMUNITAS TV DIGITAL INDONESIA - KTVDI. PUSAT INFORMASI AKURAT & TERPERCAYA.</div><span class="text-red-500 font-black flex items-center text-lg">//</span>`;
-            if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = def.repeat(5);
-        }
-        updateTicker();
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            let greeting = 'Selamat malam';
+            if (hour >= 3 && hour < 11) greeting = 'Selamat pagi';
+            else if (hour >= 11 && hour < 15) greeting = 'Selamat siang';
+            else if (hour >= 15 && hour < 18) greeting = 'Selamat sore';
 
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
-            const el = document.getElementById('clock-desktop');
-            if(el) el.innerText = `${timeString} WIB`;
+            document.querySelectorAll('.dynamic-greeting').forEach(el => {
+                el.innerText = greeting + ',';
+            });
         }
-        setInterval(updateClock, 1000); updateClock();
+        updateGreeting();
 
-        // Chat Toggle
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('initial-loader');
+            
+            // Periksa jika user belum diblokir, sembunyikan loader
+            if(loader && !checkPenaltyStatus()) {
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    setTimeout(() => loader.style.visibility = 'hidden', 500);
+                }, 1500); 
+            }
+        });
+
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            document.querySelectorAll('[id$="-dropdown"], .dropdown-menu-mobile').forEach(d => {
+                if(d.id !== id) d.classList.add('hidden');
+            });
+            el.classList.toggle('hidden');
+        }
+
         function toggleChat() { 
-            document.getElementById('chat-window').classList.toggle('hidden'); 
+            const win = document.getElementById('chat-window');
+            win.classList.toggle('hidden');
+            if(!win.classList.contains('hidden')) { setTimeout(() => document.getElementById('chat-messages').scrollTop = 99999, 100); }
         }
-
+        
         async function handleChat(e){ 
             e.preventDefault(); 
             const i=document.getElementById('chat-input');
             const t=i.value.trim(); 
             if(!t)return;
+            addMsg(t,'user'); 
+            i.value='';
             
+            const loadId = 'loading-'+Date.now();
             const msgs = document.getElementById('chat-messages');
-            msgs.innerHTML += `<div class="flex flex-col gap-1 items-end"><div class="chat-bubble-user">${t}</div></div>`;
-            i.value=''; msgs.scrollTop = 99999;
-            
-            // Simulasi Balasan (Ganti dengan integrasi backend kamu)
-            setTimeout(() => {
-                msgs.innerHTML += `<div class="flex flex-col gap-1 items-start"><div class="chat-bubble-bot">Terima kasih atas pesan Anda. Agen kami akan segera merespons.</div></div>`;
-                msgs.scrollTop = 99999;
-            }, 1000);
+            const loadDiv = document.createElement('div');
+            loadDiv.id = loadId;
+            loadDiv.className = "flex flex-col gap-1 items-start";
+            loadDiv.innerHTML = `<div class="chat-bubble-bot text-slate-400 italic text-xs flex items-center gap-1" style="width:50px; justify-content:center;"><span class="animate-bounce">.</span><span class="animate-bounce delay-75">.</span><span class="animate-bounce delay-150">.</span></div>`;
+            msgs.appendChild(loadDiv);
+            msgs.scrollTop = 99999;
+
+            try {
+                const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:t})});
+                const d=await r.json();
+                document.getElementById(loadId).remove();
+                addMsg(d.response,'bot');
+            } catch {
+                document.getElementById(loadId).remove();
+                addMsg("Maaf, koneksi ke Modi terputus. Silakan coba lagi nanti. 🙏", 'bot');
+            }
         }
 
-        window.addEventListener('load', () => {
-            const loader = document.getElementById('initial-loader');
-            if(loader && !checkPenaltyStatus()) {
-                setTimeout(() => {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.style.visibility = 'hidden', 500);
-                }, 1000); 
+        function addMsg(t,s){
+            const d=document.createElement('div'); 
+            const tm=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+            
+            if (s == 'user') {
+                d.className="flex flex-col gap-1 items-end";
+                d.innerHTML = `<div class="chat-bubble-user text-left shadow-sm">${t}</div><span class="text-[9px] text-slate-400 mr-2">Read ${tm}</span>`;
+            } else {
+                d.className="flex flex-col gap-1 items-start";
+                d.innerHTML = `<div class="chat-bubble-bot shadow-sm">${t.replace(/\n/g,'<br>')}</div>`;
+            }
+            const msgs = document.getElementById('chat-messages');
+            msgs.appendChild(d);
+            msgs.scrollTop = 99999;
+        }
+
+        async function updateTicker() {
+            try { 
+                const res = await fetch('/api/news-ticker'); 
+                const data = await res.json(); 
+                if (data && data.length > 0) {
+                    const items = data.map(n => `<div class="ticker-item">${n}</div><span class="text-yellow-400 font-black flex items-center text-lg">//</span>`).join('');
+                    if(document.getElementById('unified-ticker-mobile')) document.getElementById('unified-ticker-mobile').innerHTML = items + items + items;
+                    if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = items + items + items;
+                } else {
+                    const def = `<div class="ticker-item">SELAMAT DATANG DI KOMUNITAS TV DIGITAL INDONESIA - KTVDI. INFORMASI AKURAT & TERPERCAYA SEPUTAR SIARAN DIGITAL.</div><span class="text-yellow-400 font-black flex items-center text-lg">//</span>`;
+                    if(document.getElementById('unified-ticker-mobile')) document.getElementById('unified-ticker-mobile').innerHTML = def.repeat(3);
+                    if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = def.repeat(3);
+                }
+            } catch {}
+        }
+        updateTicker();
+        
+        const zones = [
+            { label: 'WIB', offset: 7 },
+            { label: 'WITA', offset: 8 },
+            { label: 'WIT', offset: 9 }
+        ];
+        let zoneIndex = 0;
+
+        function updateClockFlip() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            
+            const currentZone = zones[zoneIndex];
+            const zoneTime = new Date(utc + (3600000 * currentZone.offset));
+            
+            const timeString = zoneTime.toLocaleTimeString('id-ID', {
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false
+            }).replace(/\./g, ':');
+
+            const fullString = `${timeString} ${currentZone.label}`;
+
+            const els = [document.getElementById('clock-mobile'), document.getElementById('clock-desktop')];
+            els.forEach(el => {
+                if(el) {
+                    el.classList.remove('clock-anim');
+                    void el.offsetWidth;
+                    el.innerText = fullString;
+                    el.classList.add('clock-anim');
+                }
+            });
+
+            zoneIndex = (zoneIndex + 1) % zones.length;
+        }
+
+        setInterval(updateClockFlip, 3000);
+        updateClockFlip();
+
+        async function fetchUserLocation() {
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                if (!res.ok) throw new Error("Gagal fetch IP API");
+                const data = await res.json();
+                
+                window.userIP = data.ip || 'Tidak Terdeteksi';
+                
+                const penaltyIpEl = document.getElementById('penalty-ip');
+                if (penaltyIpEl) penaltyIpEl.innerText = window.userIP;
+
+                const locString = `${data.city}, ${data.region}`;
+                
+                const desktopLoc = document.getElementById('desktop-user-location');
+                if(desktopLoc) desktopLoc.innerText = locString;
+
+                const mobileLoc = document.getElementById('mobile-user-location');
+                if(mobileLoc) mobileLoc.innerText = locString;
+            } catch (error) {
+                console.error("Gagal mengambil lokasi pengunjung:", error);
+                window.userIP = 'Gagal Mendapatkan IP';
+                const penaltyIpEl = document.getElementById('penalty-ip');
+                if (penaltyIpEl) penaltyIpEl.innerText = window.userIP;
+
+                const defaultLoc = "Lokasi Tidak Diketahui";
+                const desktopLoc = document.getElementById('desktop-user-location');
+                if(desktopLoc) desktopLoc.innerText = defaultLoc;
+                const mobileLoc = document.getElementById('mobile-user-location');
+                if(mobileLoc) mobileLoc.innerText = defaultLoc;
+            }
+        }
+        
+        fetchUserLocation();
+
+        window.addEventListener('click', function(e){   
+            if (!e.target.closest('.relative.group') && !e.target.closest('.md\\:hidden.flex.items-center.gap-2')){
+                document.querySelectorAll('[id$="-dropdown"], .dropdown-menu-mobile').forEach(d => d.classList.add('hidden'));
             }
         });
 
         // ==========================================
-        // FITUR TTS: PEMBACA SUARA (WEB SPEECH API)
+        // FITUR TTS (GOOGLE CLOUD TTS STYLE WIDGET)
         // ==========================================
         let ttsSynth = window.speechSynthesis;
-        let ttsMessage = "Halo, selamat datang di Komunitas TV Digital Indonesia. KTVDI hadir untuk menyajikan informasi akurat seputar siaran digital, database frekuensi, hingga pantauan langsung kondisi keamanan kota.";
+        let ttsText = "Selamat datang di KTVDI, Komunitas TV Digital Indonesia. Web ini menyediakan informasi terkini seputar database frekuensi siaran digital, pantauan CCTV kota, serta informasi peringatan dini bencana. Kami harap informasi yang disajikan dapat bermanfaat bagi seluruh masyarakat Indonesia.";
         let ttsUtterance;
         let isSpeaking = false;
-        let ttsInterval;
 
-        function initTTS() {
-            // Karena kebijakan autoplay Chrome, kita harus trigger via interaksi pertama user (klik dimana saja)
-            document.body.addEventListener('click', function ttsTrigger() {
-                if(!sessionStorage.getItem('ktvdi_greeted')) {
-                    sessionStorage.setItem('ktvdi_greeted', 'true');
-                    
-                    // Tampilkan Widget
-                    const widget = document.getElementById('tts-widget');
-                    widget.classList.remove('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
-                    widget.classList.add('opacity-100', 'translate-y-0', 'pointer-events-auto');
-                    
-                    playTTS();
-                }
-            }, {once: true});
+        function showTTSWidget() {
+            if(!sessionStorage.getItem('ktvdi_greeted_tts')) {
+                sessionStorage.setItem('ktvdi_greeted_tts', 'true');
+                const widget = document.getElementById('tts-widget-container');
+                widget.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
+                widget.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
+            }
         }
 
-        function playTTS() {
-            if(ttsSynth.speaking) ttsSynth.cancel();
-            
-            ttsUtterance = new SpeechSynthesisUtterance(ttsMessage);
-            ttsUtterance.lang = 'id-ID';
-            ttsUtterance.rate = 0.95; // Kecepatan layaknya presenter berita
-            ttsUtterance.pitch = 1.0;
+        function hideTTSWidget() {
+            stopTTS();
+            const widget = document.getElementById('tts-widget-container');
+            widget.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
+            widget.classList.remove('opacity-100', 'pointer-events-auto', 'translate-y-0');
+        }
 
-            const icon = document.getElementById('tts-icon');
-            const progress = document.getElementById('tts-progress');
+        // Memicu kemunculan widget secara natural pada interaksi klik pertama di halaman
+        document.body.addEventListener('click', function triggerTTSWidget() {
+            showTTSWidget();
+        }, {once: true});
+
+        function playTTS() {
+            if(ttsSynth.speaking && !ttsSynth.paused) return;
+            if(ttsSynth.paused) {
+                ttsSynth.resume();
+                isSpeaking = true;
+                updateTTSUI(true);
+                return;
+            }
+            
+            ttsUtterance = new SpeechSynthesisUtterance(ttsText);
+            ttsUtterance.lang = 'id-ID';
+            ttsUtterance.rate = 1.0; 
+            ttsUtterance.pitch = 1.0;
 
             ttsUtterance.onstart = () => {
                 isSpeaking = true;
-                icon.classList.replace('fa-play', 'fa-pause');
+                updateTTSUI(true);
                 
-                // Animasikan progress bar (estimasi durasi)
+                // Simulasi Bar Animasi
+                const progress = document.getElementById('tts-progress-bar');
+                const percent = document.getElementById('tts-percent-text');
                 progress.style.transitionDuration = '12s';
                 progress.style.width = '100%';
+                
+                let p = 0;
+                let intv = setInterval(() => {
+                    p += 1;
+                    if(p <= 100) percent.innerText = p + '%';
+                    if(!isSpeaking || p >= 100) clearInterval(intv);
+                }, 120);
             };
 
             ttsUtterance.onend = () => {
-                isSpeaking = false;
-                icon.classList.replace('fa-pause', 'fa-play');
-                progress.style.transitionDuration = '0.5s';
-                progress.style.width = '0%';
-                
-                // Sembunyikan widget beberapa detik setelah selesai
-                setTimeout(closeTTS, 3000);
+                stopTTS();
             };
 
-            ttsUtterance.onerror = () => { closeTTS(); };
+            ttsUtterance.onerror = () => stopTTS();
 
             ttsSynth.speak(ttsUtterance);
         }
@@ -576,27 +1073,32 @@
             if (isSpeaking) {
                 ttsSynth.pause();
                 isSpeaking = false;
-                document.getElementById('tts-icon').classList.replace('fa-pause', 'fa-play');
-                document.getElementById('tts-progress').style.animationPlayState = 'paused';
-            } else if (ttsSynth.paused) {
-                ttsSynth.resume();
-                isSpeaking = true;
-                document.getElementById('tts-icon').classList.replace('fa-play', 'fa-pause');
+                updateTTSUI(false);
             } else {
                 playTTS();
             }
         }
 
-        function closeTTS() {
-            if(ttsSynth.speaking) ttsSynth.cancel();
-            const widget = document.getElementById('tts-widget');
-            widget.classList.add('opacity-0', 'translate-y-[-20px]', 'pointer-events-none');
-            widget.classList.remove('opacity-100', 'translate-y-0', 'pointer-events-auto');
+        function stopTTS() {
+            ttsSynth.cancel();
+            isSpeaking = false;
+            updateTTSUI(false);
+            const progress = document.getElementById('tts-progress-bar');
+            progress.style.transitionDuration = '0.3s';
+            progress.style.width = '0%';
+            document.getElementById('tts-percent-text').innerText = '0%';
         }
 
-        // Tunggu hingga voices di-load oleh browser
-        window.speechSynthesis.onvoiceschanged = initTTS;
-        if(speechSynthesis.getVoices().length > 0) initTTS();
+        function updateTTSUI(playing) {
+            const icon = document.getElementById('tts-play-icon');
+            if(playing) {
+                icon.classList.remove('fa-play');
+                icon.classList.add('fa-pause');
+            } else {
+                icon.classList.remove('fa-pause');
+                icon.classList.add('fa-play');
+            }
+        }
     </script>
 </body>
 </html>
