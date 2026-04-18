@@ -13,7 +13,6 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 
 <script>
-    // Memaksa loader hilang maksimal dalam 1.5 detik agar halaman tidak mental/stuck
     setTimeout(() => {
         const loader = document.getElementById('initial-loader');
         if (loader) {
@@ -56,8 +55,8 @@
         background-attachment: fixed;
         color: var(--theme-text-main);
         font-family: 'Plus Jakarta Sans', sans-serif;
-        /* overflow-x: hidden telah dihapus agar Running Text KTVDI tidak hilang/terpotong */
         transition: background 1s ease, color 0.5s ease;
+        /* overflow-x dihilangkan agar base.html ticker tidak error */
     }
 
     .font-arab { font-family: 'Amiri', serif; line-height: 2.2; }
@@ -183,7 +182,6 @@
         100% { transform: translateX(-100%); }
     }
     
-    /* Tombol AI Animasi */
     .ai-btn-anim:active { transform: scale(0.9); }
 </style>
 
@@ -318,7 +316,7 @@
         </div>
     </div>
 
-    <div class="mb-12">
+    <div class="mb-8">
         <h3 class="txt-primary font-luxury text-lg mb-2 border-l-4 border-[#d4af37] pl-4 flex items-center shadow-sm">
             Jadwal Sholat Hari ini :
         </h3>
@@ -332,7 +330,7 @@
         </div>
     </div>
 
-    <div class="islamic-card p-6 mb-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+    <div class="islamic-card p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
         <div class="absolute -right-10 -top-10 text-9xl text-emerald-500/5 rotate-12 pointer-events-none">
             <i class="fa-solid fa-mosque"></i>
         </div>
@@ -343,7 +341,7 @@
             </button>
             <div>
                 <h3 class="txt-primary font-bold text-lg leading-tight">AI Radar Masjid</h3>
-                <p class="text-xs txt-secondary">Deteksi data resmi OSM & jarak otomatis.</p>
+                <p class="text-xs txt-secondary">Deteksi data resmi satelit & jarak otomatis.</p>
             </div>
         </div>
         
@@ -353,7 +351,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-        
         <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
             <div class="flex justify-between items-start mb-4">
                 <div class="flex items-center gap-3">
@@ -448,21 +445,15 @@
 </div>
 
 <script>
-    // =========================================
-    // THEME CONTROLLER
-    // =========================================
+    // 1. THEME CONTROLLER
     function applyDynamicTheme() {
         const now = new Date();
         const timeValue = now.getHours() + (now.getMinutes() / 60);
         if (timeValue >= 5.516 && timeValue < 18) document.body.classList.add('day-mode');
         else document.body.classList.remove('day-mode');
     }
-    applyDynamicTheme();
-    setInterval(applyDynamicTheme, 60000);
 
-    // =========================================
-    // GLOBAL AI TTS (TEXT-TO-SPEECH) ENGINE
-    // =========================================
+    // 2. AI TTS ENGINE
     let ttsSynth = window.speechSynthesis;
     let ttsActive = false;
 
@@ -473,7 +464,6 @@
         }
         
         stopAIVoice();
-
         let utter = new SpeechSynthesisUtterance(text);
         utter.lang = 'id-ID';
         utter.rate = isYasin ? 0.85 : 0.95;
@@ -483,16 +473,8 @@
             ttsActive = true;
             $('#aiSpeakingIndicator').removeClass('hidden');
         };
-
-        utter.onend = () => {
-            ttsActive = false;
-            $('#aiSpeakingIndicator').addClass('hidden');
-        };
-
-        utter.onerror = () => {
-            ttsActive = false;
-            $('#aiSpeakingIndicator').addClass('hidden');
-        };
+        utter.onend = () => stopAIVoice();
+        utter.onerror = () => stopAIVoice();
 
         ttsSynth.speak(utter);
     }
@@ -505,70 +487,16 @@
         $('#aiSpeakingIndicator').addClass('hidden');
     }
 
-    function readAyatPilihan() {
-        let textToRead = "Renungan Ayat Pilihan. " + $('#quranContent').text().replace(/ACAK AYAT|BACA YASIN/ig, '').trim();
-        playAIVoice(textToRead);
-    }
-
-    function readHadits() {
-        let textToRead = "Hadits Pilihan hari ini. " + $('#haditsContent').text().trim();
-        playAIVoice(textToRead);
-    }
-
-    function readAsmaulHusna() {
-        let activeSlide = document.querySelector('.asmaulSwiper .swiper-slide-active');
-        if(activeSlide) {
-            let latin = activeSlide.querySelector('.txt-gold').innerText;
-            let arti = activeSlide.querySelector('.txt-secondary').innerText;
-            playAIVoice(`${latin}, yang artinya ${arti}`);
-        }
-    }
-
-    let yasinTranslations = [];
-    
-    function readYasinTeksIndo() {
-        if(yasinTranslations.length === 0) {
-            playAIVoice("Maaf, data terjemahan Yasin belum selesai dimuat.");
-            return;
-        }
-        
-        stopAIVoice();
-        $('#aiSpeakingIndicator').removeClass('hidden');
-        
-        let intro = new SpeechSynthesisUtterance("Membaca Terjemahan Surat Yasin. Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.");
-        intro.lang = 'id-ID';
-        intro.rate = 0.85;
-        ttsSynth.speak(intro);
-
-        for(let i = 0; i < Math.min(15, yasinTranslations.length); i++) {
-            let u = new SpeechSynthesisUtterance(`Ayat ${i+1}. ${yasinTranslations[i]}`);
-            u.lang = 'id-ID';
-            u.rate = 0.85;
-            ttsSynth.speak(u);
-        }
-
-        let outro = new SpeechSynthesisUtterance("Demikian terjemahan lima belas ayat pertama surat Yasin.");
-        outro.lang = 'id-ID';
-        outro.rate = 0.85;
-        outro.onend = () => { $('#aiSpeakingIndicator').addClass('hidden'); };
-        outro.onerror = () => { $('#aiSpeakingIndicator').addClass('hidden'); };
-        ttsSynth.speak(outro);
-    }
-
-    // =========================================
-    // FITUR RADAR MASJID (DATA RESMI OVERPASS API)
-    // =========================================
+    // 3. AI RADAR MASJID (OVERPASS API)
     window.currentLat = null;
     window.currentLon = null;
 
-    // Kalkulasi Jarak Geografis (Haversine Formula -> Meter)
     function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371e3; // Radius Bumi (Meter)
+        const R = 6371e3; 
         const p1 = lat1 * Math.PI/180;
         const p2 = lat2 * Math.PI/180;
         const dp = (lat2-lat1) * Math.PI/180;
         const dl = (lon2-lon1) * Math.PI/180;
-        
         const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         return Math.floor(R * c); 
@@ -576,17 +504,13 @@
 
     function scanNearbyMosque() {
         if(!window.currentLat || !window.currentLon) {
-            playAIVoice("Sistem mendeteksi koordinat Anda belum terkunci. Mengaktifkan GPS sekarang, mohon izinkan akses lokasi di browser Anda.");
-            forceGPS(true); // Panggil paksa GPS lalu Auto-Scan
+            playAIVoice("Sistem mendeteksi koordinat Anda belum terkunci. Mengaktifkan GPS sekarang, mohon izinkan akses lokasi.");
+            forceGPS(true); 
             return;
         }
-        executeMosqueScan();
-    }
-
-    function executeMosqueScan() {
-        playAIVoice("Sistem AI KTVDI sedang memindai data satelit untuk mencari masjid terdekat dari lokasi Anda.");
-        $('#radarMasjidBtn').addClass('animate-pulse bg-emerald-500/30');
         
+        playAIVoice("Sistem AI sedang memindai data satelit untuk mencari masjid terdekat dari lokasi Anda.");
+        $('#radarMasjidBtn').addClass('animate-pulse bg-emerald-500/30');
         $('#radarResult').html(`
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-circle-notch fa-spin txt-gold text-2xl"></i>
@@ -597,8 +521,7 @@
             </div>
         `);
 
-        // OVERPASS API - Mencari node/way bertagged Amenity=Place_of_worship & Religion=Muslim radius 3KM
-        const radius = 3000;
+        const radius = 3000; // 3KM
         const overpassUrl = `https://overpass-api.de/api/interpreter?data=[out:json];(node["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon}););out center 5;`;
         
         $.getJSON(overpassUrl, function(data) {
@@ -609,12 +532,15 @@
                 let minDistance = Infinity;
 
                 data.elements.forEach(place => {
-                    let plat = place.lat || place.center.lat;
-                    let plon = place.lon || place.center.lon;
-                    let dist = calculateDistance(window.currentLat, window.currentLon, plat, plon);
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        nearestPlace = place;
+                    let plat = place.lat || (place.center && place.center.lat);
+                    let plon = place.lon || (place.center && place.center.lon);
+                    
+                    if (plat && plon) {
+                        let dist = calculateDistance(window.currentLat, window.currentLon, plat, plon);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            nearestPlace = place;
+                        }
                     }
                 });
 
@@ -635,24 +561,23 @@
                         </div>
                     `);
 
-                    let responseText = `Deteksi satelit berhasil. Masjid terdekat dari lokasi resmi Anda adalah ${masjidName}, dengan jarak tepat ${minDistance} meter. Segeralah bersiap dan melangkah ke masjid untuk menunaikan ibadah. KTVDI senantiasa memantau dan menjaga keamanan Anda.`;
-                    
+                    let responseText = `Deteksi satelit berhasil. Masjid terdekat dari lokasi resmi Anda adalah ${masjidName}, dengan jarak tepat ${minDistance} meter. Segeralah bersiap dan melangkah ke masjid. KTVDI senantiasa memantau dan menjaga keamanan Anda.`;
                     setTimeout(() => { playAIVoice(responseText); }, 1000); 
+                } else {
+                    $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal kalkulasi jarak.</p>');
                 }
             } else {
                 $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Tidak ada masjid yang tercatat di peta satelit pada radius 3KM.</p>');
-                setTimeout(() => { playAIVoice("Maaf, radar kami tidak menemukan data masjid resmi dalam radius 3 kilometer di peta satelit. Pastikan Anda tetap menjaga waktu ibadah Anda."); }, 1000);
+                setTimeout(() => { playAIVoice("Maaf, radar kami tidak menemukan data masjid resmi dalam radius 3 kilometer di peta satelit."); }, 1000);
             }
         }).fail(function() {
             $('#radarMasjidBtn').removeClass('animate-pulse bg-emerald-500/30');
             $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal terhubung ke satelit pemetaan resmi.</p>');
-            setTimeout(() => { playAIVoice("Maaf, radar AI gagal terhubung ke satelit pemetaan resmi. Pastikan koneksi internet Anda stabil."); }, 1000);
+            setTimeout(() => { playAIVoice("Maaf, radar AI gagal terhubung ke satelit pemetaan. Pastikan koneksi internet Anda stabil."); }, 1000);
         });
     }
 
-    // =========================================
-    // JAM REAL TIME & CHECKER NIGHT REMINDER
-    // =========================================
+    // 4. CLOCK & NIGHT REMINDER
     function initRealtimeClock() {
         setInterval(() => {
             const now = new Date();
@@ -673,26 +598,146 @@
             $('#timezoneLabel').text(tz);
             
             let showNightReminder = false;
-            if (hhNum === 23 && mmNum >= 35) {
-                showNightReminder = true;
-            } else if (hhNum === 0) {
-                showNightReminder = true;
-            } else if (hhNum === 1 && mmNum <= 30) {
-                showNightReminder = true;
-            }
+            if (hhNum === 23 && mmNum >= 35) showNightReminder = true;
+            else if (hhNum === 0) showNightReminder = true;
+            else if (hhNum === 1 && mmNum <= 30) showNightReminder = true;
 
-            if (showNightReminder) {
-                $('#nightReminder').removeClass('hidden').addClass('block');
-            } else {
-                $('#nightReminder').addClass('hidden').removeClass('block');
-            }
-            
+            if (showNightReminder) $('#nightReminder').removeClass('hidden').addClass('block');
+            else $('#nightReminder').addClass('hidden').removeClass('block');
         }, 1000);
     }
 
-    // =========================================
-    // SYSTEM INIT
-    // =========================================
+    // 5. ASMAUL HUSNA, QURAN, HADITS, TASBIH
+    function initAsmaulHusna() {
+        const asmaulHusna = [
+            { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" },
+            { Arab: "الرَّحِيمُ", Latin: "Ar Rahiim", Arti: "Yang Maha Penyayang" },
+            { Arab: "الْمَلِكُ", Latin: "Al Malik", Arti: "Yang Maha Merajai" },
+            { Arab: "الْقُدُّوسُ", Latin: "Al Quddus", Arti: "Yang Maha Suci" },
+            { Arab: "السَّلاَمُ", Latin: "As Salaam", Arti: "Yang Maha Memberi Kesejahteraan" },
+            { Arab: "الْمُؤْمِنُ", Latin: "Al Mu'min", Arti: "Yang Maha Memberi Keamanan" }
+        ];
+
+        let html = '';
+        asmaulHusna.forEach(a => {
+            html += `
+            <div class="swiper-slide flex flex-col items-center justify-center text-center px-4">
+                <div class="text-3xl md:text-4xl font-arab txt-primary mb-2 drop-shadow-md cursor-default">${a.Arab}</div>
+                <div class="text-sm font-bold txt-gold tracking-wide">${a.Latin}</div>
+                <div class="text-[10px] txt-secondary italic mt-1">"${a.Arti}"</div>
+            </div>`;
+        });
+        $('#asmaulWrapper').html(html);
+        new Swiper(".asmaulSwiper", {
+            navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" },
+            autoplay: { delay: 3500, disableOnInteraction: false },
+            loop: true, effect: "fade", fadeEffect: { crossFade: true }
+        });
+    }
+
+    function readAsmaulHusna() {
+        let activeSlide = document.querySelector('.asmaulSwiper .swiper-slide-active');
+        if(activeSlide) {
+            let latin = activeSlide.querySelector('.txt-gold').innerText;
+            let arti = activeSlide.querySelector('.txt-secondary').innerText;
+            playAIVoice(`${latin}, yang artinya ${arti}`);
+        }
+    }
+
+    function fetchQuran() {
+        const refs = ["29:45", "18:28", "5:90", "41:30", "43:67"];
+        const ref = refs[Math.floor(Math.random() * refs.length)];
+        $('#quranContent').html('<div class="text-xs txt-secondary flex justify-center items-center h-full"><i class="fa-solid fa-circle-notch fa-spin txt-gold mr-2"></i> Mengambil renungan...</div>');
+        
+        $.get(`https://api.alquran.cloud/v1/ayah/${ref}/editions/quran-uthmani,id.indonesian`, function(res) {
+            const arab = res.data[0]; const indo = res.data[1];
+            $('#quranContent').html(`
+                <div class="mb-3"><span class="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest shadow-sm">Pesan AI</span></div>
+                <p class="text-xl font-arab text-right txt-primary leading-loose mb-3 drop-shadow-sm" dir="rtl">${arab.text}</p>
+                <p class="text-xs txt-secondary italic mb-4">"${indo.text}"</p>
+                <div class="text-[10px] font-bold txt-gold uppercase text-right tracking-widest border-t border-gray-500/20 pt-2">QS. ${arab.surah.englishName} : ${arab.numberInSurah}</div>
+            `);
+        });
+    }
+
+    function readAyatPilihan() {
+        let textToRead = "Renungan Ayat Pilihan. " + $('#quranContent').text().replace(/ACAK AYAT|BACA YASIN|PESAN AI/ig, '').trim();
+        playAIVoice(textToRead);
+    }
+
+    function randomHadits() {
+        const hadits = ["Senyummu di hadapan saudaramu adalah sedekah bagimu.", "Setiap yang memabukkan adalah khamr, dan setiap khamr adalah haram."];
+        const h = hadits[Math.floor(Math.random() * hadits.length)];
+        $('#haditsContent').html(`<div class="flex-1 flex flex-col justify-center"><i class="fa-solid fa-quote-left text-2xl text-emerald-500/30 mb-2"></i><p class="text-sm txt-primary font-medium leading-relaxed">"${h}"</p></div>`);
+    }
+
+    function readHadits() {
+        let textToRead = "Hadits Pilihan hari ini. " + $('#haditsContent').text().trim();
+        playAIVoice(textToRead);
+    }
+
+    let tasbih = 0;
+    function countTasbih() { 
+        tasbih++; 
+        $('#tasbihCount').text(tasbih); 
+        if(navigator.vibrate) navigator.vibrate(50);
+        const tc = $('#tasbihCount'); const bg = $('#tasbihBg');
+        tc.css({'transform':'scale(1.15)', 'color':'var(--theme-gold)'});
+        bg.css({'transform':'scale(1.5)', 'opacity':'1'});
+        setTimeout(() => { tc.css({'transform':'scale(1)', 'color':''}); bg.css({'transform':'scale(0)', 'opacity':'0'}); }, 150);
+    }
+    function resetTasbih() { tasbih=0; $('#tasbihCount').text(0); }
+
+    // 6. YASIN MODAL
+    let yasinTranslations = [];
+    function openYasin() {
+        $('#yasinModal').removeClass('hidden').addClass('flex');
+        setTimeout(() => { $('#yasinModal').removeClass('opacity-0'); $('#yasinModalCard').removeClass('scale-95'); }, 10);
+
+        if ($('#yasinContent').html().trim() === '') {
+            $('#yasinContent').html('<div class="h-full flex flex-col items-center justify-center"><p class="txt-secondary text-xs">Memuat Surat Yasin...</p></div>');
+            $.get('https://api.alquran.cloud/v1/surah/36/editions/quran-uthmani,id.indonesian', function(res) {
+                const arab = res.data[0].ayahs; const indo = res.data[1].ayahs;
+                yasinTranslations = indo.map(item => item.text); 
+                
+                let html = '<div class="text-center mb-8"><p class="font-arab text-4xl txt-gold mb-2">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</p></div>';
+                arab.forEach((ayah, i) => {
+                    html += `
+                        <div class="border-b border-gray-500/10 py-6 mb-2 px-2">
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="w-8 h-8 rounded-full bg-[#d4af37]/20 flex items-center justify-center txt-gold text-xs shrink-0">${ayah.numberInSurah}</div>
+                                <p class="text-2xl font-arab text-right txt-primary leading-loose ml-4" dir="rtl">${ayah.text}</p>
+                            </div>
+                            <p class="text-sm txt-secondary italic text-right md:text-left pr-2 leading-relaxed">"${indo[i].text}"</p>
+                        </div>
+                    `;
+                });
+                $('#yasinContent').html(html);
+            });
+        }
+    }
+
+    function closeYasin() {
+        stopAIVoice(); 
+        $('#yasinModal').addClass('opacity-0'); $('#yasinModalCard').addClass('scale-95');
+        setTimeout(() => { $('#yasinModal').addClass('hidden').removeClass('flex'); }, 300);
+    }
+
+    function readYasinTeksIndo() {
+        if(yasinTranslations.length === 0) return;
+        stopAIVoice();
+        
+        let intro = new SpeechSynthesisUtterance("Membaca Terjemahan Surat Yasin.");
+        intro.lang = 'id-ID'; intro.rate = 0.85;
+        ttsSynth.speak(intro);
+
+        for(let i = 0; i < Math.min(15, yasinTranslations.length); i++) {
+            let u = new SpeechSynthesisUtterance(`Ayat ${i+1}. ${yasinTranslations[i]}`);
+            u.lang = 'id-ID'; u.rate = 0.85; ttsSynth.speak(u);
+        }
+    }
+
+    // 7. INITIALIZATION (NO DUPLICATES)
     let currentSchedule = null;
     let timerInterval = null;
     let userCityId = localStorage.getItem('userCityId') || '1301'; 
@@ -700,21 +745,16 @@
     let userKecamatan = localStorage.getItem('userKecamatan') || '';
 
     $(document).ready(function() {
+        applyDynamicTheme();
         initAsmaulHusna();
         fetchQuran();
         randomHadits();
         initRealtimeClock();
 
-        const dNow = new Date();
-        dNow.setDate(dNow.getDate() - 1);
+        const dNow = new Date(); dNow.setDate(dNow.getDate() - 1);
         const dStr = String(dNow.getDate()).padStart(2, '0') + '-' + String(dNow.getMonth() + 1).padStart(2, '0') + '-' + dNow.getFullYear();
-        
         $.get(`https://api.aladhan.com/v1/gToH?date=${dStr}`, function(res) {
-            if(res.code === 200) {
-                const h = res.data.hijri;
-                const monthIndo = { "Muharram": "Muharram", "Safar": "Safar", "Rabi' al-awwal": "Rabiul Awal", "Rabi' al-thani": "Rabiul Akhir", "Jumada al-awwal": "Jumadil Awal", "Jumada al-thani": "Jumadil Akhir", "Rajab": "Rajab", "Sha'ban": "Sya'ban", "Ramadan": "Ramadhan", "Shawwal": "Syawal", "Dhu al-Qi'dah": "Dzulqa'dah", "Dhu al-Hijjah": "Dzulhijjah" };
-                $('#hijriDate').text(`${h.day} ${monthIndo[h.month.en] || h.month.en} ${h.year} H`);
-            }
+            if(res.code === 200) $('#hijriDate').text(`${res.data.hijri.day} ${res.data.hijri.month.en} ${res.data.hijri.year} H`);
         });
 
         $('#kotaSelect').val(userCityId);
@@ -725,97 +765,58 @@
         forceGPS();
 
         $('#kotaSelect').on('change', function() {
-            userCityId = $(this).val();
-            userCityName = $("#kotaSelect option:selected").text();
-            userKecamatan = "";
-
-            localStorage.setItem('userCityId', userCityId);
-            localStorage.setItem('userCityName', userCityName);
-            localStorage.setItem('userKecamatan', "");
-            
-            $('#currentCityLabel').text(userCityName);
-            $('#currentKecamatanLabel').addClass('hidden');
+            userCityId = $(this).val(); userCityName = $("#kotaSelect option:selected").text(); userKecamatan = "";
+            localStorage.setItem('userCityId', userCityId); localStorage.setItem('userCityName', userCityName); localStorage.setItem('userKecamatan', "");
+            $('#currentCityLabel').text(userCityName); $('#currentKecamatanLabel').addClass('hidden');
             $('#locStatus').text("Lokasi Diset Manual").removeClass("animate-pulse").css('color', 'var(--theme-text-muted)');
-            
             fetchSchedule(userCityId);
         });
     });
 
-    // =========================================
-    // GPS & LOKASI
-    // =========================================
     function forceGPS(autoScanAfter = false) {
-        $('#locStatus').text("Sedang mencari koordinat GPS...").addClass("animate-pulse").css('color', 'var(--theme-gold)');
-        $('#gpsIcon').addClass("animate-spin txt-primary").removeClass("txt-gold text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]");
+        $('#locStatus').text("Sedang mencari GPS...").addClass("animate-pulse").css('color', 'var(--theme-gold)');
+        $('#gpsIcon').addClass("animate-spin txt-primary").removeClass("txt-gold text-emerald-500");
 
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    
-                    window.currentLat = lat;
-                    window.currentLon = lon;
+            navigator.geolocation.getCurrentPosition((position) => {
+                window.currentLat = position.coords.latitude; window.currentLon = position.coords.longitude;
+                $.getJSON(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${window.currentLat}&lon=${window.currentLon}&zoom=18`, function(data) {
+                    let addr = data.address;
+                    let detected = addr.city || addr.town || addr.county || 'Jakarta';
+                    let cleanName = detected.replace(/(Kota|Kabupaten|City of)\s+/ig, '').trim().toLowerCase();
 
-                    $.getJSON(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18`, function(data) {
-                        let addr = data.address;
-                        let detected = addr.city || addr.town || addr.county || 'Jakarta';
-                        let detectedKecamatan = addr.city_district || addr.suburb || addr.village || addr.neighbourhood || '';
-                        let isKota = !!addr.city; 
-                        let isKabupaten = !!addr.county && !addr.city;
-                        let cleanName = detected.replace(/(Kota|Kabupaten|City of)\s+/ig, '').trim().toLowerCase();
+                    let matchId = null; let matchName = null;
+                    $('#kotaSelect option').each(function() {
+                        if ($(this).text().toLowerCase().includes(cleanName)) { matchId = $(this).val(); matchName = $(this).text(); }
+                    });
 
-                        let matchId = null; let matchName = null; let highestScore = -1;
-                        $('#kotaSelect option').each(function() {
-                            const optText = $(this).text().toLowerCase();
-                            if (optText.includes(cleanName)) {
-                                let score = 1; 
-                                let optIsKota = optText.includes('kota ');
-                                let optIsKab = optText.includes('kab.') || optText.includes('kabupaten ');
-                                if (isKota && optIsKota) score += 5;
-                                if (isKabupaten && optIsKab) score += 5;
-                                if (isKota && optIsKab) score -= 5;
-                                if (isKabupaten && optIsKota) score -= 5;
-                                if (score > highestScore) { highestScore = score; matchId = $(this).val(); matchName = $(this).text(); }
-                            }
-                        });
-
-                        if (matchId) {
-                            $('#kotaSelect').val(matchId); userCityId = matchId; userCityName = matchName; userKecamatan = detectedKecamatan;
-                            localStorage.setItem('userCityId', matchId); localStorage.setItem('userCityName', matchName); localStorage.setItem('userKecamatan', detectedKecamatan);
-                            $('#currentCityLabel').text(matchName);
-                            let locStatusText = "GPS Terkunci: " + matchName;
-                            if(detectedKecamatan) { $('#currentKecamatanLabel').text("Kec/Kel. " + detectedKecamatan).removeClass('hidden'); locStatusText += " (" + detectedKecamatan + ")"; } 
-                            else { $('#currentKecamatanLabel').addClass('hidden'); }
-                            $('#locStatus').text(locStatusText).removeClass("animate-pulse").css('color', '#10b981');
-                            $('#gpsIcon').removeClass("animate-spin txt-primary").addClass("text-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]");
-                            fetchSchedule(matchId);
-                            
-                            if (autoScanAfter) { setTimeout(() => executeMosqueScan(), 1000); }
-                        } else { fallbackLocation("Koordinat ditemukan, tapi tidak terdaftar di database."); }
-                    }).fail(function() { fallbackLocation("Gagal menerjemahkan satelit."); });
-                }, (error) => { fallbackLocation("Akses GPS ditolak/dimatikan."); }, { timeout: 10000, enableHighAccuracy: true }
-            );
-        } else { fallbackLocation("Browser tidak mendukung GPS."); }
+                    if (matchId) {
+                        $('#kotaSelect').val(matchId); userCityId = matchId; userCityName = matchName; userKecamatan = addr.city_district || addr.village || '';
+                        localStorage.setItem('userCityId', matchId); localStorage.setItem('userCityName', matchName); localStorage.setItem('userKecamatan', userKecamatan);
+                        $('#currentCityLabel').text(matchName);
+                        if(userKecamatan) $('#currentKecamatanLabel').text("Kec/Kel. " + userKecamatan).removeClass('hidden');
+                        $('#locStatus').text("GPS Terkunci: " + matchName).removeClass("animate-pulse").css('color', '#10b981');
+                        $('#gpsIcon').removeClass("animate-spin txt-primary").addClass("text-emerald-500");
+                        fetchSchedule(matchId);
+                        if (autoScanAfter) setTimeout(() => executeMosqueScan(), 1000);
+                    } else fallbackLocation("Tidak ada di DB.");
+                }).fail(() => fallbackLocation("Gagal satelit."));
+            }, () => fallbackLocation("Akses GPS ditolak."), { timeout: 10000, enableHighAccuracy: true });
+        } else fallbackLocation("Tanpa GPS.");
     }
-    function fallbackLocation(reasonMsg = "") {
-        $('#locStatus').text(reasonMsg + " Menggunakan riwayat.").removeClass("animate-pulse").css('color', 'var(--theme-text-muted)');
+    function fallbackLocation(msg) {
+        $('#locStatus').text(msg).removeClass("animate-pulse").css('color', 'var(--theme-text-muted)');
         $('#gpsIcon').removeClass("animate-spin").addClass("txt-secondary");
     }
 
-    // =========================================
-    // PRAYER ENGINE (PROGRESS BAR FIX & AZAN)
-    // =========================================
     function fetchSchedule(id_kota) {
         if(!id_kota) return;
         $.get(`/api/jadwal-imsakiyah?id_kota=${id_kota}`, function(res) {
             if(res.status && res.data && res.data.jadwal) {
-                const d = new Date();
-                const todayDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                const d = new Date(); const todayDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 let todayJadwal = res.data.jadwal.find(j => j.date === todayDateStr) || res.data.jadwal[0]; 
                 $('#dateMasehi').text(todayJadwal.tanggal);
-                renderPrayerGrid(todayJadwal);
-                startCountdownEngine(todayJadwal);
+                renderPrayerGrid(todayJadwal); startCountdownEngine(todayJadwal);
             }
         });
     }
@@ -845,9 +846,7 @@
         ];
 
         timerInterval = setInterval(() => {
-            const now = new Date();
-            let timeline = [];
-            
+            const now = new Date(); let timeline = [];
             prayersRaw.forEach(p => {
                 const [h, m] = p.time.split(':');
                 [-1, 0, 1].forEach(offset => {
@@ -857,27 +856,14 @@
             });
             timeline.sort((a, b) => a.dateObj - b.dateObj);
 
-            let nextP = null; let prevP = null; let activeAzanPrayer = null;
-            let minDiff = Infinity;
-
+            let nextP = null; let prevP = null; let activeAzanPrayer = null; let minDiff = Infinity;
             for (let i = 0; i < timeline.length; i++) {
                 const diff = timeline[i].dateObj - now;
-                
-                if (diff <= 0 && diff > -600000 && timeline[i].id !== 'Terbit') {
-                    activeAzanPrayer = timeline[i];
-                }
-
+                if (diff <= 0 && diff > -600000 && timeline[i].id !== 'Terbit') activeAzanPrayer = timeline[i];
                 if (diff > 0 && diff < minDiff) {
-                    minDiff = diff;
-                    nextP = timeline[i];
-                    prevP = timeline[i - 1]; 
-                    
-                    if (Math.floor(diff/1000) === 600) { 
-                        showToast(`Peringatan Sholat`, `Waktu ${nextP.name} akan masuk dalam 10 menit.`);
-                    }
-                    if (Math.floor(diff/1000) === 0 && nextP.id !== 'Terbit') {
-                        showToast(`Waktu ${nextP.name}`, `Telah masuk waktu ${nextP.name} untuk wilayah ${userCityName}.`);
-                    }
+                    minDiff = diff; nextP = timeline[i]; prevP = timeline[i - 1]; 
+                    if (Math.floor(diff/1000) === 600) showToast(`Peringatan Sholat`, `Waktu ${nextP.name} akan masuk dalam 10 menit.`);
+                    if (Math.floor(diff/1000) === 0 && nextP.id !== 'Terbit') showToast(`Waktu ${nextP.name}`, `Telah masuk waktu ${nextP.name}.`);
                 }
             }
 
@@ -888,10 +874,8 @@
             });
 
             if(prevP && nextP) {
-                const totalSpan = nextP.dateObj - prevP.dateObj;
-                const elapsed = now - prevP.dateObj;
-                const percentage = Math.max(0, Math.min(100, (elapsed / totalSpan) * 100));
-                $('#timeProgressBar').css('width', `${percentage}%`);
+                const pct = Math.max(0, Math.min(100, ((now - prevP.dateObj) / (nextP.dateObj - prevP.dateObj)) * 100));
+                $('#timeProgressBar').css('width', `${pct}%`);
             }
 
             const totalSecs = Math.floor(minDiff / 1000);
@@ -904,10 +888,8 @@
                 $('#nextPrayerName').text(`UNTUK WILAYAH ${userCityName.toUpperCase()} DAN SEKITARNYA`);
                 $('#countdown').text('MEMASUKI WAKTU SHOLAT').addClass('text-emerald-500 text-2xl md:text-4xl mt-4 tracking-widest').removeClass('text-gold-gradient text-red-500 text-6xl md:text-8xl tabular-nums tracking-tight');
             } else {
-                $('#prayerLabelText').html('Menuju Waktu ');
-                $('#nextPrayerName').text(nextP.name);
+                $('#prayerLabelText').html('Menuju Waktu '); $('#nextPrayerName').text(nextP.name);
                 $('#countdown').text(`${hh}:${mm}:${ss}`).removeClass('text-emerald-500 text-2xl md:text-4xl mt-4 tracking-widest').addClass('text-6xl md:text-8xl tracking-tight tabular-nums');
-                
                 if (totalSecs <= 600 && totalSecs > 60) $('#countdown').addClass('text-gold-gradient').removeClass('text-red-500');
                 else if (totalSecs <= 60) $('#countdown').addClass('text-red-500').removeClass('text-gold-gradient');
                 else $('#countdown').addClass('text-gold-gradient').removeClass('text-red-500');
@@ -917,53 +899,7 @@
 
     function showToast(title, msg) {
         $('#toastTitle').text(title); $('#toastMessage').text(msg);
-        $('#prayerToast').addClass('show'); setTimeout(() => { $('#prayerToast').removeClass('show'); }, 8000);
-    }
-
-    // =========================================
-    // RENDER SURAT YASIN (MODAL)
-    // =========================================
-    function openYasin() {
-        const modal = $('#yasinModal');
-        const card = $('#yasinModalCard');
-        
-        modal.removeClass('hidden').addClass('flex');
-        setTimeout(() => { modal.removeClass('opacity-0'); card.removeClass('scale-95'); }, 10);
-
-        if ($('#yasinContent').html().trim() === '') {
-            $('#yasinContent').html('<div class="h-full flex flex-col items-center justify-center"><i class="fa-solid fa-book-quran fa-bounce text-4xl txt-gold mb-4"></i><p class="txt-secondary tracking-widest uppercase text-xs">Memuat Surat Yasin...</p></div>');
-            
-            $.get('https://api.alquran.cloud/v1/surah/36/editions/quran-uthmani,id.indonesian', function(res) {
-                const arab = res.data[0].ayahs;
-                const indo = res.data[1].ayahs;
-                
-                yasinTranslations = indo.map(item => item.text); 
-                
-                let html = '<div class="text-center mb-8"><p class="font-arab text-4xl txt-gold mb-2">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</p><p class="text-xs txt-secondary italic">Dengan menyebut nama Allah Yang Maha Pengasih lagi Maha Penyayang.</p></div>';
-                
-                arab.forEach((ayah, i) => {
-                    html += `
-                        <div class="border-b border-gray-500/10 py-6 mb-2 hover:bg-black/5 transition-colors rounded-lg px-2">
-                            <div class="flex justify-between items-start mb-4">
-                                <div class="w-8 h-8 rounded-full bg-[#d4af37]/20 flex items-center justify-center txt-gold font-bold text-xs shrink-0">${ayah.numberInSurah}</div>
-                                <p class="text-2xl md:text-3xl font-arab text-right txt-primary leading-loose ml-4 drop-shadow-sm" dir="rtl">${ayah.text}</p>
-                            </div>
-                            <p class="text-sm txt-secondary italic text-right md:text-left pr-2 md:pr-0 leading-relaxed text-gray-400">"${indo[i].text}"</p>
-                        </div>
-                    `;
-                });
-                $('#yasinContent').html(html);
-            }).fail(function(){
-                $('#yasinContent').html('<div class="h-full flex items-center justify-center"><p class="text-red-400 text-sm">Gagal memuat surat. Periksa koneksi internet Anda.</p></div>');
-            });
-        }
-    }
-
-    function closeYasin() {
-        stopAIVoice(); 
-        $('#yasinModal').addClass('opacity-0');
-        $('#yasinModalCard').addClass('scale-95');
-        setTimeout(() => { $('#yasinModal').addClass('hidden').removeClass('flex'); }, 300);
+        $('#prayerToast').addClass('show'); setTimeout(() => $('#prayerToast').removeClass('show'), 8000);
     }
 </script>
 
