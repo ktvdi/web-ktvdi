@@ -55,7 +55,6 @@
         color: var(--theme-text-main);
         font-family: 'Plus Jakarta Sans', sans-serif;
         transition: background 1s ease, color 0.5s ease;
-        /* CATATAN: overflow-x: hidden; DIHAPUS agar Running Text Ticker Base tidak hilang */
     }
 
     .font-arab { font-family: 'Amiri', serif; line-height: 2.2; }
@@ -285,7 +284,7 @@
 
         <div class="lg:col-span-4 islamic-card p-0 flex flex-col">
             <div class="p-4 border-b border-gray-500/20 bg-black/5 flex justify-between items-center backdrop-blur-sm">
-                <h3 class="txt-gold font-bold text-xs uppercase tracking-widest drop-shadow-sm">Asmaul Husna</h3>
+                <h3 class="txt-gold font-bold text-xs uppercase tracking-widest drop-shadow-sm">Asmaul Husna (99 Lengkap)</h3>
                 <i class="fa-solid fa-star-and-crescent txt-secondary"></i>
             </div>
             <div class="flex-1 flex items-center justify-center p-6 relative">
@@ -325,13 +324,13 @@
                 <i class="fa-solid fa-mosque relative z-10 text-2xl"></i>
             </button>
             <div>
-                <h3 class="txt-primary font-bold text-lg leading-tight">AI Radar Masjid</h3>
-                <p class="text-[10px] txt-secondary uppercase tracking-widest mt-1">Satelit OpenStreetMap</p>
+                <h3 class="txt-primary font-bold text-lg leading-tight">AI Radar Satelit</h3>
+                <p class="text-[10px] txt-secondary uppercase tracking-widest mt-1">Cari Masjid / Mushola</p>
             </div>
         </div>
         
         <div id="radarResult" class="relative z-10 flex-1 bg-black/10 border border-gray-500/20 p-4 rounded-xl backdrop-blur-sm text-left min-h-[85px] flex flex-col justify-center">
-            <p class="text-xs txt-secondary italic leading-relaxed"><i class="fa-solid fa-circle-info text-emerald-500 mr-2"></i>Ketuk ikon radar di sebelah kiri untuk memindai tempat ibadah bersertifikat di sekitar Anda. Pastikan target GPS sudah aktif.</p>
+            <p class="text-xs txt-secondary italic leading-relaxed"><i class="fa-solid fa-circle-info text-emerald-500 mr-2"></i>Ketuk ikon radar di sebelah kiri untuk memindai masjid dan mushola terdekat dari posisi Anda. Pastikan target GPS (di atas) sudah terkunci.</p>
         </div>
     </div>
 
@@ -431,7 +430,6 @@
 
 <script>
 (function() {
-    // Gunakan try-catch agar script tidak membunuh running text walau ada error
     try {
         // =========================================
         // GLOBAL AI TTS & WIDGETS
@@ -496,7 +494,7 @@
         };
 
         // =========================================
-        // RADAR MASJID (OVERPASS & NOMINATIM REVERSE)
+        // RADAR MASJID & MUSHOLA TERDEKAT
         // =========================================
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; 
@@ -508,27 +506,28 @@
 
         window.scanNearbyMosque = async function() {
             if(!window.currentLat || !window.currentLon) {
-                window.playAIVoice("Koordinat GPS belum terkunci. Mengaktifkan GPS sekarang, mohon izinkan akses lokasi.");
+                window.playAIVoice("Koordinat GPS belum terkunci. Mengaktifkan GPS sekarang, mohon izinkan akses lokasi di popup browser Anda.");
                 window.forceGPS(true); 
                 return;
             }
 
-            window.playAIVoice("Sistem AI sedang memindai peta satelit untuk mencari masjid terdekat.");
+            window.playAIVoice("Sistem AI sedang memindai peta satelit untuk mencari masjid atau mushola terdekat.");
             $('#radarMasjidBtn').addClass('animate-pulse bg-emerald-500/30');
             $('#radarResult').html(`
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-circle-notch fa-spin txt-gold text-2xl"></i>
                     <div class="text-left">
-                        <p class="text-xs font-bold txt-primary">Memindai satelit...</p>
-                        <p class="text-[10px] txt-secondary">Mengambil data titik koordinat terdekat</p>
+                        <p class="text-xs font-bold txt-primary">Memindai satelit radius 3KM...</p>
+                        <p class="text-[10px] txt-secondary">Menyusun data akurat dari OpenStreetMap</p>
                     </div>
                 </div>
             `);
 
             try {
-                // 1. Dapatkan titik masjid terdekat via Overpass
+                // MENCARI MASJID & MUSHOLA via OVERPASS
+                // 'building'='mosque' biasa digunakan untuk mushola kecil di Indonesia.
                 const radius = 3000;
-                const overpassQuery = `[out:json];(node["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon}););out center 5;`;
+                const overpassQuery = `[out:json][timeout:15];(node["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon});node["building"="mosque"](around:${radius},${window.currentLat},${window.currentLon});way["building"="mosque"](around:${radius},${window.currentLat},${window.currentLon}););out center 5;`;
                 const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
                 const data = await res.json();
 
@@ -544,19 +543,21 @@
                     });
 
                     if (nearest) {
-                        let name = nearest.tags.name || "Pusat Ibadah / Masjid";
-                        if(!name.toLowerCase().includes("masjid") && !name.toLowerCase().includes("mushola")) name = "Masjid " + name;
+                        let name = nearest.tags.name || "Pusat Ibadah Umat Muslim";
+                        if(!name.toLowerCase().includes("masjid") && !name.toLowerCase().includes("mushola") && !name.toLowerCase().includes("langgar")) {
+                            name = "Masjid / Mushola " + name;
+                        }
 
                         $('#radarResult').html(`
                             <div class="flex items-center gap-3">
                                 <i class="fa-solid fa-satellite-dish fa-bounce txt-gold text-2xl"></i>
                                 <div class="text-left">
-                                    <p class="text-xs font-bold txt-primary">Menyusun alamat detail...</p>
+                                    <p class="text-xs font-bold txt-primary">Menyusun rute & alamat...</p>
                                 </div>
                             </div>
                         `);
 
-                        // 2. Dapatkan Alamat Lengkap Jalan via Nominatim Reverse
+                        // Terjemahkan Titik ke Alamat Jalan (Reverse Geocoding)
                         const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nearest.plat}&lon=${nearest.plon}&zoom=18&addressdetails=1`);
                         const revData = await revRes.json();
                         let fullAddress = revData.display_name || "Alamat detail belum terdata di OSM.";
@@ -564,7 +565,7 @@
                         $('#radarResult').html(`
                             <div class="flex justify-between items-start w-full">
                                 <div class="flex-1 pr-4">
-                                    <p class="text-[10px] font-bold txt-gold uppercase tracking-widest mb-1">Masjid Terdekat Ditemukan</p>
+                                    <p class="text-[10px] font-bold txt-gold uppercase tracking-widest mb-1">Tempat Ibadah Terdekat</p>
                                     <h4 class="text-base font-bold txt-primary leading-tight">${name}</h4>
                                     <p class="text-[10px] txt-secondary mt-1.5 line-clamp-2 leading-relaxed border-l-2 border-emerald-500/30 pl-2 py-0.5"><i class="fa-solid fa-map-pin mr-1 text-emerald-400"></i> ${fullAddress}</p>
                                     <p class="text-xs text-emerald-400 font-medium mt-2 bg-emerald-500/10 inline-block px-2 py-1 rounded"><i class="fa-solid fa-route mr-1"></i> Jarak Akurat: ${minDist} Meter</p>
@@ -575,12 +576,12 @@
                             </div>
                         `);
 
-                        let aiText = `Deteksi satelit berhasil. Pusat ibadah terdekat dari posisi Anda adalah ${name}, berjarak ${minDist} meter. Beralamat di: ${fullAddress}. Segeralah bersiap dan melangkah ke sana untuk menunaikan kewajiban Anda. KTVDI senantiasa memantau dan menjaga Anda.`;
+                        let aiText = `Pemindaian selesai. Tempat ibadah terdekat dari posisi Anda adalah ${name}, berjarak ${minDist} meter. Beralamat di: ${fullAddress}. Segeralah bersiap dan melangkah ke sana. KTVDI senantiasa memantau dan menjaga Anda.`;
                         setTimeout(() => window.playAIVoice(aiText), 500);
                     }
                 } else {
                     $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Tidak ada masjid/mushola tercatat di satelit dalam radius 3KM.</p>');
-                    window.playAIVoice("Maaf, radar kami tidak menemukan data masjid resmi dalam radius 3 kilometer di peta satelit. Mohon tanyakan pada warga sekitar.");
+                    window.playAIVoice("Maaf, radar kami tidak menemukan data masjid atau mushola dalam radius 3 kilometer di peta satelit. Mohon tanyakan pada warga sekitar.");
                 }
             } catch(e) {
                 $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal terhubung ke satelit. Server sibuk.</p>');
@@ -614,7 +615,7 @@
         }
 
         window.fetchQuran = function() {
-            const refs = ["29:45", "18:28", "5:90", "41:30", "43:67"];
+            const refs = ["29:45", "18:28", "5:90", "41:30", "43:67", "2:45"];
             const ref = refs[Math.floor(Math.random() * refs.length)];
             $('#quranContent').html('<div class="text-xs txt-secondary flex justify-center items-center h-full"><i class="fa-solid fa-circle-notch fa-spin txt-gold mr-2"></i> Mengambil renungan...</div>');
             
@@ -630,7 +631,12 @@
         };
 
         window.randomHadits = function() {
-            const hadits = ["Senyummu di hadapan saudaramu adalah sedekah bagimu.", "Setiap yang memabukkan adalah khamr, dan setiap khamr adalah haram."];
+            const hadits = [
+                "Senyummu di hadapan saudaramu adalah sedekah bagimu.", 
+                "Setiap yang memabukkan adalah khamr, dan setiap khamr adalah haram.",
+                "Seseorang itu tergantung pada agama temannya. Maka perhatikanlah dengan siapa kamu berteman.",
+                "Barangsiapa meniru suatu kaum, maka ia termasuk golongan mereka."
+            ];
             const h = hadits[Math.floor(Math.random() * hadits.length)];
             $('#haditsContent').html(`<div class="flex-1 flex flex-col justify-center"><i class="fa-solid fa-quote-left text-2xl text-emerald-500/30 mb-2"></i><p class="text-sm txt-primary font-medium leading-relaxed">"${h}"</p></div>`);
         };
@@ -759,12 +765,34 @@
                     window.currentLat = position.coords.latitude; window.currentLon = position.coords.longitude;
                     $.getJSON(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${window.currentLat}&lon=${window.currentLon}&zoom=18`, function(data) {
                         let addr = data.address;
-                        let detected = addr.city || addr.town || addr.county || 'Jakarta';
-                        let cleanName = detected.replace(/(Kota|Kabupaten|City of)\s+/ig, '').trim().toLowerCase();
+                        let detectedCounty = addr.county || "";
+                        let detectedCity = addr.city || addr.town || "";
+                        let qCounty = detectedCounty.toLowerCase();
+                        let qCity = detectedCity.toLowerCase();
 
-                        let matchId = null; let matchName = null; let userKecamatan = addr.city_district || addr.village || '';
+                        let matchId = null; let matchName = null; let highestScore = -1;
+                        let userKecamatan = addr.city_district || addr.village || addr.suburb || '';
+
                         $('#kotaSelect option').each(function() {
-                            if ($(this).text().toLowerCase().includes(cleanName)) { matchId = $(this).val(); matchName = $(this).text(); }
+                            let optText = $(this).text().toLowerCase();
+                            let score = 0;
+                            
+                            if (qCounty && optText.includes(qCounty.replace('kabupaten', 'kab.'))) score += 20;
+                            if (qCity && optText.includes(qCity)) score += 20;
+
+                            let isOptKab = optText.includes('kab.') || optText.includes('kabupaten');
+                            let isOptKota = optText.includes('kota ');
+
+                            if (optText.includes('pekalongan')) {
+                                score += 5;
+                                if (qCounty.includes('pekalongan') && isOptKab) score += 10;
+                                if (qCity.includes('pekalongan') && isOptKota) score += 10;
+                                if (qCounty.includes('pekalongan') && isOptKota && !qCity) score -= 10; 
+                            }
+                            
+                            if (score > highestScore && score > 0) {
+                                highestScore = score; matchId = $(this).val(); matchName = $(this).text();
+                            }
                         });
 
                         if (matchId) {
@@ -788,6 +816,9 @@
                     $('#locStatus').text("Akses GPS ditolak.").removeClass("animate-pulse").css('color', 'var(--theme-text-muted)');
                     $('#gpsIcon').removeClass("animate-spin").addClass("txt-secondary");
                 }, { timeout: 10000, enableHighAccuracy: true });
+            } else {
+                $('#locStatus').text("Browser tidak support GPS.").removeClass("animate-pulse").css('color', 'var(--theme-text-muted)');
+                $('#gpsIcon').removeClass("animate-spin").addClass("txt-secondary");
             }
         };
 
@@ -798,12 +829,9 @@
             if (timeValue >= 5.516 && timeValue < 18) document.body.classList.add('day-mode');
             else document.body.classList.remove('day-mode');
 
+            // --- FULL 99 ASMAUL HUSNA ---
             const asmaulHusna = [
-                { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" },
-                { Arab: "الرَّحِيمُ", Latin: "Ar Rahiim", Arti: "Yang Maha Penyayang" },
-                { Arab: "الْمَلِكُ", Latin: "Al Malik", Arti: "Yang Maha Merajai" },
-                { Arab: "الْقُدُّوسُ", Latin: "Al Quddus", Arti: "Yang Maha Suci" },
-                { Arab: "السَّلاَمُ", Latin: "As Salaam", Arti: "Yang Maha Memberi Kesejahteraan" }
+                { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" }, { Arab: "الرَّحِيمُ", Latin: "Ar Rahiim", Arti: "Yang Maha Penyayang" }, { Arab: "الْمَلِكُ", Latin: "Al Malik", Arti: "Yang Maha Merajai" }, { Arab: "الْقُدُّوسُ", Latin: "Al Quddus", Arti: "Yang Maha Suci" }, { Arab: "السَّلاَمُ", Latin: "As Salaam", Arti: "Yang Maha Memberi Kesejahteraan" }, { Arab: "الْمُؤْمِنُ", Latin: "Al Mu'min", Arti: "Yang Maha Memberi Keamanan" }, { Arab: "الْمُهَيْمِنُ", Latin: "Al Muhaimin", Arti: "Yang Maha Pemelihara" }, { Arab: "الْعَزِيزُ", Latin: "Al 'Aziz", Arti: "Yang Maha Perkasa" }, { Arab: "الْجَبَّارُ", Latin: "Al Jabbar", Arti: "Yang Memiliki Mutlak Kegagahan" }, { Arab: "الْمُتَكَبِّرُ", Latin: "Al Mutakabbir", Arti: "Yang Maha Megah" }, { Arab: "الْخَالِقُ", Latin: "Al Khaliq", Arti: "Yang Maha Pencipta" }, { Arab: "الْبَارِئُ", Latin: "Al Baari'", Arti: "Yang Maha Melepaskan" }, { Arab: "الْمُصَوِّرُ", Latin: "Al Mushawwir", Arti: "Yang Maha Membentuk Rupa" }, { Arab: "الْغَفَّارُ", Latin: "Al Ghaffaar", Arti: "Yang Maha Pengampun" }, { Arab: "الْقَهَّارُ", Latin: "Al Qahhaar", Arti: "Yang Maha Memaksa" }, { Arab: "الْوَهَّابُ", Latin: "Al Wahhaab", Arti: "Yang Maha Pemberi Karunia" }, { Arab: "الرَّزَّاقُ", Latin: "Ar Razzaaq", Arti: "Yang Maha Pemberi Rezeki" }, { Arab: "الْفَتَّاحُ", Latin: "Al Fattaah", Arti: "Yang Maha Pembuka Rahmat" }, { Arab: "الْعَلِيمُ", Latin: "Al 'Aliim", Arti: "Yang Maha Mengetahui" }, { Arab: "الْقَابِضُ", Latin: "Al Qaabidh", Arti: "Yang Maha Menyempitkan" }, { Arab: "الْبَاسِطُ", Latin: "Al Baasith", Arti: "Yang Maha Melapangkan" }, { Arab: "الْخَافِضُ", Latin: "Al Khaafidh", Arti: "Yang Maha Merendahkan" }, { Arab: "الرَّافِعُ", Latin: "Ar Raafi'", Arti: "Yang Maha Meninggikan" }, { Arab: "الْمُعِزُّ", Latin: "Al Mu'izz", Arti: "Yang Maha Memuliakan" }, { Arab: "الْمُذِلُّ", Latin: "Al Mudzil", Arti: "Yang Maha Menghinakan" }, { Arab: "السَّمِيعُ", Latin: "As Samii'", Arti: "Yang Maha Mendengar" }, { Arab: "الْبَصِيرُ", Latin: "Al Bashiir", Arti: "Yang Maha Melihat" }, { Arab: "الْحَكَمُ", Latin: "Al Hakam", Arti: "Yang Maha Menetapkan" }, { Arab: "الْعَدْلُ", Latin: "Al 'Adl", Arti: "Yang Maha Adil" }, { Arab: "اللَّطِيفُ", Latin: "Al Lathiif", Arti: "Yang Maha Lembut" }, { Arab: "الْخَبِيرُ", Latin: "Al Khabiir", Arti: "Yang Maha Mengenal" }, { Arab: "الْحَلِيمُ", Latin: "Al Haliim", Arti: "Yang Maha Penyantun" }, { Arab: "الْعَظِيمُ", Latin: "Al 'Azhiim", Arti: "Yang Maha Agung" }, { Arab: "الْغَفُورُ", Latin: "Al Ghafuur", Arti: "Yang Maha Pengampun" }, { Arab: "الشَّكُورُ", Latin: "Asy Syakuur", Arti: "Yang Maha Pembalas Budi" }, { Arab: "الْعَلِيُّ", Latin: "Al 'Aliy", Arti: "Yang Maha Tinggi" }, { Arab: "الْكَبِيرُ", Latin: "Al Kabiir", Arti: "Yang Maha Besar" }, { Arab: "الْحَفِيظُ", Latin: "Al Hafizh", Arti: "Yang Maha Memelihara" }, { Arab: "الْمُقِيتُ", Latin: "Al Muqiit", Arti: "Yang Maha Pemberi Kecukupan" }, { Arab: "الْحَسِيبُ", Latin: "Al Hasiib", Arti: "Yang Maha Membuat Perhitungan" }, { Arab: "الْجَلِيلُ", Latin: "Al Jaliil", Arti: "Yang Maha Luhur" }, { Arab: "الْكَرِيمُ", Latin: "Al Kariim", Arti: "Yang Maha Mulia" }, { Arab: "الرَّقِيبُ", Latin: "Ar Raqiib", Arti: "Yang Maha Mengawasi" }, { Arab: "الْمُجِيبُ", Latin: "Al Mujiib", Arti: "Yang Maha Mengabulkan" }, { Arab: "الْوَاسِعُ", Latin: "Al Waasi'", Arti: "Yang Maha Luas" }, { Arab: "الْحَكِيمُ", Latin: "Al Hakiim", Arti: "Yang Maha Bijaksana" }, { Arab: "الْوَدُودُ", Latin: "Al Waduud", Arti: "Yang Maha Mengasihi" }, { Arab: "الْمَجِيدُ", Latin: "Al Majiid", Arti: "Yang Maha Mulia" }, { Arab: "الْبَاعِثُ", Latin: "Al Baa'its", Arti: "Yang Maha Membangkitkan" }, { Arab: "الشَّهِيدُ", Latin: "Asy Syahiid", Arti: "Yang Maha Menyaksikan" }, { Arab: "الْحَقُّ", Latin: "Al Haqq", Arti: "Yang Maha Benar" }, { Arab: "الْوَكِيلُ", Latin: "Al Wakiil", Arti: "Yang Maha Memelihara" }, { Arab: "الْقَوِيُّ", Latin: "Al Qawiyyu", Arti: "Yang Maha Kuat" }, { Arab: "الْمَتِينُ", Latin: "Al Matiin", Arti: "Yang Maha Kokoh" }, { Arab: "الْوَلِيُّ", Latin: "Al Waliyy", Arti: "Yang Maha Melindungi" }, { Arab: "الْحَمِيدُ", Latin: "Al Hamiid", Arti: "Yang Maha Terpuji" }, { Arab: "الْمُحْصِي", Latin: "Al Muhshii", Arti: "Yang Maha Menghitung" }, { Arab: "الْمُبْدِئُ", Latin: "Al Mubdi'", Arti: "Yang Maha Memulai" }, { Arab: "الْمُعِيدُ", Latin: "Al Mu'iid", Arti: "Yang Maha Mengembalikan Kehidupan" }, { Arab: "الْمُحْيِي", Latin: "Al Muhyii", Arti: "Yang Maha Menghidupkan" }, { Arab: "الْمُمِيتُ", Latin: "Al Mumiitu", Arti: "Yang Maha Mematikan" }, { Arab: "الْحَيُّ", Latin: "Al Hayyu", Arti: "Yang Maha Hidup" }, { Arab: "الْقَيُّومُ", Latin: "Al Qayyuum", Arti: "Yang Maha Mandiri" }, { Arab: "الْوَاجِدُ", Latin: "Al Waajid", Arti: "Yang Maha Penemu" }, { Arab: "الْمَاجِدُ", Latin: "Al Maajid", Arti: "Yang Maha Mulia" }, { Arab: "الْوَاحِدُ", Latin: "Al Waahid", Arti: "Yang Maha Tunggal" }, { Arab: "الأَحَدُ", Latin: "Al Ahad", Arti: "Yang Maha Esa" }, { Arab: "الصَّمَدُ", Latin: "Ash Shamad", Arti: "Yang Maha Dibutuhkan" }, { Arab: "الْقَادِرُ", Latin: "Al Qaadir", Arti: "Yang Maha Menentukan" }, { Arab: "الْمُقْتَدِرُ", Latin: "Al Muqtadir", Arti: "Yang Maha Berkuasa" }, { Arab: "الْمُقَدِّمُ", Latin: "Al Muqaddim", Arti: "Yang Maha Mendahulukan" }, { Arab: "الْمُؤَخِّرُ", Latin: "Al Mu'akkhir", Arti: "Yang Maha Mengakhirkan" }, { Arab: "الأَوَّلُ", Latin: "Al Awwal", Arti: "Yang Maha Awal" }, { Arab: "الآخِرُ", Latin: "Al Aakhir", Arti: "Yang Maha Akhir" }, { Arab: "الظَّاهِرُ", Latin: "Azh Zhaahir", Arti: "Yang Maha Nyata" }, { Arab: "الْبَاطِنُ", Latin: "Al Baathin", Arti: "Yang Maha Ghaib" }, { Arab: "الْوَالِي", Latin: "Al Waali", Arti: "Yang Maha Memerintah" }, { Arab: "الْمُتَعَالِي", Latin: "Al Muta'aalii", Arti: "Yang Maha Tinggi" }, { Arab: "الْبَرُّ", Latin: "Al Barru", Arti: "Yang Maha Penderma" }, { Arab: "التَّوَّابُ", Latin: "At Tawwaab", Arti: "Yang Maha Penerima Taubat" }, { Arab: "الْمُنْتَقِمُ", Latin: "Al Muntaqim", Arti: "Yang Maha Pemberi Balasan" }, { Arab: "العَفُوُّ", Latin: "Al Afuww", Arti: "Yang Maha Pemaaf" }, { Arab: "الرَّؤُوفُ", Latin: "Ar Ra'uuf", Arti: "Yang Maha Pengasuh" }, { Arab: "مَالِكُ الْمُلْكِ", Latin: "Malikul Mulk", Arti: "Yang Maha Penguasa Kerajaan" }, { Arab: "ذُوالْجَلاَلِ وَالإِكْرَامِ", Latin: "Dzul Jalaali Wal Ikraam", Arti: "Yang Maha Pemilik Kebesaran dan Kemuliaan" }, { Arab: "الْمُقْسِطُ", Latin: "Al Muqsith", Arti: "Yang Maha Pemberi Keadilan" }, { Arab: "الْجَامِعُ", Latin: "Al Jaami'", Arti: "Yang Maha Mengumpulkan" }, { Arab: "الْغَنِيُّ", Latin: "Al Ghaniyy", Arti: "Yang Maha Kaya" }, { Arab: "الْمُغْنِي", Latin: "Al Mughnii", Arti: "Yang Maha Pemberi Kekayaan" }, { Arab: "الْمَانِعُ", Latin: "Al Maani'", Arti: "Yang Maha Mencegah" }, { Arab: "الضَّارُّ", Latin: "Adh Dhaar", Arti: "Yang Maha Penimpa Kemudharatan" }, { Arab: "النَّافِعُ", Latin: "An Naafi'", Arti: "Yang Maha Memberi Manfaat" }, { Arab: "النُّورُ", Latin: "An Nuur", Arti: "Yang Maha Bercahaya" }, { Arab: "الْهَادِي", Latin: "Al Haadii", Arti: "Yang Maha Pemberi Petunjuk" }, { Arab: "الْبَدِيعُ", Latin: "Al Badii'", Arti: "Yang Maha Pencipta Tiada Bandingannya" }, { Arab: "الْبَاقِي", Latin: "Al Baaqii", Arti: "Yang Maha Kekal" }, { Arab: "الْوَارِثُ", Latin: "Al Waarits", Arti: "Yang Maha Pewaris" }, { Arab: "الرَّشِيدُ", Latin: "Ar Rasyiid", Arti: "Yang Maha Pandai" }, { Arab: "الصَّبُورُ", Latin: "Ash Shabuur", Arti: "Yang Maha Sabar" }
             ];
             let asmaulHtml = '';
             asmaulHusna.forEach(a => {
@@ -842,7 +870,7 @@
             });
         });
     } catch (error) {
-        console.error("Terjadi masalah pada skrip Religi, tapi tidak akan mematikan fitur Base (Running Text). Error: ", error);
+        console.error("Religi Error: ", error);
     }
 })();
 </script>
