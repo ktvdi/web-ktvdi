@@ -833,17 +833,29 @@
         }
         updateGreeting();
 
-        window.addEventListener('load', () => {
+        // BAGIAN YANG DIPERBAIKI UNTUK LOADER:
+        window.addEventListener('DOMContentLoaded', () => {
             const loader = document.getElementById('initial-loader');
             
             // Periksa jika user belum diblokir, sembunyikan loader
             if(loader && !checkPenaltyStatus()) {
                 setTimeout(() => {
                     loader.style.opacity = '0';
-                    setTimeout(() => loader.style.visibility = 'hidden', 500);
+                    setTimeout(() => {
+                        loader.style.visibility = 'hidden';
+                        loader.style.display = 'none';
+                    }, 500);
                 }, 1500); 
             }
         });
+
+        // Fallback keamanan (opsional): Jika terjadi error apapun, loader dipaksa hilang setelah 5 detik
+        setTimeout(() => {
+            const loader = document.getElementById('initial-loader');
+            if(loader && loader.style.display !== 'none') {
+                loader.style.display = 'none';
+            }
+        }, 5000);
 
         function toggleDropdown(id) {
             const el = document.getElementById(id);
