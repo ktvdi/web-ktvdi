@@ -185,14 +185,36 @@
             checkPenaltyStatus();
         });
 
-        // Mode Privasi Blur
+        // Mode Privasi Blur dengan Media Session API
         function enablePrivacyMode() {
             document.body.classList.add('privacy-blur');
             document.getElementById('security-overlay').style.display = 'flex';
             
             const secAudio = document.getElementById('security-audio');
             if(secAudio) {
-                secAudio.play().catch(e => console.log("Autoplay dicegah oleh browser. Butuh interaksi user sebelumnya."));
+                secAudio.play().then(() => {
+                    // Integrasi Media Session API agar terdeteksi di HP
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: 'Gajah Mada FM (Live)',
+                            artist: 'Program Acara / Lagu Sedang Diputar',
+                            album: 'KTVDI Security Mode',
+                            artwork: [
+                                // Menggunakan logo KTVDI sebagai cover album di lockscreen HP
+                                { src: "{{ url_for('static', filename='icons/icon-192.png') }}", sizes: '192x192', type: 'image/png' }
+                            ]
+                        });
+                        
+                        // Menangani tombol pause dari lockscreen HP
+                        navigator.mediaSession.setActionHandler('pause', function() {
+                            secAudio.pause();
+                        });
+                        // Menangani tombol play dari lockscreen HP
+                        navigator.mediaSession.setActionHandler('play', function() {
+                            secAudio.play();
+                        });
+                    }
+                }).catch(e => console.log("Autoplay dicegah oleh browser. Butuh interaksi user sebelumnya."));
             }
         }
 
@@ -833,7 +855,6 @@
         }
         updateGreeting();
 
-        // BAGIAN YANG DIPERBAIKI UNTUK LOADER:
         window.addEventListener('DOMContentLoaded', () => {
             const loader = document.getElementById('initial-loader');
             
