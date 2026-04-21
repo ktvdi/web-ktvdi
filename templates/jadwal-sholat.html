@@ -7,10 +7,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cinzel:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://cdn.tailwindcss.com"></script>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
     // Memaksa loader hilang maksimal dalam 1.5 detik agar halaman tidak mental/stuck
@@ -167,6 +169,12 @@
     @keyframes marqueeScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
     
     .ai-btn-anim:active { transform: scale(0.9); }
+    
+    /* Pengecualian Dark Mode Khusus Maps Agat Tetap Terlihat Jelas */
+    .leaflet-container {
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        background: #e5e7eb;
+    }
 </style>
 
 <div class="pt-[140px] pb-20 px-4 max-w-7xl mx-auto min-h-screen">
@@ -314,26 +322,44 @@
         </div>
     </div>
 
-    <div class="islamic-card p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+    <div class="islamic-card p-6 mb-12 flex flex-col relative overflow-hidden">
         <div class="absolute -right-10 -top-10 text-9xl text-emerald-500/5 rotate-12 pointer-events-none">
             <i class="fa-solid fa-mosque"></i>
         </div>
-        <div class="flex items-center gap-4 relative z-10 w-full md:w-auto border-r border-gray-500/20 pr-6">
-            <button id="radarMasjidBtn" class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-500/20 transition shadow-[0_0_15px_rgba(16,185,129,0.2)] group ai-btn-anim" onclick="window.scanNearbyMosque()" title="Tanya AI: Masjid Terdekat">
-                <i class="fa-solid fa-tower-broadcast group-hover:animate-ping absolute opacity-50"></i>
-                <i class="fa-solid fa-mosque relative z-10 text-2xl"></i>
-            </button>
-            <div>
-                <h3 class="txt-primary font-bold text-lg leading-tight">AI Radar Satelit</h3>
-                <p class="text-[10px] txt-secondary uppercase tracking-widest mt-1">Cari Masjid / Mushola</p>
+        
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10 w-full mb-4 border-b border-gray-500/20 pb-4">
+            <div class="flex items-center gap-4">
+                <button id="radarMasjidBtn" class="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-500/20 transition shadow-[0_0_15px_rgba(16,185,129,0.2)] group ai-btn-anim" onclick="window.scanNearbyMosque()" title="Tanya AI: Masjid Terdekat">
+                    <i class="fa-solid fa-tower-broadcast group-hover:animate-ping absolute opacity-50"></i>
+                    <i class="fa-solid fa-mosque relative z-10 text-2xl"></i>
+                </button>
+                <div>
+                    <h3 class="txt-primary font-bold text-lg leading-tight">AI Radar Satelit</h3>
+                    <p class="text-[10px] txt-secondary uppercase tracking-widest mt-1">Cari & Navigasi Tempat Ibadah</p>
+                </div>
+            </div>
+            
+            <div id="liveTrackControl" class="hidden flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 border border-red-500/30 rounded-full shadow-inner">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
+                    <span class="text-[10px] text-red-500 font-bold tracking-widest uppercase">Live GPS ON</span>
+                </div>
+                <button onclick="window.stopLiveTracking()" class="text-[10px] font-bold bg-black/20 hover:bg-red-500 hover:text-white txt-secondary px-4 py-2 border border-gray-500/30 hover:border-red-500 rounded-lg transition-all duration-300 flex items-center gap-2">
+                    <i class="fa-solid fa-power-off"></i> Hentikan Navigasi
+                </button>
             </div>
         </div>
         
-        <div id="radarResult" class="relative z-10 flex-1 bg-black/10 border border-gray-500/20 p-4 rounded-xl backdrop-blur-sm text-left min-h-[85px] flex flex-col justify-center">
-            <p class="text-xs txt-secondary italic leading-relaxed"><i class="fa-solid fa-circle-info text-emerald-500 mr-2"></i>Ketuk ikon radar di sebelah kiri untuk memindai masjid dan mushola terdekat dari posisi Anda. Pastikan target GPS (di atas) sudah terkunci.</p>
+        <div class="flex flex-col lg:flex-row gap-6 relative z-10">
+            <div id="radarResult" class="flex-1 bg-black/10 border border-gray-500/20 p-4 rounded-xl backdrop-blur-sm text-left min-h-[100px] flex flex-col justify-center shadow-inner">
+                <p class="text-xs txt-secondary italic leading-relaxed"><i class="fa-solid fa-circle-info text-emerald-500 mr-2"></i>Ketuk ikon radar satelit di atas untuk memindai masjid atau mushola terdekat dari posisi Anda. Sistem akan memunculkan peta interaktif dan memandu arah perjalanan Anda secara langsung.</p>
+            </div>
+            
+            <div id="mapContainerWrapper" class="w-full lg:w-1/2 h-[250px] md:h-[300px] hidden rounded-xl overflow-hidden border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)] relative">
+                <div id="mapContainer" class="w-full h-full z-10"></div>
+            </div>
         </div>
     </div>
-
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
         <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
             <div class="flex justify-between items-start mb-4">
@@ -494,8 +520,28 @@
         };
 
         // =========================================
-        // RADAR MASJID & MUSHOLA TERDEKAT
+        // RADAR MAPS & LIVE TRACKING (LEAFLET INTEGRATION)
         // =========================================
+        let leafletMap = null;
+        let mapUserMarker = null;
+        let mapTargetMarker = null;
+        let mapRouteLine = null;
+        let liveWatchId = null;
+        let activeTargetNode = null; // Menyimpan data target (lat, lon, nama)
+
+        const userMapIcon = L.divIcon({
+            html: `<div class="relative flex items-center justify-center w-6 h-6">
+                     <span class="absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75 animate-ping"></span>
+                     <span class="relative inline-flex rounded-full h-4 w-4 bg-blue-500 border-2 border-white shadow-lg"></span>
+                   </div>`,
+            className: '', iconSize: [24, 24], iconAnchor: [12, 12]
+        });
+
+        const mosqueMapIcon = L.divIcon({
+            html: '<div class="text-3xl text-emerald-500 drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] transform -translate-y-2"><i class="fa-solid fa-location-dot"></i></div>',
+            className: '', iconSize: [30, 30], iconAnchor: [15, 30]
+        });
+
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371e3; 
             const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180;
@@ -511,8 +557,12 @@
                 return;
             }
 
+            // Reset tracking jika sedang jalan
+            window.stopLiveTracking();
+
             window.playAIVoice("Sistem AI sedang memindai peta satelit untuk mencari masjid atau mushola terdekat.");
             $('#radarMasjidBtn').addClass('animate-pulse bg-emerald-500/30');
+            $('#mapContainerWrapper').addClass('hidden');
             $('#radarResult').html(`
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-circle-notch fa-spin txt-gold text-2xl"></i>
@@ -524,8 +574,6 @@
             `);
 
             try {
-                // MENCARI MASJID & MUSHOLA via OVERPASS
-                // 'building'='mosque' biasa digunakan untuk mushola kecil di Indonesia.
                 const radius = 3000;
                 const overpassQuery = `[out:json][timeout:15];(node["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon});way["amenity"="place_of_worship"]["religion"="muslim"](around:${radius},${window.currentLat},${window.currentLon});node["building"="mosque"](around:${radius},${window.currentLat},${window.currentLon});way["building"="mosque"](around:${radius},${window.currentLat},${window.currentLon}););out center 5;`;
                 const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
@@ -548,16 +596,18 @@
                             name = "Masjid / Mushola " + name;
                         }
 
+                        // Simpan target untuk Live Tracking
+                        activeTargetNode = { lat: nearest.plat, lon: nearest.plon, name: name };
+
                         $('#radarResult').html(`
                             <div class="flex items-center gap-3">
                                 <i class="fa-solid fa-satellite-dish fa-bounce txt-gold text-2xl"></i>
                                 <div class="text-left">
-                                    <p class="text-xs font-bold txt-primary">Menyusun rute & alamat...</p>
+                                    <p class="text-xs font-bold txt-primary">Menyusun rute & peta interaktif...</p>
                                 </div>
                             </div>
                         `);
 
-                        // Terjemahkan Titik ke Alamat Jalan (Reverse Geocoding)
                         const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nearest.plat}&lon=${nearest.plon}&zoom=18&addressdetails=1`);
                         const revData = await revRes.json();
                         let fullAddress = revData.display_name || "Alamat detail belum terdata di OSM.";
@@ -568,7 +618,7 @@
                                     <p class="text-[10px] font-bold txt-gold uppercase tracking-widest mb-1">Tempat Ibadah Terdekat :</p>
                                     <h4 class="text-base font-bold txt-primary leading-tight">${name}</h4>
                                     <p class="text-[10px] txt-secondary mt-1.5 line-clamp-2 leading-relaxed border-l-2 border-emerald-500/30 pl-2 py-0.5"><i class="fa-solid fa-map-pin mr-1 text-emerald-400"></i> ${fullAddress}</p>
-                                    <p class="text-xs text-emerald-400 font-medium mt-2 bg-emerald-500/10 inline-block px-2 py-1 rounded"><i class="fa-solid fa-route mr-1"></i> Jarak Akurat: ${minDist} Meter</p>
+                                    <p id="liveDistanceText" class="text-xs text-emerald-400 font-medium mt-2 bg-emerald-500/10 inline-block px-3 py-1.5 rounded-lg border border-emerald-500/30 shadow-sm"><i class="fa-solid fa-route mr-1 animate-pulse"></i> Jarak: ${minDist} Meter</p>
                                 </div>
                                 <div class="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0 shadow-inner">
                                     <i class="fa-solid fa-mosque text-xl"></i>
@@ -576,18 +626,85 @@
                             </div>
                         `);
 
-                        let aiText = `Pemindaian selesai. Tempat ibadah terdekat dari posisi Anda adalah ${name}, berjarak ${minDist} meter. Beralamat di: ${fullAddress}. Segeralah bersiap dan melangkah ke sana. KTVDI senantiasa memantau dan menjaga Anda.`;
+                        // Inisiasi Map Leaflet
+                        $('#mapContainerWrapper').removeClass('hidden');
+                        if (!leafletMap) {
+                            leafletMap = L.map('mapContainer', {zoomControl: false}).setView([window.currentLat, window.currentLon], 16);
+                            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                                attribution: '&copy; OpenStreetMap contributors'
+                            }).addTo(leafletMap);
+                            L.control.zoom({ position: 'bottomright' }).addTo(leafletMap);
+                        }
+
+                        // Set Marker
+                        if(mapUserMarker) leafletMap.removeLayer(mapUserMarker);
+                        if(mapTargetMarker) leafletMap.removeLayer(mapTargetMarker);
+                        if(mapRouteLine) leafletMap.removeLayer(mapRouteLine);
+
+                        mapUserMarker = L.marker([window.currentLat, window.currentLon], {icon: userMapIcon}).addTo(leafletMap).bindPopup("Posisi Anda");
+                        mapTargetMarker = L.marker([nearest.plat, nearest.plon], {icon: mosqueMapIcon}).addTo(leafletMap).bindPopup(`<b>${name}</b>`).openPopup();
+                        
+                        // Buat Polyline
+                        mapRouteLine = L.polyline([[window.currentLat, window.currentLon], [nearest.plat, nearest.plon]], {color: '#10b981', weight: 4, dashArray: '5, 10'}).addTo(leafletMap);
+                        leafletMap.fitBounds(mapRouteLine.getBounds(), {padding: [30, 30]});
+
+                        // Mulai Live GPS Tracking secara otomatis
+                        window.startLiveTracking();
+
+                        let aiText = `Selesai. Tujuan terdekat adalah ${name}, berjarak sekitar ${minDist} meter. Peta navigasi dan pelacak posisi darurat telah diaktifkan untuk memandu Anda.`;
                         setTimeout(() => window.playAIVoice(aiText), 500);
                     }
                 } else {
                     $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Tidak ada masjid/mushola tercatat di satelit dalam radius 3KM.</p>');
-                    window.playAIVoice("Maaf, radar kami tidak menemukan data masjid atau mushola dalam radius 3 kilometer di peta satelit. Mohon tanyakan pada warga sekitar.");
+                    window.playAIVoice("Maaf, radar tidak menemukan data tempat ibadah dalam radius 3 kilometer. Mohon tanyakan pada warga sekitar.");
                 }
             } catch(e) {
-                $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal terhubung ke satelit. Server sibuk.</p>');
-                window.playAIVoice("Terjadi kesalahan teknis saat menghubungi satelit pemetaan. Silakan coba beberapa saat lagi.");
+                $('#radarResult').html('<p class="text-xs txt-secondary italic text-red-400">Gagal terhubung ke satelit pemetaan. Server sibuk.</p>');
+                window.playAIVoice("Terjadi kesalahan teknis saat menghubungi satelit pemetaan.");
             } finally {
                 $('#radarMasjidBtn').removeClass('animate-pulse bg-emerald-500/30');
+            }
+        };
+
+        window.startLiveTracking = function() {
+            if(!navigator.geolocation || !activeTargetNode) return;
+            
+            $('#liveTrackControl').removeClass('hidden');
+
+            liveWatchId = navigator.geolocation.watchPosition((position) => {
+                const newLat = position.coords.latitude;
+                const newLon = position.coords.longitude;
+                window.currentLat = newLat; window.currentLon = newLon;
+
+                // Update Map
+                if(leafletMap && mapUserMarker && mapRouteLine) {
+                    mapUserMarker.setLatLng([newLat, newLon]);
+                    mapRouteLine.setLatLngs([[newLat, newLon], [activeTargetNode.lat, activeTargetNode.lon]]);
+                    
+                    // Kalkulasi ulang jarak secara live
+                    const newDist = calculateDistance(newLat, newLon, activeTargetNode.lat, activeTargetNode.lon);
+                    $('#liveDistanceText').html(`<i class="fa-solid fa-route mr-1 animate-pulse"></i> Jarak Live: ${newDist} Meter`);
+                }
+            }, (err) => {
+                console.warn("GPS Tracking Error", err);
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        };
+
+        window.stopLiveTracking = function() {
+            if(liveWatchId !== null) {
+                navigator.geolocation.clearWatch(liveWatchId);
+                liveWatchId = null;
+            }
+            $('#liveTrackControl').addClass('hidden');
+            activeTargetNode = null;
+            
+            // Bersihkan map UI jika dibutuhkan
+            if(mapRouteLine && leafletMap) {
+               leafletMap.removeLayer(mapRouteLine);
+            }
+            if($('#liveDistanceText').length > 0) {
+               $('#liveDistanceText').html(`<i class="fa-solid fa-stop-circle mr-1"></i> Navigasi Dihentikan`);
+               $('#liveDistanceText').removeClass('text-emerald-400 border-emerald-500/30').addClass('text-gray-400 border-gray-500/30');
             }
         };
 
