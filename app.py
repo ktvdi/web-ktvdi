@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 import google.generativeai as genai
 import concurrent.futures
 import base64  
+import json
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -18,12 +19,6 @@ from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta, date
 import urllib3
-
-# --- IMPORT WAJIB UNTUK DETEKSI REAL AI (YOLO & OCR) ---
-import cv2
-import numpy as np
-from ultralytics import YOLO
-import easyocr
 
 # ==========================================
 # 1. KONFIGURASI SYSTEM & SECURITY
@@ -38,15 +33,6 @@ CORS(app)
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
-
-# ==========================================
-# 1.5. INISIALISASI MODEL YOLO & OCR GLOBAL
-# ==========================================
-print("⏳ Sedang memuat Model YOLOv8 & EasyOCR...")
-# PASTIKAN FILE 'best.pt' ADA DI FOLDER YANG SAMA!
-yolo_model = YOLO('best.pt') 
-ocr_reader = easyocr.Reader(['id', 'en'], gpu=False) 
-print("✅ STATUS: Model AI Pelanggaran Siap Digunakan (100% REAL MODE).")
 
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
@@ -792,7 +778,8 @@ def visitor_stats():
     })
 
 # ==========================================
-# 9. API BARU: DETEKSI PELANGGARAN REAL (ALPR/YOLO)
+# 9. API BARU: DETEKSI PELANGGARAN REAL (ALPR)
+# Menggunakan Gemini AI (Sangat Ringan, Bebas Crash di Vercel)
 # ==========================================
 @app.route('/api/detect_violation', methods=['POST'])
 def api_detect_violation():
@@ -804,49 +791,59 @@ def api_detect_violation():
         if frame_base64.startswith('data:image'):
             frame_base64 = frame_base64.split(',')[1]
 
-        # JIKA DI VPS / LOCAL, BERJALAN 100% REAL DARI KAMERA
+        # Decode gambar yang dikirim dari browser
         img_data = base64.b64decode(frame_base64)
-        np_arr = np.frombuffer(img_data, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        results = yolo_model(img)
+        # Gunakan Gemini Flash (Karena sudah di-import & sangat ringan untuk Vercel)
+        model = get_gemini_model()
+        if not model:
+            return jsonify({"status": "error", "message": "AI tidak siap."}), 500
+
+        # Minta AI untuk bertindak sebagai ALPR
+        prompt = f"""
+        Tugas Anda adalah menjadi sistem AI CCTV (ALPR).
+        Perhatikan gambar kendaraan ({vehicle_type}) ini dengan teliti.
+        1. Cek apakah ada pelanggaran kasat mata:
+           - Jika motor: apakah pengendara TIDAK memakai helm?
+           - Jika mobil: apakah pengemudi TIDAK memakai sabuk pengaman?
+        2. Jika ADA PELANGGARAN, baca teks Plat Nomor kendaraannya.
         
-        plat_ditemukan = ""
-        jenis_pelanggaran = ""
+        Jawab HANYA dengan format JSON valid seperti ini tanpa markdown tambahan:
+        {{"plate": "H 1234 AB", "violation": "Tidak Menggunakan Helm"}}
+        
+        Jika TIDAK ADA pelanggaran, atau plat sangat buram tidak terbaca, jawab HANYA dengan:
+        {{"plate": "", "violation": ""}}
+        """
 
-        for r in results:
-            boxes = r.boxes
-            for box in boxes:
-                cls_id = int(box.cls[0])
-                class_name = yolo_model.names[cls_id]
+        image_parts = [
+            {
+                "mime_type": "image/jpeg",
+                "data": img_data
+            }
+        ]
 
-                if class_name in ["no_helmet", "tidak_pakai_helm"]:
-                    jenis_pelanggaran = "Tidak Menggunakan Helm"
-                elif class_name in ["no_seatbelt", "tidak_pakai_sabuk"]:
-                    jenis_pelanggaran = "Tidak Menggunakan Sabuk Keselamatan"
-                elif class_name in ["melanggar_marka"]:
-                    jenis_pelanggaran = "Melanggar Marka Jalan"
-                
-                if class_name in ["license_plate", "plat_nomor"]:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    plat_crop = img[y1:y2, x1:x2]
-                    
-                    ocr_result = ocr_reader.readtext(plat_crop)
-                    if ocr_result:
-                        raw_text = " ".join([text[1] for text in ocr_result]).upper()
-                        plat_ditemukan = re.sub(r'[^A-Z0-9\s]', '', raw_text)
-
-        if not plat_ditemukan or not jenis_pelanggaran:
+        # Minta respons ke Google Gemini
+        response = model.generate_content([prompt, image_parts[0]])
+        text_res = response.text.strip()
+        
+        # Bersihkan format JSON dari balasan Gemini
+        text_res = text_res.replace('```json', '').replace('
+```', '').strip()
+        
+        result_dict = json.loads(text_res)
+        
+        # Cek apakah ada plat dan pelanggaran yang didapat
+        if result_dict.get("plate") and result_dict.get("violation"):
+            return jsonify({
+                "status": "success",
+                "plate": result_dict["plate"],
+                "violation": result_dict["violation"]
+            })
+        else:
             return jsonify({
                 "status": "ignored", 
-                "message": "Tidak ada pelanggaran / Plat buram."
+                "message": "Tidak ada pelanggaran atau plat buram."
             })
-
-        return jsonify({
-            "status": "success",
-            "plate": plat_ditemukan.strip(),
-            "violation": jenis_pelanggaran
-        })
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
