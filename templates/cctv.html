@@ -199,14 +199,14 @@
                     <!-- Elemen Canvas untuk Bounding Box AI -->
                     <canvas id="ai-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-30"></canvas>
                     
-                    <!-- Indikator Status Kepadatan Biasa -->
-                    <div id="traffic-status" class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600 z-40 hidden backdrop-blur-md shadow-lg transition-colors">
-                        <i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-1"></i> Memuat Model AI...
+                    <!-- Indikator Status Kepadatan Biasa (Khusus Layar PC - Kiri Atas Rapi) -->
+                    <div id="desktop-traffic-status" class="absolute top-3 left-3 bg-black/80 text-white px-3 py-1.5 rounded-md text-xs font-bold border border-slate-600 z-40 hidden backdrop-blur-md shadow-lg transition-all items-center">
+                        <i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-2"></i> Menginisiasi AI...
                     </div>
 
-                    <!-- REMINDER MACET PARAH -->
-                    <div id="severe-warning" class="absolute top-14 left-1/2 -translate-x-1/2 bg-red-600/95 text-white px-5 py-2 rounded-lg text-xs sm:text-sm font-extrabold border border-red-400 z-40 hidden backdrop-blur-md shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse text-center whitespace-nowrap">
-                        <i class="fa-solid fa-triangle-exclamation mr-2 text-yellow-300"></i>SAAT INI JALUR SEDANG MENGALAMI KEPADATAN PARAH
+                    <!-- REMINDER MACET PARAH (Tengah Atas) -->
+                    <div id="severe-warning" class="absolute top-3 left-1/2 -translate-x-1/2 bg-red-600/95 text-white px-5 py-2 rounded-lg text-xs sm:text-sm font-extrabold border border-red-400 z-40 hidden backdrop-blur-md shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse text-center whitespace-nowrap">
+                        <i class="fa-solid fa-triangle-exclamation mr-2 text-yellow-300"></i>JALUR MENGALAMI KEPADATAN PARAH
                     </div>
 
                     <div id="overlay-loading" class="absolute inset-0 bg-[#020617] z-40 flex flex-col items-center justify-center text-center p-4">
@@ -235,7 +235,10 @@
 
                 <div class="bg-[#0f172a] px-4 py-2.5 flex items-center justify-between border-t border-slate-800 relative z-20">
                     <div class="flex items-center gap-3">
-                         <div class="text-[10px] text-slate-400 font-mono tracking-wider">PANTAUAN CCTV TERKINI</div>
+                         <!-- Pada HP, text default ini akan di-hide oleh JS digantikan status AI -->
+                         <div id="default-status-text" class="text-[10px] text-slate-400 font-mono tracking-wider transition-all">PANTAUAN CCTV TERKINI</div>
+                         <!-- Kontainer Status AI khusus HP/Mobile -->
+                         <div id="mobile-traffic-status" class="hidden text-[10px] font-bold tracking-wider transition-all"></div>
                     </div>
                     <div class="flex items-center gap-2">
                         <button id="btn-volume" onclick="toggleMute()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Mute/Unmute">
@@ -857,14 +860,9 @@
 
     async function loadAIModel() {
         try {
-            const statusEl = document.getElementById('traffic-status');
-            statusEl.classList.remove('hidden');
-            
-            // GANTI BASE MODEL ke 'mobilenet_v2' yang lebih akurat daripada default 'lite'
+            // Kita inisialisasi AI di background tapi tidak tampilkan popup status default dulu
             aiModel = await cocoSsd.load({ base: 'mobilenet_v2' });
-            
-            statusEl.innerHTML = `<i class="fa-solid fa-check text-green-400 mr-1"></i> AI Siap`;
-            setTimeout(() => statusEl.classList.add('hidden'), 2000);
+            console.log("Model AI Berhasil Dimuat");
         } catch (error) {
             console.error("Gagal meload model AI:", error);
         }
@@ -877,10 +875,20 @@
         const video = document.getElementById('video-element');
         const canvas = document.getElementById('ai-canvas');
         const ctx = canvas.getContext('2d');
-        const statusEl = document.getElementById('traffic-status');
+        const desktopStatus = document.getElementById('desktop-traffic-status');
+        const mobileStatus = document.getElementById('mobile-traffic-status');
+        const defaultText = document.getElementById('default-status-text');
         const warningEl = document.getElementById('severe-warning');
         
-        statusEl.classList.remove('hidden');
+        // Hide tulisan default di HP dan munculkan container AI
+        defaultText.classList.add('hidden', 'md:block');
+        
+        // Status awal loading
+        desktopStatus.innerHTML = `<i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-2"></i> Memproses Frame...`;
+        desktopStatus.className = "hidden md:flex absolute top-3 left-3 bg-black/80 text-white px-3 py-1.5 rounded-md text-xs font-bold border border-slate-600 z-40 backdrop-blur-md shadow-lg transition-all items-center";
+        
+        mobileStatus.innerHTML = `<i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-1.5"></i> MENGHITUNG...`;
+        mobileStatus.className = "md:hidden flex text-[10px] text-blue-400 font-bold tracking-wider items-center transition-all";
 
         async function detectFrame() {
             if (!isDetecting || video.paused || video.ended) return;
@@ -889,7 +897,7 @@
             canvas.height = video.clientHeight;
 
             try {
-                // TINGKATKAN PRESTASI: Deteksi max 50 objek dengan min confidence 0.40 (40%)
+                // Deteksi max 50 objek, confidence min 40%
                 const predictions = await aiModel.detect(video, 50, 0.4);
                 
                 const vehicleClasses = ['car', 'truck', 'bus', 'motorcycle'];
@@ -920,26 +928,41 @@
                     ctx.fillText(`${v.class} ${Math.round(v.score * 100)}%`, scaledX + 2, scaledY - 4);
                 });
 
-                // --- Logika Kepadatan & Warning ---
+                // --- Logika Kepadatan & UI Responsif ---
                 const vehicleCount = vehicles.length;
+                let deskHTML, deskClass, mobHTML, mobClass;
+                let showWarning = false;
                 
                 if (vehicleCount >= 15) { // MACET PARAH
-                    statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-1 animate-pulse"></i> MACET PARAH (${vehicleCount} Kendaraan)`;
-                    statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-red-950/90 text-red-100 px-4 py-1.5 rounded-full text-xs font-bold border border-red-500 z-40 backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.6)]";
-                    if(warningEl) warningEl.classList.remove('hidden');
+                    deskHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-2 animate-pulse"></i> MACET PARAH: ${vehicleCount} OBJ`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-red-950/90 text-red-100 px-3 py-1.5 rounded-md text-xs font-bold border border-red-500 z-40 backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.6)] items-center";
+                    mobHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-1.5 animate-pulse"></i> MACET PARAH (${vehicleCount})`;
+                    mobClass = "md:hidden flex text-[10px] text-red-400 font-bold tracking-wider items-center transition-colors";
+                    showWarning = true;
                 } else if (vehicleCount >= 8) { // PADAT BIASA
-                    statusEl.innerHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-1"></i> PADAT (${vehicleCount} Kendaraan)`;
-                    statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-orange-950/80 text-orange-200 px-4 py-1.5 rounded-full text-xs font-bold border border-orange-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.4)]";
-                    if(warningEl) warningEl.classList.add('hidden');
+                    deskHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-2"></i> PADAT: ${vehicleCount} OBJ`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-orange-950/80 text-orange-200 px-3 py-1.5 rounded-md text-xs font-bold border border-orange-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.4)] items-center";
+                    mobHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-1.5"></i> PADAT (${vehicleCount})`;
+                    mobClass = "md:hidden flex text-[10px] text-orange-400 font-bold tracking-wider items-center transition-colors";
                 } else if (vehicleCount > 0) { // LANCAR
-                    statusEl.innerHTML = `<i class="fa-solid fa-road text-emerald-400 mr-1"></i> LANCAR (${vehicleCount} Kendaraan)`;
-                    statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-emerald-950/80 text-emerald-200 px-4 py-1.5 rounded-full text-xs font-bold border border-emerald-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)]";
-                    if(warningEl) warningEl.classList.add('hidden');
+                    deskHTML = `<i class="fa-solid fa-road text-emerald-400 mr-2"></i> LANCAR: ${vehicleCount} OBJ`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-emerald-950/80 text-emerald-200 px-3 py-1.5 rounded-md text-xs font-bold border border-emerald-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)] items-center";
+                    mobHTML = `<i class="fa-solid fa-road text-emerald-400 mr-1.5"></i> LANCAR (${vehicleCount})`;
+                    mobClass = "md:hidden flex text-[10px] text-emerald-400 font-bold tracking-wider items-center transition-colors";
                 } else { // SEPI
-                    statusEl.innerHTML = `<i class="fa-solid fa-road text-slate-400 mr-1"></i> SEPI`;
-                    statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/80 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600 z-40 backdrop-blur-md";
-                    if(warningEl) warningEl.classList.add('hidden');
+                    deskHTML = `<i class="fa-solid fa-road text-slate-400 mr-2"></i> LENGANG`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-slate-900/80 text-slate-300 px-3 py-1.5 rounded-md text-xs font-bold border border-slate-600 z-40 backdrop-blur-md items-center";
+                    mobHTML = `<i class="fa-solid fa-road text-slate-400 mr-1.5"></i> LENGANG`;
+                    mobClass = "md:hidden flex text-[10px] text-slate-400 font-mono tracking-wider items-center transition-colors";
                 }
+
+                desktopStatus.innerHTML = deskHTML;
+                desktopStatus.className = deskClass;
+                mobileStatus.innerHTML = mobHTML;
+                mobileStatus.className = mobClass;
+
+                if(showWarning) warningEl.classList.remove('hidden');
+                else warningEl.classList.add('hidden');
 
             } catch (err) {
                 console.error("Error during detection:", err);
@@ -954,12 +977,21 @@
     function stopAIDetection() {
         isDetecting = false;
         cancelAnimationFrame(animationFrameId);
-        const canvas = document.getElementById('ai-canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        document.getElementById('traffic-status').classList.add('hidden');
+        // Bersihkan canvas
+        const canvas = document.getElementById('ai-canvas');
+        if(canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Sembunyikan UI Desktop & Reminder
+        document.getElementById('desktop-traffic-status').className = 'hidden';
         document.getElementById('severe-warning')?.classList.add('hidden');
+        
+        // Kembalikan tulisan default di Mobile
+        document.getElementById('default-status-text').classList.remove('hidden', 'md:block');
+        document.getElementById('mobile-traffic-status').className = 'hidden';
     }
 
     // ==========================================
@@ -1085,7 +1117,14 @@
         loadingOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
         updateResolutionDisplay();
-        startAIDetection(); 
+        
+        // Pengecualian khusus Datacenter TVRI tidak menggunakan AI
+        const currentCity = streamSource[activeStreamIndex].city;
+        if (currentCity.includes("DATACENTER TVRI")) {
+            stopAIDetection();
+        } else {
+            startAIDetection(); 
+        }
     });
 
     video.addEventListener('waiting', () => { 
@@ -1097,6 +1136,7 @@
         loadingOverlay.classList.add('hidden');
         errorOverlay.classList.remove('hidden');
         document.getElementById('resolution-display').innerText = "OFFLINE";
+        stopAIDetection();
     }
 
     function retryStream() { loadStream(activeStreamIndex); }
