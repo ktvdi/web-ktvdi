@@ -903,22 +903,20 @@
         video.muted = true;
         icon.className = 'fa-solid fa-volume-xmark text-sm';
 
-        // --- GROBOGAN FIX ---
-        // Deteksi jika Grobogan, gunakan proxy dan config khusus
-        let finalUrl = stream.url;
-        let isGrobogan = stream.city.includes("GROBOGAN") || stream.city.includes("PEMALANG");
+        // --- CORS FIX (GROBOGAN & KABUPATEN PEKALONGAN) ---
+        let finalUrl = stream.url;
+        // Matikan low latency mode untuk server yang agak lambat
+        let isSlowServer = stream.city.includes("GROBOGAN") || stream.city.includes("PEMALANG") || stream.city.includes("KABUPATEN PEKALONGAN");
 
-        // Jika URL adalah HTTP biasa (bukan HTTPS), tampilkan peringatan
-        if (stream.url.startsWith("http://") && !stream.url.includes("103.42.243.10")) {
-            httpWarning.classList.remove('hidden');
-        }
+        // Jika URL adalah HTTP biasa (bukan HTTPS), tampilkan peringatan
+        if (stream.url.startsWith("http://") && !stream.url.includes("103.42.243.10")) {
+            httpWarning.classList.remove('hidden');
+        }
 
-        // Khusus Grobogan: Gunakan Proxy Publik untuk memintas CORS blokir
-        // Server Dishub Grobogan memblokir akses langsung dari web lain (CORS),
-        // jadi kita "membungkus" URL-nya lewat proxy agar browser mau memutarnya.
-        if (stream.city.includes("GROBOGAN")) {
-             finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(stream.url);
-        }
+        // Gunakan Proxy Publik untuk memintas CORS blokir dari server pemda
+        if (stream.city.includes("GROBOGAN") || stream.city.includes("KABUPATEN PEKALONGAN")) {
+             finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(stream.url);
+        }
 
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
