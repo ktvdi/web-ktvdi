@@ -926,7 +926,7 @@
     }
 
     // Fungsi Utama untuk Integrasi Backend API Pelanggaran (REAL)
-    async function performRealALPR(videoElement, bbox) {
+    async function performRealALPR(videoElement, bbox, vehicleClass) {
         // 1. Buat canvas virtual untuk memotong (crop) gambar kendaraan saja
         const cropCanvas = document.createElement('canvas');
         const ctx = cropCanvas.getContext('2d');
@@ -943,47 +943,24 @@
         const base64Frame = cropCanvas.toDataURL('image/jpeg', 0.8);
 
         try {
-            // =========================================================================
-            // GANTI URL INI DENGAN ENDPOINT API REAL KAMU (Misal: Python Flask + YOLO)
-            // =========================================================================
-            /*
-            const response = await fetch('http://localhost:5000/api/detect_violation', {
+            // MENGIRIM DATA REAL DARI KAMERA KE BACKEND YOLOV8 KAMU
+            const response = await fetch('/api/detect_violation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ frame: base64Frame })
+                // Kita kirim tipe kendaraan (car/motorcycle) agar backend tahu harus cek sabuk atau helm
+                body: JSON.stringify({ frame: base64Frame, vehicle_type: vehicleClass })
             });
             const result = await response.json();
             
-            // Format ekspektasi JSON API: { "plate": "H 1617 LP", "violation": "Tidak Menggunakan Sabuk Keselamatan" }
-            if (result && result.plate && !loggedPlates.has(result.plate)) {
-                loggedPlates.add(result.plate);
-                logViolation(result.plate, result.violation);
+            // Format ekspektasi JSON API: { "status": "success", "plate": "H 1617 LP", "violation": "Tidak Menggunakan Sabuk Keselamatan" }
+            if (result && result.status === 'success' && result.plate) {
+                if (!loggedPlates.has(result.plate)) {
+                    loggedPlates.add(result.plate);
+                    logViolation(result.plate, result.violation);
+                }
             }
-            */
-
-            // --- FALLBACK SEMENTARA ---
-            // Karena API belum dinyalakan, kita panggil fungsi simulasi di frontend.
-            // Jika backend sudah siap, hapus baris ini dan un-comment fetch API di atas.
-            simulateRealAPI_Fallback(base64Frame); 
-
         } catch (error) {
             console.error("Gagal menghubungi API Pelanggaran:", error);
-        }
-    }
-
-    function simulateRealAPI_Fallback() {
-        // Menggunakan timestamp memastikan plat *benar-benar unik* setiap saat (tidak berulang)
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const randomChar = () => chars[Math.floor(Math.random() * chars.length)];
-        // Format H [Angka Random] [Huruf]
-        const randomPlate = `H ${Math.floor(1000 + Math.random() * 9000)} ${randomChar()}${randomChar()}`;
-        
-        const violations = ["Tidak Menggunakan Helm", "Tidak Menggunakan Sabuk Keselamatan", "Melanggar Marka Jalan"];
-        const randomViolation = violations[Math.floor(Math.random() * violations.length)];
-
-        if (!loggedPlates.has(randomPlate)) {
-            loggedPlates.add(randomPlate);
-            logViolation(randomPlate, randomViolation);
         }
     }
 
@@ -1091,7 +1068,8 @@
                     const targetVehicle = vehicles[0];
                     
                     // Lakukan proses potong gambar dan panggil API
-                    performRealALPR(video, targetVehicle.bbox);
+                    // Kita juga kirimkan targetVehicle.class (misal: "car" atau "motorcycle")
+                    performRealALPR(video, targetVehicle.bbox, targetVehicle.class);
                 }
 
             } catch (err) {
