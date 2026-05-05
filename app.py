@@ -19,11 +19,19 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta, date
 import urllib3
 
-# --- IMPORT UNTUK DETEKSI REAL AI (YOLO & OCR) ---
-import cv2
-import numpy as np
-from ultralytics import YOLO
-import easyocr
+# ==========================================
+# --- SAFE IMPORT UNTUK DETEKSI REAL AI ---
+# Mencegah Vercel Crash (Error 500)
+# ==========================================
+try:
+    import cv2
+    import numpy as np
+    from ultralytics import YOLO
+    import easyocr
+    HAS_AI_LIBS = True
+except ImportError:
+    HAS_AI_LIBS = False
+    print("⚠️ Peringatan: Library AI (YOLO/CV2/EasyOCR) tidak terdeteksi. Berjalan di Mode Ringan (Vercel).")
 
 # ==========================================
 # 1. KONFIGURASI SYSTEM & SECURITY
@@ -42,16 +50,20 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # ==========================================
 # 1.5. INISIALISASI MODEL YOLO & OCR GLOBAL
 # ==========================================
-# Di-load di luar request agar memori tidak bocor dan respons API secepat kilat
-try:
-    print("⏳ Sedang memuat Model YOLOv8 & EasyOCR...")
-    yolo_model = YOLO('best.pt') # Ganti 'best.pt' dengan nama file model aslimu
-    ocr_reader = easyocr.Reader(['id', 'en'], gpu=False) # Ubah gpu=True jika pakai Nvidia/CUDA
-    AI_READY = True
-    print("✅ STATUS: Model AI Pelanggaran Siap Digunakan.")
-except Exception as e:
-    print(f"⚠️ STATUS: Model AI belum siap / file .pt tidak ditemukan. Error: {e}")
-    AI_READY = False
+AI_READY = False
+if HAS_AI_LIBS:
+    try:
+        print("⏳ Sedang memuat Model YOLOv8 & EasyOCR...")
+        # Cek apakah file model fisik ada di folder
+        if os.path.exists('best.pt'):
+            yolo_model = YOLO('best.pt') 
+            ocr_reader = easyocr.Reader(['id', 'en'], gpu=False) 
+            AI_READY = True
+            print("✅ STATUS: Model AI Pelanggaran Siap Digunakan (REAL MODE).")
+        else:
+            print("⚠️ STATUS: File 'best.pt' tidak ditemukan di direktori.")
+    except Exception as e:
+        print(f"⚠️ STATUS: Gagal inisialisasi AI: {e}")
 
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
@@ -78,17 +90,14 @@ TRACKER_DATA = {
 
 @app.before_request
 def visitor_tracker():
-    # Abaikan aset statis agar perhitungan fokus ke kunjungan halaman asli
     if request.endpoint and 'static' not in request.endpoint:
         tz = pytz.timezone('Asia/Jakarta')
         today = datetime.now(tz).date()
         
-        # Reset data harian secara otomatis jika sudah berganti hari
         if TRACKER_DATA["date"] != today:
             TRACKER_DATA["date"] = today
             TRACKER_DATA["daily_ips"].clear()
             
-        # Ambil IP pengunjung (dukung Reverse Proxy/Hosting seperti Vercel/VPS)
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         if user_ip:
             user_ip = user_ip.split(',')[0].strip()
@@ -150,10 +159,8 @@ mail = Mail(app)
 GEMINI_KEY = "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU" 
 
 def get_gemini_model():
-    """Menginisialisasi ulang Gemini setiap kali dipanggil agar tidak offline permanen."""
     try:
         genai.configure(api_key=GEMINI_KEY)
-        # MATIKAN FILTER SAFETY AGAR AI TIDAK SERING MEMBLOKIR RESPONS (PENYEBAB AI GAGAL MENJAWAB)
         safety_settings = [
             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -250,21 +257,18 @@ def get_hijri_date_string():
         pass
     return f"4 Ramadan 1447 H"
 
-# --- CACHE UNTUK BERITA AGAR LEBIH CEPAT DAN BISA MENYIMPAN BANYAK ---
+# --- CACHE UNTUK BERITA ---
 NEWS_CACHE = []
 NEWS_LAST_FETCH = 0
 
 def get_news_entries():
     global NEWS_CACHE, NEWS_LAST_FETCH
-    
-    # Update otomatis setiap 60 detik (1 menit)
     if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 60):
         return NEWS_CACHE
 
     all_news = []
     headers = {'User-Agent': 'Mozilla/5.0'}
 
-    # 1. FETCH DATA BMKG (GEMPA TERKINI) - Parsing Manual karena format XML BMKG unik
     try:
         r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=5)
         if r_bmkg.status_code == 200:
@@ -276,7 +280,6 @@ def get_news_entries():
                 potensi = gempa.find('Potensi').text
                 shakemap = gempa.find('Shakemap').text
                 
-                # Masukkan ke list berita
                 all_news.append({
                     'title': f"INFO GEMPA BMKG: {magnitude} SR di {wilayah} ({potensi})",
                     'link': "https://warning.bmkg.go.id/",
@@ -287,7 +290,6 @@ def get_news_entries():
     except Exception as e:
         print(f"Gagal memuat info BMKG: {e}")
 
-    # 2. FETCH DARI RSS PORTAL BERITA LAINNYA
     try:
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
@@ -295,10 +297,10 @@ def get_news_entries():
             'https://www.antaranews.com/rss/top-news.xml',
             'https://www.republika.co.id/rss',
             'https://www.cnbcindonesia.com/news/rss',
-            'https://www.kompas.com/feed',             # Kompas
-            'https://www.liputan6.com/rss',            # Liputan 6
-            'https://www.dailyforex.com/forex-rss',    # Forex Update
-            'https://rss.app/feeds/viory.xml'          # Viory
+            'https://www.kompas.com/feed',             
+            'https://www.liputan6.com/rss',            
+            'https://www.dailyforex.com/forex-rss',    
+            'https://rss.app/feeds/viory.xml'          
         ]
         for url in sources:
             try:
@@ -306,9 +308,7 @@ def get_news_entries():
                 if response.status_code == 200:
                     feed = feedparser.parse(response.content)
                     if feed.entries:
-                        # Mengambil maksimal 25 artikel dari setiap sumber
                         for entry in feed.entries[:25]: 
-                            # Identifikasi Nama Sumber berdasarkan URL
                             if 'kompas' in url: source_name = 'Kompas'
                             elif 'liputan6' in url: source_name = 'Liputan 6'
                             elif 'forex' in url: source_name = 'Forex Update'
@@ -339,7 +339,6 @@ def get_news_entries():
         t = datetime.now().timetuple()
         return [{'title': 'Selamat Datang di Portal KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi', 'image': None}]
     
-    # Menyimpan hingga 150 berita terbaru sekaligus ke memori
     NEWS_CACHE = all_news[:150]
     NEWS_LAST_FETCH = time.time()
     
@@ -369,35 +368,22 @@ KEMENAG_KOTA_CACHE = []
 KEMENAG_LAST_FETCH = 0
 
 def fetch_kemenag_kota():
-    """Mengambil Data 300+ Kota Beserta ID Resmi yang 100% Cocok dengan Kemenag"""
     global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
-    
-    # Jika data sudah di-cache dan usianya belum 24 jam, kembalikan dari memori.
     if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400):
         return KEMENAG_KOTA_CACHE
 
     try:
-        # Panggil API open-source MyQuran (Server mereka tidak galak dan datanya sama dengan Kemenag)
         r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=8)
-        
         if r.status_code == 200:
             data = r.json()
             if data.get('status') and 'data' in data:
-                # Merapikan dan mapping ID beserta Nama Kota
-                all_cities = [
-                    {"id": item['id'], "nama": item['lokasi'].title()} 
-                    for item in data['data']
-                ]
-                
-                # Mengurutkan sesuai abjad A-Z
+                all_cities = [{"id": item['id'], "nama": item['lokasi'].title()} for item in data['data']]
                 KEMENAG_KOTA_CACHE = sorted(all_cities, key=lambda x: x['nama'])
                 KEMENAG_LAST_FETCH = time.time()
                 return KEMENAG_KOTA_CACHE
-                            
     except Exception as e:
         print(f"Gagal mengambil ID API Kemenag/MyQuran: {e}")
 
-    # Ultimate Fallback (Tetap memberikan ID asli jika server api.myquran sedang down)
     return [
         {"id": "1301", "nama": "Kota Jakarta"},
         {"id": "1604", "nama": "Kota Semarang"},
@@ -765,14 +751,12 @@ def chatbot_api():
         full_prompt = f"{MODI_PROMPT}\n{context}\nUser: {user_msg}\nModi:"
     else: full_prompt = f"{MODI_PROMPT}\nUser: {user_msg}\nModi:"
 
-    # Panggil model on-the-fly, AI selalu mencoba reconnect saat ada pesan masuk
     model = get_gemini_model()
     if not model: 
         return jsonify({"response": get_smart_fallback_response(user_msg)})
     
     try: 
         response = model.generate_content(full_prompt)
-        # Perlindungan dari error 'ValueError' karena Safety Settings memblokir kata-kata tertentu
         try:
             teks_balasan = response.text
         except ValueError:
@@ -789,13 +773,8 @@ def jadwal_sholat_page():
     hijri_today = get_hijri_date_string()
     return render_template("jadwal-sholat.html", daftar_kota=daftar_kota, quotes=get_quote_religi(), hijri_date=hijri_today)
 
-# --- API INTERNAL BARU UNTUK MENARIK JADWAL RESMI MIRROR KEMENAG (100% AKURAT) ---
 @app.route("/api/jadwal-imsakiyah")
 def get_jadwal_kemenag():
-    """
-    Menarik data dari API MyQuran (Data base sama persis dengan Bimas Islam, tanpa error blokir).
-    Frontend cukup panggil: /api/jadwal-imsakiyah?id_kota=1604&bulan=2&tahun=2026
-    """
     id_kota = request.args.get("id_kota")
     bulan = request.args.get("bulan", datetime.now().month)
     tahun = request.args.get("tahun", datetime.now().year)
@@ -804,13 +783,10 @@ def get_jadwal_kemenag():
         return jsonify({"status": False, "message": "Parameter id_kota wajib diisi."})
 
     try:
-        # Gunakan API MyQuran, datanya langsung ter-mapping tanpa butuh format rumit Kemenag
         url = f"https://api.myquran.com/v2/sholat/jadwal/{id_kota}/{tahun}/{bulan}"
         r = requests.get(url, timeout=10)
         
         if r.status_code == 200:
-            # Karena API ini mengembalikan JSON bersih (imsak, subuh, maghrib dll)
-            # Maka frontend Javascript (ajax Ndan) tinggal menangkap datanya saja.
             return jsonify(r.json())
     except Exception as e:
         return jsonify({"status": False, "message": str(e)})
@@ -821,17 +797,15 @@ def get_jadwal_kemenag():
 def news_ticker():
     return jsonify([n['title'] for n in get_news_entries()])
 
-# --- API STATISTIK PENGUNJUNG ---
 @app.route('/api/visitor-stats')
 def visitor_stats():
     current_time = time.time()
-    # Bersihkan IP yang sudah tidak aktif lebih dari 5 menit (300 detik)
     active_ips = {ip: ts for ip, ts in TRACKER_DATA["online_ips"].items() if current_time - ts <= 300}
     TRACKER_DATA["online_ips"] = active_ips
     
     return jsonify({
         "daily": len(TRACKER_DATA["daily_ips"]),
-        "online": max(1, len(active_ips)) # Pastikan minimal 1 karena user yang akses pasti sedang online
+        "online": max(1, len(active_ips)) 
     })
 
 # ==========================================
@@ -847,29 +821,37 @@ def api_detect_violation():
         if frame_base64.startswith('data:image'):
             frame_base64 = frame_base64.split(',')[1]
 
+        # JIKA DI VERCEL, BERJALAN DI MODE SIMULASI (TETAP JALAN UI-NYA)
         if not AI_READY:
-            return jsonify({"status": "error", "message": "Model AI belum siap di server."})
+            chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            plat = f"H {random.randint(1000, 9999)} {random.choice(chars)}{random.choice(chars)}"
+            pelanggaran = random.choice([
+                "Tidak Menggunakan Helm", 
+                "Tidak Menggunakan Sabuk Keselamatan",
+                "Melanggar Marka Jalan"
+            ])
+            return jsonify({
+                "status": "success",
+                "plate": plat,
+                "violation": f"{pelanggaran} (Simulasi Vercel)"
+            })
 
-        # Decode gambar yang dikirim dari browser
+        # JIKA DI VPS, BERJALAN 100% REAL DARI KAMERA
         img_data = base64.b64decode(frame_base64)
         np_arr = np.frombuffer(img_data, np.uint8)
         img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # Proses deteksi melalui YOLOv8
         results = yolo_model(img)
         
         plat_ditemukan = ""
         jenis_pelanggaran = ""
 
-        # Looping hasil bounding box dari model milikmu
         for r in results:
             boxes = r.boxes
             for box in boxes:
                 cls_id = int(box.cls[0])
                 class_name = yolo_model.names[cls_id]
 
-                # 1. Cek Pelanggaran Helm/Sabuk
-                # Sesuaikan nama class ini dengan hasil training dataset-mu!
                 if class_name in ["no_helmet", "tidak_pakai_helm"]:
                     jenis_pelanggaran = "Tidak Menggunakan Helm"
                 elif class_name in ["no_seatbelt", "tidak_pakai_sabuk"]:
@@ -877,29 +859,21 @@ def api_detect_violation():
                 elif class_name in ["melanggar_marka"]:
                     jenis_pelanggaran = "Melanggar Marka Jalan"
                 
-                # 2. Ekstrak teks Plat Nomor (ALPR)
                 if class_name in ["license_plate", "plat_nomor"]:
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    
-                    # Crop bagian plat nomor dari gambar
                     plat_crop = img[y1:y2, x1:x2]
                     
-                    # Baca teks dengan EasyOCR
                     ocr_result = ocr_reader.readtext(plat_crop)
                     if ocr_result:
-                        # Gabungkan teks jika terbaca lebih dari satu baris
                         raw_text = " ".join([text[1] for text in ocr_result]).upper()
-                        # Bersihkan karakter selain huruf dan angka
                         plat_ditemukan = re.sub(r'[^A-Z0-9\s]', '', raw_text)
 
-        # Jika tidak ada pelanggaran atau plat tidak jelas, diabaikan
         if not plat_ditemukan or not jenis_pelanggaran:
             return jsonify({
                 "status": "ignored", 
                 "message": "Tidak ada pelanggaran / Plat buram."
             })
 
-        # Kembalikan data aslinya ke frontend
         return jsonify({
             "status": "success",
             "plate": plat_ditemukan.strip(),
