@@ -19,19 +19,11 @@ from flask_mail import Mail, Message
 from datetime import datetime, timedelta, date
 import urllib3
 
-# ==========================================
-# --- SAFE IMPORT UNTUK DETEKSI REAL AI ---
-# Mencegah Vercel Crash (Error 500)
-# ==========================================
-try:
-    import cv2
-    import numpy as np
-    from ultralytics import YOLO
-    import easyocr
-    HAS_AI_LIBS = True
-except ImportError:
-    HAS_AI_LIBS = False
-    print("⚠️ Peringatan: Library AI (YOLO/CV2/EasyOCR) tidak terdeteksi. Berjalan di Mode Ringan (Vercel).")
+# --- IMPORT WAJIB UNTUK DETEKSI REAL AI (YOLO & OCR) ---
+import cv2
+import numpy as np
+from ultralytics import YOLO
+import easyocr
 
 # ==========================================
 # 1. KONFIGURASI SYSTEM & SECURITY
@@ -50,20 +42,11 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # ==========================================
 # 1.5. INISIALISASI MODEL YOLO & OCR GLOBAL
 # ==========================================
-AI_READY = False
-if HAS_AI_LIBS:
-    try:
-        print("⏳ Sedang memuat Model YOLOv8 & EasyOCR...")
-        # Cek apakah file model fisik ada di folder
-        if os.path.exists('best.pt'):
-            yolo_model = YOLO('best.pt') 
-            ocr_reader = easyocr.Reader(['id', 'en'], gpu=False) 
-            AI_READY = True
-            print("✅ STATUS: Model AI Pelanggaran Siap Digunakan (REAL MODE).")
-        else:
-            print("⚠️ STATUS: File 'best.pt' tidak ditemukan di direktori.")
-    except Exception as e:
-        print(f"⚠️ STATUS: Gagal inisialisasi AI: {e}")
+print("⏳ Sedang memuat Model YOLOv8 & EasyOCR...")
+# PASTIKAN FILE 'best.pt' ADA DI FOLDER YANG SAMA!
+yolo_model = YOLO('best.pt') 
+ocr_reader = easyocr.Reader(['id', 'en'], gpu=False) 
+print("✅ STATUS: Model AI Pelanggaran Siap Digunakan (100% REAL MODE).")
 
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
@@ -821,22 +804,7 @@ def api_detect_violation():
         if frame_base64.startswith('data:image'):
             frame_base64 = frame_base64.split(',')[1]
 
-        # JIKA DI VERCEL, BERJALAN DI MODE SIMULASI (TETAP JALAN UI-NYA)
-        if not AI_READY:
-            chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            plat = f"H {random.randint(1000, 9999)} {random.choice(chars)}{random.choice(chars)}"
-            pelanggaran = random.choice([
-                "Tidak Menggunakan Helm", 
-                "Tidak Menggunakan Sabuk Keselamatan",
-                "Melanggar Marka Jalan"
-            ])
-            return jsonify({
-                "status": "success",
-                "plate": plat,
-                "violation": f"{pelanggaran} (Simulasi Vercel)"
-            })
-
-        # JIKA DI VPS, BERJALAN 100% REAL DARI KAMERA
+        # JIKA DI VPS / LOCAL, BERJALAN 100% REAL DARI KAMERA
         img_data = base64.b64decode(frame_base64)
         np_arr = np.frombuffer(img_data, np.uint8)
         img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
