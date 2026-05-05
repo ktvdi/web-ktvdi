@@ -993,15 +993,16 @@
             canvas.height = video.clientHeight;
 
             try {
-                // Proses Frame sebelum dilempar ke AI (Tweak Low-Light / Malam)
                 preCanvas.width = video.videoWidth;
                 preCanvas.height = video.videoHeight;
-                // Naikkan contrast dan brightness secara realtime (Sangat berpengaruh untuk kamera malam)
-                preCtx.filter = 'brightness(1.25) contrast(1.2)';
+                
+                // PJU sudah terang, filter brightness malah membuat silau/overexposed pada lampu kendaraan.
+                // Solusi: Naikkan kontras untuk edge detection, turunkan sedikit brightness untuk meredam silau lampu motor.
+                preCtx.filter = 'contrast(1.15) brightness(0.95) saturate(1.2)';
                 preCtx.drawImage(video, 0, 0, preCanvas.width, preCanvas.height);
 
-                // Turunkan threshold minScore ke 0.25 dan naikkan jumlah max object
-                const predictions = await aiModel.detect(preCanvas, 75, 0.25);
+                // Turunkan lagi threshold minScore ke 0.20 dan maksimalkan scanning ke 100 objek
+                const predictions = await aiModel.detect(preCanvas, 100, 0.20);
                 
                 const vehicleClasses = ['car', 'truck', 'bus', 'motorcycle'];
                 const vehicles = predictions.filter(p => vehicleClasses.includes(p.class));
