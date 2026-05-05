@@ -10,6 +10,7 @@ import feedparser
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
 import concurrent.futures
+import base64  # Ditambahkan untuk decode frame gambar dari frontend
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -812,6 +813,68 @@ def visitor_stats():
         "daily": len(TRACKER_DATA["daily_ips"]),
         "online": max(1, len(active_ips)) # Pastikan minimal 1 karena user yang akses pasti sedang online
     })
+
+# ==========================================
+# 9. API BARU: DETEKSI PELANGGARAN ALPR/YOLO
+# ==========================================
+@app.route('/api/detect_violation', methods=['POST'])
+def api_detect_violation():
+    try:
+        data = request.get_json()
+        frame_base64 = data.get('frame', '')
+        
+        # Bersihkan string base64 jika ada prefix dari canvas
+        if frame_base64.startswith('data:image'):
+            frame_base64 = frame_base64.split(',')[1]
+
+        # -------------------------------------------------------------
+        # [ INTEGRASI MODEL YOLO & OCR ASLI DI SINI ]
+        # Jika Anda sudah menginstal ultralytics, opencv, dan easyocr,
+        # silakan hapus komentar pada blok di bawah ini.
+        # -------------------------------------------------------------
+        """
+        import cv2
+        import numpy as np
+        from ultralytics import YOLO
+        import easyocr
+
+        # Decode gambar base64 ke format OpenCV
+        img_data = base64.b64decode(frame_base64)
+        np_arr = np.frombuffer(img_data, np.uint8)
+        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        # Load model custom Anda
+        model = YOLO('path_ke_model_pelanggaran.pt')
+        results = model(img)
+        
+        # Logika ekstraksi hasil deteksi dan OCR ditaruh di sini
+        # plat_ditemukan = "..."
+        # jenis_pelanggaran = "..."
+        
+        # return jsonify({"status": "success", "plate": plat_ditemukan, "violation": jenis_pelanggaran})
+        """
+
+        # -------------------------------------------------------------
+        # FALLBACK / SIMULASI SEMENTARA
+        # Mengembalikan format data yang persis seperti diharapkan frontend
+        # -------------------------------------------------------------
+        chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        # Format Plat Nomor: H [Angka] [Huruf]
+        plat = f"H {random.randint(1000, 9999)} {random.choice(chars)}{random.choice(chars)}"
+        pelanggaran = random.choice([
+            "Tidak Menggunakan Helm", 
+            "Tidak Menggunakan Sabuk Keselamatan",
+            "Melanggar Marka Jalan"
+        ])
+
+        return jsonify({
+            "status": "success",
+            "plate": plat,
+            "violation": pelanggaran
+        })
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/about')
 def about(): return render_template('about.html')
