@@ -10,7 +10,7 @@ import feedparser
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
 import concurrent.futures
-import base64  # Ditambahkan untuk decode frame gambar dari frontend
+import base64  
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -18,6 +18,12 @@ from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta, date
 import urllib3
+
+# --- IMPORT UNTUK DETEKSI REAL AI (YOLO & OCR) ---
+import cv2
+import numpy as np
+from ultralytics import YOLO
+import easyocr
 
 # ==========================================
 # 1. KONFIGURASI SYSTEM & SECURITY
@@ -32,6 +38,20 @@ CORS(app)
 app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
+
+# ==========================================
+# 1.5. INISIALISASI MODEL YOLO & OCR GLOBAL
+# ==========================================
+# Di-load di luar request agar memori tidak bocor dan respons API secepat kilat
+try:
+    print("⏳ Sedang memuat Model YOLOv8 & EasyOCR...")
+    yolo_model = YOLO('best.pt') # Ganti 'best.pt' dengan nama file model aslimu
+    ocr_reader = easyocr.Reader(['id', 'en'], gpu=False) # Ubah gpu=True jika pakai Nvidia/CUDA
+    AI_READY = True
+    print("✅ STATUS: Model AI Pelanggaran Siap Digunakan.")
+except Exception as e:
+    print(f"⚠️ STATUS: Model AI belum siap / file .pt tidak ditemukan. Error: {e}")
+    AI_READY = False
 
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
@@ -815,62 +835,75 @@ def visitor_stats():
     })
 
 # ==========================================
-# 9. API BARU: DETEKSI PELANGGARAN ALPR/YOLO
+# 9. API BARU: DETEKSI PELANGGARAN REAL (ALPR/YOLO)
 # ==========================================
 @app.route('/api/detect_violation', methods=['POST'])
 def api_detect_violation():
     try:
         data = request.get_json()
         frame_base64 = data.get('frame', '')
+        vehicle_type = data.get('vehicle_type', 'car')
         
-        # Bersihkan string base64 jika ada prefix dari canvas
         if frame_base64.startswith('data:image'):
             frame_base64 = frame_base64.split(',')[1]
 
-        # -------------------------------------------------------------
-        # [ INTEGRASI MODEL YOLO & OCR ASLI DI SINI ]
-        # Jika Anda sudah menginstal ultralytics, opencv, dan easyocr,
-        # silakan hapus komentar pada blok di bawah ini.
-        # -------------------------------------------------------------
-        """
-        import cv2
-        import numpy as np
-        from ultralytics import YOLO
-        import easyocr
+        if not AI_READY:
+            return jsonify({"status": "error", "message": "Model AI belum siap di server."})
 
-        # Decode gambar base64 ke format OpenCV
+        # Decode gambar yang dikirim dari browser
         img_data = base64.b64decode(frame_base64)
         np_arr = np.frombuffer(img_data, np.uint8)
         img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # Load model custom Anda
-        model = YOLO('path_ke_model_pelanggaran.pt')
-        results = model(img)
+        # Proses deteksi melalui YOLOv8
+        results = yolo_model(img)
         
-        # Logika ekstraksi hasil deteksi dan OCR ditaruh di sini
-        # plat_ditemukan = "..."
-        # jenis_pelanggaran = "..."
-        
-        # return jsonify({"status": "success", "plate": plat_ditemukan, "violation": jenis_pelanggaran})
-        """
+        plat_ditemukan = ""
+        jenis_pelanggaran = ""
 
-        # -------------------------------------------------------------
-        # FALLBACK / SIMULASI SEMENTARA
-        # Mengembalikan format data yang persis seperti diharapkan frontend
-        # -------------------------------------------------------------
-        chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        # Format Plat Nomor: H [Angka] [Huruf]
-        plat = f"H {random.randint(1000, 9999)} {random.choice(chars)}{random.choice(chars)}"
-        pelanggaran = random.choice([
-            "Tidak Menggunakan Helm", 
-            "Tidak Menggunakan Sabuk Keselamatan",
-            "Melanggar Marka Jalan"
-        ])
+        # Looping hasil bounding box dari model milikmu
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                cls_id = int(box.cls[0])
+                class_name = yolo_model.names[cls_id]
 
+                # 1. Cek Pelanggaran Helm/Sabuk
+                # Sesuaikan nama class ini dengan hasil training dataset-mu!
+                if class_name in ["no_helmet", "tidak_pakai_helm"]:
+                    jenis_pelanggaran = "Tidak Menggunakan Helm"
+                elif class_name in ["no_seatbelt", "tidak_pakai_sabuk"]:
+                    jenis_pelanggaran = "Tidak Menggunakan Sabuk Keselamatan"
+                elif class_name in ["melanggar_marka"]:
+                    jenis_pelanggaran = "Melanggar Marka Jalan"
+                
+                # 2. Ekstrak teks Plat Nomor (ALPR)
+                if class_name in ["license_plate", "plat_nomor"]:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    
+                    # Crop bagian plat nomor dari gambar
+                    plat_crop = img[y1:y2, x1:x2]
+                    
+                    # Baca teks dengan EasyOCR
+                    ocr_result = ocr_reader.readtext(plat_crop)
+                    if ocr_result:
+                        # Gabungkan teks jika terbaca lebih dari satu baris
+                        raw_text = " ".join([text[1] for text in ocr_result]).upper()
+                        # Bersihkan karakter selain huruf dan angka
+                        plat_ditemukan = re.sub(r'[^A-Z0-9\s]', '', raw_text)
+
+        # Jika tidak ada pelanggaran atau plat tidak jelas, diabaikan
+        if not plat_ditemukan or not jenis_pelanggaran:
+            return jsonify({
+                "status": "ignored", 
+                "message": "Tidak ada pelanggaran / Plat buram."
+            })
+
+        # Kembalikan data aslinya ke frontend
         return jsonify({
             "status": "success",
-            "plate": plat,
-            "violation": pelanggaran
+            "plate": plat_ditemukan.strip(),
+            "violation": jenis_pelanggaran
         })
 
     except Exception as e:
