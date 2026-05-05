@@ -779,6 +779,7 @@ def visitor_stats():
 
 # ==========================================
 # 9. API BARU: DETEKSI PELANGGARAN REAL (ALPR/GEMINI VISION)
+# (Sangat Ringan, Bebas Crash di Vercel)
 # ==========================================
 @app.route('/api/detect_violation', methods=['POST'])
 def api_detect_violation():
@@ -790,10 +791,8 @@ def api_detect_violation():
         if frame_base64.startswith('data:image'):
             frame_base64 = frame_base64.split(',')[1]
 
-        # Decode gambar yang dikirim dari browser
         img_data = base64.b64decode(frame_base64)
 
-        # Gunakan Gemini Flash (Sangat ringan untuk Vercel)
         model = get_gemini_model()
         if not model:
             return jsonify({"status": "error", "message": "AI tidak siap."}), 500
@@ -823,7 +822,6 @@ def api_detect_violation():
         response = model.generate_content([prompt, image_parts[0]])
         text_res = response.text.strip()
         
-        # Bersihkan format JSON dari balasan Gemini
         text_res = text_res.replace('```json', '').replace('
 ```', '').strip()
         
