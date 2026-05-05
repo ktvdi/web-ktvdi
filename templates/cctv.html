@@ -129,6 +129,13 @@
     .bar:nth-child(4) { height: 10px; }
     .net-label { font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 1px; }
 
+    /* --- VIOLATION LOG ITEM ANIMATION --- */
+    @keyframes slide-in {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .violation-entry { animation: slide-in 0.3s ease-out forwards; }
+
     /* --- RESPONSIVE LAYOUT --- */
     @media (min-width: 1024px) {
         .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; align-items: start; }
@@ -249,6 +256,22 @@
                         <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
                     </div>
                 </div>
+
+                <!-- NEW: PANEL LOG PELANGGARAN LALU LINTAS -->
+                <div class="bg-[#020617] border-t border-slate-800 p-3 h-40 overflow-y-auto premium-scroll relative z-20" id="violation-panel">
+                    <div class="flex items-center justify-between mb-2.5 sticky top-0 bg-[#020617] z-10 pb-1">
+                        <h4 class="text-[10px] font-bold text-red-400 tracking-wider flex items-center">
+                            <i class="fa-solid fa-id-card-clip mr-1.5"></i> DETEKSI PELANGGARAN & PLAT NOMOR
+                        </h4>
+                        <span class="text-[9px] font-bold text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700">AI LOGGER</span>
+                    </div>
+                    
+                    <div id="violation-list" class="flex flex-col gap-2">
+                        <!-- Item Pelanggaran akan dirender oleh JavaScript di sini -->
+                        <div class="text-[10px] text-slate-500 text-center py-4 italic" id="empty-violation-msg">Menunggu deteksi pelanggaran...</div>
+                    </div>
+                </div>
+
             </div>
 
             <div class="mt-5 bg-[#0f172a] border border-slate-800 p-3 rounded-xl shadow-lg shadow-black/20 flex flex-col gap-3">
@@ -860,11 +883,47 @@
 
     async function loadAIModel() {
         try {
-            // Kita inisialisasi AI di background tapi tidak tampilkan popup status default dulu
             aiModel = await cocoSsd.load({ base: 'mobilenet_v2' });
             console.log("Model AI Berhasil Dimuat");
         } catch (error) {
             console.error("Gagal meload model AI:", error);
+        }
+    }
+
+    // Fungsi Pembantu untuk UI Log Pelanggaran
+    function logViolation(plateNumber, violationType) {
+        const listContainer = document.getElementById('violation-list');
+        const emptyMsg = document.getElementById('empty-violation-msg');
+        if(emptyMsg) emptyMsg.remove();
+
+        const timeString = new Date().toLocaleTimeString('id-ID', { hour12: false });
+        
+        // Tentukan warna badge berdasarkan pelanggaran
+        const badgeColor = violationType.toLowerCase().includes('helm') ? 'bg-orange-900/50 text-orange-400 border-orange-700/50' : 'bg-red-900/50 text-red-400 border-red-700/50';
+
+        const entry = document.createElement('div');
+        entry.className = 'violation-entry bg-[#0f172a] border border-slate-700 p-2 rounded-lg flex items-center justify-between shadow-inner';
+        entry.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="bg-black border border-slate-600 px-2 py-1 rounded text-center min-w-[90px]">
+                    <span class="text-[10px] font-bold text-white tracking-widest">${plateNumber}</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[11px] font-bold text-slate-200">${violationType}</span>
+                    <span class="text-[9px] text-slate-500 font-mono">${timeString} • Auto-Capture</span>
+                </div>
+            </div>
+            <button class="text-slate-500 hover:text-blue-400 transition-colors px-2" title="Detail">
+                <i class="fa-solid fa-expand text-xs"></i>
+            </button>
+        `;
+
+        // Masukkan di paling atas
+        listContainer.prepend(entry);
+
+        // Batasi maksimal 15 entri agar browser tidak berat
+        if (listContainer.children.length > 15) {
+            listContainer.removeChild(listContainer.lastChild);
         }
     }
 
@@ -880,10 +939,8 @@
         const defaultText = document.getElementById('default-status-text');
         const warningEl = document.getElementById('severe-warning');
         
-        // Hide tulisan default di HP dan munculkan container AI
         defaultText.classList.add('hidden', 'md:block');
         
-        // Status awal loading
         desktopStatus.innerHTML = `<i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-2"></i> Memproses Frame...`;
         desktopStatus.className = "hidden md:flex absolute top-3 left-3 bg-black/80 text-white px-3 py-1.5 rounded-md text-xs font-bold border border-slate-600 z-40 backdrop-blur-md shadow-lg transition-all items-center";
         
@@ -897,7 +954,7 @@
             canvas.height = video.clientHeight;
 
             try {
-                // Deteksi max 50 objek, confidence min 40%
+                // Deteksi Bawaan coco-ssd (Mobil, Motor, Bus)
                 const predictions = await aiModel.detect(video, 50, 0.4);
                 
                 const vehicleClasses = ['car', 'truck', 'bus', 'motorcycle'];
@@ -928,28 +985,28 @@
                     ctx.fillText(`${v.class} ${Math.round(v.score * 100)}%`, scaledX + 2, scaledY - 4);
                 });
 
-                // --- Logika Kepadatan & UI Responsif ---
+                // --- LOGIC UI UNTUK KEPADATAN ---
                 const vehicleCount = vehicles.length;
                 let deskHTML, deskClass, mobHTML, mobClass;
                 let showWarning = false;
                 
-                if (vehicleCount >= 15) { // MACET PARAH
+                if (vehicleCount >= 15) { 
                     deskHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-2 animate-pulse"></i> MACET PARAH: ${vehicleCount} KENDARAAN`;
                     deskClass = "hidden md:flex absolute top-3 left-3 bg-red-950/90 text-red-100 px-3 py-1.5 rounded-md text-xs font-bold border border-red-500 z-40 backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.6)] items-center";
                     mobHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-1.5 animate-pulse"></i> MACET PARAH (${vehicleCount})`;
                     mobClass = "md:hidden flex text-[10px] text-red-400 font-bold tracking-wider items-center transition-colors";
                     showWarning = true;
-                } else if (vehicleCount >= 8) { // PADAT BIASA
+                } else if (vehicleCount >= 8) { 
                     deskHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-2"></i> PADAT: ${vehicleCount} KENDARAAN`;
                     deskClass = "hidden md:flex absolute top-3 left-3 bg-orange-950/80 text-orange-200 px-3 py-1.5 rounded-md text-xs font-bold border border-orange-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.4)] items-center";
                     mobHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-1.5"></i> PADAT (${vehicleCount})`;
                     mobClass = "md:hidden flex text-[10px] text-orange-400 font-bold tracking-wider items-center transition-colors";
-                } else if (vehicleCount > 0) { // LANCAR
+                } else if (vehicleCount > 0) { 
                     deskHTML = `<i class="fa-solid fa-road text-emerald-400 mr-2"></i> LANCAR: ${vehicleCount} KENDARAAN`;
                     deskClass = "hidden md:flex absolute top-3 left-3 bg-emerald-950/80 text-emerald-200 px-3 py-1.5 rounded-md text-xs font-bold border border-emerald-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)] items-center";
                     mobHTML = `<i class="fa-solid fa-road text-emerald-400 mr-1.5"></i> LANCAR (${vehicleCount})`;
                     mobClass = "md:hidden flex text-[10px] text-emerald-400 font-bold tracking-wider items-center transition-colors";
-                } else { // SEPI
+                } else { 
                     deskHTML = `<i class="fa-solid fa-road text-slate-400 mr-2"></i> LENGANG`;
                     deskClass = "hidden md:flex absolute top-3 left-3 bg-slate-900/80 text-slate-300 px-3 py-1.5 rounded-md text-xs font-bold border border-slate-600 z-40 backdrop-blur-md items-center";
                     mobHTML = `<i class="fa-solid fa-road text-slate-400 mr-1.5"></i> LENGANG`;
@@ -963,6 +1020,23 @@
 
                 if(showWarning) warningEl.classList.remove('hidden');
                 else warningEl.classList.add('hidden');
+
+                // ==========================================
+                // [CATATAN INTEGRASI CUSTOM MODEL YOLO / ALPR]
+                // ==========================================
+                // Script coco-ssd di atas tidak bisa mendeteksi helm/sabuk dan plat nomor.
+                // Jika kamu sudah mendesain custom model (misalnya YOLOv8) di backend kamu,
+                // tangkap output API-nya lalu masukkan variabel datanya ke fungsi logViolation() ini.
+
+                // MOCKUP UI TRIGGER UNTUK DEMONSTRASI (Tampil Acak)
+                if (Math.random() < 0.005) { 
+                    const dummyPlates = ["H 1617 LP", "B 2831 KAA", "G 9900 ZZ", "AD 4412 JM", "K 1211 ZA"];
+                    const dummyViolations = ["Tidak Menggunakan Helm", "Tidak Menggunakan Sabuk Keselamatan"];
+                    const randomPlate = dummyPlates[Math.floor(Math.random() * dummyPlates.length)];
+                    const randomViolation = dummyViolations[Math.floor(Math.random() * dummyViolations.length)];
+                    
+                    logViolation(randomPlate, randomViolation);
+                }
 
             } catch (err) {
                 console.error("Error during detection:", err);
@@ -1013,7 +1087,6 @@
     function initPlayer() {
         renderAccordionList();
          
-        // AUTO LOAD FIRST STREAM FROM SORTED LIST
         let firstIndex = streamSource.findIndex(s => s.city.includes("KOTA SEMARANG")); 
         if(firstIndex === -1) firstIndex = streamSource.findIndex(s => s.city.includes("GROBOGAN"));
         if(firstIndex === -1) firstIndex = 0; 
@@ -1024,7 +1097,6 @@
         updateClock();
     }
 
-    // Toggle Audio Function
     function toggleMute() {
         const video = document.getElementById('video-element');
         const icon = document.querySelector('#btn-volume i');
@@ -1058,7 +1130,6 @@
         video.muted = true;
         icon.className = 'fa-solid fa-volume-xmark text-sm';
 
-        // --- CORS FIX ---
         let finalUrl = stream.url;
         let isSlowServer = stream.city.includes("GROBOGAN") || stream.city.includes("PEMALANG") || stream.city.includes("KABUPATEN PEKALONGAN");
 
@@ -1118,7 +1189,6 @@
         playOverlay.classList.add('hidden');
         updateResolutionDisplay();
         
-        // Pengecualian khusus Datacenter TVRI tidak menggunakan AI
         const currentCity = streamSource[activeStreamIndex].city;
         if (currentCity.includes("DATACENTER TVRI")) {
             stopAIDetection();
