@@ -778,8 +778,7 @@ def visitor_stats():
     })
 
 # ==========================================
-# 9. API BARU: DETEKSI PELANGGARAN REAL (ALPR)
-# Menggunakan Gemini AI (Sangat Ringan, Bebas Crash di Vercel)
+# 9. API BARU: DETEKSI PELANGGARAN REAL (ALPR/GEMINI VISION)
 # ==========================================
 @app.route('/api/detect_violation', methods=['POST'])
 def api_detect_violation():
@@ -794,12 +793,11 @@ def api_detect_violation():
         # Decode gambar yang dikirim dari browser
         img_data = base64.b64decode(frame_base64)
 
-        # Gunakan Gemini Flash (Karena sudah di-import & sangat ringan untuk Vercel)
+        # Gunakan Gemini Flash (Sangat ringan untuk Vercel)
         model = get_gemini_model()
         if not model:
             return jsonify({"status": "error", "message": "AI tidak siap."}), 500
 
-        # Minta AI untuk bertindak sebagai ALPR
         prompt = f"""
         Tugas Anda adalah menjadi sistem AI CCTV (ALPR).
         Perhatikan gambar kendaraan ({vehicle_type}) ini dengan teliti.
@@ -822,7 +820,6 @@ def api_detect_violation():
             }
         ]
 
-        # Minta respons ke Google Gemini
         response = model.generate_content([prompt, image_parts[0]])
         text_res = response.text.strip()
         
@@ -832,7 +829,6 @@ def api_detect_violation():
         
         result_dict = json.loads(text_res)
         
-        # Cek apakah ada plat dan pelanggaran yang didapat
         if result_dict.get("plate") and result_dict.get("violation"):
             return jsonify({
                 "status": "success",
