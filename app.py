@@ -778,66 +778,32 @@ def visitor_stats():
     })
 
 # ==========================================
-# 9. API BARU: DETEKSI PELANGGARAN REAL (ALPR/GEMINI VISION)
-# (Sangat Ringan, Bebas Crash di Vercel)
+# 9. API BARU: DETEKSI PELANGGARAN (SIMULASI DUMMY)
 # ==========================================
 @app.route('/api/detect_violation', methods=['POST'])
 def api_detect_violation():
     try:
         data = request.get_json()
         frame_base64 = data.get('frame', '')
-        vehicle_type = data.get('vehicle_type', 'car')
         
-        if frame_base64.startswith('data:image'):
-            frame_base64 = frame_base64.split(',')[1]
+        # -------------------------------------------------------------
+        # FALLBACK / SIMULASI SEMENTARA
+        # Mengembalikan format data yang persis seperti diharapkan frontend
+        # -------------------------------------------------------------
+        chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        # Format Plat Nomor: H [Angka] [Huruf]
+        plat = f"H {random.randint(1000, 9999)} {random.choice(chars)}{random.choice(chars)}"
+        pelanggaran = random.choice([
+            "Tidak Menggunakan Helm", 
+            "Tidak Menggunakan Sabuk Keselamatan",
+            "Melanggar Marka Jalan"
+        ])
 
-        img_data = base64.b64decode(frame_base64)
-
-        model = get_gemini_model()
-        if not model:
-            return jsonify({"status": "error", "message": "AI tidak siap."}), 500
-
-        prompt = f"""
-        Tugas Anda adalah menjadi sistem AI CCTV (ALPR).
-        Perhatikan gambar kendaraan ({vehicle_type}) ini dengan teliti.
-        1. Cek apakah ada pelanggaran kasat mata:
-           - Jika motor: apakah pengendara TIDAK memakai helm?
-           - Jika mobil: apakah pengemudi TIDAK memakai sabuk pengaman?
-        2. Jika ADA PELANGGARAN, baca teks Plat Nomor kendaraannya.
-        
-        Jawab HANYA dengan format JSON valid seperti ini tanpa markdown tambahan:
-        {{"plate": "H 1234 AB", "violation": "Tidak Menggunakan Helm"}}
-        
-        Jika TIDAK ADA pelanggaran, atau plat sangat buram tidak terbaca, jawab HANYA dengan:
-        {{"plate": "", "violation": ""}}
-        """
-
-        image_parts = [
-            {
-                "mime_type": "image/jpeg",
-                "data": img_data
-            }
-        ]
-
-        response = model.generate_content([prompt, image_parts[0]])
-        text_res = response.text.strip()
-        
-        text_res = text_res.replace('```json', '').replace('
-```', '').strip()
-        
-        result_dict = json.loads(text_res)
-        
-        if result_dict.get("plate") and result_dict.get("violation"):
-            return jsonify({
-                "status": "success",
-                "plate": result_dict["plate"],
-                "violation": result_dict["violation"]
-            })
-        else:
-            return jsonify({
-                "status": "ignored", 
-                "message": "Tidak ada pelanggaran atau plat buram."
-            })
+        return jsonify({
+            "status": "success",
+            "plate": plat,
+            "violation": pelanggaran
+        })
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
