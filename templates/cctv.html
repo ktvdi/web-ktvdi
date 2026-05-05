@@ -199,9 +199,14 @@
                     <!-- Elemen Canvas untuk Bounding Box AI -->
                     <canvas id="ai-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-30"></canvas>
                     
-                    <!-- Indikator Status Kepadatan -->
+                    <!-- Indikator Status Kepadatan Biasa -->
                     <div id="traffic-status" class="absolute top-4 left-1/2 -translate-x-1/2 bg-black/80 text-white px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600 z-40 hidden backdrop-blur-md shadow-lg transition-colors">
                         <i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-1"></i> Memuat Model AI...
+                    </div>
+
+                    <!-- REMINDER MACET PARAH -->
+                    <div id="severe-warning" class="absolute top-14 left-1/2 -translate-x-1/2 bg-red-600/95 text-white px-5 py-2 rounded-lg text-xs sm:text-sm font-extrabold border border-red-400 z-40 hidden backdrop-blur-md shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse text-center whitespace-nowrap">
+                        <i class="fa-solid fa-triangle-exclamation mr-2 text-yellow-300"></i>SAAT INI JALUR SEDANG MENGALAMI KEPADATAN PARAH
                     </div>
 
                     <div id="overlay-loading" class="absolute inset-0 bg-[#020617] z-40 flex flex-col items-center justify-center text-center p-4">
@@ -809,13 +814,12 @@
             let label = "LOW";
             let quality = 1;
 
-            // Logika penentuan resolusi berdasarkan tinggi (h) atau lebar (w)
             if (h >= 1230 || w >= 2048) { 
                 label = "2K"; 
-                quality = 4; // Max bar
+                quality = 4; 
             } else if (h >= 1080 || w >= 1920) { 
                 label = "FULL HD"; 
-                quality = 4; // Max bar
+                quality = 4; 
             } else if (h >= 720 || w >= 1280) { 
                 label = "HD"; 
                 quality = 3; 
@@ -823,7 +827,6 @@
                 label = "SD"; 
                 quality = 2; 
             } else { 
-                // Mencakup 144p - 240p dan kondisi di bawah 480p
                 label = "LOW"; 
                 quality = 1; 
             }
@@ -834,7 +837,6 @@
                 bar.classList.remove('active');
                 if (index < quality) {
                     bar.classList.add('active');
-                    // Warna hijau untuk HD ke atas, kuning untuk SD, merah/orange untuk LOW bisa disesuaikan
                     bar.style.backgroundColor = (quality >= 3) ? '#22c55e' : '#eab308';
                 } else {
                     bar.style.backgroundColor = '#475569';
@@ -858,7 +860,8 @@
             const statusEl = document.getElementById('traffic-status');
             statusEl.classList.remove('hidden');
             
-            aiModel = await cocoSsd.load();
+            // GANTI BASE MODEL ke 'mobilenet_v2' yang lebih akurat daripada default 'lite'
+            aiModel = await cocoSsd.load({ base: 'mobilenet_v2' });
             
             statusEl.innerHTML = `<i class="fa-solid fa-check text-green-400 mr-1"></i> AI Siap`;
             setTimeout(() => statusEl.classList.add('hidden'), 2000);
@@ -875,19 +878,20 @@
         const canvas = document.getElementById('ai-canvas');
         const ctx = canvas.getContext('2d');
         const statusEl = document.getElementById('traffic-status');
+        const warningEl = document.getElementById('severe-warning');
+        
         statusEl.classList.remove('hidden');
 
         async function detectFrame() {
             if (!isDetecting || video.paused || video.ended) return;
 
-            // Set ukuran canvas agar presisi dengan ukuran video
             canvas.width = video.clientWidth;
             canvas.height = video.clientHeight;
 
             try {
-                const predictions = await aiModel.detect(video);
+                // TINGKATKAN PRESTASI: Deteksi max 50 objek dengan min confidence 0.40 (40%)
+                const predictions = await aiModel.detect(video, 50, 0.4);
                 
-                // Filter hanya deteksi kendaraan
                 const vehicleClasses = ['car', 'truck', 'bus', 'motorcycle'];
                 const vehicles = predictions.filter(p => vehicleClasses.includes(p.class));
 
@@ -916,17 +920,25 @@
                     ctx.fillText(`${v.class} ${Math.round(v.score * 100)}%`, scaledX + 2, scaledY - 4);
                 });
 
-                // Logika Kepadatan
+                // --- Logika Kepadatan & Warning ---
                 const vehicleCount = vehicles.length;
-                if (vehicleCount >= 8) {
-                    statusEl.innerHTML = `<i class="fa-solid fa-car-burst text-red-400 mr-1"></i> PADAT (${vehicleCount} Kendaraan)`;
-                    statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-red-950/80 text-red-200 px-4 py-1.5 rounded-full text-xs font-bold border border-red-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(239,68,68,0.4)]";
-                } else if (vehicleCount > 0) {
+                
+                if (vehicleCount >= 15) { // MACET PARAH
+                    statusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-1 animate-pulse"></i> MACET PARAH (${vehicleCount} Kendaraan)`;
+                    statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-red-950/90 text-red-100 px-4 py-1.5 rounded-full text-xs font-bold border border-red-500 z-40 backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.6)]";
+                    if(warningEl) warningEl.classList.remove('hidden');
+                } else if (vehicleCount >= 8) { // PADAT BIASA
+                    statusEl.innerHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-1"></i> PADAT (${vehicleCount} Kendaraan)`;
+                    statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-orange-950/80 text-orange-200 px-4 py-1.5 rounded-full text-xs font-bold border border-orange-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.4)]";
+                    if(warningEl) warningEl.classList.add('hidden');
+                } else if (vehicleCount > 0) { // LANCAR
                     statusEl.innerHTML = `<i class="fa-solid fa-road text-emerald-400 mr-1"></i> LANCAR (${vehicleCount} Kendaraan)`;
                     statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-emerald-950/80 text-emerald-200 px-4 py-1.5 rounded-full text-xs font-bold border border-emerald-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)]";
-                } else {
+                    if(warningEl) warningEl.classList.add('hidden');
+                } else { // SEPI
                     statusEl.innerHTML = `<i class="fa-solid fa-road text-slate-400 mr-1"></i> SEPI`;
                     statusEl.className = "absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/80 text-slate-300 px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600 z-40 backdrop-blur-md";
+                    if(warningEl) warningEl.classList.add('hidden');
                 }
 
             } catch (err) {
@@ -945,7 +957,9 @@
         const canvas = document.getElementById('ai-canvas');
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
         document.getElementById('traffic-status').classList.add('hidden');
+        document.getElementById('severe-warning')?.classList.add('hidden');
     }
 
     // ==========================================
