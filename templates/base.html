@@ -8,7 +8,8 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Mengganti font ke Inter untuk kesan yang lebih tegas dan modern -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <script>
@@ -46,7 +47,7 @@
             theme: {
                 extend: {
                     fontFamily: { 
-                        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Plus Jakarta Sans"', 'sans-serif'] 
+                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Plus Jakarta Sans"', 'sans-serif'] 
                     },
                     colors: { brand: { navy: '#0f172a', blue: '#1e40af', sky: '#007aff', surface: '#0f172a' } },
                     padding: { 'safe': 'env(safe-area-inset-bottom)' }
@@ -238,8 +239,6 @@
             const secAudio = document.getElementById('security-audio');
             if(secAudio) {
                 secAudio.pause();
-                // Opsional: hapus baris di bawah ini jika ingin radio lanjut dari jeda saat di-play dari lockscreen, 
-                // tapi karena ini live stream lebih baik di-reset
                 // secAudio.currentTime = 0; 
             }
         }
@@ -267,7 +266,7 @@
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
         /* Sembunyikan elemen utama dari pointer saat blokir */
-        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay) {
+        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay):not(.vector-bg) {
             filter: blur(30px) grayscale(100%);
             pointer-events: none;
             opacity: 0.1;
@@ -299,11 +298,11 @@
         .loader-content {
             position: relative; z-index: 10;
             display: flex; flex-direction: column; align-items: center;
-            background: rgba(255, 255, 255, 0.1); 
-            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.05); 
+            backdrop-filter: blur(24px);
             padding: 2.5rem; border-radius: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
         }
         .loader-logo { 
             width: 80px; height: 80px; 
@@ -317,11 +316,11 @@
         @keyframes breath { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
         .ios-dock {
-            background: rgba(30, 58, 138, 0.85); 
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px); 
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px); 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
             border-radius: 36px;
             margin: 0;
             width: 100%; height: 76px;
@@ -416,7 +415,7 @@
 
         .chat-bubble-bot { 
             background: #e5e5ea; color: #000; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%;
-            position: relative; margin-bottom: 5px; margin-left: 10px;
+            position: relative; margin-bottom: 5px; margin-left: 10px; font-weight: 500;
         }
         .chat-bubble-bot::before {
             content: ""; position: absolute; bottom: 0; left: -6px; height: 20px; width: 20px;
@@ -429,7 +428,7 @@
 
         .chat-bubble-user { 
             background: #007aff; color: white; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; 
-            margin-left: auto; position: relative; margin-bottom: 5px; margin-right: 10px;
+            margin-left: auto; position: relative; margin-bottom: 5px; margin-right: 10px; font-weight: 500;
         }
         .chat-bubble-user::before {
             content: ""; position: absolute; bottom: 0; right: -6px; height: 20px; width: 20px;
@@ -457,9 +456,21 @@
             .dropdown-menu-mobile { position: absolute !important; top: 100% !important; right: 0 !important; margin-top: 10px; }
         }
         @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        /* Custom scroll minimalis untuk chat */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-[#0f172a] text-slate-100 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900">
+<body class="bg-[#0f172a] text-slate-100 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans selection:bg-blue-100 selection:text-blue-900 z-0">
+
+    <!-- EFEK VECTOR BULAT (Modern Ambient Background) -->
+    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none vector-bg">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-600/20 rounded-full blur-[100px] mix-blend-screen"></div>
+        <div class="absolute top-[40%] right-[-10%] w-[30rem] h-[30rem] bg-indigo-600/15 rounded-full blur-[120px] mix-blend-screen"></div>
+        <div class="absolute bottom-[-10%] left-[20%] w-[25rem] h-[25rem] bg-sky-500/10 rounded-full blur-[100px] mix-blend-screen"></div>
+    </div>
 
     <audio id="security-audio" src="https://server.radioimeldafm.co.id:8040/gajahmadafm?_ic2=1776620223945" loop preload="none"></audio>
 
@@ -814,13 +825,15 @@
         </div>
     </div>
 
-    <div class="fixed bottom-[160px] lg:bottom-24 left-4 z-[60] group pb-safe">
-        <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-xl border border-red-100 hover:scale-110 transition-transform active:scale-95">
+    <!-- CALL CENTER WIDGET -->
+    <div id="call-center-widget" class="hidden fixed bottom-[160px] lg:bottom-24 left-4 z-[60] group pb-safe">
+        <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-red-100 hover:scale-110 transition-transform active:scale-95">
             <i class="fa-solid fa-phone-volume text-lg animate-pulse"></i>
         </a>
     </div>
 
-    <div class="fixed bottom-[160px] lg:bottom-24 right-4 z-[60] pb-safe flex flex-col items-end">
+    <!-- MODI AI WIDGET -->
+    <div id="modi-ai-widget" class="hidden fixed bottom-[160px] lg:bottom-24 right-4 z-[60] pb-safe flex-col items-end">
         <div id="chat-window" class="hidden w-[85vw] max-w-[340px] bg-slate-50 rounded-3xl shadow-2xl overflow-hidden mb-4 border border-slate-100 flex flex-col transform origin-bottom-right transition-all animate-fade-in-up">
             <div class="bg-white/80 backdrop-blur-xl p-3 flex justify-between items-center text-slate-800 shadow-sm border-b border-slate-200">
                 <div class="flex items-center gap-3">
@@ -829,8 +842,8 @@
                         <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"></span>
                     </div>
                     <div>
-                        <div class="font-bold text-sm">Modi AI</div>
-                        <div class="text-[10px] text-slate-500 opacity-90">Online • Integrasi Data KTVDI</div>
+                        <div class="font-bold text-sm tracking-tight">Modi AI</div>
+                        <div class="text-[10px] text-slate-500 font-medium">Online • Integrasi Data KTVDI</div>
                     </div>
                 </div>
                 <button onclick="toggleChat()" class="w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition"><i class="fa-solid fa-chevron-down text-xs text-slate-500"></i></button>
@@ -838,19 +851,19 @@
             
             <div id="chat-messages" class="h-72 p-4 overflow-y-auto flex flex-col gap-1 custom-scroll">
                 <div class="flex flex-col gap-1 items-start">
-                    <div class="chat-bubble-bot shadow-sm">Halo! Saya Modi AI, asisten virtual KTVDI. 👋 Saya telah terhubung dengan seluruh database siaran, pantauan CCTV, dan informasi frekuensi terbaru di web ini. Ada yang bisa saya bantu temukan?</div>
-                    <span class="text-[10px] text-slate-400 ml-2">Delivered</span>
+                    <div class="chat-bubble-bot shadow-sm font-medium">Halo! Saya Modi AI, asisten virtual KTVDI. 👋 Saya telah terhubung dengan seluruh database siaran, pantauan CCTV, dan informasi frekuensi terbaru di web ini. Ada yang bisa saya bantu temukan?</div>
+                    <span class="text-[10px] text-slate-400 font-semibold ml-2">Delivered</span>
                 </div>
             </div>
 
             <div class="p-3 bg-white border-t border-slate-100">
                 <form onsubmit="handleChat(event)" class="flex gap-2 relative">
-                    <input type="text" id="chat-input" placeholder="Tanyakan seputar TV Digital..." class="w-full bg-white border border-slate-300 text-sm px-4 py-2.5 rounded-full focus:outline-none focus:border-blue-500 transition text-slate-700 shadow-sm" autocomplete="off">
-                    <button type="submit" class="absolute right-1.5 top-1.5 bg-[#007aff] text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-blue-600 transition shadow-sm active:scale-95"><i class="fa-solid fa-arrow-up text-xs"></i></button>
+                    <input type="text" id="chat-input" placeholder="Tanyakan seputar TV Digital..." class="w-full font-medium bg-slate-50 border border-slate-200 text-sm px-4 py-2.5 rounded-full focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition text-slate-700 shadow-inner" autocomplete="off">
+                    <button type="submit" class="absolute right-1.5 top-1.5 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-blue-700 transition shadow-sm active:scale-95"><i class="fa-solid fa-arrow-up text-xs"></i></button>
                 </form>
             </div>
         </div>
-        <button onclick="toggleChat()" class="w-14 h-14 rounded-full shadow-lg shadow-blue-500/30 flex items-center justify-center hover:scale-105 transition active:scale-95 border-2 border-white relative overflow-hidden group bg-white">
+        <button onclick="toggleChat()" class="w-14 h-14 rounded-full shadow-[0_10px_40px_rgba(0,122,255,0.4)] flex items-center justify-center hover:scale-105 transition active:scale-95 border-2 border-white relative overflow-hidden group bg-white">
              <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover">
              <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
         </button>
@@ -885,16 +898,13 @@
         window.addEventListener('DOMContentLoaded', () => {
             try {
                 if(!checkPenaltyStatus()) {
-                    // Sembunyikan dalam 0.8 detik secara natural jika tidak diblokir
                     setTimeout(forceHideLoader, 800); 
                 }
             } catch(e) {
-                // Jika terjadi error (misal storage diblokir), paksa hilang
                 forceHideLoader();
             }
         });
 
-        // Fallback super aman: Apa pun yang terjadi, setelah 2.5 detik loader pasti hancur
         setTimeout(forceHideLoader, 2500);
 
         function toggleDropdown(id) {
@@ -1149,6 +1159,46 @@
                 icon.classList.add('fa-play');
             }
         }
+
+        // ==========================================
+        // SCRIPT BARU: Visibilitas Widget Berdasarkan Jam (WIB)
+        // ==========================================
+        function checkWidgetSchedule() {
+            // Mengambil waktu saat ini dan mengkonversinya ke WIB (UTC+7)
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const wibTime = new Date(utc + (3600000 * 7));
+            const currentHour = wibTime.getHours();
+
+            const callCenterWidget = document.getElementById('call-center-widget');
+            const modiAiWidget = document.getElementById('modi-ai-widget');
+
+            // Logika: Tampil jika jam >= 21 ATAU jam < 8
+            if (currentHour >= 21 || currentHour < 8) {
+                if (callCenterWidget) {
+                    callCenterWidget.classList.remove('hidden');
+                    callCenterWidget.classList.add('flex');
+                }
+                if (modiAiWidget) {
+                    modiAiWidget.classList.remove('hidden');
+                    modiAiWidget.classList.add('flex');
+                }
+            } else {
+                if (callCenterWidget) {
+                    callCenterWidget.classList.add('hidden');
+                    callCenterWidget.classList.remove('flex');
+                }
+                if (modiAiWidget) {
+                    modiAiWidget.classList.add('hidden');
+                    modiAiWidget.classList.remove('flex');
+                }
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkWidgetSchedule();
+            setInterval(checkWidgetSchedule, 60000);
+        });
     </script>
 </body>
 </html>
