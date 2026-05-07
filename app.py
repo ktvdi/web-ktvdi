@@ -34,6 +34,9 @@ app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
+# Executor untuk proses asinkron (misal: lacak lokasi IP tanpa bikin web lemot)
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=5)
+
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
 # ==========================================
@@ -49,13 +52,25 @@ def maintenance_interceptor():
     return None
 
 # ==========================================
-# 2.5. SISTEM TRACKER PENGUNJUNG
+# 2.5. SISTEM TRACKER PENGUNJUNG & LOKASI
 # ==========================================
 TRACKER_DATA = {
     "date": datetime.now(pytz.timezone('Asia/Jakarta')).date(),
     "daily_ips": set(),
-    "online_ips": {}  # Format: {"IP": timestamp_terakhir}
+    "online_ips": {},  # Format: {"IP": timestamp_terakhir}
+    "ip_locations": {} # Format: {"IP": "Kota, Negara"}
 }
+
+def fetch_and_store_location(ip):
+    """Mengambil lokasi dari IP secara asinkron"""
+    try:
+        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=3)
+        if r.status_code == 200:
+            res = r.json()
+            if res.get("status") == "success":
+                TRACKER_DATA["ip_locations"][ip] = f"{res.get('city', 'Unknown City')}, {res.get('country', 'Unknown Country')}"
+    except Exception:
+        pass
 
 @app.before_request
 def visitor_tracker():
@@ -63,15 +78,22 @@ def visitor_tracker():
         tz = pytz.timezone('Asia/Jakarta')
         today = datetime.now(tz).date()
         
+        # Reset jika hari berganti
         if TRACKER_DATA["date"] != today:
             TRACKER_DATA["date"] = today
             TRACKER_DATA["daily_ips"].clear()
+            TRACKER_DATA["ip_locations"].clear()
             
         user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         if user_ip:
             user_ip = user_ip.split(',')[0].strip()
             TRACKER_DATA["daily_ips"].add(user_ip)
             TRACKER_DATA["online_ips"][user_ip] = time.time()
+            
+            # Cek lokasi IP jika belum terdaftar hari ini (kecuali IP lokal)
+            if user_ip not in TRACKER_DATA["ip_locations"] and not user_ip.startswith(('127.', '192.168.', '10.')):
+                TRACKER_DATA["ip_locations"][user_ip] = "Mendeteksi Lokasi..."
+                executor.submit(fetch_and_store_location, user_ip)
 
 # ==========================================
 # 3. KONEKSI DATABASE (FIREBASE)
@@ -232,7 +254,8 @@ NEWS_LAST_FETCH = 0
 
 def get_news_entries():
     global NEWS_CACHE, NEWS_LAST_FETCH
-    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 60):
+    # Turunkan interval cache agar berita lebih cepat update (jadi 30 detik)
+    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 30):
         return NEWS_CACHE
 
     all_news = []
@@ -260,46 +283,66 @@ def get_news_entries():
         print(f"Gagal memuat info BMKG: {e}")
 
     try:
+        # Penambahan Sumber Berita yang Sangat Terkini (Detik & Suara)
         sources = [
-            'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id', 
+            'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
+            'https://rss.detik.com/index.php/detikcom', 
             'https://www.cnnindonesia.com/nasional/rss',
             'https://www.antaranews.com/rss/top-news.xml',
+            'https://www.suara.com/rss',
             'https://www.republika.co.id/rss',
             'https://www.cnbcindonesia.com/news/rss',
             'https://www.kompas.com/feed',             
-            'https://www.liputan6.com/rss',            
-            'https://www.dailyforex.com/forex-rss',    
-            'https://rss.app/feeds/viory.xml'          
+            'https://www.liputan6.com/rss'
         ]
-        for url in sources:
-            try:
-                response = requests.get(url, headers=headers, timeout=5)
-                if response.status_code == 200:
-                    feed = feedparser.parse(response.content)
-                    if feed.entries:
-                        for entry in feed.entries[:25]: 
-                            if 'kompas' in url: source_name = 'Kompas'
-                            elif 'liputan6' in url: source_name = 'Liputan 6'
-                            elif 'forex' in url: source_name = 'Forex Update'
-                            elif 'google' in url: source_name = 'Google News'
-                            else: source_name = url.split('.')[1].capitalize()
-                            
-                            entry['source_name'] = source_name
-                            
-                            img_url = None
-                            if 'media_content' in entry and entry.media_content:
-                                img_url = entry.media_content[0]['url']
-                            if not img_url and 'links' in entry:
-                                for link in entry.links:
-                                    if link.get('type', '').startswith('image'):
-                                        img_url = link.get('href'); break
-                            if not img_url and 'description' in entry:
-                                match = re.search(r'src="([^"]+)"', entry.description)
-                                if match: img_url = match.group(1)
-                            entry['image'] = img_url
-                            all_news.append(entry)
-            except: continue
         
+        # Multithreading fetch berita agar lebih cepat loadingnya
+        def fetch_feed(url):
+            try:
+                res = requests.get(url, headers=headers, timeout=5)
+                if res.status_code == 200:
+                    return url, feedparser.parse(res.content)
+            except:
+                return url, None
+            return url, None
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(sources)) as pool:
+            futures = [pool.submit(fetch_feed, url) for url in sources]
+            for future in concurrent.futures.as_completed(futures):
+                url, feed = future.result()
+                if feed and feed.entries:
+                    for entry in feed.entries[:20]: # Ambil 20 teratas tiap sumber
+                        if 'detik' in url: source_name = 'DetikNews'
+                        elif 'suara' in url: source_name = 'Suara.com'
+                        elif 'kompas' in url: source_name = 'Kompas'
+                        elif 'liputan6' in url: source_name = 'Liputan 6'
+                        elif 'cnn' in url: source_name = 'CNN Indonesia'
+                        elif 'google' in url: source_name = 'Google News'
+                        else: source_name = url.split('.')[1].capitalize()
+                        
+                        entry['source_name'] = source_name
+                        
+                        img_url = None
+                        if 'media_content' in entry and entry.media_content:
+                            img_url = entry.media_content[0]['url']
+                        if not img_url and 'links' in entry:
+                            for link in entry.links:
+                                if link.get('type', '').startswith('image'):
+                                    img_url = link.get('href'); break
+                        if not img_url and 'description' in entry:
+                            match = re.search(r'src="([^"]+)"', entry.description)
+                            if match: img_url = match.group(1)
+                        
+                        # Fallback image jika kosong
+                        if not img_url and 'enclosures' in entry:
+                            for enc in entry.enclosures:
+                                if enc.get('type', '').startswith('image'):
+                                    img_url = enc.get('href'); break
+                                    
+                        entry['image'] = img_url
+                        all_news.append(entry)
+                        
+        # Sorting mutlak berdasarkan parse time (terbaru di atas)
         all_news.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.gmtime(0), reverse=True)
     except: pass
     
@@ -308,7 +351,7 @@ def get_news_entries():
         t = datetime.now().timetuple()
         return [{'title': 'Selamat Datang di Portal KTVDI', 'link': '#', 'published_parsed': t, 'source_name': 'Info Resmi', 'image': None}]
     
-    NEWS_CACHE = all_news[:150]
+    NEWS_CACHE = all_news[:150] # Ambil 150 total data teratas (gabungan)
     NEWS_LAST_FETCH = time.time()
     
     return NEWS_CACHE
@@ -320,6 +363,7 @@ def time_since_published(published_time):
         diff = now - pt
         if diff.days > 0: return f"{diff.days} hari lalu"
         if diff.seconds > 3600: return f"{diff.seconds//3600} jam lalu"
+        if diff.seconds > 60: return f"{diff.seconds//60} menit lalu"
         return "Baru saja"
     except: return "Baru saja"
 
@@ -769,12 +813,17 @@ def news_ticker():
 @app.route('/api/visitor-stats')
 def visitor_stats():
     current_time = time.time()
+    # Hapus IP yang tidak aktif > 5 menit
     active_ips = {ip: ts for ip, ts in TRACKER_DATA["online_ips"].items() if current_time - ts <= 300}
     TRACKER_DATA["online_ips"] = active_ips
     
+    # Kumpulkan daftar kota user yang sedang aktif
+    active_locations = [TRACKER_DATA["ip_locations"].get(ip, "Unknown") for ip in active_ips.keys()]
+    
     return jsonify({
         "daily": len(TRACKER_DATA["daily_ips"]),
-        "online": max(1, len(active_ips)) 
+        "online": max(1, len(active_ips)),
+        "active_locations": list(set(active_locations)) # Kirim data ke web front-end
     })
 
 # ==========================================
