@@ -859,48 +859,45 @@ def cctv_page(): return render_template("cctv.html")
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 # ==========================================
-# 10. VERCEL CRON JOBS ENDPOINT
+# 10. FITUR EMAIL BLAST MANUAL (PENGGANTI CRON)
 # ==========================================
-@app.route('/api/cron/send-scheduled-email', methods=['GET'])
-def cron_send_email():
-    """Endpoint ini akan di-trigger otomatis oleh Vercel Cron"""
-    
-    auth_header = request.headers.get('Authorization')
-    if auth_header != f"Bearer {os.environ.get('CRON_SECRET')}":
-        return jsonify({"error": "Otorisasi sistem ditolak"}), 401
-    
-    tipe_notif = request.args.get('tipe')
-    if tipe_notif not in ["weekend", "daily_rabu"]:
-        return jsonify({"error": "Parameter tipe notifikasi tidak dikenali"}), 400
-
-    if not ref:
-        return jsonify({"error": "Koneksi ke pangkalan data terputus"}), 500
-    
-    users = ref.child('users').get() or {}
-    
-    with app.app_context():
-        for uid, user_data in users.items():
-            if not isinstance(user_data, dict): continue
+@app.route('/email', methods=['GET', 'POST'])
+def email_blast_page():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+        
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        body_text = request.form.get('message')
+        
+        if not subject or not body_text:
+            flash("Perhatian: Subjek dan isi pesan tidak boleh dikosongkan.", "error")
+            return redirect(url_for('email_blast_page'))
             
-            email_tujuan = user_data.get('email')
-            nama_user = user_data.get('nama', 'Anggota KTVDI')
+        if not ref:
+            flash("Kegagalan Sistem: Koneksi ke pangkalan data terputus. Tidak dapat memuat daftar anggota.", "error")
+            return redirect(url_for('email_blast_page'))
             
-            if not email_tujuan: continue
-
-            if tipe_notif == "weekend":
-                subject = "Laporan Sistem Dini Hari & Tinjauan Akhir Pekan - KTVDI"
-                body = f"""========================================================
+        users = ref.child('users').get() or {}
+        sent_count = 0
+        
+        with app.app_context():
+            for uid, user_data in users.items():
+                if not isinstance(user_data, dict): continue
+                
+                email_tujuan = user_data.get('email')
+                nama_user = user_data.get('nama', 'Anggota KTVDI')
+                
+                if not email_tujuan: continue
+                
+                # Pemformatan pesan standar KTVDI
+                formatted_body = f"""========================================================
 BULETIN RESMI KOMUNITAS TV DIGITAL INDONESIA
-Eksekusi Sistem: Minggu, 02:15 WIB
 ========================================================
 
 Yth. Bapak/Ibu {nama_user},
 
-Kami mewakili jajaran pengurus Komunitas TV Digital Indonesia (KTVDI) mengucapkan selamat menyambut hari Minggu. Melalui buletin otomatis dini hari ini, kami ingin menyampaikan beberapa pembaruan esensial terkait perkembangan infrastruktur penyiaran digital di wilayah Anda.
-
-Mengingat proses optimalisasi parameter transmisi multipleksing (MUX) yang secara periodik dilakukan oleh penyelenggara siaran, kami merekomendasikan agar Anda melakukan pemindaian ulang (blind scan) pada perangkat Set Top Box (STB) maupun Televisi Digital terintegrasi secara berkala. Hal ini bertujuan untuk memastikan kelengkapan saluran dan stabilitas kualitas penerimaan gambar pada akhir pekan Anda.
-
-Lebih lanjut, mempertimbangkan fluktuasi kondisi cuaca belakangan ini, kami mengimbau Anda untuk melakukan inspeksi terhadap instalasi perangkat penerima luar ruang (antena outdoor). Pastikan struktur penyangga dalam keadaan solid dan terhindar dari potensi sambaran petir. Kami juga menyarankan Anda untuk terus memonitor informasi peringatan dini cuaca melalui portal EWS KTVDI yang telah terintegrasi dengan data resmi BMKG.
+{body_text}
 
 Demikian informasi ini kami sampaikan. Terima kasih atas partisipasi aktif Anda dalam mendukung ekosistem penyiaran digital yang berkualitas.
 
@@ -908,36 +905,19 @@ Hormat kami,
 Divisi Komunikasi Publik,
 Komunitas TV Digital Indonesia (KTVDI)
 ========================================================"""
-            elif tipe_notif == "daily_rabu":
-                subject = "Pengingat Pemeliharaan Rutin Infrastruktur Penyiaran (Rabu Malam) - KTVDI"
-                body = f"""========================================================
-PENGINGAT SISTEM KTVDI
-Eksekusi Sistem: Rabu, 19:30 WIB
-========================================================
-
-Yth. Bapak/Ibu {nama_user},
-
-Selamat malam. Sistem pemantauan kami menjadwalkan notifikasi ini sebagai bagian dari protokol pemeliharaan rutin di pertengahan minggu. 
-
-Sebagai langkah preventif guna menjaga kualitas layanan penyiaran di kediaman Anda saat bersantai di malam hari, kami merekomendasikan pemeriksaan singkat pada konektor frekuensi radio (RF) perangkat Anda. Pastikan terminasi kabel pada perangkat Set Top Box (STB) terpasang dengan presisi untuk menghindari redaman sinyal (signal loss) yang dapat mengakibatkan degradasi visual (freezing/pixelating).
-
-Bagi Anda yang berencana melakukan eskalasi atau pembaruan teknologi pada perangkat penerima siaran maupun sistem keamanan visual (CCTV) mandiri, sangat dianjurkan untuk menggunakan perangkat keras yang telah lulus uji sertifikasi dari Kementerian Komunikasi dan Informatika (Kominfo). 
-
-Apabila Anda mengalami kendala teknis spesifik atau area tanpa sinyal (blank spot), kami mengundang Anda untuk melaporkannya melalui forum diskusi resmi KTVDI guna mendapatkan penanganan komprehensif dari komunitas.
-
-Terima kasih atas perhatian dan kerja sama yang baik. Selamat beristirahat.
-
-Salam Profesional,
-Sistem Notifikasi Otomatis KTVDI
-========================================================"""
-            try:
-                msg = Message(subject, recipients=[email_tujuan])
-                msg.body = body
-                mail.send(msg)
-            except Exception as e:
-                print(f"INFO SISTEM: Kegagalan transmisi surel otomatis ke alamat {email_tujuan}. Log galat: {e}")
-
-    return jsonify({"status": "sukses", "pesan": f"Transmisi surel massal tipe '{tipe_notif}' telah berhasil dieksekusi."}), 200
+                
+                try:
+                    msg = Message(subject, recipients=[email_tujuan])
+                    msg.body = formatted_body
+                    mail.send(msg)
+                    sent_count += 1
+                except Exception as e:
+                    print(f"INFO SISTEM: Kegagalan transmisi surel ke {email_tujuan}. Log galat: {e}")
+        
+        flash(f"Eksekusi Berhasil: Pesan surel massal telah ditransmisikan ke {sent_count} anggota KTVDI terdaftar.", "success")
+        return redirect(url_for('email_blast_page'))
+        
+    return render_template('email.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
