@@ -1,108 +1,287 @@
 {% extends "base.html" %}
-{% block title %}Transmisi Surel Massal - KTVDI{% endblock %}
+{% block title %}Pusat Komando Transmisi - KTVDI{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8 relative z-10">
-    <!-- Header Dasbor -->
-    <div class="mb-8 animate-fade-in-up">
-        <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-                <i class="fa-solid fa-envelope-open-text text-blue-400"></i>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 font-sans">
+    
+    <!-- HEADER DASBOR KOMANDO -->
+    <div class="mb-10 animate-fade-in-up flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/30 border border-blue-500/30 text-blue-400 text-[10px] font-black uppercase tracking-widest mb-3">
+                <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> Modul Administrator
             </div>
-            Transmisi Surel Massal
-        </h2>
-        <p class="text-slate-400 text-sm mt-3 font-medium ml-1">Kirim pembaruan, notifikasi, dan instruksi resmi ke seluruh anggota KTVDI secara instan.</p>
+            <h2 class="text-3xl md:text-4xl font-black text-white tracking-tight flex items-center gap-3">
+                Pusat Transmisi Surel
+            </h2>
+            <p class="text-slate-400 text-sm mt-2 font-medium max-w-2xl leading-relaxed">
+                Platform penyiaran buletin massal KTVDI. Gunakan modul ini untuk mendistribusikan instruksi teknis, peringatan EWS, atau pembaruan regulasi ke seluruh entitas anggota yang terdaftar secara *real-time*.
+            </p>
+        </div>
+        <div class="flex items-center gap-3 bg-slate-800/50 backdrop-blur-md border border-slate-700 px-4 py-3 rounded-2xl shadow-lg">
+            <div class="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center border border-slate-600">
+                <i class="fa-solid fa-server text-green-400"></i>
+            </div>
+            <div>
+                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Status SMTP Core</p>
+                <p class="text-sm font-black text-white">ONLINE <span class="text-green-400 ml-1">✓</span></p>
+            </div>
+        </div>
     </div>
 
-    <!-- Tampilan Flash Message -->
+    <!-- TAMPILAN FLASH MESSAGE / ALERT SISTEM -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="mb-6 p-4 rounded-xl flex items-start gap-3 border shadow-lg animate-fade-in-up {{ 'bg-green-900/30 border-green-500/30 text-green-400' if category == 'success' else 'bg-red-900/30 border-red-500/30 text-red-400' }}">
-                    <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-triangle-exclamation' }} mt-0.5 text-lg"></i>
-                    <div>
-                        <strong class="block font-bold text-sm text-white mb-1">{{ 'Transmisi Berhasil' if category == 'success' else 'Peringatan Sistem' }}</strong>
-                        <span class="text-xs leading-relaxed">{{ message }}</span>
+                <div class="mb-8 p-4 md:p-5 rounded-2xl flex items-start gap-4 border shadow-2xl animate-fade-in-up {{ 'bg-emerald-900/20 border-emerald-500/30' if category == 'success' else 'bg-rose-900/20 border-rose-500/30' }}">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 {{ 'bg-emerald-500/20 text-emerald-400' if category == 'success' else 'bg-rose-500/20 text-rose-400' }}">
+                        <i class="fa-solid {{ 'fa-check-double' if category == 'success' else 'fa-triangle-exclamation' }} text-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <strong class="block font-black text-sm mb-1 {{ 'text-emerald-400' if category == 'success' else 'text-rose-400' }}">
+                            {{ 'LOG EKSEKUSI TRANSMISI: BERHASIL' if category == 'success' else 'PERINGATAN SISTEM KEAMANAN' }}
+                        </strong>
+                        <p class="text-xs md:text-sm text-slate-300 leading-relaxed font-medium">{{ message }}</p>
                     </div>
                 </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
 
-    <!-- Log Keterangan Penerima -->
+    <!-- TABEL LOG PENGIRIMAN DETAIL (Hanya Muncul Jika Ada Data) -->
     {% if sent_list %}
-    <div class="mb-6 bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-5 shadow-xl animate-fade-in-up">
-        <h4 class="text-xs font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2 border-b border-slate-700 pb-3">
-            <i class="fa-solid fa-check-double text-green-400 text-sm"></i> Log Pengiriman Berhasil
-        </h4>
-        <div class="max-h-48 overflow-y-auto custom-scroll bg-slate-900/50 rounded-xl border border-slate-700/50 p-4">
-            <ul class="space-y-2.5">
-                {% for person in sent_list %}
-                <li class="text-xs font-medium text-slate-300 flex items-center gap-2.5">
-                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)] shrink-0"></span> 
-                    {{ person }}
-                </li>
-                {% endfor %}
-            </ul>
+    <div class="mb-8 bg-slate-800/60 backdrop-blur-xl border border-slate-700 rounded-3xl overflow-hidden shadow-2xl animate-fade-in-up">
+        <div class="px-6 py-5 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+            <h4 class="text-sm font-black text-white uppercase tracking-widest flex items-center gap-3">
+                <i class="fa-solid fa-clock-rotate-left text-blue-400"></i> Rekam Jejak Distribusi Terakhir
+            </h4>
+            <span class="px-3 py-1 bg-blue-900/50 text-blue-300 border border-blue-700/50 rounded-lg text-[10px] font-bold">
+                Total: {{ sent_list|length }} Entitas
+            </span>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto custom-scroll rounded-xl border border-slate-700/50 bg-slate-900/30 max-h-[350px]">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead class="sticky top-0 bg-slate-900 z-10 shadow-md">
+                        <tr class="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-700">
+                            <th class="py-4 pl-5">Identitas Penerima</th>
+                            <th class="py-4 px-3">Alamat Surel (SMTP)</th>
+                            <th class="py-4 px-3">Waktu Tereksekusi</th>
+                            <th class="py-4 pr-5 text-right">Status Penyiaran</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-xs text-slate-300 divide-y divide-slate-800/50">
+                        {% for person in sent_list %}
+                        <tr class="hover:bg-slate-800/50 transition-colors group">
+                            <td class="py-3.5 pl-5 font-bold text-white flex items-center gap-3">
+                                <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[9px] text-slate-300 border border-slate-600">
+                                    {{ person.nama[0].upper() }}
+                                </div>
+                                {{ person.nama }}
+                            </td>
+                            <td class="py-3.5 px-3 font-mono text-[10px] text-blue-300 group-hover:text-blue-200 transition-colors">
+                                {{ person.email }}
+                            </td>
+                            <td class="py-3.5 px-3 text-slate-400 font-medium">
+                                <i class="fa-regular fa-clock mr-1 opacity-70"></i> {{ person.waktu }}
+                            </td>
+                            <td class="py-3.5 pr-5 text-right">
+                                {% if person.status == 'Sukses' %}
+                                    <span class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-500/20 font-bold text-[9px] uppercase tracking-wider">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Terkirim
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1.5 bg-rose-500/10 text-rose-400 px-2.5 py-1 rounded-md border border-rose-500/20 font-bold text-[9px] uppercase tracking-wider">
+                                        <i class="fa-solid fa-xmark"></i> Gagal
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Form Container -->
-    <div class="bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.5)] relative overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
-        <!-- Efek Glow Latar -->
-        <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- GRID LAYOUT UTAMA (Form & Sidebar) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <div class="bg-blue-900/20 border-l-4 border-blue-500 p-4 rounded-r-xl mb-6 relative z-10">
-            <p class="text-[11px] md:text-xs text-blue-200 leading-relaxed font-medium">
-                <i class="fa-solid fa-circle-info mr-1 text-blue-400"></i>
-                <strong class="text-white">Informasi Protokol:</strong> Sistem secara otomatis akan menyisipkan salam pembuka <span class="bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700 text-white font-mono mx-1">Yth. Bapak/Ibu [Nama]</span> serta kop surat dan penutup resmi institusi KTVDI. Anda hanya perlu memfokuskan isi pesan utamanya saja.
-            </p>
+        <!-- KOLOM KIRI (Formulir Utama) -->
+        <div class="lg:col-span-2">
+            <div class="bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-3xl p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.5)] relative overflow-hidden animate-fade-in-up" style="animation-delay: 0.1s;">
+                <!-- Efek Glow Latar -->
+                <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30">
+                        <i class="fa-solid fa-pen-nib"></i>
+                    </div>
+                    <h3 class="text-lg font-black text-white">Penyusunan Draf Buletin</h3>
+                </div>
+
+                <form action="{{ url_for('email_blast_page') }}" method="POST" id="blastForm" class="relative z-10">
+                    <div class="mb-6">
+                        <label for="subject" class="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Subjek / Tajuk Surel <span class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i class="fa-solid fa-heading text-slate-500"></i>
+                            </div>
+                            <input type="text" id="subject" name="subject" placeholder="Contoh: Jadwal Pemeliharaan Server MUX Jateng-1" required
+                                class="w-full bg-slate-900 border border-slate-700 text-white text-sm font-medium rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <label for="message" class="flex justify-between items-end mb-2">
+                            <span class="block text-[11px] font-black text-slate-400 uppercase tracking-widest">Isi Instruksi / Teks Utama <span class="text-rose-500">*</span></span>
+                            <span class="text-[9px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Auto-Format KTVDI Active</span>
+                        </label>
+                        <div class="relative">
+                            <textarea id="message" name="message" rows="10" placeholder="Ketikkan penjabaran instruksi teknis, informasi frekuensi terbaru, atau peringatan EWS di sini. Anda tidak perlu repot mengetik salam pembuka dan penutup." required
+                                class="w-full bg-slate-900 border border-slate-700 text-white text-sm font-medium rounded-xl p-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner resize-y custom-scroll leading-relaxed"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                        <div class="text-[10px] text-slate-400 font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-shield-halved text-emerald-500"></i> Terenkripsi & Didistribusikan via SMTP Aman
+                        </div>
+                        <div class="flex w-full sm:w-auto gap-3">
+                            <button type="button" onclick="document.getElementById('blastForm').reset();" class="flex-1 sm:flex-none px-5 py-3 rounded-xl text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-all active:scale-95 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-eraser opacity-70"></i> Reset
+                            </button>
+                            <button type="submit" id="submitBtn" class="flex-1 sm:flex-none px-6 py-3 rounded-xl text-xs font-black text-white bg-blue-600 hover:bg-blue-500 border border-blue-500 transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-satellite-dish"></i> Eksekusi Transmisi
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
 
-        <form action="{{ url_for('email_blast_page') }}" method="POST" id="blastForm" class="relative z-10">
-            <div class="mb-5">
-                <label for="subject" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Subjek Surel</label>
-                <input type="text" id="subject" name="subject" placeholder="Contoh: Pemberitahuan Pemeliharaan Server KTVDI" required
-                    class="w-full bg-slate-900 border border-slate-700 text-white text-sm font-medium rounded-xl px-4 py-3.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner">
-            </div>
+        <!-- KOLOM KANAN (Sidebar Informasi) -->
+        <div class="lg:col-span-1 space-y-6">
             
-            <div class="mb-8">
-                <label for="message" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Isi Pesan Utama</label>
-                <textarea id="message" name="message" rows="8" placeholder="Ketikkan instruksi atau informasi yang ingin disebarkan secara massal di sini..." required
-                    class="w-full bg-slate-900 border border-slate-700 text-white text-sm font-medium rounded-xl px-4 py-3.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner resize-y custom-scroll"></textarea>
+            <!-- Widget Statistik -->
+            <div class="bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-3xl p-6 shadow-xl animate-fade-in-up" style="animation-delay: 0.2s;">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Statistik Jaringan</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900/80 border border-slate-700/50 rounded-2xl p-4 flex flex-col justify-center items-center text-center">
+                        <i class="fa-solid fa-users text-blue-400 text-xl mb-2"></i>
+                        <span class="text-2xl font-black text-white">{{ total_users }}</span>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase mt-1">Total Anggota</span>
+                    </div>
+                    <div class="bg-slate-900/80 border border-slate-700/50 rounded-2xl p-4 flex flex-col justify-center items-center text-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-green-500/5 animate-pulse"></div>
+                        <i class="fa-solid fa-tower-cell text-emerald-400 text-xl mb-2 relative z-10"></i>
+                        <span class="text-lg font-black text-white relative z-10">Aktif</span>
+                        <span class="text-[9px] text-slate-400 font-bold uppercase mt-1 relative z-10">Relay Node</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="flex flex-col sm:flex-row justify-end gap-3 mt-4">
-                <button type="button" onclick="document.getElementById('blastForm').reset();" class="px-6 py-3 rounded-xl text-xs font-bold text-slate-400 bg-slate-800 hover:bg-slate-700 hover:text-white border border-slate-600 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-eraser"></i> Bersihkan Formulir
-                </button>
-                <button type="submit" id="submitBtn" class="px-6 py-3 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 border border-blue-500 transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:shadow-[0_0_25px_rgba(59,130,246,0.6)] active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-paper-plane"></i> Eksekusi Transmisi
-                </button>
+            <!-- Widget Aturan Protokol -->
+            <div class="bg-slate-800/80 backdrop-blur-xl border border-slate-700 rounded-3xl p-6 shadow-xl animate-fade-in-up" style="animation-delay: 0.3s;">
+                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i> Panduan Protokol
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-blue-900/50 text-blue-400 flex items-center justify-center text-[10px] font-black shrink-0 border border-blue-700/50 mt-0.5">1</div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white mb-1">Injeksi Otomatis</h4>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">Sistem KTVDI telah memprogram penambahan sapaan personal untuk masing-masing penerima secara dinamis.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-blue-900/50 text-blue-400 flex items-center justify-center text-[10px] font-black shrink-0 border border-blue-700/50 mt-0.5">2</div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white mb-1">Gaya Bahasa Formal</h4>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">Harap gunakan bahasa Indonesia yang baku, objektif, dan presisi karena surel ini membawa atribut resmi organisasi.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 rounded-full bg-blue-900/50 text-blue-400 flex items-center justify-center text-[10px] font-black shrink-0 border border-blue-700/50 mt-0.5">3</div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white mb-1">Kecepatan Transmisi</h4>
+                            <p class="text-[10px] text-slate-400 leading-relaxed">Proses pengiriman berjalan secara sinkron. Mohon jangan memuat ulang (refresh) halaman saat indikator "Sedang Memproses" menyala.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </form>
+
+            <!-- Pratinjau Desain Layout Otomatis -->
+            <div class="bg-[#0f172a] border border-slate-700 rounded-3xl p-5 shadow-inner opacity-80 animate-fade-in-up" style="animation-delay: 0.4s;">
+                <h3 class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
+                    <span><i class="fa-solid fa-eye mr-1"></i> Struktur Surel Output</span>
+                    <span class="text-blue-500 bg-blue-900/30 px-2 py-0.5 rounded">Simulasi</span>
+                </h3>
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 font-mono text-[9px] text-slate-400 leading-relaxed">
+                    <span class="text-slate-600">=================================</span><br>
+                    <span class="text-white font-bold">BULETIN RESMI KOMUNITAS TV DIGITAL...</span><br>
+                    <span class="text-slate-600">=================================</span><br><br>
+                    Yth. Bapak/Ibu <span class="text-blue-400">[Nama Dinamis]</span>,<br><br>
+                    <span class="text-emerald-500 opacity-70">[ Teks yang Anda ketikkan di form akan disisipkan di blok ini ]</span><br><br>
+                    Demikian informasi ini kami sampaikan...<br><br>
+                    Hormat kami,<br>Divisi Komunikasi Publik,<br>KTVDI
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
 
 <style>
     .animate-fade-in-up {
-        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0;
     }
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(15px); }
+        from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Modifikasi Scrollbar Khusus untuk Tabel Log */
+    .custom-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.5);
+        border-radius: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: rgba(51, 65, 85, 0.8);
+        border-radius: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(71, 85, 105, 1);
     }
 </style>
 
 <script>
-    // UX Interaktif saat tombol diklik (mencegah klik ganda)
-    document.getElementById('blastForm').addEventListener('submit', function() {
+    // UX Interaktif & Pengamanan Eksekusi Form
+    document.getElementById('blastForm').addEventListener('submit', function(e) {
         const btn = document.getElementById('submitBtn');
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Sedang Memproses...';
-        btn.classList.add('opacity-80', 'cursor-not-allowed');
-        // Timeout 10ms agar proses submit browser tidak terblokir
-        setTimeout(() => { btn.style.pointerEvents = 'none'; }, 10);
+        const form = this;
+        
+        // Mencegah Double Submit & Memberikan Visual Feedback
+        if (form.getAttribute('data-submitting') === 'true') {
+            e.preventDefault();
+            return false;
+        }
+        
+        form.setAttribute('data-submitting', 'true');
+        btn.innerHTML = '<i class="fa-solid fa-satellite-dish fa-fade"></i> Sedang Mentransmisikan...';
+        btn.classList.remove('bg-blue-600', 'hover:bg-blue-500');
+        btn.classList.add('bg-slate-600', 'cursor-not-allowed', 'shadow-none');
+        
+        // Sengaja mendelay disable button 10ms agar Form dapat tereksekusi oleh browser
+        setTimeout(() => { 
+            btn.style.pointerEvents = 'none'; 
+        }, 10);
     });
 </script>
 {% endblock %}
