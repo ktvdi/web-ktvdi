@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Geospasial - KTVDI</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        #map {
+            height: calc(100vh - 140px);
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            z-index: 1;
+        }
+        .control-panel {
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+            padding-right: 15px;
+        }
+        .data-card {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            border-left: 4px solid #0d6efd;
+        }
+        .data-card.danger {
+            border-left-color: #dc3545;
+        }
+        .data-card.warning {
+            border-left-color: #ffc107;
+        }
+        .card-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #6c757d;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .metric-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #212529;
+            line-height: 1;
+        }
+        .metric-unit {
+            font-size: 1rem;
+            color: #6c757d;
+            font-weight: normal;
+        }
+        .status-text {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .bmkg-detail {
+            font-size: 0.9rem;
+            color: #495057;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand" href="/"><i class="fa-solid fa-satellite-dish me-2"></i> KTVDI Geospasial</a>
+        <div class="d-flex">
+            <a href="/" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Dasbor</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Interface -->
+<div class="container-fluid px-4 py-3">
+    <div class="row">
+        <!-- Left Panel: Telemetry & Data -->
+        <div class="col-lg-3 col-md-4 control-panel">
+            
+            <!-- Panel Telemetri GPS -->
+            <div class="data-card">
+                <div class="card-title"><i class="fa-solid fa-gauge-high"></i> Telemetri Kecepatan</div>
+                <div class="metric-value" id="speedVal">0 <span class="metric-unit">km/jam</span></div>
+                <div class="status-text text-secondary" id="geoStatus">
+                    <i class="fa-solid fa-spinner fa-spin me-1"></i> Inisialisasi Modul GPS...
+                </div>
+            </div>
+
+            <!-- Panel EWS Gempa BMKG -->
+            <div class="data-card danger">
+                <div class="card-title text-danger"><i class="fa-solid fa-house-crack"></i> Peringatan Gempa Terkini</div>
+                <div id="bmkgStatus">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm text-danger me-2" role="status"></div>
+                        <span class="text-secondary" style="font-size: 0.9rem;">Menghubungi Server BMKG...</span>
+                    </div>
+                </div>
+                <div id="bmkgData" class="d-none">
+                    <div class="metric-value text-danger" id="bmkgMag">-</div>
+                    <div class="bmkg-detail">
+                        <strong>Lokasi:</strong> <span id="bmkgLoc">-</span><br>
+                        <strong>Waktu:</strong> <span id="bmkgTime">-</span><br>
+                        <strong>Potensi:</strong> <span id="bmkgPotensi" class="badge bg-danger mt-1">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel Informasi Pariwisata -->
+            <div class="data-card warning">
+                <div class="card-title text-warning" style="color: #d39e00 !important;"><i class="fa-solid fa-map-location-dot"></i> Indeks Titik Pariwisata</div>
+                <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0;">Sistem memuat direktori titik pariwisata regional pada peta. Silakan klik penanda biru untuk detail infrastruktur lokasi.</p>
+            </div>
+
+        </div>
+
+        <!-- Right Panel: Interactive Map -->
+        <div class="col-lg-9 col-md-8">
+            <div id="map"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        // 1. INISIALISASI PETA 
+        // Fokus awal pada koordinat Jawa Tengah (Area Semarang - Pekalongan)
+        const map = L.map('map').setView([-6.9667, 110.4167], 9);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors | Infrastruktur Data Spasial KTVDI'
+        }).addTo(map);
+
+        // Layer Groups
+        const userLayer = L.layerGroup().addTo(map);
+        const pariwisataLayer = L.layerGroup().addTo(map);
+        let userMarker = null;
+
+        // Custom Markers
+        const redIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        const blueIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        const greenIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        // 2. PEMUATAN DATA PARIWISATA REGIONAL
+        const destinasiPariwisata = [
+            { nama: "Lawang Sewu", lat: -6.9839, lon: 110.4104, info: "Infrastruktur bersejarah peninggalan kolonial Belanda di Kota Semarang." },
+            { nama: "Museum Batik Pekalongan", lat: -6.8839, lon: 109.6766, info: "Pusat preservasi dan edukasi tekstil tradisional Nusantara." },
+            { nama: "Candi Borobudur", lat: -7.6079, lon: 110.2038, info: "Situs warisan dunia UNESCO, struktur candi Buddha terbesar." },
+            { nama: "Kawasan Simpang Lima", lat: -6.9904, lon: 110.4229, info: "Pusat aktivitas ekonomi dan ruang publik Kota Semarang." },
+            { nama: "Pantai Pasir Kencana", lat: -6.8660, lon: 109.6640, info: "Fasilitas rekreasi maritim di utara Kota Pekalongan." }
+        ];
+
+        destinasiPariwisata.forEach(tempat => {
+            L.marker([tempat.lat, tempat.lon], {icon: blueIcon})
+             .addTo(pariwisataLayer)
+             .bindPopup(`<div style="font-family: sans-serif;">
+                            <strong style="font-size:1.1em;">${tempat.nama}</strong><br>
+                            <span style="font-size:0.9em; color:#555;">${tempat.info}</span>
+                         </div>`);
+        });
+
+        // 3. INTEGRASI API AUTO-GEMPA BMKG (XML PARSING)
+        const fetchBMKGData = async () => {
+            try {
+                // Menggunakan proxy public untuk mem-bypass restriksi CORS dari server BMKG
+                const proxyUrl = 'https://api.allorigins.win/get?url=';
+                const targetUrl = encodeURIComponent('https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml');
+                
+                const response = await fetch(proxyUrl + targetUrl);
+                const result = await response.json();
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(result.contents, "text/xml");
+                
+                // Ekstraksi Node XML
+                const wilayah = xmlDoc.getElementsByTagName("Wilayah")[0].childNodes[0].nodeValue;
+                const magnitude = xmlDoc.getElementsByTagName("Magnitude")[0].childNodes[0].nodeValue;
+                const tanggal = xmlDoc.getElementsByTagName("Tanggal")[0].childNodes[0].nodeValue;
+                const jam = xmlDoc.getElementsByTagName("Jam")[0].childNodes[0].nodeValue;
+                const potensi = xmlDoc.getElementsByTagName("Potensi")[0].childNodes[0].nodeValue;
+                const coordinates = xmlDoc.getElementsByTagName("point")[0].getElementsByTagName("coordinates")[0].childNodes[0].nodeValue;
+                
+                // Konversi string koordinat BMKG (Bujur, Lintang) -> (Lon, Lat)
+                const coordsArray = coordinates.split(',');
+                const lat = parseFloat(coordsArray[1]);
+                const lon = parseFloat(coordsArray[0]);
+
+                // Pembaruan UI Panel
+                document.getElementById('bmkgStatus').classList.add('d-none');
+                document.getElementById('bmkgData').classList.remove('d-none');
+                
+                document.getElementById('bmkgMag').innerHTML = magnitude + ' <span class="metric-unit">Magnitudo</span>';
+                document.getElementById('bmkgLoc').innerText = wilayah;
+                document.getElementById('bmkgTime').innerText = `${tanggal} | ${jam}`;
+                document.getElementById('bmkgPotensi').innerText = potensi;
+
+                // Penambahan Marka Pusat Gempa pada Peta
+                L.circle([lat, lon], {
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.3,
+                    radius: 25000 // Radius simulasi 25km
+                }).addTo(map);
+
+                L.marker([lat, lon], {icon: redIcon})
+                 .addTo(map)
+                 .bindPopup(`<strong>Peringatan Gempa Terkini</strong><br>Magnitudo: ${magnitude}<br>Lokasi: ${wilayah}<br>Status: ${potensi}`)
+                 .openPopup();
+
+            } catch (err) {
+                console.error("GALAT SISTEM: Gagal memuat data telemetri BMKG.", err);
+                document.getElementById('bmkgStatus').innerHTML = '<span class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Gagal mengunduh data BMKG.</span>';
+            }
+        };
+
+        fetchBMKGData();
+
+        // 4. TELEMETRI LOKASI & KECEPATAN PENGGUNA (GEOLOCATION API)
+        const geoStatusEl = document.getElementById('geoStatus');
+        const speedValEl = document.getElementById('speedVal');
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    // Kecepatan dalam m/s dikonversi ke km/jam
+                    let speedMs = position.coords.speed;
+                    if (speedMs === null || speedMs < 0) speedMs = 0;
+                    const speedKmh = Math.round(speedMs * 3.6);
+                    
+                    // Update Panel UI
+                    speedValEl.innerHTML = `${speedKmh} <span class="metric-unit">km/jam</span>`;
+                    geoStatusEl.innerHTML = '<i class="fa-solid fa-satellite text-success"></i> Sinyal Satelit Terhubung';
+                    geoStatusEl.className = "status-text text-success";
+
+                    // Update Marka Posisi Pengguna
+                    if (!userMarker) {
+                        userMarker = L.marker([lat, lon], {icon: greenIcon}).addTo(userLayer);
+                        userMarker.bindPopup(`<strong>Posisi Telemetri Anda</strong><br>Koordinat: ${lat.toFixed(5)}, ${lon.toFixed(5)}`).openPopup();
+                        
+                        // Opsional: Otomatis memusatkan peta ke lokasi pengguna saat deteksi pertama
+                        map.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
+                    } else {
+                        userMarker.setLatLng([lat, lon]);
+                    }
+                },
+                (error) => {
+                    console.warn("Peringatan Geolocation:", error.message);
+                    geoStatusEl.innerHTML = '<i class="fa-solid fa-circle-exclamation text-danger"></i> Akses Modul GPS Ditolak / Tidak Tersedia';
+                    geoStatusEl.className = "status-text text-danger";
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 10000,
+                    timeout: 10000
+                }
+            );
+        } else {
+            geoStatusEl.innerHTML = '<i class="fa-solid fa-microchip text-danger"></i> Perangkat Keras GPS Tidak Terdukung';
+            geoStatusEl.className = "status-text text-danger";
+        }
+    });
+</script>
+</body>
+</html>
