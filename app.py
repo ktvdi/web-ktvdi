@@ -859,7 +859,7 @@ def cctv_page(): return render_template("cctv.html")
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 # ==========================================
-# 10. FITUR EMAIL BLAST MANUAL (PENGGANTI CRON)
+# 10. FITUR EMAIL BLAST MANUAL (TERINTEGRASI LOG PENERIMA)
 # ==========================================
 @app.route('/email', methods=['GET', 'POST'])
 def email_blast_page():
@@ -879,7 +879,7 @@ def email_blast_page():
             return redirect(url_for('email_blast_page'))
             
         users = ref.child('users').get() or {}
-        sent_count = 0
+        sent_to_list = [] # List untuk menyimpan siapa saja yang berhasil dikirimi
         
         with app.app_context():
             for uid, user_data in users.items():
@@ -910,14 +910,22 @@ Komunitas TV Digital Indonesia (KTVDI)
                     msg = Message(subject, recipients=[email_tujuan])
                     msg.body = formatted_body
                     mail.send(msg)
-                    sent_count += 1
+                    # Catat nama dan email jika berhasil
+                    sent_to_list.append(f"{nama_user} ({email_tujuan})")
                 except Exception as e:
                     print(f"INFO SISTEM: Kegagalan transmisi surel ke {email_tujuan}. Log galat: {e}")
         
-        flash(f"Eksekusi Berhasil: Pesan surel massal telah ditransmisikan ke {sent_count} anggota KTVDI terdaftar.", "success")
+        if sent_to_list:
+            session['last_sent_list'] = sent_to_list
+            flash(f"Eksekusi Berhasil: Pesan surel massal telah ditransmisikan ke {len(sent_to_list)} anggota terdaftar.", "success")
+        else:
+            flash("Transmisi gagal atau tidak ada anggota di database.", "error")
+            
         return redirect(url_for('email_blast_page'))
         
-    return render_template('email.html')
+    # Ambil list dari sesi saat halaman di-load ulang (GET)
+    sent_list = session.pop('last_sent_list', None)
+    return render_template('email.html', sent_list=sent_list)
 
 if __name__ == '__main__':
     app.run(debug=True)
