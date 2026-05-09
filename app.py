@@ -892,15 +892,16 @@ def email_blast_page():
                 if not email_tujuan: continue
                 
                 # Pemformatan pesan standar KTVDI
-                formatted_body = f"""========================================================
-BULETIN RESMI KOMUNITAS TV DIGITAL INDONESIA
+                formatted_body = f"""
+KTVDI UPDATE
 ========================================================
 
 Yth. Bapak/Ibu {nama_user},
 
 {body_text}
 
-Demikian informasi ini kami sampaikan. Terima kasih atas partisipasi aktif Anda dalam mendukung ekosistem penyiaran digital yang berkualitas.
+
+Selamat menjalankan aktivitas Anda selanjutnya.
 
 Hormat kami,
 Divisi Komunikasi Publik,
