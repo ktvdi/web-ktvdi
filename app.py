@@ -285,7 +285,6 @@ def get_news_entries():
         pass
 
     try:
-        # Menjaga fitur 9 sumber berita utama dengan multithreading internal yang aman di Vercel
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
             'https://rss.detik.com/index.php/detikcom', 
@@ -300,7 +299,6 @@ def get_news_entries():
         
         def fetch_feed(url):
             try:
-                # Timeout ketat agar request selesai sebelum limit 10 detik Vercel habis
                 res = requests.get(url, headers=headers, timeout=4)
                 if res.status_code == 200:
                     return url, feedparser.parse(res.content)
@@ -813,7 +811,6 @@ def get_jadwal_kemenag():
 def news_ticker():
     return jsonify([n['title'] for n in get_news_entries()])
 
-# MENGEMBALIKAN FITUR STATISTIK PENGUNJUNG YANG SEMPAT HILANG
 @app.route('/api/visitor-stats')
 def visitor_stats():
     current_time = time.time()
@@ -862,13 +859,12 @@ def cctv_page(): return render_template("cctv.html")
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 # ==========================================
-# 10. VERCEL CRON JOBS ENDPOINT (PENGGANTI APSCHEDULER DENGAN TEKS LENGKAP)
+# 10. VERCEL CRON JOBS ENDPOINT
 # ==========================================
 @app.route('/api/cron/send-scheduled-email', methods=['GET'])
 def cron_send_email():
     """Endpoint ini akan di-trigger otomatis oleh Vercel Cron"""
     
-    # Proteksi endpoint menggunakan Bearer Token dari Vercel
     auth_header = request.headers.get('Authorization')
     if auth_header != f"Bearer {os.environ.get('CRON_SECRET')}":
         return jsonify({"error": "Otorisasi sistem ditolak"}), 401
@@ -891,18 +887,18 @@ def cron_send_email():
             
             if not email_tujuan: continue
 
-            # MENGEMBALIKAN TEKS EMAIL YANG PANJANG & PROFESIONAL
             if tipe_notif == "weekend":
-                subject = "Laporan Tinjauan Akhir Pekan & Pembaruan Kondisi Terkini - KTVDI"
+                subject = "Laporan Sistem Dini Hari & Tinjauan Akhir Pekan - KTVDI"
                 body = f"""========================================================
 BULETIN RESMI KOMUNITAS TV DIGITAL INDONESIA
+Eksekusi Sistem: Minggu, 02:15 WIB
 ========================================================
 
 Yth. Bapak/Ibu {nama_user},
 
-Kami mewakili jajaran pengurus Komunitas TV Digital Indonesia (KTVDI) mengucapkan selamat menyambut akhir pekan. Melalui buletin ini, kami ingin menyampaikan beberapa pembaruan esensial terkait perkembangan infrastruktur penyiaran digital di wilayah Anda.
+Kami mewakili jajaran pengurus Komunitas TV Digital Indonesia (KTVDI) mengucapkan selamat menyambut hari Minggu. Melalui buletin otomatis dini hari ini, kami ingin menyampaikan beberapa pembaruan esensial terkait perkembangan infrastruktur penyiaran digital di wilayah Anda.
 
-Mengingat proses optimalisasi parameter transmisi multipleksing (MUX) yang secara periodik dilakukan oleh penyelenggara siaran, kami merekomendasikan agar Anda melakukan pemindaian ulang (blind scan) pada perangkat Set Top Box (STB) maupun Televisi Digital terintegrasi secara berkala. Hal ini bertujuan untuk memastikan kelengkapan saluran dan stabilitas kualitas penerimaan gambar.
+Mengingat proses optimalisasi parameter transmisi multipleksing (MUX) yang secara periodik dilakukan oleh penyelenggara siaran, kami merekomendasikan agar Anda melakukan pemindaian ulang (blind scan) pada perangkat Set Top Box (STB) maupun Televisi Digital terintegrasi secara berkala. Hal ini bertujuan untuk memastikan kelengkapan saluran dan stabilitas kualitas penerimaan gambar pada akhir pekan Anda.
 
 Lebih lanjut, mempertimbangkan fluktuasi kondisi cuaca belakangan ini, kami mengimbau Anda untuk melakukan inspeksi terhadap instalasi perangkat penerima luar ruang (antena outdoor). Pastikan struktur penyangga dalam keadaan solid dan terhindar dari potensi sambaran petir. Kami juga menyarankan Anda untuk terus memonitor informasi peringatan dini cuaca melalui portal EWS KTVDI yang telah terintegrasi dengan data resmi BMKG.
 
@@ -913,22 +909,23 @@ Divisi Komunikasi Publik,
 Komunitas TV Digital Indonesia (KTVDI)
 ========================================================"""
             elif tipe_notif == "daily_rabu":
-                subject = "Pengingat Pemeliharaan Rutin Infrastruktur Penyiaran - KTVDI"
+                subject = "Pengingat Pemeliharaan Rutin Infrastruktur Penyiaran (Rabu Malam) - KTVDI"
                 body = f"""========================================================
 PENGINGAT SISTEM KTVDI
+Eksekusi Sistem: Rabu, 19:30 WIB
 ========================================================
 
 Yth. Bapak/Ibu {nama_user},
 
-Sistem pemantauan kami menjadwalkan notifikasi ini sebagai bagian dari protokol pemeliharaan rutin di pertengahan minggu. 
+Selamat malam. Sistem pemantauan kami menjadwalkan notifikasi ini sebagai bagian dari protokol pemeliharaan rutin di pertengahan minggu. 
 
-Sebagai langkah preventif guna menjaga kualitas layanan penyiaran di kediaman Anda, kami merekomendasikan pemeriksaan singkat pada konektor frekuensi radio (RF) perangkat Anda. Pastikan terminasi kabel pada perangkat Set Top Box (STB) terpasang dengan presisi untuk menghindari redaman sinyal (signal loss) yang dapat mengakibatkan degradasi visual (freezing/pixelating).
+Sebagai langkah preventif guna menjaga kualitas layanan penyiaran di kediaman Anda saat bersantai di malam hari, kami merekomendasikan pemeriksaan singkat pada konektor frekuensi radio (RF) perangkat Anda. Pastikan terminasi kabel pada perangkat Set Top Box (STB) terpasang dengan presisi untuk menghindari redaman sinyal (signal loss) yang dapat mengakibatkan degradasi visual (freezing/pixelating).
 
 Bagi Anda yang berencana melakukan eskalasi atau pembaruan teknologi pada perangkat penerima siaran maupun sistem keamanan visual (CCTV) mandiri, sangat dianjurkan untuk menggunakan perangkat keras yang telah lulus uji sertifikasi dari Kementerian Komunikasi dan Informatika (Kominfo). 
 
 Apabila Anda mengalami kendala teknis spesifik atau area tanpa sinyal (blank spot), kami mengundang Anda untuk melaporkannya melalui forum diskusi resmi KTVDI guna mendapatkan penanganan komprehensif dari komunitas.
 
-Terima kasih atas perhatian dan kerja sama yang baik.
+Terima kasih atas perhatian dan kerja sama yang baik. Selamat beristirahat.
 
 Salam Profesional,
 Sistem Notifikasi Otomatis KTVDI
