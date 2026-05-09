@@ -859,7 +859,7 @@ def cctv_page(): return render_template("cctv.html")
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 # ==========================================
-# 10. FITUR EMAIL BLAST MANUAL (TERINTEGRASI LOG LENGKAP)
+# 10. FITUR PUSAT PESAN BLAST EWS KTVDI
 # ==========================================
 @app.route('/email', methods=['GET', 'POST'])
 def email_blast_page():
@@ -869,17 +869,19 @@ def email_blast_page():
     if request.method == 'POST':
         subject = request.form.get('subject')
         body_text = request.form.get('message')
+        kategori = request.form.get('kategori', 'Informasi Umum')
+        prioritas = request.form.get('prioritas', 'Normal')
         
         if not subject or not body_text:
-            flash("Peringatan Sistem: Parameter subjek dan isi pesan bersifat mandatori (wajib diisi).", "error")
+            flash("Halo Admin, mohon pastikan subjek dan isi pesan sudah terisi ya.", "error")
             return redirect(url_for('email_blast_page'))
             
         if not ref:
-            flash("Kegagalan Sistem: Koneksi ke pangkalan data terputus. Tidak dapat memuat daftar entitas anggota.", "error")
+            flash("Gagal memuat database anggota. Pastikan koneksi ke Firebase aman.", "error")
             return redirect(url_for('email_blast_page'))
             
         users = ref.child('users').get() or {}
-        sent_details = [] # Menyimpan array of dictionary untuk log super detail
+        sent_details = [] 
         tz_jakarta = pytz.timezone('Asia/Jakarta')
         
         with app.app_context():
@@ -891,31 +893,29 @@ def email_blast_page():
                 
                 if not email_tujuan: continue
                 
-                # Pemformatan pesan standar KTVDI
-                formatted_body = f"""
-KTVDI UPDATE
+                # Format pesan Blast KTVDI yang lebih santai tapi profesional
+                formatted_body = f"""========================================================
+PESAN BLAST KTVDI (KOMUNITAS TV DIGITAL INDONESIA)
+Kategori  : {kategori}
+Prioritas : {prioritas}
 ========================================================
 
-Yth. Bapak/Ibu {nama_user},
+Halo Bapak/Ibu {nama_user},
 
 {body_text}
 
+Terima kasih atas perhatiannya. Mari bersama kita bangun ekosistem penyiaran digital yang lebih baik di Indonesia.
 
-Selamat menjalankan aktivitas Anda selanjutnya.
-
-Hormat kami,
-Divisi Komunikasi Publik,
-Komunitas TV Digital Indonesia (KTVDI)
+Salam hangat,
+Admin KTVDI
 ========================================================"""
                 
-                # Mendapatkan waktu eksak per pengiriman email
                 waktu_kirim = datetime.now(tz_jakarta).strftime("%d %b %Y - %H:%M:%S WIB")
                 
                 try:
                     msg = Message(subject, recipients=[email_tujuan])
                     msg.body = formatted_body
                     mail.send(msg)
-                    # Catat data detail untuk ditampilkan di Frontend
                     sent_details.append({
                         "nama": nama_user,
                         "email": email_tujuan,
@@ -923,7 +923,7 @@ Komunitas TV Digital Indonesia (KTVDI)
                         "status": "Sukses"
                     })
                 except Exception as e:
-                    print(f"INFO SISTEM: Kegagalan transmisi surel ke {email_tujuan}. Log galat: {e}")
+                    print(f"Gagal mengirim ke {email_tujuan}: {e}")
                     sent_details.append({
                         "nama": nama_user,
                         "email": email_tujuan,
@@ -934,16 +934,14 @@ Komunitas TV Digital Indonesia (KTVDI)
         if sent_details:
             session['last_sent_details'] = sent_details
             berhasil = sum(1 for x in sent_details if x['status'] == "Sukses")
-            flash(f"Status Operasi: Menyelesaikan transmisi. {berhasil} dari {len(sent_details)} surel berhasil terkirim.", "success")
+            flash(f"Mantap! Pesan blast berhasil terkirim ke {berhasil} dari {len(sent_details)} anggota.", "success")
         else:
-            flash("Anomali Sistem: Transmisi dibatalkan atau tidak ada data anggota terdaftar di basis data.", "error")
+            flash("Ups, proses dibatalkan atau tidak ada anggota di database.", "error")
             
         return redirect(url_for('email_blast_page'))
         
-    # Ambil list log detail dari sesi (akan kosong jika halaman sekadar di-refresh)
     sent_list = session.pop('last_sent_details', None)
     
-    # Hitung total user untuk widget statistik
     total_users = 0
     if ref:
         try: total_users = len(ref.child('users').get() or {})
