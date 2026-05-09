@@ -9,14 +9,13 @@ import requests
 import feedparser
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
-import base64  
 import json
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 import urllib3
 
 # ==========================================
@@ -48,7 +47,7 @@ def maintenance_interceptor():
     return None
 
 # ==========================================
-# 2.5. SISTEM TRACKER PENGUNJUNG & LOKASI
+# 3. SISTEM TRACKER PENGUNJUNG & LOKASI (VERCEL OPTIMIZED)
 # ==========================================
 TRACKER_DATA = {
     "date": datetime.now(pytz.timezone('Asia/Jakarta')).date(),
@@ -58,22 +57,26 @@ TRACKER_DATA = {
 }
 
 def fetch_and_store_location_sync(ip):
-    """Pengambilan IP secara sinkron dengan timeout sangat singkat (1 detik) agar Vercel tidak lemot"""
+    """Pengambilan IP dengan timeout sangat ketat agar Vercel tidak timeout"""
     try:
-        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=1.5)
+        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=1.0)
         if r.status_code == 200:
             res = r.json()
             if res.get("status") == "success":
-                TRACKER_DATA["ip_locations"][ip] = f"{res.get('city', 'Unknown City')}, {res.get('country', 'Unknown Country')}"
+                TRACKER_DATA["ip_locations"][ip] = f"{res.get('city', 'Unknown')}, {res.get('country', 'Unknown')}"
+            else:
+                TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
     except Exception:
-        pass
+        TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
 
 @app.before_request
 def visitor_tracker():
-    if request.endpoint and 'static' not in request.endpoint:
+    # Hanya jalankan pelacakan untuk rute HTML utama, hindari rute statis/API agar server tidak berat
+    if request.endpoint and not request.endpoint.startswith(('static', 'api_')):
         tz = pytz.timezone('Asia/Jakarta')
         today = datetime.now(tz).date()
         
+        # Reset memori jika hari berganti (simulasi cron lokal)
         if TRACKER_DATA["date"] != today:
             TRACKER_DATA["date"] = today
             TRACKER_DATA["daily_ips"].clear()
@@ -85,12 +88,13 @@ def visitor_tracker():
             TRACKER_DATA["daily_ips"].add(user_ip)
             TRACKER_DATA["online_ips"][user_ip] = time.time()
             
+            # Cek lokasi jika IP belum ada
             if user_ip not in TRACKER_DATA["ip_locations"] and not user_ip.startswith(('127.', '192.168.', '10.')):
-                TRACKER_DATA["ip_locations"][user_ip] = "Mendeteksi Lokasi..."
+                TRACKER_DATA["ip_locations"][user_ip] = "Mendeteksi..."
                 fetch_and_store_location_sync(user_ip)
 
 # ==========================================
-# 3. KONEKSI DATABASE (FIREBASE)
+# 4. KONEKSI DATABASE (FIREBASE)
 # ==========================================
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
@@ -128,7 +132,7 @@ except Exception as e:
     print(f"ERROR: Kegagalan koneksi basis data. Mode luring diaktifkan. Rincian: {e}")
 
 # ==========================================
-# 4. KONFIGURASI EMAIL (SMTP GMAIL)
+# 5. KONFIGURASI EMAIL (SMTP GMAIL)
 # ==========================================
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -139,7 +143,7 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
 # ==========================================
-# 5. KONFIGURASI AI (GEMINI)
+# 6. KONFIGURASI AI (GEMINI)
 # ==========================================
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU") 
 
@@ -169,9 +173,8 @@ INSTRUKSI KRITIKAL: Apabila data Early Warning System (EWS) mengindikasikan bend
 """
 
 # ==========================================
-# 6. FUNGSI BANTUAN (HELPERS)
+# 7. FUNGSI BANTUAN (HELPERS)
 # ==========================================
-
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 def normalize_input(text): return text.strip().lower() if text else ""
 
@@ -187,13 +190,13 @@ def get_email_template(action_type, nama_user, otp_code):
     if action_type == "REGISTER":
         subject = f"🔐 Verifikasi Keamanan: Pendaftaran Akun KTVDI [{otp_code}]"
         title = "Verifikasi Pendaftaran Akun Baru"
-        desc = "Sistem kami mendeteksi permintaan pendaftaran akun baru di portal Komunitas TV Digital Indonesia (KTVDI) yang terafiliasi dengan alamat surel ini."
-        warning = "Apabila Anda tidak merasa menginisiasi pendaftaran ini, harap abaikan pesan ini. Kode OTP ini bersifat sangat RAHASIA."
+        desc = "Sistem kami mendeteksi permintaan pendaftaran akun baru di portal Komunitas TV Digital Indonesia (KTVDI)."
+        warning = "Apabila Anda tidak merasa menginisiasi pendaftaran ini, harap abaikan pesan ini. Kode OTP ini bersifat RAHASIA."
     elif action_type == "RESET":
         subject = f"⚠️ Peringatan Keamanan: Permintaan Atur Ulang Kata Sandi [{otp_code}]"
         title = "Permintaan Atur Ulang Kata Sandi"
         desc = "Sistem kami menerima instruksi untuk mengatur ulang kata sandi (Reset Password) pada akun KTVDI Anda."
-        warning = "JANGAN MEMBERIKAN kode ini kepada pihak mana pun, termasuk staf atau administrator KTVDI. Jika permintaan ini bukan dari Anda, segera lakukan pengamanan akun."
+        warning = "JANGAN MEMBERIKAN kode ini kepada pihak mana pun, termasuk staf atau administrator KTVDI."
     else:
         subject = "Pemberitahuan Sistem KTVDI"; title = "Notifikasi Sistem"; desc = "Terdapat pembaruan informasi terkait akun Anda."; warning = ""
 
@@ -209,7 +212,7 @@ Sebagai langkah otorisasi untuk memproses {title}, mohon gunakan Kode Verifikasi
 
 [ {otp_code} ]
 
-*Catatan: Kode verifikasi ini hanya berlaku selama 60 detik terhitung sejak surel ini diterbitkan.
+*Catatan: Kode verifikasi ini hanya berlaku selama 60 detik.
 
 INSTRUKSI KEAMANAN: {warning}
 
@@ -218,8 +221,7 @@ Rincian Transaksi Sistem:
 - Status Transaksi : Menunggu Otorisasi Pengguna
 
 Hormat kami,
-Divisi Teknologi & Keamanan Informasi,
-Komunitas TV Digital Indonesia (KTVDI)
+Divisi Teknologi & Keamanan Informasi, KTVDI
 ========================================================"""
     return subject, body
 
@@ -229,7 +231,7 @@ def get_hijri_date_string():
         tz_jakarta = pytz.timezone('Asia/Jakarta')
         now_wib = datetime.now(tz_jakarta) + timedelta(days=HIJRI_OFFSET)
         url = f"https://api.aladhan.com/v1/gToH?date={now_wib.strftime('%d-%m-%Y')}"
-        r = requests.get(url, timeout=3)
+        r = requests.get(url, timeout=2.0)
         if r.status_code == 200:
             data = r.json()['data']['hijri']
             indo_months = {
@@ -246,20 +248,20 @@ def get_hijri_date_string():
     except Exception: pass
     return f"Tanggal Hijriah Tidak Tersedia"
 
-# --- CACHE UNTUK BERITA ---
+# --- CACHE UNTUK BERITA (VERCEL OPTIMIZED) ---
 NEWS_CACHE = []
 NEWS_LAST_FETCH = 0
 
 def get_news_entries():
     global NEWS_CACHE, NEWS_LAST_FETCH
-    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 30):
+    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 300): # Cache dinaikkan 5 menit agar ringan
         return NEWS_CACHE
 
     all_news = []
     headers = {'User-Agent': 'Mozilla/5.0'}
 
     try:
-        r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=5)
+        r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=3.0)
         if r_bmkg.status_code == 200:
             root = ET.fromstring(r_bmkg.content)
             gempa = root.find('gempa')
@@ -274,27 +276,20 @@ def get_news_entries():
     except Exception: pass
 
     try:
+        # Sumber berita dikurangi jadi 2 saja agar terhindar dari Vercel Timeout (10 Detik)
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
-            'https://rss.detik.com/index.php/detikcom', 
-            'https://www.cnnindonesia.com/nasional/rss',
-            'https://www.kompas.com/feed'
+            'https://rss.detik.com/index.php/detikcom'
         ]
         
-        # Eksekusi serial untuk stabilitas Vercel Function menghindari timeout concurrent request
         for url in sources:
             try:
-                res = requests.get(url, headers=headers, timeout=3)
+                res = requests.get(url, headers=headers, timeout=2.5)
                 if res.status_code == 200:
                     feed = feedparser.parse(res.content)
                     if feed and feed.entries:
-                        for entry in feed.entries[:10]: 
-                            source_name = "Kabar Berita"
-                            if 'detik' in url: source_name = 'DetikNews'
-                            elif 'kompas' in url: source_name = 'Kompas'
-                            elif 'cnn' in url: source_name = 'CNN Indonesia'
-                            elif 'google' in url: source_name = 'Google News'
-                            
+                        for entry in feed.entries[:8]: # Ambil masing-masing 8 teratas saja
+                            source_name = 'DetikNews' if 'detik' in url else 'Google News'
                             entry['source_name'] = source_name
                             
                             img_url = None
@@ -319,7 +314,7 @@ def get_news_entries():
         t = datetime.now().timetuple()
         return [{'title': 'Pusat Informasi KTVDI Beroperasi Normal', 'link': '#', 'published_parsed': t, 'source_name': 'Sistem Internal', 'image': None}]
     
-    NEWS_CACHE = all_news[:100] 
+    NEWS_CACHE = all_news[:50] 
     NEWS_LAST_FETCH = time.time()
     return NEWS_CACHE
 
@@ -341,7 +336,7 @@ def get_quote_religi():
     }
 
 def get_smart_fallback_response(text):
-    return "Mohon maaf, server kecerdasan buatan kami saat ini sedang memproses volume antrean yang tinggi. Kami memohon kesediaan Anda untuk mencoba kembali dalam beberapa saat."
+    return "Mohon maaf, server kecerdasan buatan kami saat ini sedang memproses antrean. Silakan coba kembali."
 
 KEMENAG_KOTA_CACHE = []
 KEMENAG_LAST_FETCH = 0
@@ -350,7 +345,7 @@ def fetch_kemenag_kota():
     global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
     if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400): return KEMENAG_KOTA_CACHE
     try:
-        r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=5)
+        r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=4.0)
         if r.status_code == 200:
             data = r.json()
             if data.get('status') and 'data' in data:
@@ -362,7 +357,7 @@ def fetch_kemenag_kota():
     return [{"id": "1301", "nama": "Kota Jakarta"}, {"id": "1604", "nama": "Kota Semarang"}]
 
 # ==========================================
-# 7. LOGIKA EWS & CUACA
+# 8. LOGIKA EWS & CUACA
 # ==========================================
 def smart_convert_cm(value):
     try:
@@ -378,7 +373,7 @@ def get_cuaca_10_kota():
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lats}&longitude={lons}&current=temperature_2m,weather_code&timezone=Asia%2FBangkok"
     results = []
     try:
-        r = requests.get(url, timeout=3)
+        r = requests.get(url, timeout=3.0)
         if r.status_code == 200:
             data = r.json()
             data_list = data if isinstance(data, list) else [data] if 'current' in data else []
@@ -399,7 +394,7 @@ def fetch_ews_data():
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=50"
-        r = requests.get(url, headers=headers, timeout=5, verify=False)
+        r = requests.get(url, headers=headers, timeout=4.0, verify=False)
         if r.status_code == 200:
             clean_data = []
             for item in r.json().get('data', []):
@@ -416,7 +411,7 @@ def fetch_ews_data():
     return []
 
 # ==========================================
-# 8. ROUTES & CONTROLLERS
+# 9. ROUTES & CONTROLLERS
 # ==========================================
 @app.route("/", methods=['GET'])
 def home():
@@ -456,7 +451,7 @@ def login():
             session['user'] = target_uid
             session['nama'] = target_user.get('nama', 'Pengguna Terdaftar')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Kredensial identitas atau kata sandi yang Anda masukkan tidak valid.")
+        return render_template('login.html', error="Kredensial identitas atau kata sandi tidak valid.")
     return render_template('login.html')
 
 @app.route('/logout')
@@ -510,7 +505,7 @@ def jadwal_sholat_page():
 def get_jadwal_kemenag():
     try:
         url = f"https://api.myquran.com/v2/sholat/jadwal/{request.args.get('id_kota')}/{request.args.get('tahun', datetime.now().year)}/{request.args.get('bulan', datetime.now().month)}"
-        r = requests.get(url, timeout=5)
+        r = requests.get(url, timeout=4.0)
         if r.status_code == 200: return jsonify(r.json())
     except Exception as e: return jsonify({"status": False, "message": str(e)})
     return jsonify({"status": False, "message": "Gagal ke server."})
@@ -553,12 +548,11 @@ def about(): return render_template('about.html')
 def cctv_page(): return render_template("cctv.html")
 
 # ==========================================
-# 10. VERCEL CRON JOBS ENDPOINT (Pengganti APScheduler)
+# 10. VERCEL CRON JOBS ENDPOINT
 # ==========================================
 @app.route('/api/cron/send-scheduled-email', methods=['GET'])
 def cron_send_email():
     """Endpoint ini akan di-trigger oleh Vercel Cron"""
-    # Proteksi endpoint menggunakan Bearer Token dari Vercel
     auth_header = request.headers.get('Authorization')
     if auth_header != f"Bearer {os.environ.get('CRON_SECRET')}":
         return jsonify({"error": "Otorisasi ditolak"}), 401
@@ -583,16 +577,16 @@ def cron_send_email():
 
             if tipe_notif == "weekend":
                 subject = "Laporan Tinjauan Akhir Pekan & Pembaruan Kondisi Terkini - KTVDI"
-                body = f"Yth. Bapak/Ibu {nama_user},\n\nJangan lupa scan ulang STB Anda..."
+                body = f"Yth. Bapak/Ibu {nama_user},\n\nJangan lupa scan ulang STB Anda untuk memastikan kualitas saluran digital di rumah."
             else:
                 subject = "Pengingat Pemeliharaan Rutin Infrastruktur Penyiaran - KTVDI"
-                body = f"Yth. Bapak/Ibu {nama_user},\n\nMohon pastikan kabel RF dan STB Anda aman..."
+                body = f"Yth. Bapak/Ibu {nama_user},\n\nMohon pastikan kabel antena dan jack RF STB Anda dalam keadaan aman dan tertancap kokoh."
 
             try:
                 msg = Message(subject, recipients=[email_tujuan])
                 msg.body = body
                 mail.send(msg)
-            except Exception as e:
+            except Exception:
                 pass
 
     return jsonify({"status": "sukses", "pesan": f"Email {tipe_notif} telah dikirim."}), 200
