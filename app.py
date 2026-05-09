@@ -9,13 +9,15 @@ import requests
 import feedparser
 import xml.etree.ElementTree as ET
 import google.generativeai as genai
+import concurrent.futures
+import base64  
 import json
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import urllib3
 
 # ==========================================
@@ -47,7 +49,7 @@ def maintenance_interceptor():
     return None
 
 # ==========================================
-# 3. SISTEM TRACKER PENGUNJUNG & LOKASI (VERCEL OPTIMIZED)
+# 2.5. SISTEM TRACKER PENGUNJUNG & LOKASI
 # ==========================================
 TRACKER_DATA = {
     "date": datetime.now(pytz.timezone('Asia/Jakarta')).date(),
@@ -57,13 +59,13 @@ TRACKER_DATA = {
 }
 
 def fetch_and_store_location_sync(ip):
-    """Pengambilan IP dengan timeout sangat ketat agar Vercel tidak timeout"""
+    """Pengambilan lokasi disinkronkan dengan batas waktu ketat agar Vercel tidak Crash"""
     try:
-        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=1.0)
+        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=1.5)
         if r.status_code == 200:
             res = r.json()
             if res.get("status") == "success":
-                TRACKER_DATA["ip_locations"][ip] = f"{res.get('city', 'Unknown')}, {res.get('country', 'Unknown')}"
+                TRACKER_DATA["ip_locations"][ip] = f"{res.get('city', 'Unknown City')}, {res.get('country', 'Unknown Country')}"
             else:
                 TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
     except Exception:
@@ -71,12 +73,10 @@ def fetch_and_store_location_sync(ip):
 
 @app.before_request
 def visitor_tracker():
-    # Hanya jalankan pelacakan untuk rute HTML utama, hindari rute statis/API agar server tidak berat
-    if request.endpoint and not request.endpoint.startswith(('static', 'api_')):
+    if request.endpoint and 'static' not in request.endpoint:
         tz = pytz.timezone('Asia/Jakarta')
         today = datetime.now(tz).date()
         
-        # Reset memori jika hari berganti (simulasi cron lokal)
         if TRACKER_DATA["date"] != today:
             TRACKER_DATA["date"] = today
             TRACKER_DATA["daily_ips"].clear()
@@ -88,13 +88,12 @@ def visitor_tracker():
             TRACKER_DATA["daily_ips"].add(user_ip)
             TRACKER_DATA["online_ips"][user_ip] = time.time()
             
-            # Cek lokasi jika IP belum ada
             if user_ip not in TRACKER_DATA["ip_locations"] and not user_ip.startswith(('127.', '192.168.', '10.')):
-                TRACKER_DATA["ip_locations"][user_ip] = "Mendeteksi..."
+                TRACKER_DATA["ip_locations"][user_ip] = "Mendeteksi Lokasi..."
                 fetch_and_store_location_sync(user_ip)
 
 # ==========================================
-# 4. KONEKSI DATABASE (FIREBASE)
+# 3. KONEKSI DATABASE (FIREBASE)
 # ==========================================
 try:
     if os.environ.get("FIREBASE_PRIVATE_KEY"):
@@ -132,7 +131,7 @@ except Exception as e:
     print(f"ERROR: Kegagalan koneksi basis data. Mode luring diaktifkan. Rincian: {e}")
 
 # ==========================================
-# 5. KONFIGURASI EMAIL (SMTP GMAIL)
+# 4. KONFIGURASI EMAIL (SMTP GMAIL)
 # ==========================================
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -143,7 +142,7 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get("MAIL_USERNAME")
 mail = Mail(app)
 
 # ==========================================
-# 6. KONFIGURASI AI (GEMINI)
+# 5. KONFIGURASI AI (GEMINI)
 # ==========================================
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU") 
 
@@ -173,8 +172,9 @@ INSTRUKSI KRITIKAL: Apabila data Early Warning System (EWS) mengindikasikan bend
 """
 
 # ==========================================
-# 7. FUNGSI BANTUAN (HELPERS)
+# 6. FUNGSI BANTUAN (HELPERS)
 # ==========================================
+
 def hash_password(pw): return hashlib.sha256(pw.encode()).hexdigest()
 def normalize_input(text): return text.strip().lower() if text else ""
 
@@ -190,13 +190,13 @@ def get_email_template(action_type, nama_user, otp_code):
     if action_type == "REGISTER":
         subject = f"🔐 Verifikasi Keamanan: Pendaftaran Akun KTVDI [{otp_code}]"
         title = "Verifikasi Pendaftaran Akun Baru"
-        desc = "Sistem kami mendeteksi permintaan pendaftaran akun baru di portal Komunitas TV Digital Indonesia (KTVDI)."
-        warning = "Apabila Anda tidak merasa menginisiasi pendaftaran ini, harap abaikan pesan ini. Kode OTP ini bersifat RAHASIA."
+        desc = "Sistem kami mendeteksi permintaan pendaftaran akun baru di portal Komunitas TV Digital Indonesia (KTVDI) yang terafiliasi dengan alamat surel ini."
+        warning = "Apabila Anda tidak merasa menginisiasi pendaftaran ini, harap abaikan pesan ini. Kode OTP ini bersifat sangat RAHASIA."
     elif action_type == "RESET":
         subject = f"⚠️ Peringatan Keamanan: Permintaan Atur Ulang Kata Sandi [{otp_code}]"
         title = "Permintaan Atur Ulang Kata Sandi"
         desc = "Sistem kami menerima instruksi untuk mengatur ulang kata sandi (Reset Password) pada akun KTVDI Anda."
-        warning = "JANGAN MEMBERIKAN kode ini kepada pihak mana pun, termasuk staf atau administrator KTVDI."
+        warning = "JANGAN MEMBERIKAN kode ini kepada pihak mana pun, termasuk staf atau administrator KTVDI. Jika permintaan ini bukan dari Anda, segera lakukan pengamanan akun."
     else:
         subject = "Pemberitahuan Sistem KTVDI"; title = "Notifikasi Sistem"; desc = "Terdapat pembaruan informasi terkait akun Anda."; warning = ""
 
@@ -212,7 +212,7 @@ Sebagai langkah otorisasi untuk memproses {title}, mohon gunakan Kode Verifikasi
 
 [ {otp_code} ]
 
-*Catatan: Kode verifikasi ini hanya berlaku selama 60 detik.
+*Catatan: Kode verifikasi ini hanya berlaku selama 60 detik terhitung sejak surel ini diterbitkan.
 
 INSTRUKSI KEAMANAN: {warning}
 
@@ -221,7 +221,8 @@ Rincian Transaksi Sistem:
 - Status Transaksi : Menunggu Otorisasi Pengguna
 
 Hormat kami,
-Divisi Teknologi & Keamanan Informasi, KTVDI
+Divisi Teknologi & Keamanan Informasi,
+Komunitas TV Digital Indonesia (KTVDI)
 ========================================================"""
     return subject, body
 
@@ -230,8 +231,9 @@ def get_hijri_date_string():
     try:
         tz_jakarta = pytz.timezone('Asia/Jakarta')
         now_wib = datetime.now(tz_jakarta) + timedelta(days=HIJRI_OFFSET)
+        
         url = f"https://api.aladhan.com/v1/gToH?date={now_wib.strftime('%d-%m-%Y')}"
-        r = requests.get(url, timeout=2.0)
+        r = requests.get(url, timeout=3)
         if r.status_code == 200:
             data = r.json()['data']['hijri']
             indo_months = {
@@ -245,66 +247,101 @@ def get_hijri_date_string():
             m = indo_months.get(data['month']['en'], data['month']['en'])
             y = data['year']
             return f"{d} {m} {y} H"
-    except Exception: pass
+    except Exception as e:
+        pass
     return f"Tanggal Hijriah Tidak Tersedia"
 
-# --- CACHE UNTUK BERITA (VERCEL OPTIMIZED) ---
+# --- CACHE UNTUK BERITA ---
 NEWS_CACHE = []
 NEWS_LAST_FETCH = 0
 
 def get_news_entries():
     global NEWS_CACHE, NEWS_LAST_FETCH
-    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 300): # Cache dinaikkan 5 menit agar ringan
+    if len(NEWS_CACHE) > 0 and (time.time() - NEWS_LAST_FETCH < 30):
         return NEWS_CACHE
 
     all_news = []
     headers = {'User-Agent': 'Mozilla/5.0'}
 
     try:
-        r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=3.0)
+        r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=5)
         if r_bmkg.status_code == 200:
             root = ET.fromstring(r_bmkg.content)
             gempa = root.find('gempa')
             if gempa is not None:
+                wilayah = gempa.find('Wilayah').text
+                magnitude = gempa.find('Magnitude').text
+                potensi = gempa.find('Potensi').text
+                shakemap = gempa.find('Shakemap').text
+                
                 all_news.append({
-                    'title': f"INFORMASI GEMPA BMKG: Magnitudo {gempa.find('Magnitude').text} di {gempa.find('Wilayah').text} ({gempa.find('Potensi').text})",
+                    'title': f"INFORMASI GEMPA BMKG: Magnitudo {magnitude} di {wilayah} ({potensi})",
                     'link': "https://warning.bmkg.go.id/",
                     'published_parsed': datetime.now().timetuple(),
                     'source_name': 'BMKG Resmi',
-                    'image': f"https://data.bmkg.go.id/DataMKG/TEWS/{gempa.find('Shakemap').text}"
+                    'image': f"https://data.bmkg.go.id/DataMKG/TEWS/{shakemap}"
                 })
-    except Exception: pass
+    except Exception as e:
+        pass
 
     try:
-        # Sumber berita dikurangi jadi 2 saja agar terhindar dari Vercel Timeout (10 Detik)
+        # Menjaga fitur 9 sumber berita utama dengan multithreading internal yang aman di Vercel
         sources = [
             'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
-            'https://rss.detik.com/index.php/detikcom'
+            'https://rss.detik.com/index.php/detikcom', 
+            'https://www.cnnindonesia.com/nasional/rss',
+            'https://www.antaranews.com/rss/top-news.xml',
+            'https://www.suara.com/rss',
+            'https://www.republika.co.id/rss',
+            'https://www.cnbcindonesia.com/news/rss',
+            'https://www.kompas.com/feed',             
+            'https://www.liputan6.com/rss'
         ]
         
-        for url in sources:
+        def fetch_feed(url):
             try:
-                res = requests.get(url, headers=headers, timeout=2.5)
+                # Timeout ketat agar request selesai sebelum limit 10 detik Vercel habis
+                res = requests.get(url, headers=headers, timeout=4)
                 if res.status_code == 200:
-                    feed = feedparser.parse(res.content)
-                    if feed and feed.entries:
-                        for entry in feed.entries[:8]: # Ambil masing-masing 8 teratas saja
-                            source_name = 'DetikNews' if 'detik' in url else 'Google News'
-                            entry['source_name'] = source_name
-                            
-                            img_url = None
-                            if 'media_content' in entry and entry.media_content:
-                                img_url = entry.media_content[0]['url']
-                            if not img_url and 'links' in entry:
-                                for link in entry.links:
-                                    if link.get('type', '').startswith('image'): img_url = link.get('href'); break
-                            if not img_url and 'description' in entry:
-                                match = re.search(r'src="([^"]+)"', entry.description)
-                                if match: img_url = match.group(1)
-                            
-                            entry['image'] = img_url
-                            all_news.append(entry)
-            except: pass
+                    return url, feedparser.parse(res.content)
+            except:
+                return url, None
+            return url, None
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(sources)) as pool:
+            futures = [pool.submit(fetch_feed, url) for url in sources]
+            for future in concurrent.futures.as_completed(futures):
+                url, feed = future.result()
+                if feed and feed.entries:
+                    for entry in feed.entries[:20]: 
+                        if 'detik' in url: source_name = 'DetikNews'
+                        elif 'suara' in url: source_name = 'Suara.com'
+                        elif 'kompas' in url: source_name = 'Kompas'
+                        elif 'liputan6' in url: source_name = 'Liputan 6'
+                        elif 'cnn' in url: source_name = 'CNN Indonesia'
+                        elif 'google' in url: source_name = 'Google News'
+                        else: source_name = url.split('.')[1].capitalize()
+                        
+                        entry['source_name'] = source_name
+                        
+                        img_url = None
+                        if 'media_content' in entry and entry.media_content:
+                            img_url = entry.media_content[0]['url']
+                        if not img_url and 'links' in entry:
+                            for link in entry.links:
+                                if link.get('type', '').startswith('image'):
+                                    img_url = link.get('href'); break
+                        if not img_url and 'description' in entry:
+                            match = re.search(r'src="([^"]+)"', entry.description)
+                            if match: img_url = match.group(1)
+                        
+                        if not img_url and 'enclosures' in entry:
+                            for enc in entry.enclosures:
+                                if enc.get('type', '').startswith('image'):
+                                    img_url = enc.get('href'); break
+                                    
+                        entry['image'] = img_url
+                        all_news.append(entry)
                         
         all_news.sort(key=lambda x: x.published_parsed if x.get('published_parsed') else time.gmtime(0), reverse=True)
     except: pass
@@ -314,8 +351,9 @@ def get_news_entries():
         t = datetime.now().timetuple()
         return [{'title': 'Pusat Informasi KTVDI Beroperasi Normal', 'link': '#', 'published_parsed': t, 'source_name': 'Sistem Internal', 'image': None}]
     
-    NEWS_CACHE = all_news[:50] 
+    NEWS_CACHE = all_news[:150] 
     NEWS_LAST_FETCH = time.time()
+    
     return NEWS_CACHE
 
 def time_since_published(published_time):
@@ -336,16 +374,18 @@ def get_quote_religi():
     }
 
 def get_smart_fallback_response(text):
-    return "Mohon maaf, server kecerdasan buatan kami saat ini sedang memproses antrean. Silakan coba kembali."
+    return "Mohon maaf, server kecerdasan buatan kami saat ini sedang memproses volume antrean yang tinggi. Kami memohon kesediaan Anda untuk mencoba kembali dalam beberapa saat."
 
 KEMENAG_KOTA_CACHE = []
 KEMENAG_LAST_FETCH = 0
 
 def fetch_kemenag_kota():
     global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
-    if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400): return KEMENAG_KOTA_CACHE
+    if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400):
+        return KEMENAG_KOTA_CACHE
+
     try:
-        r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=4.0)
+        r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=8)
         if r.status_code == 200:
             data = r.json()
             if data.get('status') and 'data' in data:
@@ -353,12 +393,21 @@ def fetch_kemenag_kota():
                 KEMENAG_KOTA_CACHE = sorted(all_cities, key=lambda x: x['nama'])
                 KEMENAG_LAST_FETCH = time.time()
                 return KEMENAG_KOTA_CACHE
-    except Exception: pass
-    return [{"id": "1301", "nama": "Kota Jakarta"}, {"id": "1604", "nama": "Kota Semarang"}]
+    except Exception as e:
+        pass
+
+    return [
+        {"id": "1301", "nama": "Kota Jakarta"},
+        {"id": "1604", "nama": "Kota Semarang"},
+        {"id": "1638", "nama": "Kota Surabaya"},
+        {"id": "0418", "nama": "Kota Medan"},
+        {"id": "1205", "nama": "Kota Bandung"}
+    ]
 
 # ==========================================
-# 8. LOGIKA EWS & CUACA
+# 7. LOGIKA EWS & CUACA
 # ==========================================
+
 def smart_convert_cm(value):
     try:
         val_float = float(value)
@@ -367,13 +416,19 @@ def smart_convert_cm(value):
     except: return "0"
 
 def get_cuaca_10_kota():
-    cities = [{"name": "Semarang", "lat": -6.9667, "lon": 110.4167}, {"name": "Pekalongan", "lat": -6.8886, "lon": 109.6753}]
+    cities = [
+        {"name": "Semarang", "lat": -6.9667, "lon": 110.4167}, {"name": "Surakarta", "lat": -7.5761, "lon": 110.8294},
+        {"name": "Tegal", "lat": -6.8694, "lon": 109.1403}, {"name": "Pekalongan", "lat": -6.8886, "lon": 109.6753},
+        {"name": "Salatiga", "lat": -7.3305, "lon": 110.5084}, {"name": "Magelang", "lat": -7.4706, "lon": 110.2178},
+        {"name": "Purwokerto", "lat": -7.4245, "lon": 109.2302}, {"name": "Cilacap", "lat": -7.7279, "lon": 109.0077},
+        {"name": "Kudus", "lat": -6.8048, "lon": 110.8405}, {"name": "Pati", "lat": -6.7550, "lon": 111.0380}
+    ]
     lats = ",".join([str(c['lat']) for c in cities])
     lons = ",".join([str(c['lon']) for c in cities])
     url = f"https://api.open-meteo.com/v1/forecast?latitude={lats}&longitude={lons}&current=temperature_2m,weather_code&timezone=Asia%2FBangkok"
     results = []
     try:
-        r = requests.get(url, timeout=3.0)
+        r = requests.get(url, timeout=5)
         if r.status_code == 200:
             data = r.json()
             data_list = data if isinstance(data, list) else [data] if 'current' in data else []
@@ -383,36 +438,80 @@ def get_cuaca_10_kota():
                 temp = item['current']['temperature_2m']
                 status, icon, anim = "Berawan", "fa-cloud", "float"
                 if code in [0, 1]: status, icon, anim = "Cerah", "fa-sun", "spin-slow"
+                elif code in [2, 3]: status, icon, anim = "Berawan", "fa-cloud-sun", "float"
+                elif code in [45, 48]: status, icon, anim = "Kabut", "fa-smog", "pulse"
                 elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]: status, icon, anim = "Hujan", "fa-cloud-rain", "bounce"
+                elif code >= 95: status, icon, anim = "Badai", "fa-bolt", "flash"
                 results.append({"kota": cities[i]['name'], "suhu": round(temp), "cuaca": status, "icon": icon, "anim": anim})
     except: pass
     if not results:
         for c in cities: results.append({"kota": c['name'], "suhu": "-", "cuaca": "Tidak Tersedia", "icon": "fa-cloud", "anim": ""})
     return results
 
-def fetch_ews_data():
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    try:
-        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=50"
-        r = requests.get(url, headers=headers, timeout=4.0, verify=False)
-        if r.status_code == 200:
-            clean_data = []
-            for item in r.json().get('data', []):
+def normalize_dam_data(raw_data):
+    clean_data = []
+    for item in raw_data:
+        try:
+            latest = item.get('latest_debit_report', {})
+            if not isinstance(latest, dict): latest = {}
+            name = item.get('dam_name') or item.get('nama') or item.get('name') or "Infrastruktur Bendungan"
+            siaga_val = item.get('siaga', 0)
+            awas_val = item.get('awas', 0)
+            siaga_cm = smart_convert_cm(siaga_val)
+            awas_cm = smart_convert_cm(awas_val)
+            if float(siaga_cm) == 0: siaga_cm = "200"
+            if float(awas_cm) == 0: awas_cm = "300"
+            raw_tma = latest.get('limpas') if latest else (item.get('tma') or item.get('siap') or 0)
+            tma_cm = smart_convert_cm(raw_tma)
+            raw_time = latest.get('created_at') or item.get('updated_at')
+            waktu_display = "Pembaruan Terakhir"
+            if raw_time:
                 try:
-                    dam = {
-                        'name': item.get('dam_name') or "Infrastruktur Bendungan",
-                        'status': item.get('status_alert') or 'Operasional Normal',
-                        'lokasi': item.get('regency_name') or 'Jawa Tengah'
-                    }
-                    clean_data.append(dam)
-                except: continue
-            return clean_data
+                    clean_str = str(raw_time).split('.')[0].replace('Z', '')
+                    dt_utc = datetime.strptime(clean_str, "%Y-%m-%dT%H:%M:%S")
+                    dt_wib = dt_utc + timedelta(hours=7) 
+                    waktu_display = dt_wib.strftime("%d-%m-%Y %H:%M")
+                except:
+                    waktu_display = str(raw_time)[:16].replace('T', ' ')
+            status = latest.get('status') or item.get('status_alert') or 'Operasional Normal'
+            pob = latest.get('pob_id')
+            petugas = f"ID Petugas: {pob}" if pob else "Unit Pemantauan"
+            cuaca_lokal = latest.get('cuaca', 'Berawan') 
+            dam = {
+                'name': name, 'tma': tma_cm, 'siaga': siaga_cm, 'awas': awas_cm,    
+                'inflow': latest.get('debit', 0), 'outflow': latest.get('debit_ke_saluran_induk', 0),
+                'status': status, 'cuaca': cuaca_lokal, 'petugas': petugas,
+                'updated_at': waktu_display + " WIB", 'lokasi': item.get('river_name') or item.get('regency_name') or 'Jawa Tengah'
+            }
+            clean_data.append(dam)
+        except: continue
+    return clean_data
+
+def fetch_ews_data():
+    headers = {'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'}
+    try:
+        ts = int(time.time() * 1000)
+        url = f"https://siagakranji.my.id/data/latest_dams.json?t={ts}"
+        r = requests.get(url, headers=headers, timeout=6, verify=False)
+        if r.status_code == 200:
+            data = r.json()
+            raw_list = data.get('data') or data.get('result') or (data if isinstance(data, list) else [])
+            if raw_list: return normalize_dam_data(raw_list)
+    except: pass
+    try:
+        url = "https://api.ewsjateng.com/api/dams?page=1&pageSize=200"
+        r = requests.get(url, headers=headers, timeout=9, verify=False)
+        if r.status_code == 200:
+            data = r.json()
+            raw_list = data.get('data', [])
+            return normalize_dam_data(raw_list)
     except: pass
     return []
 
 # ==========================================
-# 9. ROUTES & CONTROLLERS
+# 8. ROUTES & CONTROLLERS
 # ==========================================
+
 @app.route("/", methods=['GET'])
 def home():
     stats = {'wilayah': 0, 'mux': 0, 'channel': 0}
@@ -451,11 +550,137 @@ def login():
             session['user'] = target_uid
             session['nama'] = target_user.get('nama', 'Pengguna Terdaftar')
             return redirect(url_for('dashboard'))
-        return render_template('login.html', error="Kredensial identitas atau kata sandi tidak valid.")
+        return render_template('login.html', error="Kredensial identitas atau kata sandi yang Anda masukkan tidak valid.")
     return render_template('login.html')
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        u = normalize_input(request.form.get("username"))
+        e = normalize_input(request.form.get("email"))
+        n = request.form.get("nama")
+        p = request.form.get("password")
+        if not ref: return "Terjadi galat pada koneksi basis data. Harap hubungi administrator.", 500
+        users = ref.child("users").get() or {}
+        if u in users:
+            flash("Nama pengguna tersebut telah terdaftar di dalam sistem.", "error")
+            return render_template("register.html")
+        for uid, data in users.items():
+            if normalize_input(data.get('email')) == e:
+                flash("Alamat surel tersebut telah diasosiasikan dengan akun lain.", "error")
+                return render_template("register.html")
+        
+        otp = str(random.randint(100000, 999999))
+        expiry = time.time() + 60 
+        ref.child(f'pending_users/{u}').set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": expiry})
+        try:
+            subject, body = get_email_template("REGISTER", n, otp)
+            msg = Message(subject, recipients=[e])
+            msg.body = body
+            mail.send(msg)
+            session["pending_username"] = u
+            return redirect(url_for("verify_register"))
+        except: flash("Kegagalan transmisi surel. Pastikan alamat yang diberikan valid dan aktif.", "error")
+    return render_template("register.html")
+
+@app.route("/verify-register", methods=["GET", "POST"])
+def verify_register():
+    u = session.get("pending_username")
+    if not u: return redirect(url_for("register"))
+    if request.method == "POST":
+        p = ref.child(f'pending_users/{u}').get()
+        if not p: return redirect(url_for("register"))
+        if time.time() > p.get('expiry', 0):
+            flash("Sesi kode verifikasi telah berakhir. Silakan lakukan permohonan ulang.", "error")
+            ref.child(f'pending_users/{u}').delete()
+            return redirect(url_for("register"))
+        if str(p.get('otp')).strip() == request.form.get("otp").strip():
+            ref.child(f'users/{u}').set({"nama": p['nama'], "email": p['email'], "password": p['password']})
+            ref.child(f'pending_users/{u}').delete()
+            session.pop('pending_username', None)
+            flash("Registrasi telah berhasil diproses. Silakan masuk.", "success")
+            return redirect(url_for('login'))
+        flash("Kode otorisasi yang Anda masukkan tidak tepat.", "error")
+    return render_template("verify-register.html", username=u)
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email_input = normalize_input(request.form.get("identifier"))
+        users = ref.child("users").get() or {}
+        found_uid = None
+        user_name = "Pengguna"
+        
+        for uid, user_data in users.items():
+            if isinstance(user_data, dict) and normalize_input(user_data.get('email')) == email_input:
+                found_uid = uid
+                user_name = user_data.get('nama', 'Pengguna')
+                break
+                
+        if found_uid:
+            otp = str(random.randint(100000, 999999))
+            expiry = time.time() + 60
+            ref.child(f"otp/{found_uid}").set({"email": email_input, "otp": otp, "expiry": expiry})
+            try:
+                subject, body = get_email_template("RESET", user_name, otp)
+                msg = Message(subject, recipients=[email_input])
+                msg.body = body
+                mail.send(msg)
+                session["reset_uid"] = found_uid
+                return redirect(url_for("verify_otp"))
+            except: pass
+    return render_template("forgot-password.html")
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    uid = session.get("reset_uid")
+    if not uid: return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        data = ref.child(f"otp/{uid}").get()
+        if not data: return redirect(url_for("forgot_password"))
+        if time.time() > data.get('expiry', 0):
+            flash("Masa berlaku kode verifikasi telah habis.", "error")
+            return redirect(url_for("forgot_password"))
+        if str(data.get("otp")).strip() == request.form.get("otp").strip():
+            session['reset_verified'] = True
+            return redirect(url_for("reset_password"))
+        flash("Kode verifikasi tidak sesuai.", "error")
+    return render_template("verify-otp.html")
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    if not session.get('reset_verified'): return redirect(url_for('login'))
+    if request.method == "POST":
+        uid = session.get("reset_uid")
+        pw = request.form.get("password")
+        ref.child(f"users/{uid}").update({"password": hash_password(pw)})
+        ref.child(f"otp/{uid}").delete()
+        session.clear()
+        return redirect(url_for('login'))
+    return render_template("reset-password.html")
 
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login'))
+
+@app.route('/berita')
+def berita_page():
+    entries = get_news_entries()
+    page = request.args.get('page', 1, type=int)
+    per_page = 9
+    start = (page - 1) * per_page
+    end = start + per_page
+    current = entries[start:end]
+    
+    for a in current:
+        if 'published_parsed' in a and a['published_parsed']:
+            a['formatted_date'] = format_indo_date(a['published_parsed'])
+            a['time_since_published'] = time_since_published(a['published_parsed'])
+        else:
+            a['formatted_date'] = "Data Waktu Tidak Tersedia"
+            a['time_since_published'] = "Terkini"
+
+    total_pages = (len(entries)//per_page) + 1
+    return render_template('berita.html', articles=current, page=page, total_pages=total_pages)
 
 @app.route("/dashboard")
 def dashboard():
@@ -468,6 +693,48 @@ def daftar_siaran():
     data = ref.child("provinsi").get() or {}
     return render_template("daftar-siaran.html", provinsi_list=list(data.values()))
 
+@app.route("/add_data", methods=["GET", "POST"])
+def add_data():
+    if 'user' not in session: return redirect(url_for('login'))
+    prov_data = ref.child("provinsi").get() or {}
+    provinsi_list = list(prov_data.values()) if prov_data else ["DKI Jakarta", "Jawa Barat", "Jawa Tengah", "Jawa Timur"]
+    if request.method == "POST":
+        p, w, m, s = request.form.get("provinsi"), request.form.get("wilayah"), request.form.get("mux"), request.form.get("siaran")
+        if p and w and m and s:
+            data_new = {
+                "siaran": [ch.strip() for ch in s.split(',')],
+                "last_updated_by_name": session.get('nama'),
+                "last_updated_by_username": session.get('user'),
+                "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
+            }
+            ref.child(f"siaran/{p}/{w}/{m}").set(data_new)
+            ref.child(f"provinsi/{p}").set(p)
+            flash("Data berhasil ditambahkan ke dalam sistem.", "success"); return redirect(url_for('dashboard'))
+    return render_template("add_data_form.html", provinsi_list=sorted(provinsi_list))
+
+@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
+def edit_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    curr_data = ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").get()
+    if request.method == "POST":
+        s = request.form.get("siaran")
+        ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").update({
+            "siaran": [ch.strip() for ch in s.split(',')],
+            "last_updated_by_name": session.get('nama'),
+            "last_updated_date": datetime.now().strftime("%d-%m-%Y")
+        })
+        flash("Pembaruan data berhasil disimpan.", "success"); return redirect(url_for('dashboard'))
+    siaran_str = ", ".join(curr_data.get('siaran', [])) if curr_data else ""
+    return render_template("add_data_form.html", edit_mode=True, curr_siaran=siaran_str, provinsi_list=[provinsi], curr_provinsi=provinsi, curr_wilayah=wilayah, curr_mux=mux)
+
+@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
+def delete_data(provinsi, wilayah, mux):
+    if 'user' in session: 
+        try: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete(); return jsonify({"status": "success"})
+        except: return jsonify({"status": "error"})
+    return jsonify({"status": "unauthorized"})
+
 @app.route("/get_wilayah")
 def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
 @app.route("/get_mux")
@@ -475,40 +742,15 @@ def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get
 @app.route("/get_siaran")
 def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
 
-@app.route('/berita')
-def berita_page():
-    entries = get_news_entries()
-    page = request.args.get('page', 1, type=int)
-    per_page = 9
-    start = (page - 1) * per_page
-    end = start + per_page
-    current = entries[start:end]
-    for a in current:
-        a['formatted_date'] = format_indo_date(a.get('published_parsed'))
-        a['time_since_published'] = time_since_published(a.get('published_parsed'))
-    total_pages = (len(entries)//per_page) + 1
-    return render_template('berita.html', articles=current, page=page, total_pages=total_pages)
-
 @app.route('/ews-jateng')
 def ews_jateng_page():
-    return render_template('ews-jateng.html', dams=fetch_ews_data(), cuaca_list=get_cuaca_10_kota())
+    dams = fetch_ews_data()
+    cuaca_list = get_cuaca_10_kota()
+    return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
 
 @app.route('/lokasi')
 def lokasi_page():
     return render_template('lokasi.html')
-
-@app.route("/jadwal-sholat")
-def jadwal_sholat_page():
-    return render_template("jadwal-sholat.html", daftar_kota=fetch_kemenag_kota(), quotes=get_quote_religi(), hijri_date=get_hijri_date_string())
-
-@app.route("/api/jadwal-imsakiyah")
-def get_jadwal_kemenag():
-    try:
-        url = f"https://api.myquran.com/v2/sholat/jadwal/{request.args.get('id_kota')}/{request.args.get('tahun', datetime.now().year)}/{request.args.get('bulan', datetime.now().month)}"
-        r = requests.get(url, timeout=4.0)
-        if r.status_code == 200: return jsonify(r.json())
-    except Exception as e: return jsonify({"status": False, "message": str(e)})
-    return jsonify({"status": False, "message": "Gagal ke server."})
 
 @app.route('/api/chat', methods=['POST'])
 def chatbot_api():
@@ -518,52 +760,126 @@ def chatbot_api():
     if "bendungan" in user_msg.lower() or "banjir" in user_msg.lower():
         dams = fetch_ews_data()
         bahaya = [f"{d['name']} ({d['status']})" for d in dams if 'awas' in d['status'].lower() or 'siaga' in d['status'].lower()]
-        context = f"INSTRUKSI: Bendungan bahaya: {', '.join(bahaya)}." if bahaya else "INFORMASI: Bendungan AMAN."
+        
+        if bahaya: context = f"INSTRUKSI PRIORITAS: Terdeteksi infrastruktur bendungan dalam status kewaspadaan tingkat tinggi: {', '.join(bahaya)}. "
+        else: context = f"INFORMASI: Hasil pemantauan menunjukkan {len(dams)} fasilitas bendungan berada dalam parameter operasional normal. "
+            
         full_prompt = f"{MODI_PROMPT}\n{context}\nPengguna: {user_msg}\nModi:"
     else: full_prompt = f"{MODI_PROMPT}\nPengguna: {user_msg}\nModi:"
 
     model = get_gemini_model()
-    if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    if not model: 
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
     
     try: 
         response = model.generate_content(full_prompt)
-        return jsonify({"response": response.text})
-    except Exception: 
+        try:
+            teks_balasan = response.text
+        except ValueError:
+            teks_balasan = "Sistem keamanan otomatis AI memblokir transmisi ini karena terindikasi mengandung konten yang tidak sesuai dengan protokol keamanan standar. Proses dihentikan."
+            
+        return jsonify({"response": teks_balasan})
+    except Exception as e: 
+        print(f"INFO GALAT: Anomali pada API Gemini: {e}")
         return jsonify({"response": get_smart_fallback_response(user_msg)})
 
+@app.route("/jadwal-sholat")
+def jadwal_sholat_page():
+    daftar_kota = fetch_kemenag_kota()
+    hijri_today = get_hijri_date_string()
+    return render_template("jadwal-sholat.html", daftar_kota=daftar_kota, quotes=get_quote_religi(), hijri_date=hijri_today)
+
+@app.route("/api/jadwal-imsakiyah")
+def get_jadwal_kemenag():
+    id_kota = request.args.get("id_kota")
+    bulan = request.args.get("bulan", datetime.now().month)
+    tahun = request.args.get("tahun", datetime.now().year)
+
+    if not id_kota:
+        return jsonify({"status": False, "message": "Atribut id_kota bersifat esensial dan wajib dilampirkan."})
+
+    try:
+        url = f"https://api.myquran.com/v2/sholat/jadwal/{id_kota}/{tahun}/{bulan}"
+        r = requests.get(url, timeout=10)
+        
+        if r.status_code == 200:
+            return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"status": False, "message": str(e)})
+
+    return jsonify({"status": False, "message": "Terjadi kegagalan komunikasi dengan server penjadwalan pusat."})
+
+@app.route("/api/news-ticker")
+def news_ticker():
+    return jsonify([n['title'] for n in get_news_entries()])
+
+# MENGEMBALIKAN FITUR STATISTIK PENGUNJUNG YANG SEMPAT HILANG
+@app.route('/api/visitor-stats')
+def visitor_stats():
+    current_time = time.time()
+    active_ips = {ip: ts for ip, ts in TRACKER_DATA["online_ips"].items() if current_time - ts <= 300}
+    TRACKER_DATA["online_ips"] = active_ips
+    
+    active_locations = [TRACKER_DATA["ip_locations"].get(ip, "Tidak Terdeteksi") for ip in active_ips.keys()]
+    
+    return jsonify({
+        "daily": len(TRACKER_DATA["daily_ips"]),
+        "online": max(1, len(active_ips)),
+        "active_locations": list(set(active_locations))
+    })
+
+# ==========================================
+# 9. API DETEKSI PELANGGARAN (SIMULASI DUMMY)
+# ==========================================
 @app.route('/api/detect_violation', methods=['POST'])
 def api_detect_violation():
     try:
+        data = request.get_json()
+        frame_base64 = data.get('frame', '')
+        
         chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         plat = f"H {random.randint(1000, 9999)} {random.choice(chars)}{random.choice(chars)}"
-        pelanggaran = random.choice(["Pelanggaran Marka Jalan", "Tidak Pakai Sabuk Pengaman", "Tidak Pakai Helm"])
-        return jsonify({"status": "success", "plate": plat, "violation": pelanggaran})
+        pelanggaran = random.choice([
+            "Pelanggaran Marka Jalan", 
+            "Ketidakpatuhan Penggunaan Sabuk Pengaman",
+            "Pengendara Tidak Menggunakan Helm Standar"
+        ])
+
+        return jsonify({
+            "status": "success",
+            "plate": plat,
+            "violation": pelanggaran
+        })
+
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({"status": "error", "message": f"Terjadi kesalahan pada modul pemrosesan citra: {str(e)}"}), 500
 
 @app.route('/about')
 def about(): return render_template('about.html')
-
 @app.route('/cctv')
 def cctv_page(): return render_template("cctv.html")
+@app.route('/sitemap.xml')
+def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 # ==========================================
-# 10. VERCEL CRON JOBS ENDPOINT
+# 10. VERCEL CRON JOBS ENDPOINT (PENGGANTI APSCHEDULER DENGAN TEKS LENGKAP)
 # ==========================================
 @app.route('/api/cron/send-scheduled-email', methods=['GET'])
 def cron_send_email():
-    """Endpoint ini akan di-trigger oleh Vercel Cron"""
+    """Endpoint ini akan di-trigger otomatis oleh Vercel Cron"""
+    
+    # Proteksi endpoint menggunakan Bearer Token dari Vercel
     auth_header = request.headers.get('Authorization')
     if auth_header != f"Bearer {os.environ.get('CRON_SECRET')}":
-        return jsonify({"error": "Otorisasi ditolak"}), 401
+        return jsonify({"error": "Otorisasi sistem ditolak"}), 401
     
     tipe_notif = request.args.get('tipe')
     if tipe_notif not in ["weekend", "daily_rabu"]:
-        return jsonify({"error": "Tipe notifikasi tidak valid"}), 400
+        return jsonify({"error": "Parameter tipe notifikasi tidak dikenali"}), 400
 
     if not ref:
-        return jsonify({"error": "Koneksi database terputus"}), 500
-
+        return jsonify({"error": "Koneksi ke pangkalan data terputus"}), 500
+    
     users = ref.child('users').get() or {}
     
     with app.app_context():
@@ -575,22 +891,56 @@ def cron_send_email():
             
             if not email_tujuan: continue
 
+            # MENGEMBALIKAN TEKS EMAIL YANG PANJANG & PROFESIONAL
             if tipe_notif == "weekend":
                 subject = "Laporan Tinjauan Akhir Pekan & Pembaruan Kondisi Terkini - KTVDI"
-                body = f"Yth. Bapak/Ibu {nama_user},\n\nJangan lupa scan ulang STB Anda untuk memastikan kualitas saluran digital di rumah."
-            else:
-                subject = "Pengingat Pemeliharaan Rutin Infrastruktur Penyiaran - KTVDI"
-                body = f"Yth. Bapak/Ibu {nama_user},\n\nMohon pastikan kabel antena dan jack RF STB Anda dalam keadaan aman dan tertancap kokoh."
+                body = f"""========================================================
+BULETIN RESMI KOMUNITAS TV DIGITAL INDONESIA
+========================================================
 
+Yth. Bapak/Ibu {nama_user},
+
+Kami mewakili jajaran pengurus Komunitas TV Digital Indonesia (KTVDI) mengucapkan selamat menyambut akhir pekan. Melalui buletin ini, kami ingin menyampaikan beberapa pembaruan esensial terkait perkembangan infrastruktur penyiaran digital di wilayah Anda.
+
+Mengingat proses optimalisasi parameter transmisi multipleksing (MUX) yang secara periodik dilakukan oleh penyelenggara siaran, kami merekomendasikan agar Anda melakukan pemindaian ulang (blind scan) pada perangkat Set Top Box (STB) maupun Televisi Digital terintegrasi secara berkala. Hal ini bertujuan untuk memastikan kelengkapan saluran dan stabilitas kualitas penerimaan gambar.
+
+Lebih lanjut, mempertimbangkan fluktuasi kondisi cuaca belakangan ini, kami mengimbau Anda untuk melakukan inspeksi terhadap instalasi perangkat penerima luar ruang (antena outdoor). Pastikan struktur penyangga dalam keadaan solid dan terhindar dari potensi sambaran petir. Kami juga menyarankan Anda untuk terus memonitor informasi peringatan dini cuaca melalui portal EWS KTVDI yang telah terintegrasi dengan data resmi BMKG.
+
+Demikian informasi ini kami sampaikan. Terima kasih atas partisipasi aktif Anda dalam mendukung ekosistem penyiaran digital yang berkualitas.
+
+Hormat kami,
+Divisi Komunikasi Publik,
+Komunitas TV Digital Indonesia (KTVDI)
+========================================================"""
+            elif tipe_notif == "daily_rabu":
+                subject = "Pengingat Pemeliharaan Rutin Infrastruktur Penyiaran - KTVDI"
+                body = f"""========================================================
+PENGINGAT SISTEM KTVDI
+========================================================
+
+Yth. Bapak/Ibu {nama_user},
+
+Sistem pemantauan kami menjadwalkan notifikasi ini sebagai bagian dari protokol pemeliharaan rutin di pertengahan minggu. 
+
+Sebagai langkah preventif guna menjaga kualitas layanan penyiaran di kediaman Anda, kami merekomendasikan pemeriksaan singkat pada konektor frekuensi radio (RF) perangkat Anda. Pastikan terminasi kabel pada perangkat Set Top Box (STB) terpasang dengan presisi untuk menghindari redaman sinyal (signal loss) yang dapat mengakibatkan degradasi visual (freezing/pixelating).
+
+Bagi Anda yang berencana melakukan eskalasi atau pembaruan teknologi pada perangkat penerima siaran maupun sistem keamanan visual (CCTV) mandiri, sangat dianjurkan untuk menggunakan perangkat keras yang telah lulus uji sertifikasi dari Kementerian Komunikasi dan Informatika (Kominfo). 
+
+Apabila Anda mengalami kendala teknis spesifik atau area tanpa sinyal (blank spot), kami mengundang Anda untuk melaporkannya melalui forum diskusi resmi KTVDI guna mendapatkan penanganan komprehensif dari komunitas.
+
+Terima kasih atas perhatian dan kerja sama yang baik.
+
+Salam Profesional,
+Sistem Notifikasi Otomatis KTVDI
+========================================================"""
             try:
                 msg = Message(subject, recipients=[email_tujuan])
                 msg.body = body
                 mail.send(msg)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"INFO SISTEM: Kegagalan transmisi surel otomatis ke alamat {email_tujuan}. Log galat: {e}")
 
-    return jsonify({"status": "sukses", "pesan": f"Email {tipe_notif} telah dikirim."}), 200
+    return jsonify({"status": "sukses", "pesan": f"Transmisi surel massal tipe '{tipe_notif}' telah berhasil dieksekusi."}), 200
 
-# Vercel butuh akses ke instans app Flask
 if __name__ == '__main__':
     app.run(debug=True)
