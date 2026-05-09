@@ -1,28 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Sistem Transmisi Surel - KTVDI{% endblock %}
+{% block title %}Pusat Pesan Blast EWS - KTVDI{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10 font-sans">
     
-    <!-- BANNER SECURITY INTERNAL (STEALTH MODE) -->
-    <div class="bg-red-950/40 border-l-4 border-red-600 px-4 py-3 rounded-r-lg mb-6 flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-in-up">
-        <div class="flex items-center gap-2 text-red-500 shrink-0">
-            <i class="fa-solid fa-shield-halved text-lg"></i>
-            <span class="text-[10px] font-black tracking-widest uppercase">Akses Internal Terbatas</span>
+    <!-- BANNER ADMIN KHUSUS -->
+    <div class="bg-blue-900/30 border-l-4 border-blue-500 px-4 py-3 rounded-r-lg mb-6 flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-in-up">
+        <div class="flex items-center gap-2 text-blue-400 shrink-0">
+            <i class="fa-solid fa-unlock-keyhole text-lg"></i>
+            <span class="text-[10px] font-bold tracking-widest uppercase">Akses Khusus Admin</span>
         </div>
         <p class="text-[11px] text-slate-300 leading-relaxed font-medium">
-            Halaman otorisasi khusus Administrator KTVDI. Modul ini memiliki akses langsung ke protokol Simple Mail Transfer Protocol (SMTP). Segala bentuk aktivitas penyiaran direkam secara permanen dalam log peladen (server).
+            Selamat datang di modul penyiaran KTVDI. Pesan yang dikirim melalui halaman ini akan masuk langsung ke kotak masuk (inbox) seluruh anggota terdaftar.
         </p>
     </div>
 
-    <!-- HEADER DASBOR -->
+    <!-- HEADER DASHBOARD -->
     <div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-5 animate-fade-in-up" style="animation-delay: 0.1s;">
         <div>
             <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
-                Sistem Transmisi Surel Massal
+                Pusat Pesan Blast EWS
             </h2>
             <p class="text-slate-400 text-xs md:text-sm mt-1.5 font-medium max-w-2xl leading-relaxed">
-                Modul distribusi informasi resmi untuk menyiarkan instruksi teknis, pembaruan data, atau ralat informasi kepada seluruh anggota KTVDI yang terdaftar.
+                Kirim informasi seputar update frekuensi TV Digital, peringatan dini EWS Bendungan, atau info komunitas dengan cepat dan mudah.
             </p>
         </div>
         <div class="inline-flex items-center gap-3 bg-slate-900 border border-slate-700 px-4 py-2.5 rounded-lg shrink-0">
@@ -31,21 +31,21 @@
                 <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
             </div>
             <div class="flex flex-col">
-                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">Status Koneksi</span>
-                <span class="text-xs font-black text-slate-200 uppercase tracking-widest">SMTP Daring</span>
+                <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none">Server Email</span>
+                <span class="text-xs font-black text-slate-200 uppercase tracking-widest">Koneksi Aktif</span>
             </div>
         </div>
     </div>
 
-    <!-- TAMPILAN FLASH MESSAGE / ALERT SISTEM -->
+    <!-- FLASH MESSAGE -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
                 <div class="mb-6 p-4 rounded-lg flex items-start gap-3 border animate-fade-in-up {{ 'bg-emerald-950/30 border-emerald-800/50 text-emerald-400' if category == 'success' else 'bg-rose-950/30 border-rose-800/50 text-rose-400' }}">
-                    <i class="fa-solid {{ 'fa-check-double' if category == 'success' else 'fa-triangle-exclamation' }} mt-0.5 text-base"></i>
+                    <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-circle-exclamation' }} mt-0.5 text-base"></i>
                     <div>
                         <strong class="block font-bold text-xs uppercase tracking-wider mb-1">
-                            {{ 'Proses Transmisi Selesai' if category == 'success' else 'Peringatan Sistem' }}
+                            {{ 'Update Status' if category == 'success' else 'Perhatian' }}
                         </strong>
                         <p class="text-[11px] md:text-xs leading-relaxed font-medium text-slate-300">{{ message }}</p>
                     </div>
@@ -54,25 +54,25 @@
         {% endif %}
     {% endwith %}
 
-    <!-- TABEL LOG PENGIRIMAN DETAIL -->
+    <!-- LOG PENGIRIMAN -->
     {% if sent_list %}
     <div class="mb-8 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden animate-fade-in-up" style="animation-delay: 0.15s;">
         <div class="px-5 py-3 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
             <h4 class="text-[11px] font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left"></i> Log Penyiaran Terakhir
+                <i class="fa-solid fa-list-check text-blue-400"></i> Log Pengiriman Blast Terakhir
             </h4>
             <span class="text-[10px] font-bold text-slate-400 bg-slate-950 px-2 py-1 rounded border border-slate-700">
-                Total Output: {{ sent_list|length }} Data
+                Total: {{ sent_list|length }} Anggota
             </span>
         </div>
         <div class="p-0 m-0 overflow-x-auto max-h-[250px] custom-scroll">
             <table class="w-full text-left border-collapse whitespace-nowrap min-w-[500px]">
                 <thead class="sticky top-0 bg-slate-950/90 backdrop-blur z-10">
                     <tr class="text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-800">
-                        <th class="py-3 px-5">Penerima</th>
-                        <th class="py-3 px-4">Alamat Surel</th>
-                        <th class="py-3 px-4">Waktu Pemrosesan</th>
-                        <th class="py-3 pr-5 text-right">Status Akhir</th>
+                        <th class="py-3 px-5">Nama Anggota</th>
+                        <th class="py-3 px-4">Alamat Email</th>
+                        <th class="py-3 px-4">Waktu Terkirim</th>
+                        <th class="py-3 pr-5 text-right">Status</th>
                     </tr>
                 </thead>
                 <tbody class="text-[11px] md:text-xs text-slate-300 divide-y divide-slate-800/50">
@@ -82,17 +82,13 @@
                             <span class="w-1.5 h-1.5 rounded-full {{ 'bg-emerald-500' if person.status == 'Sukses' else 'bg-rose-500' }}"></span>
                             {{ person.nama }}
                         </td>
-                        <td class="py-2.5 px-4 font-mono text-[10px] text-slate-400">
-                            {{ person.email }}
-                        </td>
-                        <td class="py-2.5 px-4 text-slate-500">
-                            {{ person.waktu }}
-                        </td>
+                        <td class="py-2.5 px-4 font-mono text-[10px] text-slate-400">{{ person.email }}</td>
+                        <td class="py-2.5 px-4 text-slate-500">{{ person.waktu }}</td>
                         <td class="py-2.5 pr-5 text-right font-bold text-[9px] uppercase tracking-wider">
                             {% if person.status == 'Sukses' %}
-                                <span class="text-emerald-400">Terkirim</span>
+                                <span class="text-emerald-400 bg-emerald-900/20 px-2 py-1 rounded">Berhasil</span>
                             {% else %}
-                                <span class="text-rose-500">Gagal</span>
+                                <span class="text-rose-500 bg-rose-900/20 px-2 py-1 rounded">Gagal</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -103,72 +99,88 @@
     </div>
     {% endif %}
 
-    <!-- GRID LAYOUT UTAMA -->
+    <!-- MAIN GRID FORM & PREVIEW -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- KOLOM KIRI (Formulir Utama) -->
+        <!-- KOLOM KIRI (FORM) -->
         <div class="lg:col-span-7 flex flex-col">
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 md:p-6 flex-1 animate-fade-in-up" style="animation-delay: 0.2s;">
                 
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-slate-800 pb-4">
                     <h3 class="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                        <i class="fa-solid fa-pen-to-square text-slate-400"></i> Penyusunan Draf Surel
+                        <i class="fa-solid fa-pen-nib text-slate-400"></i> Tulis Pesan Baru
                     </h3>
                     
-                    <!-- ACTION TEMPLATE -->
+                    <!-- BUTTON BANTUAN -->
                     <div class="flex items-center gap-2">
                         <button type="button" onclick="undoAction()" id="undoBtn" class="hidden px-3 py-1.5 bg-slate-800 text-slate-300 hover:text-white border border-slate-600 rounded text-[10px] font-bold uppercase tracking-wider transition-colors">
-                            <i class="fa-solid fa-rotate-left"></i> Urungkan (Undo)
+                            <i class="fa-solid fa-rotate-left mr-1"></i> Undo
                         </button>
-                        <button type="button" onclick="applyTemplate('apology')" class="px-3 py-1.5 bg-rose-950/30 text-rose-400 hover:bg-rose-900/50 border border-rose-800/50 rounded text-[10px] font-bold uppercase tracking-wider transition-colors">
-                            <i class="fa-solid fa-triangle-exclamation"></i> Templat Ralat Khusus
+                        <button type="button" onclick="applyTemplate('ews')" class="px-3 py-1.5 bg-rose-950/30 text-rose-400 hover:bg-rose-900/50 border border-rose-800/50 rounded text-[10px] font-bold uppercase tracking-wider transition-colors">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> Template EWS Bencana
                         </button>
                     </div>
                 </div>
 
                 <form action="{{ url_for('email_blast_page') }}" method="POST" id="blastForm" class="flex flex-col h-full">
+                    
+                    <!-- KATEGORI & PRIORITAS (Fitur Baru) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Kategori Pesan</label>
+                            <select name="kategori" id="kategori" class="w-full bg-[#0b1120] border border-slate-700 text-slate-200 text-sm font-medium rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-500 transition-colors">
+                                <option value="Informasi TV Digital">Info TV Digital / MUX</option>
+                                <option value="Peringatan EWS Bencana">Peringatan EWS Bencana</option>
+                                <option value="Ralat Informasi">Ralat Informasi</option>
+                                <option value="Update Komunitas">Update Komunitas</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Tingkat Prioritas</label>
+                            <select name="prioritas" id="prioritas" class="w-full bg-[#0b1120] border border-slate-700 text-slate-200 text-sm font-medium rounded-lg px-3 py-2.5 focus:outline-none focus:border-blue-500 transition-colors">
+                                <option value="Normal">Normal</option>
+                                <option value="Tinggi (URGENT)">Tinggi (Urgent/Penting)</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="mb-4">
                         <div class="flex justify-between items-end mb-2">
                             <label for="subject" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                Subjek Surel <span class="text-rose-500">*</span>
+                                Subjek Email <span class="text-rose-500">*</span>
                             </label>
-                            <span class="text-[10px] text-slate-500 font-mono"><span id="subject-counter">0</span>/100 Karakter</span>
+                            <span class="text-[10px] text-slate-500 font-mono"><span id="subject-counter">0</span>/100</span>
                         </div>
-                        <input type="text" id="subject" name="subject" placeholder="Subjek informasi..." required maxlength="100"
-                            class="w-full bg-[#0b1120] border border-slate-700 text-slate-200 text-sm font-medium rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600">
+                        <input type="text" id="subject" name="subject" placeholder="Masukkan judul email..." required maxlength="100"
+                            class="w-full bg-[#0b1120] border border-slate-700 text-slate-200 text-sm font-medium rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600">
                     </div>
                     
                     <div class="mb-6 flex-1">
-                        <div class="flex justify-between items-end mb-2">
-                            <label for="message" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                Isi Teks Utama <span class="text-rose-500">*</span>
-                            </label>
-                            <span class="text-[9px] text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 font-mono">
-                                Injeksi Nama Otomatis: Aktif
-                            </span>
-                        </div>
-                        <textarea id="message" name="message" rows="10" placeholder="Ketikkan penjabaran pesan Anda di sini. Salam pembuka dan penutup akan ditambahkan secara otomatis oleh sistem." required
-                            class="w-full bg-[#0b1120] border border-slate-700 text-slate-200 text-sm font-medium rounded-lg p-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 resize-y custom-scroll leading-relaxed"></textarea>
+                        <label for="message" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                            Isi Pesan <span class="text-rose-500">*</span>
+                        </label>
+                        <textarea id="message" name="message" rows="8" placeholder="Ketikkan pesan yang ingin disampaikan..." required
+                            class="w-full bg-[#0b1120] border border-slate-700 text-slate-200 text-sm font-medium rounded-lg p-4 focus:outline-none focus:border-blue-500 transition-colors placeholder:text-slate-600 resize-y custom-scroll leading-relaxed"></textarea>
                     </div>
 
-                    <!-- PERINGATAN HUKUM & TOMBOL SUBMIT -->
-                    <div class="bg-red-950/20 border border-red-900/50 p-4 rounded-lg mt-auto">
+                    <!-- ETIKA PENGGUNAAN & TOMBOL SUBMIT -->
+                    <div class="bg-blue-950/20 border border-blue-900/50 p-4 rounded-lg mt-auto">
                         <div class="flex items-start gap-3 mb-4">
-                            <i class="fa-solid fa-scale-balanced text-red-500 mt-0.5"></i>
+                            <i class="fa-solid fa-circle-info text-blue-400 mt-0.5"></i>
                             <div>
-                                <h4 class="text-[11px] font-black uppercase tracking-widest text-red-400 mb-1">Peringatan Hukum & Kewajiban Etika</h4>
-                                <p class="text-[10px] text-slate-400 leading-relaxed text-justify">
-                                    Segala bentuk penyalahgunaan fasilitas surel institusi ini untuk tujuan penyebaran informasi palsu (hoaks), penipuan, pemerasan, atau pengiriman pesan sampah (spam) merupakan pelanggaran berat terhadap <strong>Undang-Undang Nomor 11 Tahun 2008 tentang Informasi dan Transaksi Elektronik (UU ITE)</strong>. Sistem mencatat secara rinci alamat IP dan waktu pengaksesan Anda. Kami tidak akan segan untuk meneruskan data pelanggaran kepada pihak <strong>Kepolisian Republik Indonesia</strong> untuk diproses secara hukum.
+                                <h4 class="text-[11px] font-bold text-blue-300 mb-1">Etika Penggunaan Blast</h4>
+                                <p class="text-[10px] text-slate-400 leading-relaxed">
+                                    Mohon gunakan fitur ini dengan bijak, Ndan. Pesan yang dikirim akan langsung diteruskan ke seluruh email anggota KTVDI. Pastikan informasi sudah valid, jelas, dan tidak mengandung unsur *spam*.
                                 </p>
                             </div>
                         </div>
                         
-                        <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-red-900/30">
+                        <div class="flex flex-col sm:flex-row justify-end gap-3 pt-3 border-t border-slate-800">
                             <button type="button" onclick="clearForm()" class="px-5 py-2.5 rounded text-[11px] font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors uppercase tracking-wider flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-eraser"></i> Bersihkan Formulir
+                                <i class="fa-solid fa-eraser"></i> Bersihkan
                             </button>
                             <button type="submit" id="submitBtn" class="px-6 py-2.5 rounded text-[11px] font-black text-white bg-blue-600 hover:bg-blue-700 border border-blue-500 transition-colors uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg">
-                                <i class="fa-solid fa-paper-plane"></i> Kirim Surel Massal
+                                <i class="fa-solid fa-paper-plane"></i> Kirim Pesan Blast
                             </button>
                         </div>
                     </div>
@@ -176,46 +188,48 @@
             </div>
         </div>
 
-        <!-- KOLOM KANAN (Sidebar Informasi & Live Preview) -->
+        <!-- KOLOM KANAN (PREVIEW) -->
         <div class="lg:col-span-5 space-y-6 flex flex-col">
             
-            <!-- Widget Statistik Simple -->
+            <!-- TOTAL PENERIMA -->
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 flex items-center justify-between animate-fade-in-up" style="animation-delay: 0.3s;">
                 <div>
-                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Penerima Aktif</h3>
-                    <div class="text-2xl font-black text-white leading-none">{{ total_users }} <span class="text-[10px] text-slate-400 font-bold">Anggota</span></div>
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Target Pengiriman</h3>
+                    <div class="text-2xl font-black text-white leading-none">{{ total_users }} <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Member KTVDI</span></div>
                 </div>
-                <i class="fa-solid fa-users-viewfinder text-3xl text-slate-700"></i>
+                <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                    <i class="fa-solid fa-users text-xl text-blue-400"></i>
+                </div>
             </div>
 
-            <!-- Pratinjau Interaktif Live -->
+            <!-- LIVE PREVIEW BOX -->
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 flex-1 flex flex-col animate-fade-in-up" style="animation-delay: 0.4s;">
                 
                 <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span>Pratinjau Format Surel</span>
-                    <span class="text-slate-500 flex items-center gap-1 font-mono text-[9px]">
-                        <span class="w-1.5 h-1.5 bg-slate-500 rounded-full animate-pulse"></span> Sinkronisasi Langsung
+                    <span>Live Preview Email</span>
+                    <span class="text-emerald-400 flex items-center gap-1 text-[9px] font-bold">
+                        <i class="fa-solid fa-bolt"></i> Auto-Format
                     </span>
                 </h3>
                 
-                <!-- Format View -->
                 <div class="bg-[#0b1120] border border-slate-800 rounded-lg p-4 font-mono text-[10px] md:text-[11px] text-slate-400 leading-relaxed flex-1 overflow-y-auto custom-scroll break-words whitespace-pre-wrap">
-<span class="text-slate-600">================================================</span>
-<span class="text-slate-300 font-bold">BULETIN RESMI KOMUNITAS TV DIGITAL INDONESIA</span>
-<span class="text-slate-600 mb-3 block">================================================</span>
+<span class="text-slate-600">====================================================</span>
+<span class="text-white font-bold">PESAN BLAST KTVDI (KOMUNITAS TV DIGITAL INDONESIA)</span>
+<span class="text-slate-400">Kategori  : <span id="preview-kat" class="text-blue-400">Informasi Umum</span></span>
+<span class="text-slate-400">Prioritas : <span id="preview-pri" class="text-emerald-400">Normal</span></span>
+<span class="text-slate-600 mb-3 block">====================================================</span>
 
-Yth. Bapak/Ibu <span class="text-slate-200 font-bold bg-slate-800 px-1 py-0.5 rounded">[Nama Sesuai Database]</span>,
+Halo Bapak/Ibu <span class="text-slate-200 font-bold bg-slate-800 px-1 py-0.5 rounded">[Nama Member]</span>,
 
-<div id="preview-text" class="text-emerald-500/80 my-3 font-medium min-h-[50px] break-words">
-[ Teks yang Anda susun akan tertampil di bagian ini... ]
+<div id="preview-text" class="text-slate-300 my-3 min-h-[50px] break-words">
+<span class="opacity-50 italic">Teks pesan Anda akan muncul di sini...</span>
 </div>
 
-Demikian informasi ini kami sampaikan. Terima kasih atas partisipasi aktif Anda dalam mendukung ekosistem penyiaran digital yang berkualitas.
+Terima kasih atas perhatiannya. Mari bersama kita bangun ekosistem penyiaran digital yang lebih baik di Indonesia.
 
-Hormat kami,
-Divisi Komunikasi Publik,
-KTVDI
-<span class="text-slate-600 mt-3 block">================================================</span>
+Salam hangat,
+Admin KTVDI
+<span class="text-slate-600 mt-3 block">====================================================</span>
                 </div>
             </div>
 
@@ -224,16 +238,10 @@ KTVDI
 </div>
 
 <style>
-    .animate-fade-in-up {
-        animation: fadeInUp 0.4s ease-out forwards;
-        opacity: 0;
-    }
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; opacity: 0; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Modifikasi Scrollbar Khusus */
+    /* Custom Scrollbar minimalis */
     .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .custom-scroll::-webkit-scrollbar-track { background: transparent; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -241,52 +249,65 @@ KTVDI
 </style>
 
 <script>
-    // --- SCRIPT INTERAKTIF --- //
-
     let previousState = { subject: '', message: '' };
 
-    // 1. Live Preview Teks Input
+    // Update Text Preview
     document.getElementById('message').addEventListener('input', function() {
         const previewEl = document.getElementById('preview-text');
         const val = this.value;
         if (val.trim() === '') {
-            previewEl.innerHTML = '<span class="text-emerald-500/50">[ Teks yang Anda susun akan tertampil di bagian ini... ]</span>';
+            previewEl.innerHTML = '<span class="opacity-50 italic">Teks pesan Anda akan muncul di sini...</span>';
         } else {
-            // Escape HTML untuk mencegah eksekusi kode acak
-            let safeText = val.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            safeText = safeText.replace(/\n/g, "<br>");
+            let safeText = val.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br>");
             previewEl.innerHTML = safeText;
         }
     });
 
-    // 2. Penghitung Karakter Subjek
+    // Update Kategori & Prioritas di Preview
+    document.getElementById('kategori').addEventListener('change', function() {
+        document.getElementById('preview-kat').innerText = this.value;
+    });
+    
+    document.getElementById('prioritas').addEventListener('change', function() {
+        const priEl = document.getElementById('preview-pri');
+        priEl.innerText = this.value;
+        if (this.value.includes('Tinggi')) {
+            priEl.className = 'text-rose-400 font-bold animate-pulse';
+        } else {
+            priEl.className = 'text-emerald-400';
+        }
+    });
+
+    // Hitung Karakter
     document.getElementById('subject').addEventListener('input', function() {
         document.getElementById('subject-counter').innerText = this.value.length;
     });
 
-    // 3. Sistem Template Ralat
+    // Template EWS
     function applyTemplate(type) {
         const subjEl = document.getElementById('subject');
         const msgEl = document.getElementById('message');
+        const katEl = document.getElementById('kategori');
+        const priEl = document.getElementById('prioritas');
         
-        // Menyimpan data yang sudah diketik sebelumnya (Untuk fitur Urungkan)
         previousState.subject = subjEl.value;
         previousState.message = msgEl.value;
         
-        if (type === 'apology') {
-            subjEl.value = "RALAT INFORMASI: Klasifikasi Pemberitahuan KTVDI";
-            msgEl.value = "Sehubungan dengan surel yang telah kami kirimkan sebelumnya, kami menyampaikan permohonan maaf atas adanya kekeliruan pencantuman data teknis.\n\nBerikut adalah ralat dan informasi perbaikan yang tepat:\n\n[ SILAKAN KETIK DETAIL RALAT DI SINI ]\n\nKami terus berupaya mengevaluasi dan meningkatkan presisi sistem informasi kami. Terima kasih atas pemakluman dan kerja sama Anda.";
+        if (type === 'ews') {
+            katEl.value = "Peringatan EWS Bencana";
+            priEl.value = "Tinggi (URGENT)";
+            subjEl.value = "⚠️ PERINGATAN DINI EWS BENDUNGAN KTVDI";
+            msgEl.value = "Berdasarkan pantauan sistem sensor EWS KTVDI terbaru, kami mendeteksi adanya peningkatan debit air yang berada pada status SIAGA/AWAS di bendungan berikut:\n\n[ NAMA BENDUNGAN ]\nStatus Saat Ini: SIAGA\n\nKami menghimbau seluruh masyarakat di sekitar bantaran sungai untuk tetap waspada dan mengikuti arahan petugas di lapangan. Tetap aman dan selalu pantau dasbor CCTV & EWS KTVDI.";
         }
         
-        // Memaksa pembaruan tampilan pratinjau dan penghitung
         subjEl.dispatchEvent(new Event('input'));
         msgEl.dispatchEvent(new Event('input'));
+        katEl.dispatchEvent(new Event('change'));
+        priEl.dispatchEvent(new Event('change'));
         
-        // Menampilkan tombol urungkan
         document.getElementById('undoBtn').classList.remove('hidden');
     }
 
-    // 4. Fitur Urungkan (Undo)
     function undoAction() {
         const subjEl = document.getElementById('subject');
         const msgEl = document.getElementById('message');
@@ -300,33 +321,29 @@ KTVDI
         document.getElementById('undoBtn').classList.add('hidden');
     }
 
-    // 5. Fitur Bersihkan (Reset Form manual)
     function clearForm() {
         previousState.subject = document.getElementById('subject').value;
         previousState.message = document.getElementById('message').value;
         
         document.getElementById('blastForm').reset();
-        document.getElementById('preview-text').innerHTML='<span class=\'text-emerald-500/50\'>[ Teks yang Anda susun akan tertampil di bagian ini... ]</span>';
+        document.getElementById('preview-text').innerHTML='<span class=\'opacity-50 italic\'>Teks pesan Anda akan muncul di sini...</span>';
         document.getElementById('subject-counter').innerText='0';
+        document.getElementById('kategori').dispatchEvent(new Event('change'));
+        document.getElementById('prioritas').dispatchEvent(new Event('change'));
         
         document.getElementById('undoBtn').classList.remove('hidden');
     }
 
-    // 6. UX Interaktif & Pengamanan Pengiriman
+    // UX Loading Pengiriman
     document.getElementById('blastForm').addEventListener('submit', function(e) {
         const btn = document.getElementById('submitBtn');
-        const form = this;
-        
-        if (form.getAttribute('data-submitting') === 'true') {
-            e.preventDefault();
-            return false;
+        if (this.getAttribute('data-submitting') === 'true') {
+            e.preventDefault(); return false;
         }
-        
-        form.setAttribute('data-submitting', 'true');
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Memproses Pengiriman...';
+        this.setAttribute('data-submitting', 'true');
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Mengirim Pesan...';
         btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-        btn.classList.add('bg-slate-700', 'text-slate-400', 'cursor-not-allowed', 'border-slate-600', 'shadow-none');
-        
+        btn.classList.add('bg-slate-700', 'text-slate-400', 'cursor-not-allowed', 'border-slate-600');
         setTimeout(() => { btn.style.pointerEvents = 'none'; }, 10);
     });
 </script>
