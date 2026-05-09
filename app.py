@@ -859,7 +859,7 @@ def cctv_page(): return render_template("cctv.html")
 def sitemap(): return send_from_directory('static', 'sitemap.xml')
 
 # ==========================================
-# 10. FITUR EMAIL BLAST MANUAL (TERINTEGRASI LOG PENERIMA)
+# 10. FITUR EMAIL BLAST MANUAL (TERINTEGRASI LOG LENGKAP)
 # ==========================================
 @app.route('/email', methods=['GET', 'POST'])
 def email_blast_page():
@@ -871,15 +871,16 @@ def email_blast_page():
         body_text = request.form.get('message')
         
         if not subject or not body_text:
-            flash("Perhatian: Subjek dan isi pesan tidak boleh dikosongkan.", "error")
+            flash("Peringatan Sistem: Parameter subjek dan isi pesan bersifat mandatori (wajib diisi).", "error")
             return redirect(url_for('email_blast_page'))
             
         if not ref:
-            flash("Kegagalan Sistem: Koneksi ke pangkalan data terputus. Tidak dapat memuat daftar anggota.", "error")
+            flash("Kegagalan Sistem: Koneksi ke pangkalan data terputus. Tidak dapat memuat daftar entitas anggota.", "error")
             return redirect(url_for('email_blast_page'))
             
         users = ref.child('users').get() or {}
-        sent_to_list = [] # List untuk menyimpan siapa saja yang berhasil dikirimi
+        sent_details = [] # Menyimpan array of dictionary untuk log super detail
+        tz_jakarta = pytz.timezone('Asia/Jakarta')
         
         with app.app_context():
             for uid, user_data in users.items():
@@ -906,26 +907,48 @@ Divisi Komunikasi Publik,
 Komunitas TV Digital Indonesia (KTVDI)
 ========================================================"""
                 
+                # Mendapatkan waktu eksak per pengiriman email
+                waktu_kirim = datetime.now(tz_jakarta).strftime("%d %b %Y - %H:%M:%S WIB")
+                
                 try:
                     msg = Message(subject, recipients=[email_tujuan])
                     msg.body = formatted_body
                     mail.send(msg)
-                    # Catat nama dan email jika berhasil
-                    sent_to_list.append(f"{nama_user} ({email_tujuan})")
+                    # Catat data detail untuk ditampilkan di Frontend
+                    sent_details.append({
+                        "nama": nama_user,
+                        "email": email_tujuan,
+                        "waktu": waktu_kirim,
+                        "status": "Sukses"
+                    })
                 except Exception as e:
                     print(f"INFO SISTEM: Kegagalan transmisi surel ke {email_tujuan}. Log galat: {e}")
+                    sent_details.append({
+                        "nama": nama_user,
+                        "email": email_tujuan,
+                        "waktu": waktu_kirim,
+                        "status": "Gagal"
+                    })
         
-        if sent_to_list:
-            session['last_sent_list'] = sent_to_list
-            flash(f"Eksekusi Berhasil: Pesan surel massal telah ditransmisikan ke {len(sent_to_list)} anggota terdaftar.", "success")
+        if sent_details:
+            session['last_sent_details'] = sent_details
+            berhasil = sum(1 for x in sent_details if x['status'] == "Sukses")
+            flash(f"Status Operasi: Menyelesaikan transmisi. {berhasil} dari {len(sent_details)} surel berhasil terkirim.", "success")
         else:
-            flash("Transmisi gagal atau tidak ada anggota di database.", "error")
+            flash("Anomali Sistem: Transmisi dibatalkan atau tidak ada data anggota terdaftar di basis data.", "error")
             
         return redirect(url_for('email_blast_page'))
         
-    # Ambil list dari sesi saat halaman di-load ulang (GET)
-    sent_list = session.pop('last_sent_list', None)
-    return render_template('email.html', sent_list=sent_list)
+    # Ambil list log detail dari sesi (akan kosong jika halaman sekadar di-refresh)
+    sent_list = session.pop('last_sent_details', None)
+    
+    # Hitung total user untuk widget statistik
+    total_users = 0
+    if ref:
+        try: total_users = len(ref.child('users').get() or {})
+        except: pass
+        
+    return render_template('email.html', sent_list=sent_list, total_users=total_users)
 
 if __name__ == '__main__':
     app.run(debug=True)
