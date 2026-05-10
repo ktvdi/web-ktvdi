@@ -894,7 +894,7 @@ def email_blast_page():
                 if not email_tujuan: continue
                 
                 # Format pesan Blast KTVDI yang lebih santai tapi profesional
-                formatted_body = f"""========================================================
+                formatted_body = f"""
 PESAN BLAST KTVDI (KOMUNITAS TV DIGITAL INDONESIA)
 Kategori  : {kategori}
 Prioritas : {prioritas}
@@ -904,7 +904,7 @@ Halo Bapak/Ibu {nama_user},
 
 {body_text}
 
-Terima kasih atas perhatiannya. Mari bersama kita bangun ekosistem penyiaran digital yang lebih baik di Indonesia.
+Terima kasih atas perhatiannya. Mari tetap dukung pertelevisian di Indonesia bersama KTVDI.
 
 Salam hangat,
 Admin KTVDI
