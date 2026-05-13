@@ -133,13 +133,6 @@
     .bar:nth-child(4) { height: 10px; }
     .net-label { font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 1px; }
 
-    /* --- VIOLATION LOG ITEM ANIMATION --- */
-    @keyframes slide-in {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .violation-entry { animation: slide-in 0.3s ease-out forwards; }
-
     /* --- RESPONSIVE LAYOUT --- */
     @media (min-width: 1024px) {
         .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; align-items: start; }
@@ -263,20 +256,6 @@
                         </button>
                         <button onclick="retryStream()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Reload"><i class="fa-solid fa-rotate-right text-sm"></i></button>
                         <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-slate-800 transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
-                    </div>
-                </div>
-
-                <!-- NEW: PANEL LOG PELANGGARAN LALU LINTAS -->
-                <div class="bg-[#020617] border-t border-slate-800 p-3 h-40 overflow-y-auto premium-scroll relative z-20" id="violation-panel">
-                    <div class="flex items-center justify-between mb-2.5 sticky top-0 bg-[#020617] z-10 pb-1">
-                        <h4 class="text-[10px] font-bold text-red-400 tracking-wider flex items-center">
-                            <i class="fa-solid fa-id-card-clip mr-1.5"></i> DETEKSI PELANGGARAN & PLAT NOMOR
-                        </h4>
-                        <span class="text-[9px] font-bold text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700">AI LOGGER</span>
-                    </div>
-                    
-                    <div id="violation-list" class="flex flex-col gap-2">
-                        <div class="text-[10px] text-slate-500 text-center py-4 italic" id="empty-violation-msg">Menunggu deteksi pelanggaran...</div>
                     </div>
                 </div>
 
@@ -787,18 +766,6 @@
         {city: "KAB. PEMALANG", name: "Depan Gerbang Pendopo", url: "https://stream.pemalangkab.go.id/2026/depanpendopo1/depanpendopo1.m3u8"},
         {city: "KAB. PEMALANG", name: "Rumah Dinas Wabup", url: "https://stream.pemalangkab.go.id/2026/depanpendopo2/depanpendopo2.m3u8"},
 
-        // --- TOL SEMARANG ABC ---
-        {city: "TOL SEMARANG ABC", name: "GT GAYAMSARI ENTRANCE", url: "https://jmlive.jasamarga.com/hls/13/65b6235e-9ee7-4e3b-87aa-b4773aa14eba/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "KM 434 B - UJUNG SRONDOL", url: "https://jmlive.jasamarga.com/hls/13/4701e367-9446-4526-83fd-52311ec98cb5/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "KM 431 - GT TEMBALANG 2", url: "https://jmlive.jasamarga.com/hls/13/8e57fa71-9ef5-4307-bfe7-6202d85a7ade/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "KM 428 - JPO JATINGALEH", url: "https://jmlive.jasamarga.com/hls/13/2f79f049-25f1-4733-b81b-5c57ea3b32d1/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "KM 425 - UNIKA", url: "https://jmlive.jasamarga.com/hls/13/8a4e4e21-60be-413f-b52d-40e99b03d025/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "KM 421 - GT MANYARAN", url: "https://jmlive.jasamarga.com/hls/13/a0b7fdff-1d03-4644-940f-67a7b1424ca5/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "KM 421 A - UJUNG KRAPYAK", url: "https://jmlive.jasamarga.com/hls/13/c9b22a3f-7d70-4fd5-a74b-955bf262f4cc/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "JPO MRICAN 2", url: "https://jmlive.jasamarga.com/hls/13/c5b995ac-0105-49fa-8e1e-e26515a08aa3/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "KM 424 - STIKUBANK", url: "https://jmlive.jasamarga.com/hls/13/7a4deed0-9ad5-42b0-9d6a-610b1dbbe58c/index.m3u8"},
-        {city: "TOL SEMARANG ABC", name: "INTERCHANGE KALIGAWE", url: "https://jmlive.jasamarga.com/hls/13/519721d5-612f-40ac-98ee-b416d2d37b21/index.m3u8"},
-
         // --- TOL JOGJA-SOLO ---
         {city: "TOL JOGJA-SOLO", name: "GT BANYUDONO ENTRANCE", url: "https://jmlive.jasamarga.com/hls/42/e419cfae-ea4d-4564-a612-59f3b70d22b7/index.m3u8"},
         {city: "TOL JOGJA-SOLO", name: "KM 15+100", url: "https://jmlive.jasamarga.com/hls/42/18b18b4c-dfc7-4c22-9e31-763f00a0bf40/index.m3u8"},
@@ -881,14 +848,11 @@
     }
 
     // ==========================================
-    // 2.5 AI DETECTION LOGIC (TENSORFLOW.JS & ALPR)
+    // 2.5 AI DETECTION LOGIC (TENSORFLOW.JS)
     // ==========================================
     let aiModel = null;
     let isDetecting = false;
     let animationFrameId;
-
-    const loggedPlates = new Set();
-    let lastApiCallTime = 0;
 
     async function loadAIModel() {
         try {
@@ -896,69 +860,6 @@
             console.log("Model AI Berhasil Dimuat");
         } catch (error) {
             console.error("Gagal meload model AI:", error);
-        }
-    }
-
-    function logViolation(plateNumber, violationType) {
-        const listContainer = document.getElementById('violation-list');
-        const emptyMsg = document.getElementById('empty-violation-msg');
-        if(emptyMsg) emptyMsg.remove();
-
-        const timeString = new Date().toLocaleTimeString('id-ID', { hour12: false });
-        
-        const entry = document.createElement('div');
-        entry.className = 'violation-entry bg-[#0f172a] border border-slate-700 p-2 rounded-lg flex items-center justify-between shadow-inner';
-        entry.innerHTML = `
-            <div class="flex items-center gap-3">
-                <div class="bg-black border border-slate-600 px-2 py-1 rounded text-center min-w-[90px]">
-                    <span class="text-[10px] font-bold text-white tracking-widest">${plateNumber}</span>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-[11px] font-bold text-slate-200">${violationType}</span>
-                    <span class="text-[9px] text-slate-500 font-mono">${timeString} • Auto-Capture</span>
-                </div>
-            </div>
-            <button class="text-slate-500 hover:text-blue-400 transition-colors px-2" title="Detail">
-                <i class="fa-solid fa-expand text-xs"></i>
-            </button>
-        `;
-
-        listContainer.prepend(entry);
-        if (listContainer.children.length > 15) {
-            listContainer.removeChild(listContainer.lastChild);
-        }
-    }
-
-    async function performRealALPR(videoElement, bbox, vehicleClass) {
-        const cropCanvas = document.createElement('canvas');
-        const ctx = cropCanvas.getContext('2d');
-        const [x, y, w, h] = bbox;
-        
-        cropCanvas.width = w;
-        cropCanvas.height = h;
-        
-        const safeX = Math.max(0, x);
-        const safeY = Math.max(0, y);
-        
-        ctx.drawImage(videoElement, safeX, safeY, w, h, 0, 0, w, h);
-        const base64Frame = cropCanvas.toDataURL('image/jpeg', 0.8);
-
-        try {
-            const response = await fetch('/api/detect_violation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ frame: base64Frame, vehicle_type: vehicleClass })
-            });
-            const result = await response.json();
-            
-            if (result && result.status === 'success' && result.plate) {
-                if (!loggedPlates.has(result.plate)) {
-                    loggedPlates.add(result.plate);
-                    logViolation(result.plate, result.violation);
-                }
-            }
-        } catch (error) {
-            console.error("Gagal menghubungi API Pelanggaran:", error);
         }
     }
 
@@ -1067,14 +968,6 @@
 
                 if(showWarning) warningEl.classList.remove('hidden');
                 else warningEl.classList.add('hidden');
-
-                const now = Date.now();
-                if (vehicles.length > 0 && (now - lastApiCallTime > 4000)) {
-                    lastApiCallTime = now;
-                    vehicles.sort((a, b) => (b.bbox[2] * b.bbox[3]) - (a.bbox[2] * a.bbox[3]));
-                    const targetVehicle = vehicles[0];
-                    performRealALPR(video, targetVehicle.bbox, targetVehicle.class);
-                }
 
             } catch (err) {
                 console.error("Error during detection:", err);
