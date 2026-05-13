@@ -263,6 +263,7 @@ def get_news_entries():
     all_news = []
     headers = {'User-Agent': 'Mozilla/5.0'}
 
+    # Ambil BMKG Update (Gempa Terkini)
     try:
         r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=5)
         if r_bmkg.status_code == 200:
@@ -284,17 +285,17 @@ def get_news_entries():
     except Exception as e:
         pass
 
+    # Ambil RSS sesuai list terbaru
     try:
         sources = [
-            'https://news.google.com/rss?hl=id&gl=ID&ceid=ID:id',
-            'https://rss.detik.com/index.php/detikcom', 
+            'https://www.kompas.tv/rss',
+            'https://www.setneg.go.id/rss',
+            'https://www.liputan6.com/rss',
+            'https://www.tribunnews.com/rss',
             'https://www.cnnindonesia.com/nasional/rss',
-            'https://www.antaranews.com/rss/top-news.xml',
-            'https://www.suara.com/rss',
-            'https://www.republika.co.id/rss',
             'https://www.cnbcindonesia.com/news/rss',
-            'https://www.kompas.com/feed',             
-            'https://www.liputan6.com/rss'
+            'https://www.antaranews.com/rss/top-news.xml',
+            'https://rss.sindonews.com/news'
         ]
         
         def fetch_feed(url):
@@ -312,12 +313,15 @@ def get_news_entries():
                 url, feed = future.result()
                 if feed and feed.entries:
                     for entry in feed.entries[:20]: 
-                        if 'detik' in url: source_name = 'DetikNews'
-                        elif 'suara' in url: source_name = 'Suara.com'
-                        elif 'kompas' in url: source_name = 'Kompas'
+                        # Penamaan sumber baru
+                        if 'kompas.tv' in url: source_name = 'Kompas TV'
+                        elif 'setneg' in url: source_name = 'Sekretariat Negara'
                         elif 'liputan6' in url: source_name = 'Liputan 6'
-                        elif 'cnn' in url: source_name = 'CNN Indonesia'
-                        elif 'google' in url: source_name = 'Google News'
+                        elif 'tribunnews' in url: source_name = 'Tribunnews'
+                        elif 'cnnindonesia' in url: source_name = 'CNN Indonesia'
+                        elif 'cnbcindonesia' in url: source_name = 'CNBC Indonesia'
+                        elif 'antara' in url: source_name = 'Antara News'
+                        elif 'sindonews' in url: source_name = 'Sindonews'
                         else: source_name = url.split('.')[1].capitalize()
                         
                         entry['source_name'] = source_name
