@@ -1,782 +1,1233 @@
-<!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>{% block title %}KTVDI - Komunitas TV Digital Indonesia{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+{% extends 'base.html' %}
+
+{% block content %}
+<meta name="referrer" content="no-referrer">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+<style>
+    /* --- VARIABLES (WORLD CUP 2026 THEME) --- */
+    :root {
+        --primary: #ed1c24; /* Red WC */
+        --primary-dark: #b91c1c;
+        --accent: #3b82f6; /* Blue WC */
+        --bg-body: #0a143c; /* Navy WC */
+        --surface: #101d4a; 
+        --surface-hover: #172a68; 
+        --border: rgba(255,255,255,0.1); 
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+    }
+
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: var(--bg-body); 
+        -webkit-tap-highlight-color: transparent; 
+        color: var(--text-main);
+    }
+
+    /* --- UTILS --- */
+    .premium-scroll::-webkit-scrollbar { width: 6px; }
+    .premium-scroll::-webkit-scrollbar-track { background: transparent; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: var(--accent); border-radius: 10px; opacity: 0.5; }
+    .premium-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--primary); }
+
+    /* --- MARQUEE --- */
+    .marquee-container { position: relative; overflow: hidden; height: 100%; display: flex; align-items: center; }
+    .marquee-content {
+        display: inline-block; white-space: nowrap;
+        animation: marquee-slide 60s linear infinite;
+        padding-left: 100%; font-size: 0.75rem; font-weight: 700; color: #cbd5e1;
+    }
+    @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    /* --- PLAYER CARD --- */
+    .player-card {
+        border-radius: 16px; overflow: hidden; background: #000;
+        box-shadow: 0 10px 40px -10px rgba(37, 99, 235, 0.3);
+        display: flex; flex-direction: column;
+        border: 2px solid var(--border);
+    }
+     
+    .player-header {
+        background: linear-gradient(135deg, #0a143c 0%, #1e3a8a 100%);
+        padding: 12px 16px; color: white;
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    
-    <script>
-        (function() {
-            const ua = navigator.userAgent.toLowerCase();
-            const forbidden = ['tools', 'toolsbrowser', 'kiwi', 'inspect', 'debugger', 'bot', 'crawler', 'spider'];
-            if (forbidden.some(x => ua.includes(x))) {
-                window.stop();
-                document.documentElement.innerHTML = `
-                    <div style="background:#000; color:#ff3b30; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:system-ui, sans-serif; text-align:center; padding:20px;">
-                        <i class="fa-solid fa-ban" style="font-size:50px; margin-bottom:20px;"></i>
-                        <h1 style="font-size:24px; font-weight:800; margin-bottom:10px;">AKSES DITOLAK</h1>
-                        <p style="color:#fff; font-size:14px;">Browser atau Alat ini dilarang karena alasan keamanan.</p>
-                        <p style="color:#666; font-size:12px; margin-top:20px;">Error: UA_BLACKLISTED</p>
-                    </div>
-                `;
-                throw new Error("Security Violation: Access Denied");
-            }
-            setInterval(() => {
-                const start = performance.now();
-                debugger; 
-                const end = performance.now();
-                if (end - start > 100) {
-                    document.body.innerHTML = 'Security Violation';
-                    window.location.reload();
-                }
-            }, 500);
-        })();
-    </script>
+    .cam-info-mobile {
+        display: flex; flex-direction: column;
+        line-height: 1.2;
+        overflow: hidden;
+    }
+    .cam-city-label {
+        font-size: 0.65rem; font-weight: 800; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .cam-name-label {
+        font-size: 0.95rem; font-weight: 800; color: white;
+        white-space: nowrap;
+        display: inline-block;
+    }
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { 
-                        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Plus Jakarta Sans"', 'sans-serif'] 
-                    },
-                    colors: { 
-                        brand: { navy: '#0a143c', blue: '#2563eb', sky: '#3b82f6', red: '#ed1c24' } 
-                    },
-                    padding: { 'safe': 'env(safe-area-inset-bottom)' }
-                }
-            }
-        }
-    </script>
+    .video-wrapper {
+        position: relative; width: 100%; padding-top: 56.25%;
+        background: #000;
+    }
+    .video-element {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; 
+    }
 
-    <script>
-        // === LOGIKA KEAMANAN TINGKAT LANJUT & PENALTY ===
-        window.userIP = "Memeriksa...";
-        const PENALTY_DURATION = 5 * 60 * 1000; 
+    /* --- ACCORDION LIST --- */
+    .accordion-group { 
+        margin-bottom: 8px; 
+        border: 1px solid var(--border); 
+        border-radius: 12px; 
+        background: var(--surface); 
+        overflow: hidden; 
+    }
+    .group-header {
+        padding: 12px 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+        background: var(--surface); transition: all 0.2s;
+    }
+    .group-header:hover { background: var(--surface-hover); }
+    .group-header.active { background: #1e3a8a; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .group-title { font-size: 0.75rem; font-weight: 800; color: #93c5fd; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: var(--surface); }
+    .group-body.open { max-height: 5000px; }
 
-        function checkPenaltyStatus() {
-            try {
-                const blockUntil = localStorage.getItem('ktvdi_block_until');
-                if (blockUntil && Date.now() < parseInt(blockUntil)) {
-                    activatePenalty(parseInt(blockUntil));
-                    return true;
-                } else if (blockUntil) {
-                    localStorage.removeItem('ktvdi_block_until');
-                    localStorage.setItem('ktvdi_strikes', 0);
-                }
-            } catch(e) { console.warn("Storage restricted"); }
-            return false;
-        }
+    /* --- LIST ITEM --- */
+    .cam-item {
+        padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+        display: flex; align-items: center; gap: 10px; transition: all 0.2s;
+    }
+    .cam-item:hover { background-color: var(--surface-hover); padding-left: 18px; }
+    .cam-item.active { background-color: #1e3a8a; border-left: 3px solid var(--primary); }
+    .cam-item.active .cam-name { color: #ffffff; font-weight: 700; }
+    .cam-item.active .play-icon { color: #ed1c24 !important; }
+    .cam-name { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); white-space: normal; line-height: 1.3; }
 
-        let inspectWarningTimer;
-        function showInspectWarning() {
-            const warningEl = document.getElementById('inspect-warning-toast');
-            if (warningEl) {
-                warningEl.classList.remove('hidden', 'opacity-0', '-translate-y-full');
-                warningEl.classList.add('opacity-100', 'translate-y-0');
-                clearTimeout(inspectWarningTimer);
-                inspectWarningTimer = setTimeout(() => {
-                    warningEl.classList.remove('opacity-100', 'translate-y-0');
-                    warningEl.classList.add('opacity-0', '-translate-y-full');
-                    setTimeout(() => warningEl.classList.add('hidden'), 300);
-                }, 4000);
-            }
-        }
+    /* --- LOADING ANIMATION --- */
+    .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
+    @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,0.8)); } 50% { transform: scale(1.05); opacity: 0.7; } }
 
-        function handleSecurityViolation() {
-            try {
-                let strikes = parseInt(localStorage.getItem('ktvdi_strikes') || '0');
-                strikes++;
-                localStorage.setItem('ktvdi_strikes', strikes);
-                if (strikes >= 3) {
-                    const blockUntil = Date.now() + PENALTY_DURATION;
-                    localStorage.setItem('ktvdi_block_until', blockUntil);
-                    activatePenalty(blockUntil);
-                } else { showInspectWarning(); }
-            } catch(e) { showInspectWarning(); }
-        }
+    /* --- RESOLUTION MONITOR --- */
+    .signal-container {
+        display: flex; flex-direction: column; align-items: flex-end;
+    }
+    .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
+    .bar { width: 3px; background: #475569; border-radius: 1px; transition: height 0.3s, background 0.3s; }
+    .bar.active { background: #22c55e; } 
+    .bar:nth-child(1) { height: 4px; }
+    .bar:nth-child(2) { height: 6px; }
+    .bar:nth-child(3) { height: 8px; }
+    .bar:nth-child(4) { height: 10px; }
+    .net-label { font-size: 0.65rem; font-weight: 800; color: #93c5fd; margin-top: 1px; }
 
-        function activatePenalty(blockUntil) {
-            document.body.style.overflow = 'hidden';
-            const loader = document.getElementById('initial-loader');
-            if(loader) loader.style.display = 'none';
-            const overlay = document.getElementById('penalty-overlay');
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-            document.getElementById('penalty-ip').innerText = window.userIP;
-
-            window.addEventListener('keydown', blockAllKeys, {capture: true});
-            window.addEventListener('contextmenu', blockAllKeys, {capture: true});
-            window.addEventListener('wheel', blockAllKeys, {capture: true, passive: false});
-            window.addEventListener('touchmove', blockAllKeys, {capture: true, passive: false});
-
-            const timerEl = document.getElementById('penalty-timer');
-            const interval = setInterval(() => {
-                const remaining = blockUntil - Date.now();
-                if (remaining <= 0) {
-                    clearInterval(interval);
-                    localStorage.removeItem('ktvdi_block_until');
-                    localStorage.setItem('ktvdi_strikes', 0);
-                    document.body.style.overflow = '';
-                    overlay.classList.add('hidden');
-                    overlay.classList.remove('flex');
-                    window.location.reload(); 
-                } else {
-                    const m = Math.floor(remaining / 60000).toString().padStart(2, '0');
-                    const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
-                    timerEl.innerText = `${m}:${s}`;
-                }
-            }, 1000);
-        }
-
-        function blockAllKeys(e) { e.stopPropagation(); e.preventDefault(); return false; }
-
-        document.addEventListener('contextmenu', event => { event.preventDefault(); handleSecurityViolation(); });
-        document.onkeydown = function(e) {
-            let isBlocked = false;
-            if(e.keyCode == 123) isBlocked = true; 
-            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) isBlocked = true;
-            if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true;
-            if(isBlocked) { e.preventDefault(); handleSecurityViolation(); return false; }
-        }
-        document.addEventListener('dragstart', event => event.preventDefault());
-        document.addEventListener('selectstart', event => event.preventDefault());
-
-        let isAudioUnlocked = false;
-        function unlockAudio() {
-            if (isAudioUnlocked) return;
-            const secAudio = document.getElementById('security-audio');
-            if (secAudio) {
-                secAudio.play().then(() => {
-                    secAudio.pause();
-                    isAudioUnlocked = true;
-                    document.body.removeEventListener('click', unlockAudio);
-                    document.body.removeEventListener('touchstart', unlockAudio);
-                }).catch(e => { console.log("Audio unlock tertunda"); });
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            document.body.addEventListener('click', unlockAudio);
-            document.body.addEventListener('touchstart', unlockAudio);
-        });
-
-        function enablePrivacyMode() {
-            document.body.classList.add('privacy-blur');
-            document.getElementById('security-overlay').style.display = 'flex';
-            const secAudio = document.getElementById('security-audio');
-            if(secAudio) {
-                secAudio.play().then(() => {
-                    if ('mediaSession' in navigator) {
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: 'Gajah Mada FM (Live)', artist: 'Program Acara', album: 'KTVDI Security Mode',
-                            artwork: [{ src: "{{ url_for('static', filename='icons/icon-192.png') }}", sizes: '192x192', type: 'image/png' }]
-                        });
-                        navigator.mediaSession.setActionHandler('pause', function() { secAudio.pause(); });
-                        navigator.mediaSession.setActionHandler('play', function() { secAudio.play(); });
-                    }
-                }).catch(e => console.log("Autoplay dicegah."));
-            }
-        }
-
-        function disablePrivacyMode() {
-            document.body.classList.remove('privacy-blur');
-            document.getElementById('security-overlay').style.display = 'none';
-            const secAudio = document.getElementById('security-audio');
-            if(secAudio) secAudio.pause();
-        }
-
-        window.addEventListener('blur', enablePrivacyMode);
-        window.addEventListener('focus', disablePrivacyMode);
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) enablePrivacyMode(); else disablePrivacyMode();
-        });
-    </script>
-    
-    <style>
-        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none; }
-        html { -webkit-tap-highlight-color: rgba(0,0,0,0); }
-        a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(150, 150, 150, 0.2); } 
-        img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
-
-        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay):not(.worldcup-bg) {
-            filter: blur(30px) grayscale(100%); pointer-events: none; opacity: 0.1; transition: 0s; 
-        }
-
-        #security-overlay {
-            display: none; position: fixed; inset: 0; z-index: 10000;
-            background: rgba(0,0,0,0.95); flex-direction: column; align-items: center; justify-content: center;
-            color: white; text-align: center;
-        }
-
-        /* CUSTOM LOADER WORLD CUP THEME */
-        #initial-loader {
-            position: fixed; inset: 0; z-index: 9999;
-            background: #0a143c;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.4s ease, visibility 0.4s ease; overflow: hidden;
-        }
-        .loader-glow {
-            position: absolute; width: 150px; height: 150px; background: #2563eb;
-            filter: blur(60px); opacity: 0.5; border-radius: 50%; animation: pulse-glow 2s infinite alternate;
-        }
-        @keyframes pulse-glow { from { transform: scale(0.8); opacity: 0.3; } to { transform: scale(1.2); opacity: 0.6; } }
+    /* --- RESPONSIVE LAYOUT --- */
+    @media (min-width: 1024px) {
+        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.5rem; align-items: start; }
+        .col-player { grid-column: span 9; position: sticky; top: 90px; }
+        .col-list { grid-column: span 3; height: calc(100vh - 110px); overflow: hidden; display: flex; flex-direction: column; }
+        .list-scroll-area { flex: 1; overflow-y: auto; }
+    }
+    @media (max-width: 1023px) {
+        .layout-grid { display: flex; flex-direction: column; gap: 1rem; padding: 1rem !important; }
+        .col-player { width: 100%; }
+        .col-list { width: 100%; height: auto; }
+        .list-scroll-area { height: auto; max-height: 500px; overflow-y: auto; }
         
-        .worldcup-bg {
-            background: linear-gradient(135deg, #0a143c 0%, #1e3a8a 100%);
-        }
-        
-        .font-impact { font-family: 'Arial Black', Impact, sans-serif; }
-        .text-shadow-hero { text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .cam-info-mobile { max-width: 180px; }
+        .cam-name-label { font-size: 0.85rem; }
+    }
 
-        .ios-dock {
-            background: rgba(10, 20, 60, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5); border-radius: 36px; margin: 0;
-            width: 100%; height: 76px; display: grid; grid-template-columns: repeat(5, 1fr);
-            align-items: center; padding: 0 8px; position: relative;
-        }
-        .ios-dock-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 480px; z-index: 60; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; transition: all 0.3s; height: 100%; width: 100%; border-radius: 20px; }
-        .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
-        .nav-item span { font-size: 10px; font-weight: 600; line-height: 1; z-index: 2; }
-        .nav-item.active { color: #ffffff; }
+    @keyframes scroll-mobile {
+        0%, 15% { transform: translateX(0); }
+        85%, 100% { transform: translateX(var(--scroll-dist)); }
+    }
+</style>
 
-        .cctv-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
-        .cctv-circle {
-            width: 48px; height: 48px; background: linear-gradient(135deg, #2563eb, #1e3a8a);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: white; border: 2px solid rgba(255,255,255,0.2); transition: 0.2s; margin-bottom: 2px;
-        }
-        .cctv-wrapper.active .cctv-circle { background: linear-gradient(135deg, #ed1c24, #b91c1c); }
+<div class="min-h-screen w-full flex flex-col bg-[#0a143c] text-slate-200" id="main-content">
 
-        .glass-ticker-floating {
-            background: rgba(10, 20, 60, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); 
-            backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); border-radius: 18px; 
-            width: calc(100% - 32px); max-width: 480px; height: 38px; display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 115px; left: 50%; transform: translateX(-50%); z-index: 50; 
-        }
-
-        .desktop-bottom-bar { background: #0a143c; border-top: 1px solid rgba(255,255,255,0.1); height: 40px; width: 100%; position: fixed; bottom: 0; z-index: 40; display: none; }
-        @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
-
-        .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; }
-        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 1200s linear infinite; }
-        .ticker-item { padding: 0 3rem; display: flex; align-items: center; color: #ffffff; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
-        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-        .clock-container { display: flex; align-items: center; justify-content: center; height: 100%; font-family: monospace; font-weight: bold; font-size: 11px; color: white; min-width: 85px; }
-
-        .desktop-link { color: #cbd5e1; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.85rem; }
-        .desktop-link:hover { color: #ffffff; }
-        .desktop-link.active { color: #ffffff; font-weight: 800; }
-
-        .chat-bubble-bot { background: #e5e5ea; color: #000; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; position: relative; margin-bottom: 5px; margin-left: 10px; font-weight: 500; }
-        .chat-bubble-user { background: #2563eb; color: white; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; margin-left: auto; position: relative; margin-bottom: 5px; margin-right: 10px; font-weight: 500; }
-        
-        .dropdown-menu-mobile { position: fixed !important; top: 80px !important; right: 16px !important; width: 250px !important; z-index: 9999 !important; transform-origin: top right; animation: scaleIn 0.2s ease-out; }
-        @media (min-width: 1024px) { .dropdown-menu-mobile { position: absolute !important; top: 100% !important; right: 0 !important; margin-top: 10px; } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .custom-scroll::-webkit-scrollbar { width: 4px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    </style>
-</head>
-<body class="bg-[#0a143c] text-slate-900 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans z-0 selection:bg-blue-200 selection:text-blue-900">
-
-    <div class="fixed inset-0 z-[-2] worldcup-bg"></div>
-    <div class="fixed inset-0 z-[-1] opacity-30 mix-blend-screen bg-[url('https://images.unsplash.com/photo-1518605368461-1e122b10287b?auto=format&fit=crop&q=80')] bg-cover bg-center bg-no-repeat"></div>
-
-    <audio id="security-audio" src="https://server.radioimeldafm.co.id:8040/gajahmadafm?_ic2=1776620223945" loop preload="none"></audio>
-
-    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-black text-white flex-col items-center justify-center hidden" style="font-family: monospace;">
-        <i class="fa-solid fa-triangle-exclamation text-6xl text-red-600 mb-6 animate-pulse"></i>
-        <h1 class="text-2xl md:text-4xl font-black text-red-600 mb-2 tracking-widest text-center px-4">AKSES DIBLOKIR SEMENTARA</h1>
-        <p class="text-slate-400 text-xs md:text-sm mb-8 text-center px-6 max-w-lg leading-relaxed">Sistem mendeteksi pelanggaran berulang atas kebijakan larangan Inspect Element.</p>
-        <div class="bg-red-950/30 border border-red-900/50 rounded-xl p-6 text-center w-4/5 max-w-sm mb-8 shadow-2xl">
-            <p class="text-slate-500 text-[10px] uppercase tracking-widest mb-1">Waktu Penangguhan</p>
-            <p id="penalty-timer" class="text-5xl font-black text-red-500 tracking-widest">05:00</p>
-        </div>
-        <div class="text-center bg-slate-900/80 border border-slate-800 rounded-lg px-6 py-3">
-            <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Data Pelanggar Tercatat</p>
-            <p class="text-sm font-bold text-slate-300">IP Addr: <span id="penalty-ip" class="text-yellow-400">Memeriksa...</span></p>
-        </div>
-    </div>
-
-    <div id="inspect-warning-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[10005] bg-[#ed1c24]/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 transition-all duration-300 hidden opacity-0 -translate-y-full w-[90vw] max-w-md border border-white/20">
-        <i class="fa-solid fa-shield-halved text-2xl animate-pulse shrink-0"></i>
-        <p class="text-[11px] md:text-xs font-bold leading-relaxed">TIM Security mendeteksi Anda ingin melakukan inspect. Untuk privasi, belum diizinkan. Terima kasih.</p>
-    </div>
-
-    <div id="security-overlay">
-        <div class="p-8 max-w-sm bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl">
-            <i class="fa-solid fa-eye-slash text-5xl text-red-500 mb-4 animate-pulse"></i>
-            <h2 class="text-xl font-bold mb-2">Konten Diamankan</h2>
-            <p class="text-xs text-gray-200">Terdeteksi perpindahan tab/layar.</p>
-        </div>
-    </div>
-
-    <div id="initial-loader">
-        <div class="relative flex flex-col items-center">
-            <div class="loader-glow"></div>
-            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-16 md:h-20 mb-8 relative z-10 animate-bounce filter invert brightness-0" alt="KTVDI Loading">
-            <div class="flex gap-2 relative z-10">
-                <span class="w-2.5 h-2.5 bg-[#ed1c24] rounded-full animate-pulse"></span>
-                <span class="w-2.5 h-2.5 bg-white rounded-full animate-pulse delay-75"></span>
-                <span class="w-2.5 h-2.5 bg-[#2563eb] rounded-full animate-pulse delay-150"></span>
-            </div>
-            <p class="text-blue-200 mt-5 font-bold tracking-[0.2em] text-[10px] md:text-xs relative z-10">MEMUAT PENGALAMAN...</p>
-        </div>
-    </div>
-
-    <div id="tts-widget-container" class="fixed top-28 left-4 lg:left-8 z-[45] w-[340px] bg-[#0a143c]/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-800/50 p-4 transition-all duration-500 opacity-0 pointer-events-none translate-y-[-10px]">
-        <div class="flex justify-between items-start mb-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400"><i class="fa-solid fa-volume-high"></i></div>
-                <div><h3 class="text-sm font-bold text-white leading-none">Pembaca Berita</h3><p class="text-[11px] text-blue-400 mt-1">Google Cloud TTS</p></div>
-            </div>
-            <button onclick="hideTTSWidget()" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="flex justify-between text-[10px] text-slate-400 mb-2"><span>Paragraf 1 / 1</span><span id="tts-percent-text">0%</span></div>
-        <div class="w-full bg-slate-800 h-1 rounded-full mb-5 overflow-hidden relative"><div id="tts-progress-bar" class="absolute top-0 left-0 bg-blue-500 h-full w-0 transition-all duration-300"></div></div>
-        <div class="flex justify-center items-center gap-6 mb-5">
-            <button class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-backward-fast"></i></button>
-            <button onclick="toggleTTS()" class="w-10 h-10 bg-[#ed1c24] hover:bg-red-700 rounded-full flex items-center justify-center text-white transition shadow-lg"><i id="tts-play-icon" class="fa-solid fa-play ml-0.5"></i></button>
-            <button class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-forward-fast"></i></button>
-            <button onclick="stopTTS()" class="text-slate-500 hover:text-white transition"><i class="fa-regular fa-square"></i></button>
-        </div>
-    </div>
-
-    <nav class="fixed top-4 left-0 right-0 w-full z-50 px-3 lg:px-6 transition-all duration-300">
-        <div class="max-w-[1400px] mx-auto bg-[#0d1a4d]/90 backdrop-blur-md shadow-2xl rounded-2xl lg:rounded-[2rem] border border-blue-400/20">
-            <div class="flex justify-between items-center h-16 md:h-20 px-4 md:px-8">
-                
-                <div class="flex items-center gap-4 lg:gap-8 border-r border-white/10 pr-6 mr-2">
-                    <a href="{{ url_for('home') }}" class="flex items-center group shrink-0">
-                        <img id="navbar-logo" src="https://bolagembira.tvrinews.com/images/new-welcome/logo.png" alt="TVRI Logo" class="h-8 md:h-10 object-contain drop-shadow-md">
-                    </a>
-
-                    <div class="hidden lg:flex items-center gap-3 text-white">
-                        <div class="flex flex-col items-center"><span id="cd-hari" class="text-[22px] font-black leading-none">--</span><span class="text-[8px] font-bold tracking-widest uppercase text-blue-200">Hari</span></div>
-                        <span class="text-yellow-400 font-bold mb-3">:</span>
-                        <div class="flex flex-col items-center"><span id="cd-jam" class="text-[22px] font-black leading-none">--</span><span class="text-[8px] font-bold tracking-widest uppercase text-blue-200">Jam</span></div>
-                        <span class="text-yellow-400 font-bold mb-3">:</span>
-                        <div class="flex flex-col items-center"><span id="cd-menit" class="text-[22px] font-black leading-none">--</span><span class="text-[8px] font-bold tracking-widest uppercase text-blue-200">Menit</span></div>
-                        <span class="text-yellow-400 font-bold mb-3">:</span>
-                        <div class="flex flex-col items-center"><span id="cd-detik" class="text-[22px] font-black leading-none">--</span><span class="text-[8px] font-bold tracking-widest uppercase text-blue-200">Detik</span></div>
-                    </div>
+    <nav class="bg-[#0a143c]/90 backdrop-blur-lg border-b border-blue-900 sticky top-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+        <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto navbar-brand">
+                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-white/20 shrink-0 p-1 border border-white/50">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI CCTV" class="w-6 h-6 object-contain">
                 </div>
-
-                <div class="flex items-center gap-2 lg:gap-4 flex-1 justify-end">
-                    <div class="hidden xl:flex items-center space-x-2 mr-4">
-                        <a href="{{ url_for('cctv_page') }}" class="desktop-link">CCTV</a>
-                        <a href="{{ url_for('ews_jateng_page') }}" class="desktop-link">EWS</a>
-                        <a href="{{ url_for('jadwal_sholat_page') }}" class="desktop-link">Religi</a>
-                        <a href="{{ url_for('daftar_siaran') }}" class="desktop-link">Database</a>
-                        <a href="{{ url_for('berita_page') }}" class="desktop-link">Berita</a>
-                    </div>
-
-                    <div class="relative group z-50 xl:hidden">
-                        <button onclick="toggleDropdown('info-dropdown')" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
-                            <i class="fa-solid fa-bars"></i>
-                        </button>
-                        <div id="info-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200">
-                            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col mb-1">
-                                <span class="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Lokasi Anda</span>
-                                <div class="flex items-center gap-2 text-sm font-black text-blue-600">
-                                    <i class="fa-solid fa-location-dot text-red-500"></i><span id="mobile-user-location" class="truncate">Mendeteksi...</span>
-                                </div>
-                            </div>
-                            <a href="{{ url_for('home') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-house w-5"></i> Beranda</a>
-                            <a href="{{ url_for('cctv_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-video w-5"></i> Pantauan CCTV</a>
-                            <a href="{{ url_for('jadwal_sholat_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-mosque w-5"></i> Jadwal Religi</a>
-                            <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-users w-5"></i> Tentang KTVDI</a>
-                        </div>
-                    </div>
-
-                    {% if session.get('user') %}
-                        <div class="xl:hidden flex items-center gap-2">
-                            <a href="{{ url_for('home') }}" class="flex items-center gap-1.5 bg-black/20 border border-white/10 rounded-full px-1.5 py-1 transition shadow-inner shrink-0">
-                                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-4 h-4 object-contain brightness-0 invert ml-0.5">
-                                <div class="w-5 h-5 rounded-full bg-slate-500/80 flex items-center justify-center text-white text-[10px] font-bold">
-                                    {{ session.get('nama')[0].upper() }}
-                                </div>
-                            </a>
-
-                            <div class="flex flex-col justify-center cursor-pointer ml-1" onclick="toggleDropdown('profile-dropdown-mobile-user')">
-                                <div class="flex items-center gap-1 text-[11px] font-bold text-white leading-tight">
-                                    <span class="dynamic-greeting font-medium">Hai,</span>
-                                    <span class="truncate max-w-[85px]">{{ session.get('nama') }}</span>
-                                </div>
-                                <div class="flex items-center mt-0.5">
-                                    <span class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-600 border border-yellow-400/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center gap-1">
-                                        <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <div id="profile-dropdown-mobile-user" class="hidden dropdown-menu-mobile !top-12 !right-0 transform origin-top-right absolute w-52 bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
-                                <div class="px-4 py-3 border-b border-slate-100 mb-1 bg-slate-50">
-                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
-                                    <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
-                                </div>
-                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard</a>
-                                <div class="border-t border-slate-100 my-1"></div>
-                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
-                            </div>
-                        </div>
-
-                        <div class="relative group z-50 hidden xl:block">
-                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-[#ed1c24] hover:bg-red-700 transition border border-red-500 text-left shadow-lg">
-                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=ed1c24&bold=true" class="h-8 w-8 rounded-full shadow-sm">
-                                <div class="flex flex-col">
-                                    <span class="text-xs font-bold text-white leading-tight">{{ session.get('nama').split()[0] }}</span>
-                                    <span class="text-[8px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
-                                        <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
-                                    </span>
-                                </div>
-                            </button>
-                            <div id="profile-dropdown-desktop" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200">
-                                <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50">
-                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
-                                    <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
-                                </div>
-                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-50"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard KTVDI</a>
-                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 font-medium hover:bg-red-50"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
-                            </div>
-                        </div>
-                    {% else %}
-                        <div class="flex items-center">
-                            <a href="{{ url_for('login') }}" class="hidden md:block text-white text-sm font-bold hover:text-blue-300 transition px-4 py-2">Masuk</a>
-                            <a href="{{ url_for('register') }}" class="bg-[#ed1c24] hover:bg-red-700 text-white px-5 md:px-6 py-2.5 rounded-full font-bold text-xs md:text-sm transition shadow-lg flex items-center gap-2 active:scale-95 ml-2">
-                                Daftar <i class="fa-solid fa-arrow-right bg-white text-red-600 rounded-full w-4 h-4 flex items-center justify-center text-[10px] hidden md:flex"></i>
-                            </a>
-                        </div>
-                    {% endif %}
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-white font-extrabold text-lg tracking-tight leading-none uppercase">KTVDI <span class="text-[#ed1c24]">SMART CITY</span></h1>
+                    <p class="text-[10px] text-blue-200 font-bold mt-0.5 leading-snug">Portal LIVE CCTV terkini untuk memantau arus lalu lintas.</p>
                 </div>
+            </div>
+            <div class="relative w-full md:w-80 group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-white transition-colors"></i>
+                </div>
+                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-[#101d4a] border border-blue-800 text-white text-sm rounded-full py-2 pl-11 pr-5 focus:outline-none focus:border-[#ed1c24] focus:bg-[#0a143c] focus:ring-2 focus:ring-red-500/30 transition-all font-medium placeholder:text-blue-300 shadow-inner" placeholder="Cari lokasi kamera...">
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow z-10 relative pt-[100px] md:pt-[130px]">
-        <div class="bg-white w-full min-h-screen rounded-t-[2.5rem] md:rounded-t-[4rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden border-t-4 border-blue-600">
-            <div class="absolute inset-0 z-0 opacity-[0.35]" style="background-image: radial-gradient(#94a3b8 1.5px, transparent 1.5px); background-size: 32px 32px;"></div>
+    <div class="max-w-[1920px] mx-auto w-full p-4 lg:p-6 layout-grid">
 
-            <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 relative z-10">
-                {% block content %}{% endblock %}
-            </div>
-        </div>
-    </main>
-
-    <footer class="bg-[#0a143c] text-slate-300 pt-16 pb-48 lg:pb-16 font-sans border-t border-blue-900">
-        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
-            <div class="space-y-4">
-                <div class="flex items-center gap-3">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="w-10 h-10 filter invert brightness-0">
-                    <div>
-                        <h4 class="text-lg font-bold text-white tracking-tight">KTVDI</h4>
-                        <p class="text-[10px] font-medium text-blue-300">Komunitas TV Digital Indonesia</p>
+        <main class="col-player">
+            <div class="player-card relative z-10">
+                <div class="player-header">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-[#ed1c24]/50 shrink-0">
+                            <span class="relative flex h-2 w-2">
+                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                            </span>
+                            <span class="text-[9px] font-bold tracking-wider text-white">LIVE</span>
+                        </div>
+                         
+                        <div class="cam-info-mobile">
+                            <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
+                            <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
+                        </div>
+                    </div>
+                     
+                    <div class="flex items-center gap-2 text-[10px] bg-blue-900/30 px-2 py-1 rounded border border-blue-500/30 shrink-0 shadow-inner">
+                         <i class="fa-solid fa-shield-halved text-[#ed1c24]"></i> <span class="hidden sm:inline text-white font-bold tracking-wider">SECURE</span>
                     </div>
                 </div>
-                <p class="text-sm leading-relaxed">Pusat informasi independen teknologi penyiaran digital, frekuensi, & STB Indonesia.</p>
-            </div>
-            <div>
-                <h4 class="font-bold text-xs text-blue-400 uppercase tracking-widest mb-4">Navigasi Utama</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="{{ url_for('home') }}" class="hover:text-white transition">Beranda</a></li>
-                    <li><a href="{{ url_for('daftar_siaran') }}" class="hover:text-white transition">Database Frekuensi</a></li>
-                    <li><a href="{{ url_for('cctv_page') }}" class="hover:text-white transition">Pantauan CCTV</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold text-xs text-blue-400 uppercase tracking-widest mb-4">Layanan</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#" class="hover:text-white transition">Tentang Kami</a></li>
-                    <li><a href="#" class="hover:text-white transition">Hubungi Kami</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="font-bold text-xs text-blue-400 uppercase tracking-widest mb-4">Kontak Resmi</h4>
-                <ul class="space-y-3 text-sm text-slate-400">
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-user-tie text-blue-500"></i> Pak Lukas (Admin)</li>
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-envelope text-blue-500"></i> kom.tvdigitalid@gmail.com</li>
-                    <li class="flex items-center gap-3"><i class="fa-brands fa-whatsapp text-green-500"></i> 0815-9131-735</li>
-                </ul>
-            </div>
-        </div>
-        <div class="border-t border-blue-900/50 pt-8 text-center"><p class="text-xs text-blue-400/60">&copy; 2026 KTVDI. Hak Cipta Dilindungi.</p></div>
-    </footer>
 
-    <div class="ios-dock-container lg:hidden">
-        <nav class="ios-dock">
-            <a href="{{ url_for('home') }}" class="nav-item active"><i class="fa-solid fa-house"></i><span>Beranda</span></a>
-            <a href="{{ url_for('jadwal_sholat_page') }}" class="nav-item"><i class="fa-solid fa-mosque"></i><span>Religi</span></a>
-            <a href="{{ url_for('cctv_page') }}" class="nav-item cctv-wrapper"><div class="cctv-circle"><i class="fa-solid fa-video text-lg"></i></div><span class="mt-1 font-bold">CCTV</span></a>
-            <a href="{{ url_for('daftar_siaran') }}" class="nav-item"><i class="fa-solid fa-database"></i><span>Data</span></a>
-            <a href="{{ url_for('berita_page') }}" class="nav-item"><i class="fa-regular fa-newspaper"></i><span>Berita</span></a>
-        </nav>
-    </div>
+                <div class="video-wrapper group">
+                    <video id="video-element" class="video-element" autoplay muted playsinline crossorigin="anonymous"></video>
 
-    <div class="glass-ticker-floating lg:hidden">
-        <div class="bg-[#ed1c24] h-full flex items-center px-3 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE</div>
-        <div class="ticker-wrap relative flex-1"><div id="unified-ticker-mobile" class="ticker-move"></div></div>
-        <div class="bg-white/10 backdrop-blur-md h-full px-2 border-l border-slate-200/20 z-20 shrink-0 flex items-center"><div id="clock-mobile" class="clock-container text-[10px]">00:00:00 WIB</div></div>
-    </div>
-
-    <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto">
-        <div class="bg-[#ed1c24] h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> BERITA TERKINI</div>
-        <div class="ticker-wrap relative flex-1"><div id="unified-ticker-desktop" class="ticker-move"></div></div>
-        <div class="bg-white/5 backdrop-blur-md h-8 px-4 rounded-lg border border-white/10 z-20 shrink-0 flex items-center gap-2 ml-4 text-white text-[11px] font-bold"><i class="fa-solid fa-location-dot text-red-400 animate-bounce"></i><span id="desktop-user-location">Mendeteksi...</span></div>
-        <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 flex items-center ml-2"><div id="clock-desktop" class="clock-container text-[11px]">00:00:00 WIB</div></div>
-    </div>
-
-    <div id="call-center-widget" class="hidden fixed bottom-[160px] lg:bottom-24 left-4 z-[60] group pb-safe">
-        <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-red-100 hover:scale-110 transition"><i class="fa-solid fa-phone-volume text-lg animate-pulse"></i></a>
-    </div>
-
-    <div id="modi-ai-widget" class="hidden fixed bottom-[160px] lg:bottom-24 right-4 z-[60] pb-safe flex-col items-end">
-        <div id="chat-window" class="hidden w-[85vw] max-w-[340px] bg-slate-50 rounded-3xl shadow-2xl overflow-hidden mb-4 border border-slate-100 flex flex-col transform origin-bottom-right transition-all">
-            <div class="bg-white/80 backdrop-blur-xl p-3 flex justify-between items-center border-b border-slate-200">
-                <div class="flex items-center gap-3"><img src="https://iili.io/f87Ctjt.md.png" class="h-9 w-9 rounded-full bg-white p-0.5 border-2 border-slate-100"><div><div class="font-bold text-sm">Modi AI</div><div class="text-[10px] text-slate-500">Online • KTVDI</div></div></div>
-                <button onclick="toggleChat()" class="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-chevron-down text-xs"></i></button>
-            </div>
-            <div id="chat-messages" class="h-72 p-4 overflow-y-auto flex flex-col gap-1 custom-scroll">
-                <div class="flex flex-col gap-1 items-start"><div class="chat-bubble-bot shadow-sm font-medium">Halo! Saya Modi AI, asisten virtual KTVDI. Ada yang bisa saya bantu?</div></div>
-            </div>
-            <div class="p-3 bg-white border-t border-slate-100">
-                <form onsubmit="handleChat(event)" class="flex gap-2 relative">
-                    <input type="text" id="chat-input" placeholder="Tanya seputar TV Digital..." class="w-full bg-slate-50 border border-slate-200 text-sm px-4 py-2.5 rounded-full outline-none focus:border-blue-500" autocomplete="off">
-                    <button type="submit" class="absolute right-1.5 top-1.5 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-up text-xs"></i></button>
-                </form>
-            </div>
-        </div>
-        <button onclick="toggleChat()" class="w-14 h-14 rounded-full shadow-2xl hover:scale-105 transition border-2 border-white bg-white relative">
-             <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover">
-             <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-        </button>
-    </div>
-
-    <script>
-        // SCRIPT LOGO SWAPPER PADA NAVBAR (TVRI <-> KTVDI) dengan Efek Cahaya Halus
-        const tvriLogoUrl = "https://bolagembira.tvrinews.com/images/new-welcome/logo.png";
-        const ktvdiLogoUrl = "{{ url_for('static', filename='icons/icon-192.png') }}";
-        let isTvri = true;
-        const navbarLogo = document.getElementById('navbar-logo');
-
-        if (navbarLogo) {
-            // Transisi dibuat sedikit lebih panjang agar terlihat smooth
-            navbarLogo.style.transition = "all 0.8s ease-in-out";
-            
-            function swapLogo() {
-                // Efek memudar dan menyala putih (glow)
-                navbarLogo.style.opacity = 0;
-                navbarLogo.style.filter = "drop-shadow(0 0 20px rgba(255,255,255,1)) brightness(1.5)";
-                
-                setTimeout(() => {
-                    isTvri = !isTvri;
-                    navbarLogo.src = isTvri ? tvriLogoUrl : ktvdiLogoUrl;
+                    <canvas id="ai-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-30"></canvas>
                     
-                    if (!isTvri) {
-                        // KTVDI mode (warna putih)
-                        navbarLogo.className = "h-8 md:h-10 object-contain filter invert brightness-0 drop-shadow-md";
-                    } else {
-                        // TVRI mode (warna asli)
-                        navbarLogo.className = "h-8 md:h-10 object-contain drop-shadow-md";
-                    }
-                    
-                    // Kembalikan opacity dan hilangkan efek filter glow berlebih
-                    navbarLogo.style.opacity = 1;
-                    navbarLogo.style.filter = "";
-                    
-                    // KTVDI = 20 Detik (20000ms), TVRI = 7 Detik (7000ms)
-                    const nextDelay = isTvri ? 7000 : 20000;
-                    setTimeout(swapLogo, nextDelay);
-                }, 800); // Waktu yang dibutuhkan untuk fade out sebelum ganti source
+                    <div id="desktop-traffic-status" class="absolute top-3 left-3 bg-black/80 text-white px-3 py-1.5 rounded-md text-xs font-bold border border-slate-600 z-40 hidden backdrop-blur-md shadow-lg transition-all items-center">
+                        <i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-2"></i> Menginisiasi AI...
+                    </div>
+
+                    <div id="severe-warning" class="absolute top-3 left-1/2 -translate-x-1/2 bg-red-600/95 text-white px-5 py-2 rounded-lg text-xs sm:text-sm font-extrabold border border-red-400 z-40 hidden backdrop-blur-md shadow-[0_0_25px_rgba(220,38,38,0.6)] animate-pulse text-center whitespace-nowrap">
+                        <i class="fa-solid fa-triangle-exclamation mr-2 text-yellow-300"></i>JALUR MENGALAMI KEPADATAN PARAH
+                    </div>
+
+                    <div id="overlay-loading" class="absolute inset-0 bg-[#0a143c] z-40 flex flex-col items-center justify-center text-center p-4">
+                        <div class="relative w-24 h-24 mb-4 logo-pulse">
+                            <div class="absolute inset-0 bg-[#2563eb]/40 rounded-full blur-xl"></div>
+                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Loading" class="w-full h-full object-contain brightness-0 invert drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] relative z-10">
+                        </div>
+                        <h3 class="text-white font-black text-xl tracking-widest mb-1">KTVDI CCTV</h3>
+                        <p class="text-blue-300 text-xs font-bold animate-pulse">Menghubungkan ke Server Kamera...</p>
+                    </div>
+
+                    <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
+                        <div class="w-16 h-16 bg-[#ed1c24] border-2 border-white/40 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_20px_rgba(237,28,36,0.5)]">
+                            <i class="fa-solid fa-play text-white text-3xl ml-1"></i>
+                        </div>
+                    </div>
+
+                    <div id="overlay-error" class="absolute inset-0 bg-[#0a143c] z-40 hidden flex flex-col items-center justify-center text-center px-6">
+                        <i class="fa-solid fa-video-slash text-slate-500 text-5xl mb-3"></i>
+                        <h4 class="text-white font-black text-lg mb-2">Kamera Offline</h4>
+                        <p class="text-blue-200 font-medium text-xs mb-4">Koneksi Internet dari Kamera terputus atau diblokir.</p>
+                        <p class="text-yellow-400 font-bold text-[10px] mb-2 hidden" id="http-warning">PENTING: Kamera ini menggunakan HTTP. Mohon izinkan "Insecure Content" di pengaturan browser Anda.</p>
+                        <button onclick="retryStream()" class="px-6 py-2.5 bg-[#ed1c24] hover:bg-red-700 text-white text-xs font-bold rounded-full shadow-[0_5px_15px_rgba(237,28,36,0.4)] transition-colors uppercase tracking-wider">Coba Lagi</button>
+                    </div>
+                </div>
+
+                <div class="bg-[#101d4a] px-4 py-2.5 flex items-center justify-between border-t border-blue-900 relative z-20">
+                    <div class="flex items-center gap-3">
+                         <div id="default-status-text" class="text-[10px] text-blue-300 font-mono font-bold tracking-wider transition-all">PANTAUAN CCTV TERKINI</div>
+                         <div id="mobile-traffic-status" class="hidden text-[10px] font-bold tracking-wider transition-all"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="btn-volume" onclick="toggleMute()" class="text-blue-300 hover:text-white px-3 py-1.5 rounded hover:bg-blue-800 transition" title="Mute/Unmute">
+                            <i class="fa-solid fa-volume-xmark text-sm"></i>
+                        </button>
+                        <button onclick="retryStream()" class="text-blue-300 hover:text-white px-3 py-1.5 rounded hover:bg-blue-800 transition" title="Reload"><i class="fa-solid fa-rotate-right text-sm"></i></button>
+                        <button onclick="toggleFullscreen()" class="text-blue-300 hover:text-white px-3 py-1.5 rounded hover:bg-blue-800 transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-5 bg-[#101d4a] border border-blue-900 p-3 rounded-xl shadow-lg shadow-black/20 flex flex-col gap-3">
+                <div class="flex flex-wrap justify-between items-center gap-3">
+                     
+                    <div class="flex items-center gap-3 bg-[#0a143c] px-3 py-2 rounded-lg border border-blue-800">
+                        <div class="w-8 h-8 rounded-full bg-[#1e3a8a] border border-blue-500 flex items-center justify-center text-white shadow-inner">
+                            <i class="fa-regular fa-clock"></i>
+                        </div>
+                        <div>
+                            <div id="digital-clock" class="text-white font-mono font-bold text-sm leading-none">00:00:00</div>
+                            <div id="date-display" class="text-[10px] text-blue-300 font-bold uppercase mt-0.5 tracking-wider">...</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 bg-[#0a143c] px-3 py-2 rounded-lg border border-blue-800">
+                        <div class="signal-container">
+                            <div class="signal-bars" id="signal-meter">
+                                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            </div>
+                            <span class="net-label" id="resolution-display">DETECTING...</span>
+                        </div>
+                    </div>
+
+                </div>
+                 
+                <div class="relative bg-[#0a143c] border border-blue-800 rounded-lg h-8 flex items-center overflow-hidden">
+                    <div class="bg-[#ed1c24] h-full px-3 flex items-center justify-center shrink-0 z-10 shadow-lg"><i class="fa-solid fa-bullhorn text-white text-xs"></i></div>
+                    <div class="marquee-container w-full bg-[#0a143c]">
+                        <div class="marquee-content text-blue-100">SELAMAT DATANG DI KTVDI SMARTCITY  //  FUNGSI UTAMA PENAYANGAN CCTV INI ADALAH UNTUK MEMUDAHKAN MASYARAKAT DALAM MEMANTAU KONDISI ARUS LALU LINTAS, SITUASI KEAMANAN, SERTA KETERTIBAN RUANG PUBLIK SECARA REAL-TIME  //  SEBAGAI PUSAT INFORMASI, KAMI MENAMPILKAN BEBERAPA TITIK LIVE CCTV YANG BERSUMBER DARI PEMERINTAH DAERAH, VENDOR, SERTA PEMPROV JATENG YANG BISA ANDA AKSES SECARA LANGSUNG  //  SELURUH ASET DAN LIVE STREAM ADALAH HAK CIPTA DARI MASING-MASING PEMILIK SUMBER ASLI, KAMI HANYA BERTINDAK SEBAGAI AGREGATOR LAYANAN  //  TERKAIT KEBIJAKAN PRIVASI, KAMI TIDAK MELAKUKAN PEREKAMAN VISUAL, PENYIMPANAN DATA PRIBADI, PENGENALAN WAJAH (FACIAL RECOGNITION), MAUPUN PELACAKAN IDENTITAS DARI VIDEO YANG DITAMPILKAN  //  TAYANGAN INI BERSIFAT STREAMING PUBLIK SATU ARAH YANG HANYA DITUJUKAN UNTUK KEPENTINGAN INFORMASI UMUM SERTA KESELAMATAN BERSAMA  //  GUNAKAN FASILITAS INI DENGAN BIJAK DAN TETAP PATUHI PERATURAN YANG BERLAKU DI RUANG PUBLIK   </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <aside class="col-list bg-[#101d4a] rounded-xl border border-blue-900 shadow-xl shadow-black/40 relative z-10 overflow-hidden">
+            <div class="p-4 border-b border-blue-900 bg-[#0a143c] sticky top-0 z-20 flex justify-between items-center shadow-md">
+                <div>
+                    <h3 class="font-black text-white text-sm tracking-wide uppercase">Daftar Lokasi</h3>
+                    <p class="text-[10px] text-blue-300 font-bold">Pilih kota untuk melihat kamera</p>
+                </div>
+                <span class="text-[10px] bg-[#ed1c24] text-white px-3 py-1 rounded-full font-black shadow-md tracking-widest" id="total-cams">Loading...</span>
+            </div>
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-2 bg-[#0a143c] shadow-inner"></div>
+            <div class="p-3 bg-[#0a143c] border-t border-blue-900 text-center text-[10px] text-blue-400 font-bold tracking-widest">© 2026 KTVDI NETWORK</div>
+        </aside>
+
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. DATA SOURCE LENGKAP 100% UTUH
+    // ==========================================
+    const streamSource = [
+        // --- KOTA SEMARANG (NEW 64 CAMS) ---
+        {city: "KOTA SEMARANG", name: "ARAH TUGU TUNAS", url: "https://livepantau.semarangkota.go.id/1c874802-f4bd-47e6-8cd6-f14025691245/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "ARAH PANDANARAN", url: "https://livepantau.semarangkota.go.id/81585de0-f70c-4e95-a330-4b3886ad644a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU PAHLAWAN", url: "https://livepantau.semarangkota.go.id/51e354eb-e854-45de-995b-78a4be3d2cf9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG 5 1 360", url: "https://livepantau.semarangkota.go.id/60a2470e-dca8-4356-bb8a-5489e7bb0e15/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG 5 2", url: "https://livepantau.semarangkota.go.id/01b239ba-f202-4c25-b999-aafd64281375/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG TENTREM MALL", url: "https://livepantau.semarangkota.go.id/1ecaa846-da47-4eae-b239-6625325f56a6/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GAJAHMADA", url: "https://livepantau.semarangkota.go.id/64ffd7f1-b0d6-412d-bfa9-6010365e9be8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BERGOTA 360", url: "https://livepantau.semarangkota.go.id/b72f8f10-915b-4cac-b8d8-750886a58806/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "THAMRIN PANDANARAN 360", url: "https://livepantau.semarangkota.go.id/e910f4f2-a77d-4cf8-8341-aa2e6c6b65c9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG THAMRIN", url: "https://livepantau.semarangkota.go.id/53c881b4-ef2f-41dd-9367-b4a7651bc168/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BATHAN - THAMRIN", url: "https://livepantau.semarangkota.go.id/4cfc43e9-73a2-41e7-89d8-4f1132245876/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KYAI SALEH", url: "https://livepantau.semarangkota.go.id/a10c85e5-a1ef-4041-9a0b-6c2e98c876bf/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TITIK NOL KM", url: "https://livepantau.semarangkota.go.id/dc23feef-8cbd-4f67-8c46-382c691d5f09/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BUKIT SARI", url: "https://livepantau.semarangkota.go.id/05b532ed-de45-4c94-9cf3-6cb9d4161169/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH", url: "https://livepantau.semarangkota.go.id/01f3980b-ff90-4505-8876-a3083767973a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH WIDE", url: "https://livepantau.semarangkota.go.id/de90b316-e86b-4833-b27a-fa5fa3cb5501/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING BANYUMANIK", url: "https://livepantau.semarangkota.go.id/87b22302-dd9e-483b-a11d-7ff2481f67e8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 2 WIDE", url: "https://livepantau.semarangkota.go.id/aceb3f67-76ea-443c-941d-0b27ad2bae9f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 3-2", url: "https://livepantau.semarangkota.go.id/a89ba74a-fdd9-4192-ae00-a99adea38932/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DONBOSKO", url: "https://livepantau.semarangkota.go.id/4cf09eaf-df34-4047-b78a-8772f8208ad1/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SP.AKPOL", url: "https://livepantau.semarangkota.go.id/18f688f5-1489-4459-9ce4-d5549a4da59b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BUNDARAN DIPONEGORO", url: "https://livepantau.semarangkota.go.id/d272202d-046b-4327-b9d5-ff958c22725e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "EXIT TOL KRAPYAK", url: "https://livepantau.semarangkota.go.id/79f0b673-df1b-470f-b3f1-5a81c7d2c578/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PASAR KAMBING 360", url: "https://livepantau.semarangkota.go.id/118aa9fe-ed24-427a-80e2-7f5bd75277da/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PETERONGAN", url: "https://livepantau.semarangkota.go.id/0d167ccf-9405-42fc-8896-7906c23b70a9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "MILO", url: "https://livepantau.semarangkota.go.id/79c24687-f5f7-4822-8a5a-9007af0d7a09/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BANGKONG", url: "https://livepantau.semarangkota.go.id/bca0b6e3-434f-4617-a8d1-7de8dee4a1d8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "MT HARYONO", url: "https://livepantau.semarangkota.go.id/df53c838-efa5-460d-8f41-8a399e137c3b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRIWIJAYA 02", url: "https://livepantau.semarangkota.go.id/66632103-6b19-4f55-97b9-1d4ea18bb7c0/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRIWIJAYA 01", url: "https://livepantau.semarangkota.go.id/481481b7-c444-499f-b32e-7445c29f48e9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KI MANGUN SARKORO", url: "https://livepantau.semarangkota.go.id/47159b17-2776-4509-a9cd-363062084d80/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "POLDA 360", url: "https://livepantau.semarangkota.go.id/a8da81c4-d251-40fd-9bad-993cfae8c1ac/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 01", url: "https://livepantau.semarangkota.go.id/ce7f738e-7e30-4e64-888c-1bd22062f225/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 02", url: "https://livepantau.semarangkota.go.id/a5e69eea-cd60-4cb1-a51a-209ec3704a71/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN 180", url: "https://livepantau.semarangkota.go.id/67e8ae0e-2ca1-4074-84fb-6a76503cd792/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "METRO JOHAR", url: "https://livepantau.semarangkota.go.id/c7340916-43bd-46fa-a85f-48dd05d85d1c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PEMUDA - GAJAHMADA", url: "https://livepantau.semarangkota.go.id/10d35089-abda-4772-ac32-6f15e53328ce/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "INDAPRASTA - IMAM BONJOL", url: "https://livepantau.semarangkota.go.id/c17d3f13-338a-4656-b555-1dd1a18153f3/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIGARANG", url: "https://livepantau.semarangkota.go.id/82226691-f696-41eb-8a74-8b3c9d78b595/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 2", url: "https://livepantau.semarangkota.go.id/123d07e9-fc3c-4893-85ba-cc4a51a3905e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 3", url: "https://livepantau.semarangkota.go.id/3cd13e1a-22fd-48b4-8928-33edc5044595/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA", url: "https://livepantau.semarangkota.go.id/41cc4b59-c86f-4307-939c-13a2026ff606/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BUNDARAN MADUKORO", url: "https://livepantau.semarangkota.go.id/114bad06-4fc9-4c14-9c07-4d16720918c4/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIBANTENG", url: "https://livepantau.semarangkota.go.id/516e0b27-49d0-41bc-924b-da7e07d389af/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIBANTENG 2", url: "https://livepantau.semarangkota.go.id/1ba1a3b8-ff0b-4bbe-a1a1-ebb3ab40e6ed/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "HANOMAN", url: "https://livepantau.semarangkota.go.id/24d5674c-1193-4a41-a101-2a8bb6d7898c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING KRAPYAK", url: "https://livepantau.semarangkota.go.id/6237c48f-a8e8-46f8-bb7b-93641bb4fa8f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JRAKAH", url: "https://livepantau.semarangkota.go.id/b8f42795-4dbd-4712-9329-880e097fc614/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU KEL WONOSARI", url: "https://livepantau.semarangkota.go.id/6c239119-5ac2-49e3-8bf0-22f583e2bbdc/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BEA CUKAI", url: "https://livepantau.semarangkota.go.id/2d79e358-6c83-49f0-83c2-77bf8d1c0e3d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING EXIT SRONDOL", url: "https://livepantau.semarangkota.go.id/fdd31466-0281-4077-8415-a9a35c68c62f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING KIW", url: "https://livepantau.semarangkota.go.id/237ce305-7d7f-4c54-936b-98c7d18b04ec/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN MBEROK", url: "https://livepantau.semarangkota.go.id/110c0652-bc7a-410b-9308-239ebd3e9e5c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PINTU MASUK LAWANG SEWU", url: "https://livepantau.semarangkota.go.id/c2e3af25-28cf-4e22-bad5-929fb60c368d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 1", url: "https://livepantau.semarangkota.go.id/dac40f89-b786-4c67-99de-bc7e0c76c405/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 2", url: "https://livepantau.semarangkota.go.id/923bddf8-fcad-4583-a4db-1b1534fc8521/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 3", url: "https://livepantau.semarangkota.go.id/39bc6ec9-dd8c-474b-9605-f5b28232c550/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GOA KREO 1", url: "https://livepantau.semarangkota.go.id/6ca1e29d-a022-4cbe-b676-128662304bfa/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GOA KREO 2", url: "https://livepantau.semarangkota.go.id/51a48a8b-d271-420c-9640-e9ea816fb6e1/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DEPAN OUDETRAP", url: "https://livepantau.semarangkota.go.id/458af900-91fe-49bc-afe0-5b70ae8e39f8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GEREJA BLENDUK", url: "https://livepantau.semarangkota.go.id/ea40ab3a-0362-4633-87a6-fbce5c8c2f93/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRI GUNTING 1", url: "https://livepantau.semarangkota.go.id/acd57d3c-11cc-49df-980e-d510f7ed0164/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRI GUNTING 3", url: "https://livepantau.semarangkota.go.id/78e2cf6b-6e09-426d-b7e1-ae12be415439/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRI GUNTING 2", url: "https://livepantau.semarangkota.go.id/5714aae6-e185-4bdb-bc80-6ab438c27799/index.m3u8"},
+
+        // --- KAB. GROBOGAN ---
+        {city: "KAB. GROBOGAN", name: "DEPAN SMAN 1 PURWODADI", url: "https://stream.dishub.grobogan.go.id/memfs/fa108bdc-0a01-416b-a47a-5d1f9131a1cf.m3u8"},
+        {city: "KAB. GROBOGAN", name: "DEPAN SMAN 1 PC PURWODADI", url: "https://stream.dishub.grobogan.go.id/memfs/0f62775f-2512-4f36-b22a-296ef1011aee_output_0_7440.m3u8"},
+        {city: "KAB. GROBOGAN", name: "ALUN ALUN UTARA", url: "https://stream.dishub.grobogan.go.id/memfs/00f24e82-2004-4806-9611-8fcfd211656c.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG DANYANG SELATAN", url: "https://stream.dishub.grobogan.go.id/memfs/1896ce4f-aee9-41b6-bad0-a8f489547c7e.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG BUGEL 2", url: "https://stream.dishub.grobogan.go.id/memfs/41116482-0dbf-4790-b3d7-bc401314196c_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "MOJOAGUNG 2", url: "https://stream.dishub.grobogan.go.id/memfs/9da2f0e3-7fa7-4b48-b9e9-73c666a698b9_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG KENCANA BARAT", url: "https://stream.dishub.grobogan.go.id/memfs/0c71034d-c8c2-419a-aa63-b4794467732b_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG POLRES", url: "https://stream.dishub.grobogan.go.id/memfs/f0d61d65-7efe-486b-a525-f1913129c276_output_0.m3u8?"},
+        {city: "KAB. GROBOGAN", name: "ALUN ALUN SELATAN", url: "https://stream.dishub.grobogan.go.id/memfs/deb97d9b-8f4c-4b84-8be3-3e5388a3a4fa_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "NAMBUHAN", url: "https://stream.dishub.grobogan.go.id/memfs/eca08f61-3896-46a8-a86f-0909d56777f4.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG PUTAT BARAT", url: "https://stream.dishub.grobogan.go.id/memfs/2917361c-032d-4ab5-a53a-552d17bd401a.m3u8"},
+        {city: "KAB. GROBOGAN", name: "ALUN ALUN TIMUR", url: "https://stream.dishub.grobogan.go.id/memfs/01bc9e0b-8b80-4a9a-80d5-dcd856a36aaa_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "GETASREJO", url: "https://stream.dishub.grobogan.go.id/memfs/ff0a20ee-06df-43fa-be1f-39205d7eba59_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG DANYANG BARAT", url: "https://stream.dishub.grobogan.go.id/memfs/ddb5a908-4377-451e-bb25-11eb7f6b5d40_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "DISKOMINFO (JL SUPRAPTO)", url: "https://stream.dishub.grobogan.go.id/memfs/474d4814-bbc4-4a37-96eb-5476548b7ab9_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG POLRES TIMUR", url: "https://stream.dishub.grobogan.go.id/memfs/87af85fe-87c4-42f0-9c36-9a4fe66b6386_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG KENCANA SELATAN", url: "https://stream.dishub.grobogan.go.id/memfs/1fc88916-fc43-428a-8710-7b9c22e32c77_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG DANYANG UTARA", url: "https://stream.dishub.grobogan.go.id/memfs/1c3a407f-904a-4102-aed9-8341a3d45659.m3u8"},
+        {city: "KAB. GROBOGAN", name: "ALUN ALUN BARAT PTZ", url: "https://stream.dishub.grobogan.go.id/memfs/75bc4339-1a83-4ece-9c74-18a53197edb8_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG KENCANA UTARA", url: "https://stream.dishub.grobogan.go.id/memfs/c4af6157-1252-4757-ab1c-2e59f35940de_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG BUGEL", url: "https://stream.dishub.grobogan.go.id/memfs/318729ba-5275-4b93-b98a-730967c92044_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "DISKOMINFO (JL SISWOMIHARJO)", url: "https://stream.dishub.grobogan.go.id/memfs/f8ecbe3c-6cc7-408e-9c0f-95aa85e597a9.m3u8"},
+        {city: "KAB. GROBOGAN", name: "MOJOAGUNG", url: "https://stream.dishub.grobogan.go.id/memfs/995b115b-8708-4a06-a77e-290cba2fd09d_output_0.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG PUTAT", url: "https://stream.dishub.grobogan.go.id/memfs/70baa804-425b-475f-b2ea-2cd0ffa886a4_output_0.m3u8?"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG BUGEL 2 (ALT)", url: "https://stream.dishub.grobogan.go.id/memfs/41116482-0dbf-4790-b3d7-bc401314196c.m3u8"},
+        {city: "KAB. GROBOGAN", name: "SIMPANG KENCANA TIMUR", url: "https://stream.dishub.grobogan.go.id/memfs/692517c9-cd96-4907-ab38-898cea6ae611_output_0.m3u8"},
+
+        // --- KOTA KEDIRI ---
+        {city: "KOTA KEDIRI", name: "SP MUNING", url: "https://pplterpadu.kedirikota.go.id:8888/muning/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "ISKANDARMUDA", url: "https://pplterpadu.kedirikota.go.id:8888/iskandar_muda/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP ALUN ALUN", url: "https://pplterpadu.kedirikota.go.id:8888/alun_alun/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP BANDAR NGALIM", url: "https://pplterpadu.kedirikota.go.id:8888/bandar_ngalim/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "A YANI UTARA", url: "https://pplterpadu.kedirikota.go.id:8888/a_yani_utara/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP WATER TORN", url: "https://pplterpadu.kedirikota.go.id:8888/water_torn/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP NABATIYASA", url: "https://pplterpadu.kedirikota.go.id:8888/nabatiasa/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP MRICAN", url: "https://pplterpadu.kedirikota.go.id:8888/mrican/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP SEMAMPIR", url: "https://pplterpadu.kedirikota.go.id:8888/semampir/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP BARUNA", url: "https://pplterpadu.kedirikota.go.id:8888/baruna/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP JETIS", url: "https://pplterpadu.kedirikota.go.id:8888/jetis/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP DANDANGAN", url: "https://pplterpadu.kedirikota.go.id:8888/dandangan/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "A YANI SELATAN", url: "https://pplterpadu.kedirikota.go.id:8888/a_yani_selatan/stream.m3u8"},
+        {city: "KOTA KEDIRI", name: "SP TAMANAN", url: "https://pplterpadu.kedirikota.go.id:8888/tamanan/stream.m3u8"},
+
+        // --- KAB. MAGETAN ---
+        {city: "KAB. MAGETAN", name: "S4 CEPOKO", url: "https://saranganvision.my.id:847/stream18/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "JALAN MAYJEN SUKOWATI", url: "https://saranganvision.my.id:842/stream7/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "JALAN MAYJEN SUNGKONO", url: "https://saranganvision.my.id:842/stream1/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S PARMAN ARAH KODIM", url: "https://saranganvision.my.id:847/stream22/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "JALAN YOS SUDARSO S4 RANI PUTRI", url: "https://saranganvision.my.id:842/stream3/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "JALAN DR SOETOMO S3", url: "https://saranganvision.my.id:842/stream5/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "JALAN BASUKI RAHMAT TIMUR ALUN ALUN", url: "https://saranganvision.my.id:842/stream2/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "JALAN BASUKI RAHMAT BARAT", url: "https://saranganvision.my.id:842/stream8/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S4 PASAR JEGLONG", url: "https://saranganvision.my.id:842/stream4/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S4 BANI SOLAN", url: "https://saranganvision.my.id:842/stream6/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S4 MANDORAN", url: "https://saranganvision.my.id:842/stream101/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "WISATA TELAGA SARANGAN", url: "https://saranganvision.my.id:845/stream105/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "PARKIR WISATA SARANGAN", url: "https://saranganvision.my.id:845/stream103/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "WISATA STRAWBERY", url: "https://saranganvision.my.id:845/stream107/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "OMAH JOWO", url: "https://saranganvision.my.id:845/stream106/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "SINGOLANGU ATAS SARANGAN", url: "https://saranganvision.my.id:845/stream104/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "SINGOLANGU BAWAH", url: "https://saranganvision.my.id:845/stream102/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S4 PANEKAN", url: "https://saranganvision.my.id:845/stream12/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "MANDORAN LOKET", url: "https://saranganvision.my.id:845/stream101/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "TERMINAL MAOSPATI", url: "https://saranganvision.my.id:847/stream14/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "JALAN MONGINSIDI BLOK M", url: "https://saranganvision.my.id:847/stream23/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S4 JL TIMOR - LOMBOK", url: "https://saranganvision.my.id:847/stream21/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S3 POLSEK", url: "https://saranganvision.my.id:845/stream24/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S3 JALAN TAMAN SARI PERUM", url: "https://saranganvision.my.id:847/stream20/file.m3u8"},
+        {city: "KAB. MAGETAN", name: "S3 MILANGSARI", url: "https://saranganvision.my.id:847/stream19/file.m3u8"},
+
+        // --- KAB. WONOSOBO ---
+        {city: "KAB. WONOSOBO", name: "PEREMPATAN KODIM", url: "https://mata.wonosobokab.go.id/memfs/bead7264-1d92-48af-9b1c-9eb9cffb60fb_output_0.m3u8?session=D656EHrfxGxy8xizEyiktg"},
+        {city: "KAB. WONOSOBO", name: "PEREMPATAN TITIK 0 BALAIDESA - DIENG (CAM 1)", url: "https://mata.wonosobokab.go.id/memfs/96a0d373-1a38-41cb-bf44-5e0fdfea1dca_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "PEREMPATAN TITIK 0 BALAIDESA - DIENG (CAM 2)", url: "https://mata.wonosobokab.go.id/memfs/676ee44a-e78f-4293-a83a-01039b724130_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "PEREMPATAN JOGONEGORO", url: "https://mata.wonosobokab.go.id/memfs/462e32ca-1d07-4db3-b41d-5024c6221fef_output_0.m3u8?session=3syj6UXnCAL8trNcTfKzPw"},
+        {city: "KAB. WONOSOBO", name: "POS PAM DIENG", url: "https://s131.ipcamlive.com/streams/832ve0cxvmmuclf7l/stream.m3u8"},
+        {city: "KAB. WONOSOBO", name: "PEREMPATAN SMPN1 WONOSOBO UTARA", url: "https://mata.wonosobokab.go.id/memfs/de86b0fe-0bf9-4dab-98b4-59e5d3e3b676_output_0.m3u8?session=7QtErkHVsxiWcbmUKr4qDy"},
+        {city: "KAB. WONOSOBO", name: "PEREMPATAN SMPN1 WONOSOBO TIMUR", url: "https://mata.wonosobokab.go.id/memfs/4fcf2216-3422-46f7-b98f-a44c87bb6631_output_0.m3u8?session=Mk9VKojuqQx7Y9FcdKmang"},
+        {city: "KAB. WONOSOBO", name: "DINSOSPMD", url: "https://mata.wonosobokab.go.id/memfs/7913a914-b84c-425e-9e51-1195c9e07b41.m3u8"},
+        {city: "KAB. WONOSOBO", name: "TPR GARUNG 1", url: "https://mata.wonosobokab.go.id/memfs/bfa1e42d-8eea-47ff-a5d3-02755be16dcd_output_0.m3u8?session=XLuQL7jBR9aaRuP734sWJr"},
+        {city: "KAB. WONOSOBO", name: "TPR GARUNG 2", url: "https://mata.wonosobokab.go.id/memfs/e65e588f-2b7d-4c7f-bde9-33d35c42b098_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "POS NATARU ALUN ALUN SELATAN", url: "https://mata.wonosobokab.go.id/memfs/fdeb8e3a-4684-4b45-a956-2f32e481d627.m3u8"},
+        {city: "KAB. WONOSOBO", name: "S4 SETDA ARAH SELATAN", url: "https://mata.wonosobokab.go.id/memfs/3cc3fd74-60a5-4e9d-917c-84cececfe18b_output_0.m3u8?session=Z45tKnQtJA5wREZ7xuMLxi"},
+        {city: "KAB. WONOSOBO", name: "POS POLISI KRETEK CCTV2", url: "https://mata.wonosobokab.go.id/memfs/5cbc8993-008f-45c8-bd64-b5e5b1e1fc36_output_0.m3u8?session=Qvdk5YGNGCtMYqVKAQYNYX"},
+        {city: "KAB. WONOSOBO", name: "PERTIGAAN PAHLAWAN", url: "https://mata.wonosobokab.go.id/memfs/c470e297-eeb0-405f-b362-aa662bfd2c07_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "S4 PLAZA ARAH SELATAN", url: "https://mata.wonosobokab.go.id/memfs/be3c4941-aafb-4a05-a2d1-335f34a491e8_output_0.m3u8?session=EdiCQLjAbiZNqwkCCU34ar"},
+        {city: "KAB. WONOSOBO", name: "S4 PLAZA ARAH BARAT", url: "https://mata.wonosobokab.go.id/memfs/f2503efd-4c91-4237-8b0e-9acc761228ea_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "S4 PLAZA ARAH UTARA", url: "https://mata.wonosobokab.go.id/memfs/9d1fe5ab-a46f-4d88-a664-245c94f04398_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "S4 PLAZA ARAH TIMUR", url: "https://mata.wonosobokab.go.id/memfs/f1b564c9-6d43-4395-8e9b-94a7d1f3d233_output_0.m3u8?session=hZQa97z4qRZFC9P24EDMt3"},
+        {city: "KAB. WONOSOBO", name: "SAWANGAN", url: "https://mata.wonosobokab.go.id/memfs/0f5e92a3-73d1-4e9a-95d2-f16a48605232_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "BALAI DESA DIENG 1", url: "https://mata.wonosobokab.go.id/memfs/96a0d373-1a38-41cb-bf44-5e0fdfea1dca.m3u8"},
+        {city: "KAB. WONOSOBO", name: "BALAI DESA DIENG 2", url: "https://mata.wonosobokab.go.id/memfs/676ee44a-e78f-4293-a83a-01039b724130.m3u8"},
+        {city: "KAB. WONOSOBO", name: "POS NATARU DIENG", url: "https://mata.wonosobokab.go.id/memfs/1f0c799b-74eb-43e0-b526-ab2dfeefaf66_output_0.m3u8"},
+        {city: "KAB. WONOSOBO", name: "POS POLISI TIENG", url: "https://mata.wonosobokab.go.id/memfs/c0354cd3-84a9-4de9-9308-9d820636e941.m3u8"},
+        {city: "KAB. WONOSOBO", name: "PEREMPATAN KODIM 2", url: "https://mata.wonosobokab.go.id/memfs/bead7264-1d92-48af-9b1c-9eb9cffb60fb_output_0.m3u8"},
+
+        // --- KOTA PALEMBANG ---
+        {city: "KOTA PALEMBANG", name: "MUSI 6", url: "https://stream.palembang.go.id/cam15/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "JEMBATAN AMPERA 1", url: "https://stream.palembang.go.id/cam1/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "BLG ARAH BKLB", url: "https://stream.palembang.go.id/cam2/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "SP POLDA", url: "https://stream.palembang.go.id/cam3/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "SP MACAN LINDUNGAN", url: "https://stream.palembang.go.id/cam4/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "SP ANGKATAN 45", url: "https://stream.palembang.go.id/cam5/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "SIMPANG DPRD", url: "https://stream.palembang.go.id/cam7/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "CAMERA 01", url: "https://stream.palembang.go.id/cam8/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "MASJID AGUNG", url: "https://stream.palembang.go.id/cam9/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "RS HERMINA", url: "https://stream.palembang.go.id/cam10/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "TANGGA TAKAT", url: "https://stream.palembang.go.id/cam11/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "SIMPANG SMA 10", url: "https://stream.palembang.go.id/cam12/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "PTZ PUNTI KAYU", url: "https://stream.palembang.go.id/cam14/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "KEBUN SAYUR VIEW PORTAL", url: "https://stream.palembang.go.id/cam16/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "POLSEK SUKORAME", url: "https://stream.palembang.go.id/cam17/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "PLAJU JEMBATAN 1", url: "https://stream.palembang.go.id/cam18/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "BMKG", url: "https://stream.palembang.go.id/cam19/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "PTZ PLAZA ULU", url: "https://stream.palembang.go.id/cam20/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "SAMSAT", url: "https://stream.palembang.go.id/cam21/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "JEMBATAN AMPERA 2", url: "https://stream.palembang.go.id/cam22/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "TKJ ARAH JALAN RAYA", url: "https://stream.palembang.go.id/cam23/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "PTZ DEPAN DHARMA AGUNG", url: "https://stream.palembang.go.id/cam24/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "PTZ DISDUKCAPIL", url: "https://stream.palembang.go.id/cam26/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "KEBUN SAYUR LAMPU LALIN", url: "https://stream.palembang.go.id/cam27/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "PTZ KAMBANG IWAK", url: "https://stream.palembang.go.id/cam28/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "JEMBATAN AMPERA 3", url: "https://stream.palembang.go.id/cam29/main_stream.m3u8"},
+        {city: "KOTA PALEMBANG", name: "SP IP ARAH AMPERA", url: "https://stream.palembang.go.id/cam30/main_stream.m3u8"},
+
+        // --- KOTA BEKASI ---
+        {city: "KOTA BEKASI", name: "ALUN ALUN BEKASI", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/alun_alun_bekasi.m3u8"},
+        {city: "KOTA BEKASI", name: "TERMINAL BEKASI", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/terminal_bekasi.m3u8"},
+        {city: "KOTA BEKASI", name: "SIMPANG DPRD", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/simpang_dprd.m3u8"},
+        {city: "KOTA BEKASI", name: "RS BELLA", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/rs_bela.m3u8"},
+        {city: "KOTA BEKASI", name: "EX DEPAN DISNAKER", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/ex_depan_disnaker.m3u8"},
+        {city: "KOTA BEKASI", name: "AREA CFD", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/area_cfd.m3u8"},
+        {city: "KOTA BEKASI", name: "BENDUNGAN PRISDO", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/bendungan_prisdo.m3u8"},
+        {city: "KOTA BEKASI", name: "PERTIGAAN CEVEST", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/pertigaan_cevest.m3u8"},
+        {city: "KOTA BEKASI", name: "DISHUB 1901", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_1901_.m3u8"},
+        {city: "KOTA BEKASI", name: "PINTU MASUK TERMINAL 2", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_Pintu_Masuk_Terminal_2_.m3u8"},
+        {city: "KOTA BEKASI", name: "DISHUB 1801", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_1801_.m3u8"},
+        {city: "KOTA BEKASI", name: "RAWA TEMBAGA 1", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/rawa_tembaga.m3u8"},
+        {city: "KOTA BEKASI", name: "STASIUN BEKASI 2", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_Stasiun_Bekasi_2_.m3u8"},
+        {city: "KOTA BEKASI", name: "DISHUB 1401", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_1401_.m3u8"},
+        {city: "KOTA BEKASI", name: "STASIUN BEKASI 1", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_Stasiun_Bekasi_1_.m3u8"},
+        {city: "KOTA BEKASI", name: "DISHUB 1301", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_1301_.m3u8"},
+        {city: "KOTA BEKASI", name: "PINTU AIR JUANDA 2", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_PINTU_AIR_JUANDA_2_.m3u8"},
+        {city: "KOTA BEKASI", name: "DISHUB 1001", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Dishub_1001_.m3u8"},
+        {city: "KOTA BEKASI", name: "SAMPING RS PRIMAYA", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Samping_RS_Primaya_Bekasi.m3u8"},
+        {city: "KOTA BEKASI", name: "TAMAN KELURAHAN JAKASAMPURA", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Taman_Kelurahan_Jakasampura.m3u8"},
+        {city: "KOTA BEKASI", name: "SEBERANG YONIF 202", url: "https://eofficev2.bekasikota.go.id/backupcctv/m3/Seberang_Yonif_202.m3u8"},
+
+        // --- D.I. YOGYAKARTA ---
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Gerbang Barat Kepatihan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio10_Kepatihan.stream/chunklist_w2076966162.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Mandala Krida", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Mandala_Krida_PTZ.stream/chunklist_w59646757.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro - Depan Toko Subur", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_2_Depan_Toko_Subur.stream/chunklist_w1876728600.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Bumen", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_bumen.stream/chunklist_w1247100149.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Taman Waniwulang", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/WanaWil.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Pertigaan Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RBA Alun-Alun Sisi Barat", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/RBRA.stream/chunklist_w670553311.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Jl Nyoman Arah Gereja", url: "https://cctvjss.jogjakota.go.id/kotabaru/Jl-Nyoman-Oka.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Demen Glagah", url: "https://mam.jogjaprov.go.id:1937/atcs/DemenGlagah.stream/chunklist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Mantrigawen PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Mantrigawen_PTZ.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Karang Tunggal", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Lampu_Merah_SopMerah2.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Condong Catur 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Condongcatur2.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Besi (Jakal)", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Besi.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Juadi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Juadi.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Tegalgendu PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Tegalgendu_PTZ.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Tugu PTZ 2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewSimpangTugu.stream/chunklist_w1182543842.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "View 0 KM PTZ", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewNolKilo.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "View Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Pandansari Timur", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewPandansariTimur.stream/chunklist_w347333533.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Segoro Tegalrejo 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_segoro_amarto_tegalrejo_2.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Nyai Ageng View Utara", url: "https://mam.jogjaprov.go.id:1937/cctv-kp/Karangnongko.stream/chunklist_w197698033.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Glagahsari PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari_PTZ.stream/chunklist_w609517393.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Glagahsari", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Glagahsari.stream/chunklist_w1045846334.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Semaki 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_1.stream/chunklist_w1401704022.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Semaki 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_semaki_2.stream/chunklist_w1348168339.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Gunung Ketur 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_2.stream/chunklist_w779845700.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RHTP Gunung Ketur 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_gunungketur_1.stream/chunklist_w11536123.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Brontokusuman Belakang 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_brontokusuman_blkgKel_2.stream/chunklist_w1107148855.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Terang Bulan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_11_Terang_Bulan.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Mall Selatan", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_7_Mall_Selatan.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Mutiara Lama", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_8_Mutiara_Lama.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Utara Mall", url: "https://cctvjss.jogjakota.go.id/malioboro/Malioboro_25_Utara_Mall.stream/chunklist_w2134770204.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang BPK", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_bpk.stream/chunklist_w367961555.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 2", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_2.stream/chunklist_w331129965.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "RTHP Pakudaya Kuncen 1", url: "https://cctvjss.jogjakota.go.id/rthp/rthp_pakudaya_pakuncen_1.stream/chunklist_w934333603.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Gayam", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Gayam.stream/chunklist_w1124660989.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Sentul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Sentul.stream/chunklist_w109375030.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Alun-Alun Utara", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/AlunAlunUtara1.stream/chunklist_w292300010.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SP3 Terminal Wates", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/Terminal.stream/chunklist_w686073147.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Lapangan Basket", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kp/LapanganBasket.stream/chunklist_w2123417370.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Depan Plaza Malioboro", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanMall.stream/chunklist_w308264239.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Candi Prambanan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiPrambanan.stream/chunklist_w1877697172.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Candi Ratu Boko", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiBoko.stream/chunklist_w103317346.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Tebing Breksi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewBreksi.stream/chunklist_w870274498.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Museum Gn Merapi", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewGunungMerapi.stream/chunklist_w1260618601.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Malioboro Depan Pasar Bringharjo", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewDepanBeringharjo.stream/chunklist_w2067964493.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Candi Sambisari", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewCandiSambisari.stream/chunklist_w1703721545.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Embung Tambakboyo", url: "https://mam.jogjaprov.go.id/cctv-proxy/cctv-public/ViewTambakboyo.stream/chunklist_w782093023.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Alun-Alun Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-public/ViewAlunAlunKidul.stream/playlist.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Jalan F.M Noto (McD)", url: "https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-FM-Noto-McDonalds.stream/chunklist_w320051561.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Mirota - UGM", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_mirota.stream/chunklist_w830587402.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Simpang Ibu Ruswo PTZ", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Ibu_Ruswo.stream/chunklist_w150157139.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "UTARA TETEG - STASIUN TUGU", url: "https://cctvjss.jogjakota.go.id/margo-utomo/Wisma-Ratih.stream/chunklist_w838943666.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "Jl Ahmad Jazuli (K24)", url: "https://cctvjss.jogjakota.go.id/kotabaru/ANPR-Jl-Ahmad-Jazuli.stream/chunklist_w1940708430.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "NOL KM - TIMUR", url: "https://cctvjss.jogjakota.go.id/malioboro/NolKm_Timur.stream/chunklist_w112363087.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "NOL KM - UTARA", url: "https://cctvjss.jogjakota.go.id/malioboro/NolKm_Utara.stream/chunklist_w762155425.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "NOL KM - GEDUNG AGUNG", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-uptmalioboro/UPTMalio_NolKmGedungAgung.stream/chunklist_w2077726080.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG KM 0 (PTZ)", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_kmnol.stream/chunklist_w1254073018.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PARKIRAN NGABEAN", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Parkiran_Ngabean.stream/chunklist_w719653331.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG BASEN - UTARA", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Simpang_Basen.stream/chunklist_w661179303.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "JALAN MT HARYONO (HOTEL ASHTARY)", url: "https://cctvjss.jogjakota.go.id/tps-liar/Jalan_MT_Haryono.stream/chunklist_w2016568827.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "KLERINGAN (JL. ABU BAKAR ALI)", url: "https://cctvjss.jogjakota.go.id/atcs/ATCS_Kleringan_Abu_Bakar_Ali.stream/chunklist_w54630533.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "BUNDARAN UGM - VIEW BARAT", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/Bundaran_UGM2.stream/chunklist_w2061290824.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "FLYOVER JOMBOR BARAT", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/FlyOver_JomborBarat.stream/chunklist_w1810228244.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "FLYOVER JOMBOR TIMUR", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/FlyOver_JomborTimur.stream/chunklist_w648067854.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PRAMBANAN TC", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/Prambanan_TC.stream/chunklist_w1580284871.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PEREMPATAN RINGROAD UPN", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/Perempatan_UPN2.stream/chunklist_w1049814580.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PEREMPATAN SEYEGAN", url: "https://cctvjss.jogjakota.go.id/malioboro/NolKm_Utara.stream/chunklist_w762155425.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "DEPAN AMPLAZ - VIEW TIMUR", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/AmbarukmoPlazaTimur.stream/chunklist_w1654918929.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG KYAI MOJO (BARAT)", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KyaiMojo1.stream/chunklist_w1146398727.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG PINGGIT - TIMUR", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/Simpang_Pingit4.stream/chunklist_w129203303.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PEREMPATAN RINGROAD GAMPING", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/Pertigaan_PasarGamping.stream/chunklist_w1445180014.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG MUNGGUR", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/Perempatan_Munggur2.stream/chunklist_w1322180159.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "MASJID MATARAM - KOTA GEDE", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/MakamKotagedeMasjid.stream/chunklist_w682812199.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PASAR BANTUL", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/PasarBantul.stream/chunklist_w1630939867.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG GOSE - BARAT", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-bantul/SimpangGoseBarat.stream/chunklist_w862394167.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PROLIMAN PRAMBANAN-2", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/Proliman_Prambanan2.stream/chunklist_w2068166321.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "PEREMPATAN PASAR GODEAN", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfosleman/Perempatan_Godean1.stream/chunklist_w398167070.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG GONDOMANAN - SELATAN", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangGondomananSelatan.stream/chunklist_w615350239.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG KIDSFUN", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/KidsFun.stream/chunklist_w1313202113.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG KYAI MOJO (TIMUR)", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KyaiMojoTimur.stream/chunklist_w436421476.m3u8"},
+        {city: "D.I. YOGYAKARTA", name: "SIMPANG ATMOSUKARTO", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangAtmosukarto.stream/chunklist_w863425729.m3u8"},
+         
+        // --- KABUPATEN PEKALONGAN ---
+        {city: "KABUPATEN PEKALONGAN", name: "Simpang Susun TOL Bojong", url: "https://live.pbtr.co.id:5443/LiveApp/streams/sspkl.m3u8"},
+        {city: "KABUPATEN PEKALONGAN", name: "Sedayu - KDW", url: "https://cctv.pekalongankab.go.id/hls/sedayu-kedungwuni/video1_stream.m3u8"},
+
+        // --- GUNUNG KIDUL ---
+        {city: "GUNUNG KIDUL", name: "Kelurahan Jetis", url: "https://stream.gunungkidulkab.go.id:8888/6d5acbc9-33cf-4d3a-8671-a26933f1868d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Jetis PTZ", url: "https://stream.gunungkidulkab.go.id:8888/61947637-427d-48ad-a59e-916edc063354/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Alun Alun Wonosari PTZ", url: "https://stream.gunungkidulkab.go.id:8888/cd59b3ca-9f14-4660-96a6-2e65442c52a2/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Green Village Gedangsari", url: "https://stream.gunungkidulkab.go.id:8888/bc0a365b-3b87-4fca-8bb0-66af17678e4d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang", url: "https://stream.gunungkidulkab.go.id:8888/c4c52e15-f967-4ffc-a785-8b5e4297e0f7/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 2 Patuk Barat", url: "https://stream.gunungkidulkab.go.id:8888/32588258-06cb-4628-987e-1f0748e6604e/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 2 Patuk Timur", url: "https://stream.gunungkidulkab.go.id:8888/e903344a-4303-4dbb-954c-1ba2eac82c10/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Simpang 4 Gading", url: "https://stream.gunungkidulkab.go.id:8888/e08a568b-111c-43ce-88bc-503f4a3cc348/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Taman Kota", url: "https://stream.gunungkidulkab.go.id:8888/93b13543-ed56-48dc-a6b2-b73c3fc8f29a/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/630843dd-4488-4360-8f86-b23f3e67980d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Kukup", url: "https://stream.gunungkidulkab.go.id:8888/53fa897a-dc59-435b-841b-ce544d559a20/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Getas", url: "https://stream.gunungkidulkab.go.id:8888/097ef287-a064-4730-8b65-0fdfad75f327/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Bunder", url: "https://stream.gunungkidulkab.go.id:8888/cdb69448-349b-460e-ac6c-545199e93599/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Pemadang", url: "https://stream.gunungkidulkab.go.id:8888/72f5464f-8741-4449-9727-c75db9a1169f/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Puskesmas Gedangsari 2", url: "https://stream.gunungkidulkab.go.id:8888/7796317a-7669-4f52-b560-e1706a1825c9/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "JJLS Planjan", url: "https://stream.gunungkidulkab.go.id:8888/5858ca16-f730-49d1-a494-9d20a82b9b55/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 1 Playen", url: "https://stream.gunungkidulkab.go.id:8888/c43d6c28-d03d-4aab-a589-7410b655908d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SD Karangrejek", url: "https://stream.gunungkidulkab.go.id:8888/97561df3-c774-495a-b4d6-e5654108ac43/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Perempatan Patuk", url: "https://stream.gunungkidulkab.go.id:8888/d237c46b-f15b-490c-869c-b5375df3a020/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP3 Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/f156c1d9-9381-45f5-a20f-cd323fb3a639/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Ngringung Mulo", url: "https://stream.gunungkidulkab.go.id:8888/bbc05db8-09ae-44d1-a049-3d22bd18962b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Pasar Playen", url: "https://stream.gunungkidulkab.go.id:8888/3cdd4d3d-123f-4fdd-9600-5afce882d8e5/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Alun Alun Wonosari", url: "https://stream.gunungkidulkab.go.id:8888/c066fe94-69d3-487b-990a-f0bdb24fa9e9/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan Siyono", url: "https://stream.gunungkidulkab.go.id:8888/447f180a-3aa6-41af-a905-4f5567b84f1b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Drini", url: "https://stream.gunungkidulkab.go.id:8888/10aee277-d00f-45ee-b72d-c3c4962bc269/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Nglanggeran 1", url: "https://stream.gunungkidulkab.go.id:8888/dab5e1b1-dc22-4162-8523-ada6a19585d9/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Nglanggeran 2", url: "https://stream.gunungkidulkab.go.id:8888/a6091cbe-fbfc-401b-994b-258ba03b0387/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Puskesmas Ngawen 2", url: "https://stream.gunungkidulkab.go.id:8888/8193c0b3-0d34-43a1-9185-a534f6ffa303/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan SD Nanas", url: "https://stream.gunungkidulkab.go.id:8888/68e924c4-c94a-42e7-93ca-12b685c6513b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan PLN", url: "https://stream.gunungkidulkab.go.id:8888/ef7bc11d-8e05-4414-8e25-edeb78929cf0/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMP 2 Paliyan", url: "https://stream.gunungkidulkab.go.id:8888/a7891cb1-d941-4974-94cd-de33ac5d84b0/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Rejosari", url: "https://stream.gunungkidulkab.go.id:8888/a8b41e1f-51ae-4f3c-b61f-3d3485714fee/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kelurahan Sambirejo", url: "https://stream.gunungkidulkab.go.id:8888/a4bed595-2ed8-46f5-a802-fc450bdf67e9/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "BPP Playen", url: "https://stream.gunungkidulkab.go.id:8888/40c44e72-0ef8-42b5-9410-8c88ad2d062d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SD Trowo 1", url: "https://stream.gunungkidulkab.go.id:8888/076df88c-ce65-47f4-8d4e-4872c430eee8/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Terminal Senin", url: "https://stream.gunungkidulkab.go.id:8888/f4e65d43-ff9a-4603-b035-b2bb778fc9d1/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SD Pucung", url: "https://stream.gunungkidulkab.go.id:8888/407a2a57-0202-4303-8314-114e635549c2/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "SMPN 1 Tanjungsari", url: "https://stream.gunungkidulkab.go.id:8888/d15446f5-d59f-47f0-b6d6-5828c28dfc6b/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Puskesmas Patuk 2", url: "https://stream.gunungkidulkab.go.id:8888/565f31f5-ca89-4db2-937b-dd33f9fb5102/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "RTH 2", url: "https://stream.gunungkidulkab.go.id:8888/7ecb3678-fc9a-4d9a-9b71-d1716ab29c44/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "TPR Pantai Baron", url: "https://stream.gunungkidulkab.go.id:8888/f6314dd1-a8ea-40a9-8a97-e0f2f8dc4bdd/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pasar Argosari", url: "https://stream.gunungkidulkab.go.id:8888/5b13c6d9-1295-4e5d-927a-ef546e433339/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan Siyono Timur", url: "https://stream.gunungkidulkab.go.id:8888/365d3972-8e24-4b8e-a9bd-2db5cbcbfee8/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapenawon Saptosari", url: "https://stream.gunungkidulkab.go.id:8888/3fb627dc-e19a-4bc7-9e79-687487c840db/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapenawon Saptosari 2", url: "https://stream.gunungkidulkab.go.id:8888/41eefc1f-8388-47b2-9dc9-59d5e65b10d7/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S3 Petoyan 1", url: "https://stream.gunungkidulkab.go.id:8888/d7c5ae4e-2c50-4fc3-a57d-84950313fe6f/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S3 Ngawen Timur", url: "https://stream.gunungkidulkab.go.id:8888/336476f5-2964-4c45-82d2-061b7fe984aa/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapanewon Semin Utara", url: "https://stream.gunungkidulkab.go.id:8888/25a25318-0831-41ca-a84e-cb725af7a912/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapanewon Semin Selatan", url: "https://stream.gunungkidulkab.go.id:8888/b788631e-790a-4034-a021-d70223e93e56/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Karangmojo Barat", url: "https://stream.gunungkidulkab.go.id:8888/1a72b20b-83a2-44e3-b2cb-34754ec25d7d/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Karangmojo Timur", url: "https://stream.gunungkidulkab.go.id:8888/80040ab9-0b70-4d40-991d-33e3850d4115/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "BPP Semanu Barat", url: "https://stream.gunungkidulkab.go.id:8888/27c0b2c4-a1bf-4ed9-95ca-9d88f046c754/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Ngalang Timur", url: "https://stream.gunungkidulkab.go.id:8888/6d0d6159-4ddc-4ef6-a430-ee4ac9731e83/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Ngalang Barat", url: "https://stream.gunungkidulkab.go.id:8888/ae3ead60-bed5-4f71-8613-bd4161d51aaf/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S4 Muggi Barat", url: "https://stream.gunungkidulkab.go.id:8888/95e43424-6406-45d5-9ea8-6c137e40e9fa/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "S3 Lalin Pasar Playen", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/PertigaanPasarPlayen.stream/playlist.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Wediombo Jalan", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/PantaiWediomboJalan.stream/playlist.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kodim Gn Kidul", url: "https://cctv.jogjaprov.go.id/cctv-proxy/cctv-kominfogk/LapanganKasatrian.stream/playlist.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kapenawon Rangkop Timur", url: "https://stream.gunungkidulkab.go.id:8888/5bc413f9-0eae-4334-9b7b-e13bf155c8dd/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Kepenawon Rangkop Barat", url: "https://stream.gunungkidulkab.go.id:8888/b344fc06-e8e9-40b2-ad80-d996918ec595/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pasar Wotgalih", url: "https://stream.gunungkidulkab.go.id:8888/d7bca391-48f3-48d5-9744-ddf548c21ca4/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang PTZ", url: "https://stream.gunungkidulkab.go.id:8888/194accd6-6fc8-4938-81c1-78206b1a0200/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Sepanjang Fix", url: "https://stream.gunungkidulkab.go.id:8888/f443272b-2eee-4df1-a2bc-14474a336e29/main_stream.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Parkiran Embung Nglanggeran", url: "https://stream.gunungkidulkab.go.id:8888/0386d0d8-c1a6-429a-9996-def5e2079644/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Embung Nglanggeran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/1bea2c47-343d-408e-adf5-ad5eaf6faeec/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Simpang 4 RSUD PTZ", url: "https://stream.gunungkidulkab.go.id:8888/00817fc1-25e9-469f-a5c5-c371bdd55f07/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan Siyono PTZ", url: "https://stream.gunungkidulkab.go.id:8888/c02bf2b6-834c-4c9b-9be6-f2980d859bb8/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pantai Kukup PTZ", url: "https://stream.gunungkidulkab.go.id:8888/dfdcfa82-c168-4265-abc8-f786bb7f0313/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Pertigaan Pasar Playen PTZ", url: "https://stream.gunungkidulkab.go.id:8888/14d99ef0-eb77-4450-9fc9-eb7545a9ac16/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Simpang 4 Pancuran PTZ", url: "https://stream.gunungkidulkab.go.id:8888/d0e1549c-170b-499e-8dee-4ec2fef57f4d/index.m3u8"},
+        {city: "GUNUNG KIDUL", name: "Bunderan PLN PTZ", url: "https://stream.gunungkidulkab.go.id:8888/de774241-aaec-4937-a43a-ab59b7525dd0/index.m3u8"},
+
+        // --- KAB. KLATEN ---
+        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Bareng PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Alun Alun PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/alunalun_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Alun Alun Panoramic Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/alunalun_panoramic.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang Tegalyoso PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangtegalyoso_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang Tegalyoso Panoramic 1 Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangtegalyoso_panoramic1.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang Tegalyoso Panoramic 2 Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangtegalyoso_panoramic2.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pemda PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 5 Matahari PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Gor PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/gor_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Gor Panoramic Wide", url: "https://stream.klaten.go.id:8080/cctv/hls/gor_panoramic.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang Al Aqsa PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangalaqsa_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang Al Aqsa Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangalaqsa_arahsolo.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang Al Aqsa Arah Kota", url: "https://stream.klaten.go.id:8080/cctv/hls/simpangalaqsa_arahkota.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas Arah Jogja", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_arahyogyakarta.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_arahsolo.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 3 Ngingas Arah Ronggowarsito", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang3ngingas_arahronggowarsito.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahsolo.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Rajawali", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahrajawali.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahyogyakarta.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Bareng Arah Sungkur", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4bareng_arahsungkur.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahsolo.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Sungkur", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahsungkur.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahyogyakarta.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo Arah Matahari", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_arahmatahari.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahyogyakarta.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahsolo.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Pasar", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahpasar.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Pandanrejo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahpandanrejo.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahyogyakarta.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Melati", url: "https://stream.stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahmelati.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Pemda", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahpemda.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahsolo.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_ptz.m3u8"},
+        {city: "KAB. KLATEN", name: "Posko Merapi Balerante 1", url: "https://stream.klaten.go.id:8080/cctv/hls/posko_balerante1.m3u8"},
+        {city: "KAB. KLATEN", name: "Posko Merapi Tegalmulyo 2", url: "https://stream.klaten.go.id:8080/cctv/hls/posko_tegalmulyo2.m3u8"},
+        {city: "KAB. KLATEN", name: "BPBD Gunung Merapi", url: "https://stream.klaten.go.id:8080/cctv/hls/cctv_merapi_bpbd.m3u8"},
+
+        // --- KAB. PEMALANG ---
+        {city: "KAB. PEMALANG", name: "Alun-Alun", url: "https://stream.pemalangkab.go.id/alunalun/alunalun1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Masjid Agung", url: "https://stream.pemalangkab.go.id/masjidagung/masjid1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Comal", url: "https://stream.pemalangkab.go.id/2025/comal/comal.m3u8"},
+        {city: "KAB. PEMALANG", name: "Watukumpul", url: "https://stream.pemalangkab.go.id/2025/watukumpul/watukumpul.m3u8"},
+        {city: "KAB. PEMALANG", name: "Warung Pring", url: "https://stream.pemalangkab.go.id/2025/warungpring/warungpring.m3u8"},
+        {city: "KAB. PEMALANG", name: "Randudongkal", url: "https://stream.pemalangkab.go.id/2025/randudongkal/randudongkal.m3u8"},
+        {city: "KAB. PEMALANG", name: "Pulosari", url: "https://stream.pemalangkab.go.id/2025/pulosari/pulosari.m3u8"},
+        {city: "KAB. PEMALANG", name: "Pagaran Barat", url: "https://stream.pemalangkab.go.id/2025/pagaranbarat/pagaranbarat.m3u8"},
+        {city: "KAB. PEMALANG", name: "Pagaran Timur", url: "https://stream.pemalangkab.go.id/2025/pagarantimur/pagarantimur.m3u8"},
+        {city: "KAB. PEMALANG", name: "Pagaran Selatan", url: "https://stream.pemalangkab.go.id/2025/pagaranselatan/pagaranselatan.m3u8"},
+        {city: "KAB. PEMALANG", name: "Sirandu Pos", url: "https://stream.pemalangkab.go.id/sirandu_pos/sirandupos1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Sirandu Barat", url: "https://stream.pemalangkab.go.id/sirandu_barat/sirandu_barat1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Sirandu Selatan", url: "https://stream.pemalangkab.go.id/sirandu_selatan/sirandu_selatan1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Sirandu Timur", url: "https://stream.pemalangkab.go.id/sirandu_timur/sirandu_timur1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Mega Barat", url: "https://stream.pemalangkab.go.id/mega_barat/mega_barat1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Mega Selatan", url: "https://stream.pemalangkab.go.id/mega_selatan/mega_selatan1.m3u8"},
+        {city: "KAB. PEMALANG", name: "BCA Arah Utara", url: "https://stream.pemalangkab.go.id/bca_utara/bca_utara1.m3u8"},
+        {city: "KAB. PEMALANG", name: "BCA Arah Barat", url: "https://stream.pemalangkab.go.id/bca_barat/bca_barat1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Depan Kantor Pendopo", url: "https://stream.pemalangkab.go.id/kesbangpol/kesbangpol1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Area City Walk", url: "https://stream.pemalangkab.go.id/dishub/city/city.m3u8"},
+        {city: "KAB. PEMALANG", name: "Beji Barat", url: "https://stream.pemalangkab.go.id/dishub/bejibarat/bejibarat.m3u8"},
+        {city: "KAB. PEMALANG", name: "Beji Selatan", url: "https://stream.pemalangkab.go.id/dishub/bejiselatan/bejiselatan.m3u8"},
+        {city: "KAB. PEMALANG", name: "Beji Timur", url: "https://stream.pemalangkab.go.id/dishub/bejitimur/bejitimur.m3u8"},
+        {city: "KAB. PEMALANG", name: "Bojong Barat", url: "http://103.42.243.10:8889/cam07/index.m3u8"},
+        {city: "KAB. PEMALANG", name: "Bojong Utara", url: "https://stream.pemalangkab.go.id/dishub/bojongutara/bojongutara.m3u8"},
+        {city: "KAB. PEMALANG", name: "Petarukan Barat", url: "https://stream.pemalangkab.go.id/dishub/petarukanbarat/petarukanbarat.m3u8"},
+        {city: "KAB. PEMALANG", name: "Petarukan Timur", url: "https://stream.pemalangkab.go.id/dishub/petarukantimur/petarukantimur.m3u8"},
+        {city: "KAB. PEMALANG", name: "Tiptop Selatan", url: "https://stream.pemalangkab.go.id/dishub/tiptopsel/tiptopsel.m3u8"},
+        {city: "KAB. PEMALANG", name: "Depan Gerbang Pendopo", url: "https://stream.pemalangkab.go.id/2026/depanpendopo1/depanpendopo1.m3u8"},
+        {city: "KAB. PEMALANG", name: "Rumah Dinas Wabup", url: "https://stream.pemalangkab.go.id/2026/depanpendopo2/depanpendopo2.m3u8"},
+
+        // --- TOL JOGJA-SOLO ---
+        {city: "TOL JOGJA-SOLO", name: "GT BANYUDONO ENTRANCE", url: "https://jmlive.jasamarga.com/hls/42/e419cfae-ea4d-4564-a612-59f3b70d22b7/index.m3u8"},
+        {city: "TOL JOGJA-SOLO", name: "KM 15+100", url: "https://jmlive.jasamarga.com/hls/42/18b18b4c-dfc7-4c22-9e31-763f00a0bf40/index.m3u8"},
+        {city: "TOL JOGJA-SOLO", name: "GT KLATEN EXIT", url: "https://jmlive.jasamarga.com/hls/42/9a5c50e4-52be-4260-9196-0b20f358fe21/index.m3u8"},
+        {city: "TOL JOGJA-SOLO", name: "KM 25+100", url: "https://jmlive.jasamarga.com/hls/42/7020e1b5-5174-4d76-adb0-49ef07840a70/index.m3u8"},
+        {city: "TOL JOGJA-SOLO", name: "EXIT TOL PRAMBANAN", url: "https://jmlive.jasamarga.com/hls/42/7b32592e-3247-418b-b324-ff252c1dbb45/index.m3u8"},
+
+        // --- DATACENTER TVRI ---
+        {city: "DATACENTER TVRI", name: "MONITORING DC TVRI PUSAT", url: "https://cdnw-pull.tvri.go.id/stream/monitoringsiaran/playlist.m3u8"},
+         
+        // --- PEMPROV JAWA TENGAH ---
+        {city: "PEMPROV JAWA TENGAH", name: "DIENG", url: "https://cctv.perhubunganjateng.online/Dieng/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "BAYEMAN", url: "https://cctv.perhubunganjateng.online/Bayeman/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "GOMBONG", url: "https://cctv.perhubunganjateng.online/Gombong/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "BUMIAYU", url: "https://cctv.perhubunganjateng.online/Bumiayu/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "WANGON", url: "https://cctv.perhubunganjateng.online/Wangon/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "KETANGGUNGAN - BREBES", url: "https://cctv.perhubunganjateng.online/Brebes/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "RINGROAD EXIT PRAMBANAN", url: "https://cctv.perhubunganjateng.online/Klaten/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "ALUN ALUN BANDUNGAN", url: "https://cctv.perhubunganjateng.online/Bandungan/index.m3u8"},
+        {city: "PEMPROV JAWA TENGAH", name: "BAWEN", url: "https://cctv.perhubunganjateng.online/Bawen/index.m3u8"},
+
+         // --- ASTRA INFRA TANGERANG MERAK ---
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "BALTIM VIEW EXIT", url: "https://cctv.mms-corp.id/baltim-exit/stream.m3u8"},
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "CIKUPA ENTRANCE", url: "https://cctv.mms-corp.id/cikupa-entrance/stream.m3u8"},
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "MERAK ENTRANCE", url: "https://cctv.mms-corp.id/merak-entrance/stream.m3u8"},
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "CILTIM ENTRANCE", url: "https://cctv.mms-corp.id/ciltim-entrance/stream.m3u8"},
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "KM 95+000A", url: "https://cctv.mms-corp.id/km94-bandung/stream.m3u8"},
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "SERTIM EXIT", url: "https://cctv.mms-corp.id/sertim-exit/stream.m3u8"},
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "REST AREA KM43 - PARKIR KECIL", url: "https://cctv.mms-corp.id/km43-parkir-kecil/stream.m3u8"},
+        {city: "ASTRA INFRA TANGGERANG MERAK", name: "SPBU KM 68A - EXIT", url: "https://cctv.mms-corp.id/km68-exit/stream.m3u8"}
+    ];
+
+    // ==========================================
+    // 2. RESOLUTION MONITORING LOGIC
+    // ==========================================
+    function updateResolutionDisplay() {
+        const video = document.getElementById('video-element');
+        const display = document.getElementById('resolution-display');
+        const bars = document.querySelectorAll('.bar');
+         
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+            const w = video.videoWidth;
+            const h = video.videoHeight;
+            let label = "LOW";
+            let quality = 1;
+
+            if (h >= 1230 || w >= 2048) { 
+                label = "2K"; 
+                quality = 4; 
+            } else if (h >= 1080 || w >= 1920) { 
+                label = "FULL HD"; 
+                quality = 4; 
+            } else if (h >= 720 || w >= 1280) { 
+                label = "HD"; 
+                quality = 3; 
+            } else if (h >= 480 || w >= 640) { 
+                label = "SD"; 
+                quality = 2; 
+            } else { 
+                label = "LOW"; 
+                quality = 1; 
             }
-            
-            // Panggilan awal animasi (setelah 7 detik karena defaultnya TVRI)
-            setTimeout(swapLogo, 7000);
-        }
 
-        // SCRIPT COUNTDOWN WORLD CUP 2026 PRESISI (11 Juni 2026, UTC+7)
-        function initWorldCupCountdown() {
-            // Format ISO mutlak untuk 11 Juni 2026 Pukul 00:00:00 zona Waktu WIB (+07:00)
-            const targetDate = new Date("2026-06-11T00:00:00+07:00").getTime();
-            
-            setInterval(() => {
-                const now = new Date().getTime();
-                const distance = targetDate - now;
-                
-                if(distance > 0) {
-                    document.getElementById('cd-hari').innerText = Math.floor(distance / (1000 * 60 * 60 * 24)).toString().padStart(2, '0');
-                    document.getElementById('cd-jam').innerText = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2, '0');
-                    document.getElementById('cd-menit').innerText = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
-                    document.getElementById('cd-detik').innerText = Math.floor((distance % (1000 * 60)) / 1000).toString().padStart(2, '0');
+            display.innerText = `${w}x${h} (${label})`;
+
+            bars.forEach((bar, index) => {
+                bar.classList.remove('active');
+                if (index < quality) {
+                    bar.classList.add('active');
+                    bar.style.backgroundColor = (quality >= 3) ? '#22c55e' : '#eab308';
+                } else {
+                    bar.style.backgroundColor = '#475569';
                 }
-            }, 1000);
-        }
-        initWorldCupCountdown();
-
-        function forceHideLoader() {
-            const loader = document.getElementById('initial-loader');
-            if(loader && loader.style.display !== 'none') {
-                loader.style.opacity = '0';
-                setTimeout(() => { loader.style.visibility = 'hidden'; loader.style.display = 'none'; }, 300);
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            try { if(!checkPenaltyStatus()) setTimeout(forceHideLoader, 1200); } catch(e) { forceHideLoader(); }
-        });
-        setTimeout(forceHideLoader, 3000);
-
-        function toggleDropdown(id) {
-            const el = document.getElementById(id);
-            document.querySelectorAll('[id$="-dropdown"], .dropdown-menu-mobile').forEach(d => { if(d.id !== id) d.classList.add('hidden'); });
-            el.classList.toggle('hidden');
-        }
-
-        function toggleChat() { 
-            const win = document.getElementById('chat-window');
-            win.classList.toggle('hidden');
-            if(!win.classList.contains('hidden')) { setTimeout(() => document.getElementById('chat-messages').scrollTop = 99999, 100); }
-        }
-        
-        async function handleChat(e){ 
-            e.preventDefault(); 
-            const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return;
-            addMsg(t,'user'); i.value='';
-            
-            const loadId = 'loading-'+Date.now();
-            const msgs = document.getElementById('chat-messages');
-            const loadDiv = document.createElement('div');
-            loadDiv.id = loadId; loadDiv.className = "flex flex-col gap-1 items-start";
-            loadDiv.innerHTML = `<div class="chat-bubble-bot text-slate-400 italic text-xs">...</div>`;
-            msgs.appendChild(loadDiv); msgs.scrollTop = 99999;
-
-            try {
-                const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:t})});
-                const d=await r.json();
-                document.getElementById(loadId).remove(); addMsg(d.response,'bot');
-            } catch {
-                document.getElementById(loadId).remove(); addMsg("Koneksi terputus.", 'bot');
-            }
-        }
-
-        function addMsg(t,s){
-            const d=document.createElement('div'); 
-            if (s == 'user') {
-                d.className="flex flex-col gap-1 items-end";
-                d.innerHTML = `<div class="chat-bubble-user">${t}</div>`;
-            } else {
-                d.className="flex flex-col gap-1 items-start";
-                d.innerHTML = `<div class="chat-bubble-bot">${t.replace(/\n/g,'<br>')}</div>`;
-            }
-            const msgs = document.getElementById('chat-messages');
-            msgs.appendChild(d); msgs.scrollTop = 99999;
-        }
-
-        async function updateTicker() {
-            try { 
-                const res = await fetch('/api/news-ticker'); const data = await res.json(); 
-                if (data && data.length > 0) {
-                    const items = data.map(n => `<div class="ticker-item">${n}</div><span class="text-yellow-400 font-black flex items-center text-lg">//</span>`).join('');
-                    if(document.getElementById('unified-ticker-mobile')) document.getElementById('unified-ticker-mobile').innerHTML = items.repeat(3);
-                    if(document.getElementById('unified-ticker-desktop')) document.getElementById('unified-ticker-desktop').innerHTML = items.repeat(3);
-                }
-            } catch {}
-        }
-        updateTicker();
-        
-        const zones = [{ label: 'WIB', offset: 7 }, { label: 'WITA', offset: 8 }, { label: 'WIT', offset: 9 }];
-        let zoneIndex = 0;
-        function updateClockFlip() {
-            const now = new Date();
-            const currentZone = zones[zoneIndex];
-            const zoneTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * currentZone.offset));
-            const timeString = zoneTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
-            const fullString = `${timeString} ${currentZone.label}`;
-
-            [document.getElementById('clock-mobile'), document.getElementById('clock-desktop')].forEach(el => {
-                if(el) { el.innerText = fullString; }
             });
-            zoneIndex = (zoneIndex + 1) % zones.length;
+        } else {
+            display.innerText = "DETECTING...";
+            bars.forEach(bar => bar.classList.remove('active'));
         }
-        setInterval(updateClockFlip, 3000); updateClockFlip();
+    }
 
-        async function fetchUserLocation() {
+    // ==========================================
+    // 2.5 AI DETECTION LOGIC (TENSORFLOW.JS)
+    // ==========================================
+    let aiModel = null;
+    let isDetecting = false;
+    let animationFrameId;
+
+    async function loadAIModel() {
+        try {
+            aiModel = await cocoSsd.load({ base: 'mobilenet_v2' });
+            console.log("Model AI Berhasil Dimuat");
+        } catch (error) {
+            console.error("Gagal meload model AI:", error);
+        }
+    }
+
+    const preCanvas = document.createElement('canvas');
+    const preCtx = preCanvas.getContext('2d', { willReadFrequently: true });
+
+    async function startAIDetection() {
+        if (!aiModel) return;
+        
+        isDetecting = true;
+        const video = document.getElementById('video-element');
+        const canvas = document.getElementById('ai-canvas');
+        const ctx = canvas.getContext('2d');
+        const desktopStatus = document.getElementById('desktop-traffic-status');
+        const mobileStatus = document.getElementById('mobile-traffic-status');
+        const defaultText = document.getElementById('default-status-text');
+        const warningEl = document.getElementById('severe-warning');
+        
+        defaultText.classList.add('hidden', 'md:block');
+        
+        desktopStatus.innerHTML = `<i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-2"></i> Memproses Frame...`;
+        desktopStatus.className = "hidden md:flex absolute top-3 left-3 bg-black/80 text-white px-3 py-1.5 rounded-md text-xs font-bold border border-slate-600 z-40 backdrop-blur-md shadow-lg transition-all items-center";
+        
+        mobileStatus.innerHTML = `<i class="fa-solid fa-microchip animate-pulse text-blue-400 mr-1.5"></i> MENGHITUNG...`;
+        mobileStatus.className = "md:hidden flex text-[10px] text-blue-400 font-bold tracking-wider items-center transition-all";
+
+        async function detectFrame() {
+            if (!isDetecting || video.paused || video.ended) return;
+
+            canvas.width = video.clientWidth;
+            canvas.height = video.clientHeight;
+
             try {
-                const res = await fetch('https://ipapi.co/json/'); const data = await res.json();
-                window.userIP = data.ip || 'Tidak Terdeteksi';
-                const locString = `${data.city}, ${data.region}`;
-                ['desktop-user-location', 'mobile-user-location'].forEach(id => {
-                    const el = document.getElementById(id); if(el) el.innerText = locString;
-                });
-            } catch (e) { console.error("Gagal lokasi", e); }
-        }
-        fetchUserLocation();
+                preCanvas.width = video.videoWidth;
+                preCanvas.height = video.videoHeight;
+                
+                preCtx.filter = 'contrast(1.15) brightness(0.95) saturate(1.2)';
+                preCtx.drawImage(video, 0, 0, preCanvas.width, preCanvas.height);
 
-        window.addEventListener('click', function(e){   
-            if (!e.target.closest('.relative.group')){
-                document.querySelectorAll('.dropdown-menu-mobile').forEach(d => d.classList.add('hidden'));
+                const predictions = await aiModel.detect(preCanvas, 100, 0.20);
+                
+                const vehicleClasses = ['car', 'truck', 'bus', 'motorcycle'];
+                const vehicles = predictions.filter(p => vehicleClasses.includes(p.class));
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                const scaleX = canvas.width / video.videoWidth;
+                const scaleY = canvas.height / video.videoHeight;
+
+                vehicles.forEach(v => {
+                    const [x, y, width, height] = v.bbox;
+                    const scaledX = x * scaleX;
+                    const scaledY = y * scaleY;
+                    const scaledW = width * scaleX;
+                    const scaledH = height * scaleY;
+
+                    ctx.beginPath();
+                    ctx.rect(scaledX, scaledY, scaledW, scaledH);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#ed1c24'; 
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#ed1c24';
+                    ctx.fillRect(scaledX, scaledY - 16, scaledW, 16);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '10px Inter';
+                    ctx.fillText(`${v.class} ${Math.round(v.score * 100)}%`, scaledX + 2, scaledY - 4);
+                });
+
+                const vehicleCount = vehicles.length;
+                let deskHTML, deskClass, mobHTML, mobClass;
+                let showWarning = false;
+                
+                if (vehicleCount >= 15) { 
+                    deskHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-2 animate-pulse"></i> MACET PARAH: ${vehicleCount} KENDARAAN`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-red-950/90 text-red-100 px-3 py-1.5 rounded-md text-xs font-bold border border-red-500 z-40 backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.6)] items-center";
+                    mobHTML = `<i class="fa-solid fa-triangle-exclamation text-red-500 mr-1.5 animate-pulse"></i> MACET PARAH (${vehicleCount})`;
+                    mobClass = "md:hidden flex text-[10px] text-red-400 font-bold tracking-wider items-center transition-colors";
+                    showWarning = true;
+                } else if (vehicleCount >= 8) { 
+                    deskHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-2"></i> PADAT: ${vehicleCount} KENDARAAN`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-orange-950/80 text-orange-200 px-3 py-1.5 rounded-md text-xs font-bold border border-orange-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(249,115,22,0.4)] items-center";
+                    mobHTML = `<i class="fa-solid fa-car-burst text-orange-400 mr-1.5"></i> PADAT (${vehicleCount})`;
+                    mobClass = "md:hidden flex text-[10px] text-orange-400 font-bold tracking-wider items-center transition-colors";
+                } else if (vehicleCount > 0) { 
+                    deskHTML = `<i class="fa-solid fa-road text-emerald-400 mr-2"></i> LANCAR: ${vehicleCount} KENDARAAN`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-emerald-950/80 text-emerald-200 px-3 py-1.5 rounded-md text-xs font-bold border border-emerald-500 z-40 backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.2)] items-center";
+                    mobHTML = `<i class="fa-solid fa-road text-emerald-400 mr-1.5"></i> LANCAR (${vehicleCount})`;
+                    mobClass = "md:hidden flex text-[10px] text-emerald-400 font-bold tracking-wider items-center transition-colors";
+                } else { 
+                    deskHTML = `<i class="fa-solid fa-road text-slate-400 mr-2"></i> LENGANG`;
+                    deskClass = "hidden md:flex absolute top-3 left-3 bg-[#101d4a]/80 text-blue-200 px-3 py-1.5 rounded-md text-xs font-bold border border-blue-900 z-40 backdrop-blur-md items-center";
+                    mobHTML = `<i class="fa-solid fa-road text-slate-400 mr-1.5"></i> LENGANG`;
+                    mobClass = "md:hidden flex text-[10px] text-slate-400 font-mono tracking-wider items-center transition-colors";
+                }
+
+                desktopStatus.innerHTML = deskHTML;
+                desktopStatus.className = deskClass;
+                mobileStatus.innerHTML = mobHTML;
+                mobileStatus.className = mobClass;
+
+                if(showWarning) warningEl.classList.remove('hidden');
+                else warningEl.classList.add('hidden');
+
+            } catch (err) {
+                console.error("Error during detection:", err);
             }
+
+            animationFrameId = requestAnimationFrame(detectFrame);
+        }
+
+        detectFrame();
+    }
+
+    function stopAIDetection() {
+        isDetecting = false;
+        cancelAnimationFrame(animationFrameId);
+        
+        const canvas = document.getElementById('ai-canvas');
+        if(canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        document.getElementById('desktop-traffic-status').className = 'hidden';
+        document.getElementById('severe-warning')?.classList.add('hidden');
+        
+        document.getElementById('default-status-text').classList.remove('hidden', 'md:block');
+        document.getElementById('mobile-traffic-status').className = 'hidden';
+    }
+
+    // ==========================================
+    // 3. PLAYER LOGIC
+    // ==========================================
+    let hls;
+    let activeStreamIndex = 0;
+    const video = document.getElementById('video-element');
+    const statusCity = document.getElementById('active-cam-city');
+    const statusName = document.getElementById('active-cam-name');
+    const loadingOverlay = document.getElementById('overlay-loading');
+    const errorOverlay = document.getElementById('overlay-error');
+    const playOverlay = document.getElementById('overlay-play');
+    const httpWarning = document.getElementById('http-warning');
+
+    video.addEventListener('loadedmetadata', updateResolutionDisplay);
+    video.addEventListener('resize', updateResolutionDisplay);
+
+    function initPlayer() {
+        renderAccordionList();
+         
+        let firstIndex = streamSource.findIndex(s => s.city.includes("KOTA SEMARANG")); 
+        if(firstIndex === -1) firstIndex = streamSource.findIndex(s => s.city.includes("GROBOGAN"));
+        if(firstIndex === -1) firstIndex = 0; 
+         
+        loadStream(firstIndex);
+         
+        setInterval(updateClock, 1000);
+        updateClock();
+    }
+
+    function toggleMute() {
+        const video = document.getElementById('video-element');
+        const icon = document.querySelector('#btn-volume i');
+         
+        video.muted = !video.muted;
+         
+        if (video.muted) {
+            icon.className = 'fa-solid fa-volume-xmark text-sm';
+        } else {
+            icon.className = 'fa-solid fa-volume-high text-sm';
+        }
+    }
+
+    function loadStream(index) {
+        if (index < 0 || index >= streamSource.length) return;
+        activeStreamIndex = index;
+        const stream = streamSource[index];
+
+        statusCity.innerText = stream.city;
+        statusName.innerText = stream.name;
+
+        statusName.style.animation = 'none';
+        statusName.style.transform = 'translateX(0)';
+
+        setTimeout(() => {
+            if (window.innerWidth <= 1023 && statusName.scrollWidth > statusName.clientWidth) {
+                const distance = statusName.scrollWidth - statusName.clientWidth + 15;
+                statusName.style.setProperty('--scroll-dist', `-${distance}px`);
+                statusName.style.animation = 'scroll-mobile 6s linear infinite alternate';
+            }
+        }, 100);
+         
+        loadingOverlay.classList.remove('hidden');
+        errorOverlay.classList.add('hidden');
+        playOverlay.classList.add('hidden');
+        httpWarning.classList.add('hidden'); 
+        document.getElementById('resolution-display').innerText = "DETECTING...";
+
+        const video = document.getElementById('video-element');
+        const icon = document.querySelector('#btn-volume i');
+        video.muted = true;
+        icon.className = 'fa-solid fa-volume-xmark text-sm';
+
+        let finalUrl = stream.url;
+        let isSlowServer = stream.city.includes("GROBOGAN") || stream.city.includes("PEMALANG") || stream.city.includes("KABUPATEN PEKALONGAN");
+
+        if (stream.url.startsWith("http://") && !stream.url.includes("103.42.243.10")) {
+            httpWarning.classList.remove('hidden');
+        }
+
+        if (stream.city.includes("GROBOGAN") || stream.city.includes("KABUPATEN PEKALONGAN")) {
+             finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(stream.url);
+        }
+
+        document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
+        const activeItem = document.getElementById(`cam-${index}`);
+        if(activeItem) {
+            activeItem.classList.add('active');
+            activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        if (Hls.isSupported()) {
+            if (hls) hls.destroy();
+
+            let config = { 
+                enableWorker: true, 
+                lowLatencyMode: !isSlowServer, 
+                backBufferLength: 90,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
+            };
+
+            hls = new Hls(config);
+            hls.loadSource(finalUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(() => {
+                    loadingOverlay.classList.add('hidden');
+                    playOverlay.classList.remove('hidden');
+                });
+            });
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR: hls.startLoad(); break;
+                        case Hls.ErrorTypes.MEDIA_ERROR: hls.recoverMediaError(); break;
+                        default: hls.destroy(); showErrorState(); break;
+                    }
+                }
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = finalUrl;
+            video.addEventListener('loadedmetadata', () => { video.play().catch(() => playOverlay.classList.remove('hidden')); });
+            video.addEventListener('error', showErrorState);
+        }
+    }
+
+    video.addEventListener('playing', () => {
+        loadingOverlay.classList.add('hidden');
+        playOverlay.classList.add('hidden');
+        updateResolutionDisplay();
+        
+        const currentCity = streamSource[activeStreamIndex].city;
+        if (currentCity.includes("DATACENTER TVRI")) {
+            stopAIDetection();
+        } else {
+            startAIDetection(); 
+        }
+    });
+
+    video.addEventListener('waiting', () => { 
+        if (!video.paused) loadingOverlay.classList.remove('hidden'); 
+        stopAIDetection();
+    });
+
+    function showErrorState() {
+        loadingOverlay.classList.add('hidden');
+        errorOverlay.classList.remove('hidden');
+        document.getElementById('resolution-display').innerText = "OFFLINE";
+        stopAIDetection();
+    }
+
+    function retryStream() { loadStream(activeStreamIndex); }
+    function startPlayback() { video.play(); playOverlay.classList.add('hidden'); }
+
+    // ==========================================
+    // 4. UI RENDERER
+    // ==========================================
+    function renderAccordionList() {
+        const container = document.getElementById('camera-list-container');
+        container.innerHTML = '';
+        const groups = {};
+        streamSource.forEach((s, i) => {
+            if (!groups[s.city]) groups[s.city] = [];
+            groups[s.city].push({ ...s, originalIndex: i });
         });
 
-        let ttsSynth = window.speechSynthesis;
-        let ttsText = "Selamat datang di KTVDI edisi Piala Dunia 2026. Pantau tayangan favorit Anda melalui halaman ini.";
-        let ttsUtterance; let isSpeaking = false;
+        const orderedGroups = Object.keys(groups).sort((a,b) => {
+            if(a.includes("SEMARANG")) return -1; 
+            if(b.includes("SEMARANG")) return 1;
+             
+            if(a.includes("GROBOGAN")) return -1; 
+            if(b.includes("GROBOGAN")) return 1;
+             
+            if(a.includes("PEKALONGAN")) return -1; 
+            return 0;
+        });
 
-        function showTTSWidget() {
-            if(!sessionStorage.getItem('ktvdi_greeted_tts')) {
-                sessionStorage.setItem('ktvdi_greeted_tts', 'true');
-                const widget = document.getElementById('tts-widget-container');
-                widget.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
-                widget.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
-            }
+        for (const groupName of orderedGroups) {
+            const items = groups[groupName];
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'accordion-group';
+            const header = document.createElement('div');
+            header.className = 'group-header';
+            header.onclick = () => toggleGroup(header);
+            header.innerHTML = `<div class="group-title"><i class="fa-solid fa-map-location-dot text-[#2563eb]"></i> <span class="text-white">${groupName}</span></div><i class="fa-solid fa-chevron-down group-icon text-slate-400"></i>`;
+            const body = document.createElement('div');
+            body.className = 'group-body';
+             
+            if (groupName.includes("SEMARANG")) body.classList.add('open');
+             
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'cam-item';
+                row.id = `cam-${item.originalIndex}`;
+                row.onclick = () => loadStream(item.originalIndex);
+                row.innerHTML = `<i class="fa-solid fa-circle-play text-slate-500 text-lg play-icon transition-colors"></i><span class="cam-name flex-1">${item.name}</span>`;
+                body.appendChild(row);
+            });
+            groupDiv.appendChild(header); groupDiv.appendChild(body);
+            container.appendChild(groupDiv);
         }
-        function hideTTSWidget() {
-            stopTTS();
-            const widget = document.getElementById('tts-widget-container');
-            widget.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
-        }
-        document.body.addEventListener('click', showTTSWidget, {once: true});
+        document.getElementById('total-cams').innerText = `${streamSource.length} CAM`;
+    }
 
-        function playTTS() {
-            if(ttsSynth.speaking && !ttsSynth.paused) return;
-            if(ttsSynth.paused) { ttsSynth.resume(); isSpeaking = true; updateTTSUI(true); return; }
-            
-            ttsUtterance = new SpeechSynthesisUtterance(ttsText);
-            ttsUtterance.lang = 'id-ID';
-            ttsUtterance.onstart = () => { isSpeaking = true; updateTTSUI(true); };
-            ttsUtterance.onend = () => stopTTS();
-            ttsSynth.speak(ttsUtterance);
-        }
-        function toggleTTS() { if (isSpeaking) { ttsSynth.pause(); isSpeaking = false; updateTTSUI(false); } else { playTTS(); } }
-        function stopTTS() { ttsSynth.cancel(); isSpeaking = false; updateTTSUI(false); }
-        function updateTTSUI(playing) {
-            const icon = document.getElementById('tts-play-icon');
-            if(playing) { icon.classList.remove('fa-play'); icon.classList.add('fa-pause'); } 
-            else { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
-        }
+    function toggleGroup(header) {
+        header.classList.toggle('active');
+        header.nextElementSibling.classList.toggle('open');
+    }
 
-        function checkWidgetSchedule() {
-            const now = new Date();
-            const wibTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 7));
-            const currentHour = wibTime.getHours();
-            const callCenterWidget = document.getElementById('call-center-widget');
-            const modiAiWidget = document.getElementById('modi-ai-widget');
-
-            if (currentHour >= 21 || currentHour < 8) {
-                if(callCenterWidget) { callCenterWidget.classList.remove('hidden'); callCenterWidget.classList.add('flex'); }
-                if(modiAiWidget) { modiAiWidget.classList.remove('hidden'); modiAiWidget.classList.add('flex'); }
+    function handleSearch() {
+        const term = document.getElementById('search-input').value.toLowerCase();
+        const groups = document.querySelectorAll('.accordion-group');
+        groups.forEach(group => {
+            const items = group.querySelectorAll('.cam-item');
+            let hasMatch = false;
+            items.forEach(item => {
+                if (item.innerText.toLowerCase().includes(term)) { item.style.display = 'flex'; hasMatch = true; } 
+                else { item.style.display = 'none'; }
+            });
+            const body = group.querySelector('.group-body');
+            const header = group.querySelector('.group-header');
+            if (term.length > 0) {
+                if (hasMatch) { group.style.display = 'block'; body.classList.add('open'); header.classList.add('active'); } 
+                else { group.style.display = 'none'; }
             } else {
-                if(callCenterWidget) { callCenterWidget.classList.add('hidden'); callCenterWidget.classList.remove('flex'); }
-                if(modiAiWidget) { modiAiWidget.classList.add('hidden'); modiAiWidget.classList.remove('flex'); }
+                group.style.display = 'block'; body.classList.remove('open'); header.classList.remove('active');
+                items.forEach(i => i.style.display = 'flex');
             }
+        });
+    }
+
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('digital-clock').innerText = now.toLocaleTimeString('id-ID', {hour12: false});
+        document.getElementById('date-display').innerText = now.toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    }
+
+    function toggleFullscreen() {
+        const wrapper = document.querySelector('.video-wrapper');
+        const video = document.getElementById('video-element');
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+            if (wrapper.requestFullscreen) wrapper.requestFullscreen();
+            else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+            else if (wrapper.webkitRequestFullscreen) wrapper.webkitRequestFullscreen();
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         }
-        window.addEventListener('DOMContentLoaded', () => { checkWidgetSchedule(); setInterval(checkWidgetSchedule, 60000); });
-    </script>
-</body>
-</html>
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initPlayer();
+        loadAIModel(); 
+    });
+</script>
+{% endblock %}
