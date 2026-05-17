@@ -1,149 +1,199 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Informasi Geospasial - KTVDI</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        body {
-            background-color: #f4f6f9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .navbar-brand {
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-        #map {
-            height: calc(100vh - 140px);
-            border-radius: 8px;
-            border: 1px solid #ced4da;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            z-index: 1;
-        }
-        .control-panel {
-            height: calc(100vh - 140px);
-            overflow-y: auto;
-            padding-right: 15px;
-        }
-        .data-card {
-            background: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 18px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            border-left: 4px solid #0d6efd;
-        }
-        .data-card.danger {
-            border-left-color: #dc3545;
-        }
-        .data-card.warning {
-            border-left-color: #ffc107;
-        }
-        .card-title {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: #6c757d;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .metric-value {
-            font-size: 2.2rem;
-            font-weight: bold;
-            color: #212529;
-            line-height: 1;
-        }
-        .metric-unit {
-            font-size: 1rem;
-            color: #6c757d;
-            font-weight: normal;
-        }
-        .status-text {
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-top: 8px;
-        }
-        .bmkg-detail {
-            font-size: 0.9rem;
-            color: #495057;
-            margin-top: 10px;
-            line-height: 1.5;
-        }
-    </style>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block title %}Sistem Informasi Geospasial - KTVDI{% endblock %}
 
-<!-- Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-    <div class="container-fluid px-4">
-        <a class="navbar-brand" href="/"><i class="fa-solid fa-satellite-dish me-2"></i> KTVDI Geospasial</a>
-        <div class="d-flex">
-            <a href="/" class="btn btn-outline-light btn-sm"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Dasbor</a>
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    /* === THEME: WORLD CUP 2026 + FULL BLEED BREAKOUT === */
+    .geo-bg {
+        background: linear-gradient(135deg, #0a0a0f 0%, #150050 50%, #0a0a0f 100%);
+        min-height: calc(100vh - 60px);
+        color: #f8fafc;
+        font-family: 'Inter', sans-serif;
+        
+        /* Teknik Full-Bleed Breakout untuk menjebol batasan base.html */
+        width: 100vw !important;
+        max-width: 100vw !important;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw !important;
+        margin-right: -50vw !important;
+        margin-top: -3rem; /* Menghilangkan jarak kosong atas base.html */
+        margin-bottom: -3rem;
+        padding-top: 5rem;
+        padding-bottom: 5rem;
+        z-index: 10;
+        
+        /* Lengkungan agar serasi dengan base.html */
+        border-top-left-radius: 2rem;
+        border-top-right-radius: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .geo-bg {
+            border-top-left-radius: 3rem;
+            border-top-right-radius: 3rem;
+            padding-top: 6rem;
+        }
+    }
+
+    /* === CUSTOM MAP STYLES (DARK MODE) === */
+    #map {
+        height: 500px;
+        border-radius: 20px;
+        border: 2px solid #222236;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        z-index: 1;
+        background-color: #0a0a0f;
+    }
+    @media (min-width: 1024px) {
+        #map { height: calc(100vh - 180px); }
+    }
+    
+    /* Membuat peta OSM standard menjadi Dark Mode agar menyatu dengan Tema WC */
+    .leaflet-layer,
+    .leaflet-control-zoom-in,
+    .leaflet-control-zoom-out,
+    .leaflet-control-attribution {
+        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+
+    /* === WC 2026 DATA CARDS === */
+    .control-panel::-webkit-scrollbar { width: 6px; }
+    .control-panel::-webkit-scrollbar-track { background: transparent; }
+    .control-panel::-webkit-scrollbar-thumb { background: #4a00e0; border-radius: 10px; }
+
+    .data-card {
+        background: rgba(18, 18, 26, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid #222236;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        border-left: 4px solid #00e5ff; /* Default WC Cyan */
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .data-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+    }
+    .data-card.danger {
+        border-left-color: #ea002a; /* WC Red */
+        background: linear-gradient(145deg, rgba(234,0,42,0.1) 0%, rgba(18,18,26,0.9) 100%);
+    }
+    .data-card.warning {
+        border-left-color: #facc15; 
+    }
+    
+    .card-title-custom {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #ffffff;
+        line-height: 1;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .metric-unit {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .status-text {
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-top: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .bmkg-detail {
+        font-size: 0.85rem;
+        color: #cbd5e1;
+        margin-top: 12px;
+        line-height: 1.6;
+    }
+</style>
+
+<div class="geo-bg">
+    <div class="max-w-[1920px] mx-auto px-4 lg:px-8 relative z-10">
+        
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-[#222236] pb-6">
+            <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#00e5ff] text-[10px] font-black tracking-widest uppercase mb-3 shadow-sm">
+                    <i class="fa-solid fa-satellite animate-pulse"></i> KTVDI Geospasial
+                </div>
+                <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight leading-none">
+                    Peta <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#4a00e0] to-[#ea002a]">Telemetri</span>
+                </h1>
+            </div>
+            <a href="/" class="px-5 py-2.5 rounded-full bg-[#12121a] hover:bg-[#222236] border border-[#4a00e0] text-white text-xs font-bold transition flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-arrow-left"></i> Kembali ke Dasbor
+            </a>
         </div>
-    </div>
-</nav>
 
-<!-- Main Interface -->
-<div class="container-fluid px-4 py-3">
-    <div class="row">
-        <!-- Left Panel: Telemetry & Data -->
-        <div class="col-lg-3 col-md-4 control-panel">
+        <div class="flex flex-col lg:flex-row gap-6">
             
-            <!-- Panel Telemetri GPS -->
-            <div class="data-card">
-                <div class="card-title"><i class="fa-solid fa-gauge-high"></i> Telemetri Kecepatan</div>
-                <div class="metric-value" id="speedVal">0 <span class="metric-unit">km/jam</span></div>
-                <div class="status-text text-secondary" id="geoStatus">
-                    <i class="fa-solid fa-spinner fa-spin me-1"></i> Inisialisasi Modul GPS...
-                </div>
-            </div>
-
-            <!-- Panel EWS Gempa BMKG -->
-            <div class="data-card danger">
-                <div class="card-title text-danger"><i class="fa-solid fa-house-crack"></i> Peringatan Gempa Terkini</div>
-                <div id="bmkgStatus">
-                    <div class="d-flex align-items-center">
-                        <div class="spinner-border spinner-border-sm text-danger me-2" role="status"></div>
-                        <span class="text-secondary" style="font-size: 0.9rem;">Menghubungi Server BMKG...</span>
+            <div class="w-full lg:w-1/3 xl:w-1/4 control-panel lg:max-h-[calc(100vh-180px)] overflow-y-auto pr-2 premium-scroll">
+                
+                <div class="data-card">
+                    <div class="card-title-custom text-[#00e5ff]"><i class="fa-solid fa-gauge-high"></i> Telemetri Kecepatan</div>
+                    <div class="metric-value" id="speedVal">0 <span class="metric-unit">km/jam</span></div>
+                    <div class="status-text text-slate-400" id="geoStatus">
+                        <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Inisialisasi Modul GPS...
                     </div>
                 </div>
-                <div id="bmkgData" class="d-none">
-                    <div class="metric-value text-danger" id="bmkgMag">-</div>
-                    <div class="bmkg-detail">
-                        <strong>Lokasi:</strong> <span id="bmkgLoc">-</span><br>
-                        <strong>Waktu:</strong> <span id="bmkgTime">-</span><br>
-                        <strong>Potensi:</strong> <span id="bmkgPotensi" class="badge bg-danger mt-1">-</span>
+
+                <div class="data-card danger">
+                    <div class="card-title-custom text-[#ea002a]"><i class="fa-solid fa-house-crack"></i> Peringatan Gempa Terkini</div>
+                    
+                    <div id="bmkgStatus">
+                        <div class="flex items-center text-slate-300 text-sm font-bold">
+                            <i class="fa-solid fa-circle-notch fa-spin text-[#ea002a] mr-2 text-lg"></i>
+                            Menghubungi Server BMKG...
+                        </div>
+                    </div>
+                    
+                    <div id="bmkgData" class="hidden">
+                        <div class="metric-value text-[#ea002a]" id="bmkgMag">-</div>
+                        <div class="bmkg-detail">
+                            <div class="mb-1"><strong class="text-slate-400">Lokasi:</strong> <span id="bmkgLoc" class="font-bold text-white">-</span></div>
+                            <div class="mb-2"><strong class="text-slate-400">Waktu:</strong> <span id="bmkgTime" class="font-bold text-white">-</span></div>
+                            <div>
+                                <strong class="text-slate-400 block mb-1">Potensi:</strong>
+                                <span id="bmkgPotensi" class="bg-[#ea002a] text-white px-3 py-1 rounded text-xs font-bold shadow-[0_0_10px_rgba(234,0,42,0.5)]">-</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <div class="data-card warning">
+                    <div class="card-title-custom text-yellow-400"><i class="fa-solid fa-map-location-dot"></i> Indeks Pariwisata</div>
+                    <p class="text-slate-400 text-xs leading-relaxed font-medium">Sistem memuat direktori titik pariwisata regional pada peta. Silakan klik penanda biru untuk detail infrastruktur lokasi.</p>
+                </div>
+
             </div>
 
-            <!-- Panel Informasi Pariwisata -->
-            <div class="data-card warning">
-                <div class="card-title text-warning" style="color: #d39e00 !important;"><i class="fa-solid fa-map-location-dot"></i> Indeks Titik Pariwisata</div>
-                <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 0;">Sistem memuat direktori titik pariwisata regional pada peta. Silakan klik penanda biru untuk detail infrastruktur lokasi.</p>
+            <div class="w-full lg:w-2/3 xl:w-3/4">
+                <div id="map"></div>
             </div>
-
-        </div>
-
-        <!-- Right Panel: Interactive Map -->
-        <div class="col-lg-9 col-md-8">
-            <div id="map"></div>
+            
         </div>
     </div>
 </div>
 
-<!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
@@ -194,9 +244,9 @@
         destinasiPariwisata.forEach(tempat => {
             L.marker([tempat.lat, tempat.lon], {icon: blueIcon})
              .addTo(pariwisataLayer)
-             .bindPopup(`<div style="font-family: sans-serif;">
-                            <strong style="font-size:1.1em;">${tempat.nama}</strong><br>
-                            <span style="font-size:0.9em; color:#555;">${tempat.info}</span>
+             .bindPopup(`<div style="font-family: 'Inter', sans-serif;">
+                            <strong style="font-size:1.1em; color:#1e293b;">${tempat.nama}</strong><br>
+                            <span style="font-size:0.9em; color:#64748b;">${tempat.info}</span>
                          </div>`);
         });
 
@@ -227,8 +277,8 @@
                 const lon = parseFloat(coordsArray[0]);
 
                 // Pembaruan UI Panel
-                document.getElementById('bmkgStatus').classList.add('d-none');
-                document.getElementById('bmkgData').classList.remove('d-none');
+                document.getElementById('bmkgStatus').classList.add('hidden');
+                document.getElementById('bmkgData').classList.remove('hidden');
                 
                 document.getElementById('bmkgMag').innerHTML = magnitude + ' <span class="metric-unit">Magnitudo</span>';
                 document.getElementById('bmkgLoc').innerText = wilayah;
@@ -237,20 +287,25 @@
 
                 // Penambahan Marka Pusat Gempa pada Peta
                 L.circle([lat, lon], {
-                    color: 'red',
-                    fillColor: '#f03',
+                    color: '#ea002a',
+                    fillColor: '#ea002a',
                     fillOpacity: 0.3,
                     radius: 25000 // Radius simulasi 25km
                 }).addTo(map);
 
                 L.marker([lat, lon], {icon: redIcon})
                  .addTo(map)
-                 .bindPopup(`<strong>Peringatan Gempa Terkini</strong><br>Magnitudo: ${magnitude}<br>Lokasi: ${wilayah}<br>Status: ${potensi}`)
+                 .bindPopup(`<div style="font-family: 'Inter', sans-serif;">
+                                <strong style="color:#ea002a;">Peringatan Gempa Terkini</strong><br>
+                                Magnitudo: <b>${magnitude}</b><br>
+                                Lokasi: ${wilayah}<br>
+                                Status: <b>${potensi}</b>
+                             </div>`)
                  .openPopup();
 
             } catch (err) {
                 console.error("GALAT SISTEM: Gagal memuat data telemetri BMKG.", err);
-                document.getElementById('bmkgStatus').innerHTML = '<span class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Gagal mengunduh data BMKG.</span>';
+                document.getElementById('bmkgStatus').innerHTML = '<span class="text-[#ea002a] font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Gagal mengunduh data BMKG.</span>';
             }
         };
 
@@ -272,14 +327,17 @@
                     const speedKmh = Math.round(speedMs * 3.6);
                     
                     // Update Panel UI
-                    speedValEl.innerHTML = `${speedKmh} <span class="metric-unit">km/jam</span>`;
-                    geoStatusEl.innerHTML = '<i class="fa-solid fa-satellite text-success"></i> Sinyal Satelit Terhubung';
-                    geoStatusEl.className = "status-text text-success";
+                    speedValEl.innerHTML = `${speedKmh} <span class="metric-unit text-[#00e5ff]">km/jam</span>`;
+                    geoStatusEl.innerHTML = '<i class="fa-solid fa-satellite mr-1"></i> Sinyal Satelit Terhubung';
+                    geoStatusEl.className = "status-text text-[#00e5ff]";
 
                     // Update Marka Posisi Pengguna
                     if (!userMarker) {
                         userMarker = L.marker([lat, lon], {icon: greenIcon}).addTo(userLayer);
-                        userMarker.bindPopup(`<strong>Posisi Telemetri Anda</strong><br>Koordinat: ${lat.toFixed(5)}, ${lon.toFixed(5)}`).openPopup();
+                        userMarker.bindPopup(`<div style="font-family: 'Inter', sans-serif;">
+                                                <strong style="color:#10b981;">Posisi Telemetri Anda</strong><br>
+                                                Koordinat: ${lat.toFixed(5)}, ${lon.toFixed(5)}
+                                              </div>`).openPopup();
                         
                         // Opsional: Otomatis memusatkan peta ke lokasi pengguna saat deteksi pertama
                         map.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
@@ -289,8 +347,8 @@
                 },
                 (error) => {
                     console.warn("Peringatan Geolocation:", error.message);
-                    geoStatusEl.innerHTML = '<i class="fa-solid fa-circle-exclamation text-danger"></i> Akses Modul GPS Ditolak / Tidak Tersedia';
-                    geoStatusEl.className = "status-text text-danger";
+                    geoStatusEl.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Akses Modul GPS Ditolak / Tidak Tersedia';
+                    geoStatusEl.className = "status-text text-yellow-400";
                 },
                 {
                     enableHighAccuracy: true,
@@ -299,10 +357,9 @@
                 }
             );
         } else {
-            geoStatusEl.innerHTML = '<i class="fa-solid fa-microchip text-danger"></i> Perangkat Keras GPS Tidak Terdukung';
-            geoStatusEl.className = "status-text text-danger";
+            geoStatusEl.innerHTML = '<i class="fa-solid fa-microchip mr-1"></i> Perangkat Keras GPS Tidak Terdukung';
+            geoStatusEl.className = "status-text text-[#ea002a]";
         }
     });
 </script>
-</body>
-</html>
+{% endblock %}
