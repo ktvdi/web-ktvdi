@@ -333,24 +333,6 @@
         </div>
     </div>
 
-    <div id="tts-widget-container" class="fixed top-28 left-4 lg:left-8 z-[45] w-[340px] bg-[#0a143c]/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-blue-800/50 p-4 transition-all duration-500 opacity-0 pointer-events-none translate-y-[-10px]">
-        <div class="flex justify-between items-start mb-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-900/50 flex items-center justify-center text-blue-400"><i class="fa-solid fa-volume-high"></i></div>
-                <div><h3 class="text-sm font-bold text-white leading-none">Pembaca Berita</h3><p class="text-[11px] text-blue-400 mt-1">Google Cloud TTS</p></div>
-            </div>
-            <button onclick="hideTTSWidget()" class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="flex justify-between text-[10px] text-slate-400 mb-2"><span>Paragraf 1 / 1</span><span id="tts-percent-text">0%</span></div>
-        <div class="w-full bg-slate-800 h-1 rounded-full mb-5 overflow-hidden relative"><div id="tts-progress-bar" class="absolute top-0 left-0 bg-blue-500 h-full w-0 transition-all duration-300"></div></div>
-        <div class="flex justify-center items-center gap-6 mb-5">
-            <button class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-backward-fast"></i></button>
-            <button onclick="toggleTTS()" class="w-10 h-10 bg-[#ed1c24] hover:bg-red-700 rounded-full flex items-center justify-center text-white transition shadow-lg"><i id="tts-play-icon" class="fa-solid fa-play ml-0.5"></i></button>
-            <button class="text-slate-500 hover:text-white transition"><i class="fa-solid fa-forward-fast"></i></button>
-            <button onclick="stopTTS()" class="text-slate-500 hover:text-white transition"><i class="fa-regular fa-square"></i></button>
-        </div>
-    </div>
-
     <nav class="fixed top-4 left-0 right-0 w-full z-50 px-3 lg:px-6 transition-all duration-300">
         <div class="max-w-[1400px] mx-auto bg-[#0d1a4d]/90 backdrop-blur-md shadow-2xl rounded-2xl lg:rounded-[2rem] border border-blue-400/20">
             <div class="flex justify-between items-center h-16 md:h-20 px-4 md:px-8">
@@ -403,6 +385,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 lg:gap-4 flex-1 justify-end">
+                    
                     <div class="hidden xl:flex items-center space-x-2 mr-4">
                         <a href="{{ url_for('home') }}" class="desktop-link">Beranda</a>
                         <a href="{{ url_for('cctv_page') }}" class="desktop-link">CCTV</a>
@@ -410,12 +393,15 @@
                         <a href="{{ url_for('jadwal_sholat_page') }}" class="desktop-link">Religi</a>
                         <a href="{{ url_for('daftar_siaran') }}" class="desktop-link">Database</a>
                         <a href="{{ url_for('berita_page') }}" class="desktop-link">Berita</a>
+                        <a href="{{ url_for('lokasi') }}" class="desktop-link">Lokasi</a>
+                        <a href="{{ url_for('about') }}" class="desktop-link">Tentang Kami</a>
                     </div>
 
                     <div class="relative group z-50 xl:hidden">
                         <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
                             <i class="fa-solid fa-bars text-sm md:text-base"></i>
                         </button>
+                        
                         <div id="info-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200">
                             <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col mb-1">
                                 <span class="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Lokasi Anda</span>
@@ -424,7 +410,7 @@
                                 </div>
                             </div>
                             <a href="{{ url_for('home') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-house w-5"></i> Beranda</a>
-                            <a href="{{ url_for('cctv_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-video w-5"></i> Pantauan CCTV</a>
+                            <a href="{{ url_for('ews_jateng_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-water w-5"></i> EWS Bendungan</a>
                             <a href="{{ url_for('jadwal_sholat_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-mosque w-5"></i> Jadwal Religi</a>
                             <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-users w-5"></i> Tentang KTVDI</a>
                         </div>
@@ -800,43 +786,6 @@
                 document.querySelectorAll('.dropdown-menu-mobile').forEach(d => d.classList.add('hidden'));
             }
         });
-
-        let ttsSynth = window.speechSynthesis;
-        let ttsText = "Selamat datang di KTVDI edisi Piala Dunia 2026. Pantau tayangan favorit Anda melalui halaman ini.";
-        let ttsUtterance; let isSpeaking = false;
-
-        function showTTSWidget() {
-            if(!sessionStorage.getItem('ktvdi_greeted_tts')) {
-                sessionStorage.setItem('ktvdi_greeted_tts', 'true');
-                const widget = document.getElementById('tts-widget-container');
-                widget.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
-                widget.classList.add('opacity-100', 'pointer-events-auto', 'translate-y-0');
-            }
-        }
-        function hideTTSWidget() {
-            stopTTS();
-            const widget = document.getElementById('tts-widget-container');
-            widget.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
-        }
-        document.body.addEventListener('click', showTTSWidget, {once: true});
-
-        function playTTS() {
-            if(ttsSynth.speaking && !ttsSynth.paused) return;
-            if(ttsSynth.paused) { ttsSynth.resume(); isSpeaking = true; updateTTSUI(true); return; }
-            
-            ttsUtterance = new SpeechSynthesisUtterance(ttsText);
-            ttsUtterance.lang = 'id-ID';
-            ttsUtterance.onstart = () => { isSpeaking = true; updateTTSUI(true); };
-            ttsUtterance.onend = () => stopTTS();
-            ttsSynth.speak(ttsUtterance);
-        }
-        function toggleTTS() { if (isSpeaking) { ttsSynth.pause(); isSpeaking = false; updateTTSUI(false); } else { playTTS(); } }
-        function stopTTS() { ttsSynth.cancel(); isSpeaking = false; updateTTSUI(false); }
-        function updateTTSUI(playing) {
-            const icon = document.getElementById('tts-play-icon');
-            if(playing) { icon.classList.remove('fa-play'); icon.classList.add('fa-pause'); } 
-            else { icon.classList.remove('fa-pause'); icon.classList.add('fa-play'); }
-        }
 
         function checkWidgetSchedule() {
             const now = new Date();
