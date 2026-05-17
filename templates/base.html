@@ -373,6 +373,7 @@
                     <div class="hidden xl:flex items-center space-x-2 mr-4">
                         <a href="{{ url_for('cctv_page') }}" class="desktop-link">CCTV</a>
                         <a href="{{ url_for('ews_jateng_page') }}" class="desktop-link">EWS</a>
+                        <a href="{{ url_for('jadwal_sholat_page') }}" class="desktop-link">Religi</a>
                         <a href="{{ url_for('daftar_siaran') }}" class="desktop-link">Database</a>
                         <a href="{{ url_for('berita_page') }}" class="desktop-link">Berita</a>
                     </div>
@@ -390,15 +391,52 @@
                             </div>
                             <a href="{{ url_for('home') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-house w-5"></i> Beranda</a>
                             <a href="{{ url_for('cctv_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-video w-5"></i> Pantauan CCTV</a>
+                            <a href="{{ url_for('jadwal_sholat_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-mosque w-5"></i> Jadwal Religi</a>
                             <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-users w-5"></i> Tentang KTVDI</a>
                         </div>
                     </div>
 
                     {% if session.get('user') %}
-                        <div class="relative group z-50">
-                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="bg-[#ed1c24] hover:bg-red-700 text-white px-5 py-2 rounded-full font-bold text-sm transition flex items-center gap-2 shadow-lg">
-                                <span class="hidden sm:block truncate max-w-[100px]">{{ session.get('nama').split()[0] }}</span>
-                                <i class="fa-solid fa-circle-user"></i>
+                        <div class="xl:hidden flex items-center gap-2">
+                            <a href="{{ url_for('home') }}" class="flex items-center gap-1.5 bg-black/20 border border-white/10 rounded-full px-1.5 py-1 transition shadow-inner shrink-0">
+                                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-4 h-4 object-contain brightness-0 invert ml-0.5">
+                                <div class="w-5 h-5 rounded-full bg-slate-500/80 flex items-center justify-center text-white text-[10px] font-bold">
+                                    {{ session.get('nama')[0].upper() }}
+                                </div>
+                            </a>
+
+                            <div class="flex flex-col justify-center cursor-pointer ml-1" onclick="toggleDropdown('profile-dropdown-mobile-user')">
+                                <div class="flex items-center gap-1 text-[11px] font-bold text-white leading-tight">
+                                    <span class="dynamic-greeting font-medium">Hai,</span>
+                                    <span class="truncate max-w-[85px]">{{ session.get('nama') }}</span>
+                                </div>
+                                <div class="flex items-center mt-0.5">
+                                    <span class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-600 border border-yellow-400/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                        <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div id="profile-dropdown-mobile-user" class="hidden dropdown-menu-mobile !top-12 !right-0 transform origin-top-right absolute w-52 bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
+                                <div class="px-4 py-3 border-b border-slate-100 mb-1 bg-slate-50">
+                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
+                                    <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama') }}</p>
+                                </div>
+                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard</a>
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
+                            </div>
+                        </div>
+
+                        <div class="relative group z-50 hidden xl:block">
+                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-[#ed1c24] hover:bg-red-700 transition border border-red-500 text-left shadow-lg">
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama') }}&background=fff&color=ed1c24&bold=true" class="h-8 w-8 rounded-full shadow-sm">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-bold text-white leading-tight">{{ session.get('nama').split()[0] }}</span>
+                                    <span class="text-[8px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                        <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
+                                    </span>
+                                </div>
                             </button>
                             <div id="profile-dropdown-desktop" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200">
                                 <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50">
@@ -521,38 +559,56 @@
     </div>
 
     <script>
-        // SCRIPT LOGO SWAPPER PADA NAVBAR (TVRI <-> KTVDI)
+        // SCRIPT LOGO SWAPPER PADA NAVBAR (TVRI <-> KTVDI) dengan Efek Cahaya Halus
         const tvriLogoUrl = "https://bolagembira.tvrinews.com/images/new-welcome/logo.png";
         const ktvdiLogoUrl = "{{ url_for('static', filename='icons/icon-192.png') }}";
         let isTvri = true;
         const navbarLogo = document.getElementById('navbar-logo');
 
         if (navbarLogo) {
-            navbarLogo.style.transition = "opacity 0.4s ease-in-out";
-            setInterval(() => {
+            // Transisi dibuat sedikit lebih panjang agar terlihat smooth
+            navbarLogo.style.transition = "all 0.8s ease-in-out";
+            
+            function swapLogo() {
+                // Efek memudar dan menyala putih (glow)
                 navbarLogo.style.opacity = 0;
+                navbarLogo.style.filter = "drop-shadow(0 0 20px rgba(255,255,255,1)) brightness(1.5)";
+                
                 setTimeout(() => {
                     isTvri = !isTvri;
                     navbarLogo.src = isTvri ? tvriLogoUrl : ktvdiLogoUrl;
                     
-                    // Supaya logo KTVDI putih senada dengan teks lainnya, kita tambahkan filter invert jika sedang menampilkan logo KTVDI.
                     if (!isTvri) {
-                        navbarLogo.classList.add('filter', 'invert', 'brightness-0');
+                        // KTVDI mode (warna putih)
+                        navbarLogo.className = "h-8 md:h-10 object-contain filter invert brightness-0 drop-shadow-md";
                     } else {
-                        navbarLogo.classList.remove('filter', 'invert', 'brightness-0');
+                        // TVRI mode (warna asli)
+                        navbarLogo.className = "h-8 md:h-10 object-contain drop-shadow-md";
                     }
                     
+                    // Kembalikan opacity dan hilangkan efek filter glow berlebih
                     navbarLogo.style.opacity = 1;
-                }, 400); // Tunggu sampai gambar memudar sebelum men-swap URL
-            }, 5000); // Interval ganti setiap 5 Detik
+                    navbarLogo.style.filter = "";
+                    
+                    // KTVDI = 20 Detik (20000ms), TVRI = 7 Detik (7000ms)
+                    const nextDelay = isTvri ? 7000 : 20000;
+                    setTimeout(swapLogo, nextDelay);
+                }, 800); // Waktu yang dibutuhkan untuk fade out sebelum ganti source
+            }
+            
+            // Panggilan awal animasi (setelah 7 detik karena defaultnya TVRI)
+            setTimeout(swapLogo, 7000);
         }
 
-        // SCRIPT COUNTDOWN WORLD CUP 2026
+        // SCRIPT COUNTDOWN WORLD CUP 2026 PRESISI (11 Juni 2026, UTC+7)
         function initWorldCupCountdown() {
-            const targetDate = new Date("June 11, 2026 00:00:00").getTime();
+            // Format ISO mutlak untuk 11 Juni 2026 Pukul 00:00:00 zona Waktu WIB (+07:00)
+            const targetDate = new Date("2026-06-11T00:00:00+07:00").getTime();
+            
             setInterval(() => {
                 const now = new Date().getTime();
                 const distance = targetDate - now;
+                
                 if(distance > 0) {
                     document.getElementById('cd-hari').innerText = Math.floor(distance / (1000 * 60 * 60 * 24)).toString().padStart(2, '0');
                     document.getElementById('cd-jam').innerText = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2, '0');
