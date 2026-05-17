@@ -321,7 +321,7 @@
     <div id="initial-loader">
         <div class="relative flex flex-col items-center">
             <div class="loader-glow"></div>
-            <img src="https://bolagembira.tvrinews.com/images/new-welcome/logo.png" class="h-16 md:h-20 mb-8 relative z-10 animate-bounce" alt="TVRI World Cup 2026">
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-16 md:h-20 mb-8 relative z-10 animate-bounce filter invert brightness-0" alt="KTVDI Loading">
             <div class="flex gap-2 relative z-10">
                 <span class="w-2.5 h-2.5 bg-[#ed1c24] rounded-full animate-pulse"></span>
                 <span class="w-2.5 h-2.5 bg-white rounded-full animate-pulse delay-75"></span>
@@ -355,7 +355,7 @@
                 
                 <div class="flex items-center gap-4 lg:gap-8 border-r border-white/10 pr-6 mr-2">
                     <a href="{{ url_for('home') }}" class="flex items-center group shrink-0">
-                        <img src="https://bolagembira.tvrinews.com/images/new-welcome/logo.png" alt="TVRI Logo" class="h-8 md:h-10 object-contain drop-shadow-md">
+                        <img id="navbar-logo" src="https://bolagembira.tvrinews.com/images/new-welcome/logo.png" alt="TVRI Logo" class="h-8 md:h-10 object-contain drop-shadow-md">
                     </a>
 
                     <div class="hidden lg:flex items-center gap-3 text-white">
@@ -422,36 +422,12 @@
         </div>
     </nav>
 
-    <div class="pt-[140px] md:pt-[180px] pb-12 w-full flex justify-center z-0 relative px-4">
-        <h1 class="text-6xl md:text-[9rem] font-impact text-white tracking-tighter opacity-90 leading-none text-center text-shadow-hero">
-            NONTON BARENG
-        </h1>
-    </div>
-
-    <main class="flex-grow z-10 relative">
+    <main class="flex-grow z-10 relative pt-[100px] md:pt-[130px]">
         <div class="bg-white w-full min-h-screen rounded-t-[2.5rem] md:rounded-t-[4rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden border-t-4 border-blue-600">
             <div class="absolute inset-0 z-0 opacity-[0.35]" style="background-image: radial-gradient(#94a3b8 1.5px, transparent 1.5px); background-size: 32px 32px;"></div>
 
-            <div class="max-w-7xl mx-auto px-6 lg:px-8 py-12 md:py-16 relative z-10">
-                
-                <div class="flex flex-col lg:flex-row justify-between items-start gap-8 mb-12 border-b border-slate-200 pb-12">
-                    <div class="flex-1">
-                        <h2 class="text-5xl md:text-7xl font-impact text-black tracking-tight leading-none mb-1">KOMUNITAS TV</h2>
-                        <h2 class="text-5xl md:text-7xl font-impact text-[#2563eb] tracking-tight leading-none">DIGITAL INDONESIA</h2>
-                    </div>
-                    <div class="flex-1 max-w-lg lg:border-l lg:border-slate-200 lg:pl-8">
-                        <p class="text-slate-600 text-base md:text-lg leading-relaxed font-medium mb-4">
-                            Pusat informasi independen mengenai perkembangan teknologi penyiaran digital, frekuensi, dan perangkat STB di Indonesia.
-                        </p>
-                        <p class="text-slate-600 text-sm md:text-base leading-relaxed font-medium">
-                            Gabung komunitas kami dan temukan berbagai database frekuensi terbaru serta pantauan CCTV wilayah.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-slate-100 p-2 md:p-6 min-h-[50vh]">
-                    {% block content %}{% endblock %}
-                </div>
+            <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 relative z-10">
+                {% block content %}{% endblock %}
             </div>
         </div>
     </main>
@@ -545,6 +521,33 @@
     </div>
 
     <script>
+        // SCRIPT LOGO SWAPPER PADA NAVBAR (TVRI <-> KTVDI)
+        const tvriLogoUrl = "https://bolagembira.tvrinews.com/images/new-welcome/logo.png";
+        const ktvdiLogoUrl = "{{ url_for('static', filename='icons/icon-192.png') }}";
+        let isTvri = true;
+        const navbarLogo = document.getElementById('navbar-logo');
+
+        if (navbarLogo) {
+            navbarLogo.style.transition = "opacity 0.4s ease-in-out";
+            setInterval(() => {
+                navbarLogo.style.opacity = 0;
+                setTimeout(() => {
+                    isTvri = !isTvri;
+                    navbarLogo.src = isTvri ? tvriLogoUrl : ktvdiLogoUrl;
+                    
+                    // Supaya logo KTVDI putih senada dengan teks lainnya, kita tambahkan filter invert jika sedang menampilkan logo KTVDI.
+                    if (!isTvri) {
+                        navbarLogo.classList.add('filter', 'invert', 'brightness-0');
+                    } else {
+                        navbarLogo.classList.remove('filter', 'invert', 'brightness-0');
+                    }
+                    
+                    navbarLogo.style.opacity = 1;
+                }, 400); // Tunggu sampai gambar memudar sebelum men-swap URL
+            }, 5000); // Interval ganti setiap 5 Detik
+        }
+
+        // SCRIPT COUNTDOWN WORLD CUP 2026
         function initWorldCupCountdown() {
             const targetDate = new Date("June 11, 2026 00:00:00").getTime();
             setInterval(() => {
