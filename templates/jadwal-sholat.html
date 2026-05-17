@@ -54,22 +54,48 @@
         --theme-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.08);
     }
 
-    body {
+    /* --- FULL BLEED BREAKOUT --- */
+    #religi-main-content {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw !important;
+        margin-right: -50vw !important;
+        /* Menghilangkan sisa padding base.html */
+        margin-top: -3rem;
+        margin-bottom: -3rem;
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+        min-height: calc(100vh - 60px); 
+        
+        /* Memindahkan background theme dari body ke container ini */
         background-image: var(--islamic-pattern), var(--theme-bg-gradient);
         background-attachment: fixed;
         color: var(--theme-text-main);
         font-family: 'Plus Jakarta Sans', sans-serif;
         transition: background 1s ease, color 0.5s ease;
+        z-index: 10;
+        border-top-left-radius: 2rem;
+        border-top-right-radius: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        #religi-main-content {
+            border-top-left-radius: 3rem;
+            border-top-right-radius: 3rem;
+        }
     }
 
     .font-arab { font-family: 'Amiri', serif; line-height: 2.2; font-weight: 700; }
     .font-luxury { font-family: 'Cinzel', serif; font-weight: 700; }
 
-    /* --- COMPONENT STYLES (FIRMER, CLASSIC LOOK) --- */
+    /* --- COMPONENT STYLES --- */
     .islamic-card {
         background: var(--theme-card-bg);
-        border: 2px solid var(--theme-border); /* Garis tepi tegas, non-transparan */
-        border-radius: 8px; /* Lebih kotak tegas seperti kitab */
+        border: 2px solid var(--theme-border);
+        border-radius: 8px; 
         box-shadow: var(--theme-shadow);
         position: relative;
         overflow: hidden;
@@ -172,258 +198,259 @@
     }
 </style>
 
-<div class="pt-[140px] pb-20 px-4 max-w-7xl mx-auto min-h-screen relative z-10">
+<div id="religi-main-content">
+    <div class="pb-20 px-4 md:px-8 max-w-7xl mx-auto min-h-screen relative z-10">
 
-    <div id="prayerToast" class="toast-pro">
-        <div class="text-3xl txt-gold"><i class="fa-solid fa-mosque"></i></div>
-        <div>
-            <h4 class="txt-primary font-bold text-sm uppercase tracking-wider mb-1" id="toastTitle">Peringatan Waktu</h4>
-            <p class="txt-secondary text-xs" id="toastMessage">Waktu sholat segera tiba.</p>
-        </div>
-    </div>
-
-    <!-- Diperbarui: Gaya AI lebih berbaur dengan nuansa religi (Emas/Zamrud), bukan Cyan Cyberpunk -->
-    <div id="aiSpeakingIndicator" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-[var(--theme-card-bg)] border-2 border-[var(--theme-gold)] text-white px-5 py-2 rounded-full shadow-lg z-[9999] flex items-center gap-3 hidden">
-        <div class="flex items-center gap-1">
-            <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse"></span>
-            <span class="w-1.5 h-6 bg-[var(--theme-gold)] rounded-full animate-pulse delay-75"></span>
-            <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse delay-150"></span>
-        </div>
-        <span class="text-xs font-bold tracking-widest uppercase txt-gold">AI Sedang Membaca</span>
-        <button onclick="window.stopAIVoice()" class="ml-2 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition border border-red-400">
-            <i class="fa-solid fa-stop text-[10px] text-white"></i>
-        </button>
-    </div>
-
-    <div class="flex flex-col lg:flex-row justify-between items-center lg:items-end mb-10 border-b-2 border-[var(--theme-border)] pb-6 gap-6 text-center lg:text-left">
-        <div>
-            <h1 class="text-4xl md:text-5xl font-luxury txt-primary mb-2 flex flex-col md:flex-row items-center gap-2 md:gap-3 font-bold">
-                <span class="bg-[var(--theme-gold)]/10 p-2 md:p-3 rounded border-2 border-[var(--theme-gold)] shadow-md">
-                    <i class="fa-solid fa-kaaba txt-gold"></i>
-                </span>
-                <span>Pojok <span class="text-gold-gradient">Religi</span></span>
-            </h1>
-            <p class="txt-secondary text-sm font-bold tracking-[0.2em] uppercase pl-1 mt-2">Menyajikan Info Religi yang Akurat</p>
-            <p class="txt-gold text-sm italic mt-1 font-bold">Kedamaian untuk seluruh umat manusia, rahmat bagi semesta alam.</p>
-        </div>
-
-        <div class="w-full lg:w-auto flex flex-col gap-2">
-            <label class="text-[11px] uppercase txt-secondary font-bold tracking-widest lg:text-right hidden lg:block">Sinkronisasi Lokasi GPS</label>
-            <div class="flex items-center w-full lg:w-[320px] transition gap-2">
-                <div id="gpsIcon" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] flex items-center justify-center txt-gold shrink-0 cursor-pointer hover:bg-[var(--theme-gold)] hover:text-white transition-colors" onclick="window.forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
-                    <i class="fa-solid fa-location-crosshairs"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <select id="kotaSelect" class="w-full text-sm">
-                        <option value="" disabled selected>Pilih Kota/Kabupaten...</option>
-                        {% for kota in daftar_kota %}
-                        <option value="{{ kota.id }}">{{ kota.nama }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+        <div id="prayerToast" class="toast-pro">
+            <div class="text-3xl txt-gold"><i class="fa-solid fa-mosque"></i></div>
+            <div>
+                <h4 class="txt-primary font-bold text-sm uppercase tracking-wider mb-1" id="toastTitle">Peringatan Waktu</h4>
+                <p class="txt-secondary text-xs" id="toastMessage">Waktu sholat segera tiba.</p>
             </div>
-            <div id="locStatus" class="text-[11px] font-bold lg:text-right text-center txt-gold h-4 italic">Memeriksa ketersediaan GPS...</div>
         </div>
-    </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-        <div class="lg:col-span-8 islamic-card p-6 md:p-8 flex flex-col justify-between min-h-[300px] relative">
-            <div class="absolute top-0 right-0 opacity-[0.05] text-9xl txt-gold transform translate-x-10 -translate-y-10 pointer-events-none">
-                <i class="fa-solid fa-clock"></i>
+        <div id="aiSpeakingIndicator" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-[var(--theme-card-bg)] border-2 border-[var(--theme-gold)] text-white px-5 py-2 rounded-full shadow-lg z-[9999] flex items-center gap-3 hidden">
+            <div class="flex items-center gap-1">
+                <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse"></span>
+                <span class="w-1.5 h-6 bg-[var(--theme-gold)] rounded-full animate-pulse delay-75"></span>
+                <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse delay-150"></span>
+            </div>
+            <span class="text-xs font-bold tracking-widest uppercase txt-gold">AI Sedang Membaca</span>
+            <button onclick="window.stopAIVoice()" class="ml-2 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition border border-red-400">
+                <i class="fa-solid fa-stop text-[10px] text-white"></i>
+            </button>
+        </div>
+
+        <div class="flex flex-col lg:flex-row justify-between items-center lg:items-end mb-10 border-b-2 border-[var(--theme-border)] pb-6 gap-6 text-center lg:text-left pt-6">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-luxury txt-primary mb-2 flex flex-col md:flex-row items-center gap-2 md:gap-3 font-bold">
+                    <span class="bg-[var(--theme-gold)]/10 p-2 md:p-3 rounded border-2 border-[var(--theme-gold)] shadow-md">
+                        <i class="fa-solid fa-kaaba txt-gold"></i>
+                    </span>
+                    <span>Pojok <span class="text-gold-gradient">Religi</span></span>
+                </h1>
+                <p class="txt-secondary text-sm font-bold tracking-[0.2em] uppercase pl-1 mt-2">Menyajikan Info Religi yang Akurat</p>
+                <p class="txt-gold text-sm italic mt-1 font-bold">Kedamaian untuk seluruh umat manusia, rahmat bagi semesta alam.</p>
             </div>
 
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-start gap-4 z-10 w-full">
-                <div>
-                    <span class="block txt-secondary text-xs font-bold uppercase tracking-widest mb-1">Waktu & Tanggal Hari Ini</span>
-                    <div class="text-2xl md:text-3xl font-luxury txt-primary font-bold" id="hijriDate">{{ hijri_date }}</div>
-                    
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
-                        <div class="text-sm txt-gold font-bold" id="dateMasehi">...</div>
-                        <div class="hidden sm:block txt-secondary">•</div>
-                        <div class="text-sm txt-primary font-bold bg-[var(--theme-input-bg)] px-3 py-1.5 rounded border-2 border-[var(--theme-border)] inline-flex items-center w-max">
-                            <i class="fa-regular fa-clock txt-gold mr-2"></i>
-                            <span id="realtimeClock" class="tabular-nums tracking-wider">--:--:--</span>
-                            <span id="timezoneLabel" class="ml-1 text-xs txt-secondary">WIB</span>
+            <div class="w-full lg:w-auto flex flex-col gap-2">
+                <label class="text-[11px] uppercase txt-secondary font-bold tracking-widest lg:text-right hidden lg:block">Sinkronisasi Lokasi GPS</label>
+                <div class="flex items-center w-full lg:w-[320px] transition gap-2">
+                    <div id="gpsIcon" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] flex items-center justify-center txt-gold shrink-0 cursor-pointer hover:bg-[var(--theme-gold)] hover:text-white transition-colors" onclick="window.forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
+                        <i class="fa-solid fa-location-crosshairs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <select id="kotaSelect" class="w-full text-sm">
+                            <option value="" disabled selected>Pilih Kota/Kabupaten...</option>
+                            {% for kota in daftar_kota %}
+                            <option value="{{ kota.id }}">{{ kota.nama }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div id="locStatus" class="text-[11px] font-bold lg:text-right text-center txt-gold h-4 italic">Memeriksa ketersediaan GPS...</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
+            <div class="lg:col-span-8 islamic-card p-6 md:p-8 flex flex-col justify-between min-h-[300px] relative">
+                <div class="absolute top-0 right-0 opacity-[0.05] text-9xl txt-gold transform translate-x-10 -translate-y-10 pointer-events-none">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-start gap-4 z-10 w-full">
+                    <div>
+                        <span class="block txt-secondary text-xs font-bold uppercase tracking-widest mb-1">Waktu & Tanggal Hari Ini</span>
+                        <div class="text-2xl md:text-3xl font-luxury txt-primary font-bold" id="hijriDate">{{ hijri_date }}</div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                            <div class="text-sm txt-gold font-bold" id="dateMasehi">...</div>
+                            <div class="hidden sm:block txt-secondary">•</div>
+                            <div class="text-sm txt-primary font-bold bg-[var(--theme-input-bg)] px-3 py-1.5 rounded border-2 border-[var(--theme-border)] inline-flex items-center w-max">
+                                <i class="fa-regular fa-clock txt-gold mr-2"></i>
+                                <span id="realtimeClock" class="tabular-nums tracking-wider">--:--:--</span>
+                                <span id="timezoneLabel" class="ml-1 text-xs txt-secondary">WIB</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:text-right w-full md:w-auto">
+                        <div class="bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded p-3 inline-flex flex-col items-start md:items-end w-full md:w-auto shadow-md">
+                            <span class="block txt-secondary text-[10px] uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-location-dot txt-gold"></i> Lokasi Terkunci
+                            </span>
+                            <div class="txt-primary font-bold tracking-wide text-sm md:text-base uppercase" id="currentCityLabel">...</div>
+                            <div class="text-[12px] txt-gold mt-1 hidden font-bold" id="currentKecamatanLabel"></div>
                         </div>
                     </div>
                 </div>
-                <div class="md:text-right w-full md:w-auto">
-                    <div class="bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded p-3 inline-flex flex-col items-start md:items-end w-full md:w-auto shadow-md">
-                        <span class="block txt-secondary text-[10px] uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5">
-                            <i class="fa-solid fa-location-dot txt-gold"></i> Lokasi Terkunci
-                        </span>
-                        <div class="txt-primary font-bold tracking-wide text-sm md:text-base uppercase" id="currentCityLabel">...</div>
-                        <div class="text-[12px] txt-gold mt-1 hidden font-bold" id="currentKecamatanLabel"></div>
+
+                <div class="text-center z-10 py-8 min-h-[160px] flex flex-col justify-center items-center">
+                    <p class="txt-secondary text-sm uppercase tracking-[0.2em] mb-4 font-bold">
+                        <span id="prayerLabelText">Menuju Waktu </span>
+                        <span id="nextPrayerName" class="txt-gold text-lg">...</span>
+                    </p>
+                    <div id="countdown" class="text-6xl md:text-8xl font-bold text-gold-gradient tabular-nums tracking-tight font-luxury transition-all duration-300">--:--:--</div>
+                    
+                    <div id="nightReminder" class="hidden mt-6 w-full max-w-2xl bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded p-3 relative shadow-md">
+                        <div class="marquee-wrapper text-sm txt-primary font-bold flex items-center">
+                            <span class="marquee-text inline-flex items-center gap-2" id="nightReminderText">
+                                <i class="fa-solid fa-moon txt-gold"></i>
+                                Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan.
+                                <i class="fa-solid fa-star-and-crescent txt-gold ml-2"></i>
+                            </span>
+                        </div>
+                        <button onclick="window.playAIVoice(document.getElementById('nightReminderText').innerText)" class="absolute -right-3 -top-3 w-8 h-8 rounded bg-[var(--theme-gold)] text-white flex items-center justify-center shadow-lg hover:bg-yellow-600 border border-white transition z-20" title="Dengarkan Pesan Malam via AI">
+                            <i class="fa-solid fa-volume-high text-xs"></i>
+                        </button>
                     </div>
+                </div>
+
+                <div class="w-full bg-[var(--theme-input-bg)] h-3 rounded-full overflow-hidden mt-4 border border-[var(--theme-border)]">
+                    <div id="timeProgressBar" class="h-full bg-[var(--theme-gold)] w-0 transition-all duration-1000 ease-linear"></div>
                 </div>
             </div>
 
-            <div class="text-center z-10 py-8 min-h-[160px] flex flex-col justify-center items-center">
-                <p class="txt-secondary text-sm uppercase tracking-[0.2em] mb-4 font-bold">
-                    <span id="prayerLabelText">Menuju Waktu </span>
-                    <span id="nextPrayerName" class="txt-gold text-lg">...</span>
-                </p>
-                <div id="countdown" class="text-6xl md:text-8xl font-bold text-gold-gradient tabular-nums tracking-tight font-luxury transition-all duration-300">--:--:--</div>
-                
-                <div id="nightReminder" class="hidden mt-6 w-full max-w-2xl bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded p-3 relative shadow-md">
-                    <div class="marquee-wrapper text-sm txt-primary font-bold flex items-center">
-                        <span class="marquee-text inline-flex items-center gap-2" id="nightReminderText">
-                            <i class="fa-solid fa-moon txt-gold"></i>
-                            Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan.
-                            <i class="fa-solid fa-star-and-crescent txt-gold ml-2"></i>
-                        </span>
+            <div class="lg:col-span-4 islamic-card p-0 flex flex-col">
+                <div class="p-4 border-b-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] flex justify-between items-center">
+                    <h3 class="txt-gold font-bold text-sm uppercase tracking-widest">Asmaul Husna (99)</h3>
+                    <i class="fa-solid fa-star-and-crescent txt-secondary"></i>
+                </div>
+                <div class="flex-1 flex items-center justify-center p-6 relative">
+                    <div class="swiper asmaulSwiper w-full h-full">
+                        <div class="swiper-wrapper" id="asmaulWrapper"></div>
                     </div>
-                    <button onclick="window.playAIVoice(document.getElementById('nightReminderText').innerText)" class="absolute -right-3 -top-3 w-8 h-8 rounded bg-[var(--theme-gold)] text-white flex items-center justify-center shadow-lg hover:bg-yellow-600 border border-white transition z-20" title="Dengarkan Pesan Malam via AI">
-                        <i class="fa-solid fa-volume-high text-xs"></i>
+                    <button onclick="window.readAsmaulHusna()" class="absolute bottom-4 right-4 w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition z-20" title="Baca Asmaul Husna via AI">
+                        <i class="fa-solid fa-volume-high text-sm"></i>
+                    </button>
+                    <div class="swiper-button-next txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
+                    <div class="swiper-button-prev txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-12">
+            <h3 class="txt-primary font-luxury text-xl md:text-2xl mb-2 border-l-4 border-[var(--theme-gold)] pl-4 flex items-center font-bold">
+                Jadwal Sholat Hari Ini
+            </h3>
+            <p class="text-sm txt-secondary mb-6 pl-5 italic font-bold">*Waktu setempat. Data bersumber dari Sistem Informasi Bimas Islam Kemenag RI.</p>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="prayerGrid">
+                <div class="col-span-full py-12 text-center txt-secondary">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl txt-gold mb-3"></i>
+                    <p class="text-sm uppercase tracking-widest font-bold">Sinkronisasi Waktu...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="islamic-card p-6 mb-12 flex flex-col relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 text-9xl text-emerald-600/10 rotate-12 pointer-events-none">
+                <i class="fa-solid fa-mosque"></i>
+            </div>
+            
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10 w-full mb-6 border-b-2 border-[var(--theme-border)] pb-4">
+                <div class="flex items-center gap-4">
+                    <button id="radarMasjidBtn" class="w-16 h-16 rounded bg-[var(--theme-input-bg)] border-2 border-emerald-500 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-600 hover:text-white transition shadow-md group ai-btn-anim" onclick="window.scanNearbyMosque()" title="Cari Masjid Terdekat">
+                        <i class="fa-solid fa-mosque relative z-10 text-2xl"></i>
+                    </button>
+                    <div>
+                        <h3 class="txt-primary font-bold text-xl leading-tight">Radar Tempat Ibadah</h3>
+                        <p class="text-xs txt-secondary uppercase tracking-widest mt-1 font-bold">Pencarian & Navigasi Cerdas</p>
+                    </div>
+                </div>
+                
+                <div id="liveTrackControl" class="hidden flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 border-2 border-red-500 rounded font-bold shadow-sm">
+                        <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+                        <span class="text-xs text-red-500 tracking-widest uppercase">Live Navigasi</span>
+                    </div>
+                    <button onclick="window.stopLiveTracking()" class="text-xs font-bold bg-[var(--theme-input-bg)] hover:bg-red-600 hover:text-white txt-secondary px-4 py-2 border-2 border-[var(--theme-border)] hover:border-red-600 rounded transition flex items-center gap-2">
+                        <i class="fa-solid fa-power-off"></i> Hentikan Navigasi
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col lg:flex-row gap-6 relative z-10">
+                <div id="radarResult" class="flex-1 bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] p-5 rounded text-left min-h-[100px] flex flex-col justify-center">
+                    <p class="text-sm txt-secondary italic leading-relaxed font-bold"><i class="fa-solid fa-circle-info text-emerald-500 mr-2"></i>Ketuk ikon radar di atas untuk memindai masjid atau mushola terdekat dari posisi Anda. Sistem akan memunculkan peta interaktif dan memandu arah perjalanan Anda secara akurat.</p>
+                </div>
+                
+                <div id="mapContainerWrapper" class="w-full lg:w-1/2 h-[250px] md:h-[300px] hidden rounded border-2 border-[var(--theme-border)] relative">
+                    <div id="mapContainer" class="w-full h-full z-10 rounded"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold">
+                            <i class="fa-solid fa-book-open-reader"></i>
+                        </div>
+                        <h4 class="txt-primary font-bold text-base tracking-wide">Renungan Ayat Pilihan</h4>
+                    </div>
+                    <button onclick="window.readAyatPilihan()" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition" title="Dengarkan Ayat via AI">
+                        <i class="fa-solid fa-volume-high text-sm"></i>
+                    </button>
+                </div>
+                
+                <div id="quranContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[160px]">
+                    <div class="animate-pulse flex space-x-4">
+                        <div class="flex-1 space-y-4 py-1">
+                            <div class="h-4 bg-gray-500/30 rounded w-3/4 mx-auto"></div>
+                            <div class="h-4 bg-gray-500/30 rounded w-1/2 mx-auto"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-auto pt-4 border-t-2 border-[var(--theme-border)]">
+                    <button onclick="window.fetchQuran()" class="flex-1 py-3 rounded border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs uppercase tracking-wide">
+                        <i class="fa-solid fa-refresh mr-1"></i> Acak Ayat
+                    </button>
+                    <button onclick="window.openYasin()" class="flex-1 py-3 rounded border-2 border-emerald-600 bg-emerald-700/20 text-emerald-500 hover:bg-emerald-600 hover:text-white transition-colors font-bold text-xs uppercase tracking-wide">
+                        <i class="fa-solid fa-book-quran mr-1"></i> Baca Yasin
                     </button>
                 </div>
             </div>
 
-            <div class="w-full bg-[var(--theme-input-bg)] h-3 rounded-full overflow-hidden mt-4 border border-[var(--theme-border)]">
-                <div id="timeProgressBar" class="h-full bg-[var(--theme-gold)] w-0 transition-all duration-1000 ease-linear"></div>
-            </div>
-        </div>
-
-        <div class="lg:col-span-4 islamic-card p-0 flex flex-col">
-            <div class="p-4 border-b-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] flex justify-between items-center">
-                <h3 class="txt-gold font-bold text-sm uppercase tracking-widest">Asmaul Husna (99)</h3>
-                <i class="fa-solid fa-star-and-crescent txt-secondary"></i>
-            </div>
-            <div class="flex-1 flex items-center justify-center p-6 relative">
-                <div class="swiper asmaulSwiper w-full h-full">
-                    <div class="swiper-wrapper" id="asmaulWrapper"></div>
-                </div>
-                <button onclick="window.readAsmaulHusna()" class="absolute bottom-4 right-4 w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition z-20" title="Baca Asmaul Husna via AI">
-                    <i class="fa-solid fa-volume-high text-sm"></i>
-                </button>
-                <div class="swiper-button-next txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
-                <div class="swiper-button-prev txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="mb-12">
-        <h3 class="txt-primary font-luxury text-xl md:text-2xl mb-2 border-l-4 border-[var(--theme-gold)] pl-4 flex items-center font-bold">
-            Jadwal Sholat Hari Ini
-        </h3>
-        <p class="text-sm txt-secondary mb-6 pl-5 italic font-bold">*Waktu setempat. Data bersumber dari Sistem Informasi Bimas Islam Kemenag RI.</p>
-        
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="prayerGrid">
-            <div class="col-span-full py-12 text-center txt-secondary">
-                <i class="fa-solid fa-circle-notch fa-spin text-3xl txt-gold mb-3"></i>
-                <p class="text-sm uppercase tracking-widest font-bold">Sinkronisasi Waktu...</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="islamic-card p-6 mb-12 flex flex-col relative overflow-hidden">
-        <div class="absolute -right-10 -top-10 text-9xl text-emerald-600/10 rotate-12 pointer-events-none">
-            <i class="fa-solid fa-mosque"></i>
-        </div>
-        
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10 w-full mb-6 border-b-2 border-[var(--theme-border)] pb-4">
-            <div class="flex items-center gap-4">
-                <button id="radarMasjidBtn" class="w-16 h-16 rounded bg-[var(--theme-input-bg)] border-2 border-emerald-500 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-600 hover:text-white transition shadow-md group ai-btn-anim" onclick="window.scanNearbyMosque()" title="Cari Masjid Terdekat">
-                    <i class="fa-solid fa-mosque relative z-10 text-2xl"></i>
-                </button>
-                <div>
-                    <h3 class="txt-primary font-bold text-xl leading-tight">Radar Tempat Ibadah</h3>
-                    <p class="text-xs txt-secondary uppercase tracking-widest mt-1 font-bold">Pencarian & Navigasi Cerdas</p>
-                </div>
-            </div>
-            
-            <div id="liveTrackControl" class="hidden flex flex-col sm:flex-row items-end sm:items-center gap-3">
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 border-2 border-red-500 rounded font-bold shadow-sm">
-                    <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                    <span class="text-xs text-red-500 tracking-widest uppercase">Live Navigasi</span>
-                </div>
-                <button onclick="window.stopLiveTracking()" class="text-xs font-bold bg-[var(--theme-input-bg)] hover:bg-red-600 hover:text-white txt-secondary px-4 py-2 border-2 border-[var(--theme-border)] hover:border-red-600 rounded transition flex items-center gap-2">
-                    <i class="fa-solid fa-power-off"></i> Hentikan Navigasi
-                </button>
-            </div>
-        </div>
-        
-        <div class="flex flex-col lg:flex-row gap-6 relative z-10">
-            <div id="radarResult" class="flex-1 bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] p-5 rounded text-left min-h-[100px] flex flex-col justify-center">
-                <p class="text-sm txt-secondary italic leading-relaxed font-bold"><i class="fa-solid fa-circle-info text-emerald-500 mr-2"></i>Ketuk ikon radar di atas untuk memindai masjid atau mushola terdekat dari posisi Anda. Sistem akan memunculkan peta interaktif dan memandu arah perjalanan Anda secara akurat.</p>
-            </div>
-            
-            <div id="mapContainerWrapper" class="w-full lg:w-1/2 h-[250px] md:h-[300px] hidden rounded border-2 border-[var(--theme-border)] relative">
-                <div id="mapContainer" class="w-full h-full z-10 rounded"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-        <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold">
-                        <i class="fa-solid fa-book-open-reader"></i>
+            <div class="islamic-card p-6 flex flex-col relative">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold">
+                            <i class="fa-solid fa-feather-pointed"></i>
+                        </div>
+                        <h4 class="txt-primary font-bold text-base tracking-wide">Hadits Pilihan</h4>
                     </div>
-                    <h4 class="txt-primary font-bold text-base tracking-wide">Renungan Ayat Pilihan</h4>
+                    <button onclick="window.readHadits()" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition" title="Dengarkan Hadits via AI">
+                        <i class="fa-solid fa-volume-high text-sm"></i>
+                    </button>
                 </div>
-                <button onclick="window.readAyatPilihan()" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition" title="Dengarkan Ayat via AI">
-                    <i class="fa-solid fa-volume-high text-sm"></i>
-                </button>
-            </div>
-            
-            <div id="quranContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[160px]">
-                <div class="animate-pulse flex space-x-4">
-                    <div class="flex-1 space-y-4 py-1">
-                        <div class="h-4 bg-gray-500/30 rounded w-3/4 mx-auto"></div>
-                        <div class="h-4 bg-gray-500/30 rounded w-1/2 mx-auto"></div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="flex gap-3 mt-auto pt-4 border-t-2 border-[var(--theme-border)]">
-                <button onclick="window.fetchQuran()" class="flex-1 py-3 rounded border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs uppercase tracking-wide">
-                    <i class="fa-solid fa-refresh mr-1"></i> Acak Ayat
-                </button>
-                <button onclick="window.openYasin()" class="flex-1 py-3 rounded border-2 border-emerald-600 bg-emerald-700/20 text-emerald-500 hover:bg-emerald-600 hover:text-white transition-colors font-bold text-xs uppercase tracking-wide">
-                    <i class="fa-solid fa-book-quran mr-1"></i> Baca Yasin
-                </button>
-            </div>
-        </div>
 
-        <div class="islamic-card p-6 flex flex-col relative">
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold">
-                        <i class="fa-solid fa-feather-pointed"></i>
-                    </div>
-                    <h4 class="txt-primary font-bold text-base tracking-wide">Hadits Pilihan</h4>
+                <div id="haditsContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[120px]">
+                    <p class="text-sm txt-secondary text-center font-bold italic">Memuat hikmah hari ini...</p>
                 </div>
-                <button onclick="window.readHadits()" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition" title="Dengarkan Hadits via AI">
-                    <i class="fa-solid fa-volume-high text-sm"></i>
+                <button onclick="window.randomHadits()" class="w-full py-3 rounded border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs mt-auto uppercase tracking-wide">
+                    <i class="fa-solid fa-random mr-1"></i> Ganti Hadits
                 </button>
             </div>
 
-            <div id="haditsContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[120px]">
-                <p class="text-sm txt-secondary text-center font-bold italic">Memuat hikmah hari ini...</p>
+            <div class="islamic-card p-6 text-center relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform duration-100" onclick="window.countTasbih()">
+                <div class="absolute inset-0 bg-gradient-to-b from-[var(--theme-gold)]/0 to-[var(--theme-gold)]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                
+                <div class="flex items-center justify-center gap-2 mb-2 txt-secondary relative z-10">
+                    <i class="fa-solid fa-fingerprint txt-gold"></i> <span class="text-xs uppercase tracking-widest font-bold">Tasbih Digital</span>
+                </div>
+                
+                <div id="tasbihContainer" class="relative z-10 flex justify-center items-center h-32 my-4">
+                    <div id="tasbihBg" class="absolute w-32 h-32 bg-[var(--theme-gold)] rounded-full scale-0 transition-transform duration-300 opacity-0"></div>
+                    <div id="tasbihCount" class="text-7xl font-bold txt-primary select-none drop-shadow-md transition-all duration-200">0</div>
+                </div>
+                
+                <p class="text-xs txt-secondary font-bold italic relative z-10">Ketuk area kartu untuk bertasbih</p>
+                <button onclick="event.stopPropagation(); window.resetTasbih()" class="absolute top-4 right-4 txt-secondary hover:text-red-500 transition-colors z-20 bg-[var(--theme-input-bg)] p-3 border-2 border-[var(--theme-border)] rounded-full">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </button>
             </div>
-            <button onclick="window.randomHadits()" class="w-full py-3 rounded border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs mt-auto uppercase tracking-wide">
-                <i class="fa-solid fa-random mr-1"></i> Ganti Hadits
-            </button>
-        </div>
-
-        <div class="islamic-card p-6 text-center relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform duration-100" onclick="window.countTasbih()">
-            <div class="absolute inset-0 bg-gradient-to-b from-[var(--theme-gold)]/0 to-[var(--theme-gold)]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            
-            <div class="flex items-center justify-center gap-2 mb-2 txt-secondary relative z-10">
-                <i class="fa-solid fa-fingerprint txt-gold"></i> <span class="text-xs uppercase tracking-widest font-bold">Tasbih Digital</span>
-            </div>
-            
-            <div id="tasbihContainer" class="relative z-10 flex justify-center items-center h-32 my-4">
-                <div id="tasbihBg" class="absolute w-32 h-32 bg-[var(--theme-gold)] rounded-full scale-0 transition-transform duration-300 opacity-0"></div>
-                <div id="tasbihCount" class="text-7xl font-bold txt-primary select-none drop-shadow-md transition-all duration-200">0</div>
-            </div>
-            
-            <p class="text-xs txt-secondary font-bold italic relative z-10">Ketuk area kartu untuk bertasbih</p>
-            <button onclick="event.stopPropagation(); window.resetTasbih()" class="absolute top-4 right-4 txt-secondary hover:text-red-500 transition-colors z-20 bg-[var(--theme-input-bg)] p-3 border-2 border-[var(--theme-border)] rounded-full">
-                <i class="fa-solid fa-rotate-left"></i>
-            </button>
         </div>
     </div>
 </div>
