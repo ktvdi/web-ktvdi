@@ -10,15 +10,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 
 <style>
-    /* --- VARIABLES (WORLD CUP 2026 THEME) --- */
+    /* --- VARIABLES (CCTV PROFESSIONAL + WORLD CUP ACCENTS) --- */
     :root {
-        --primary: #ed1c24; /* Red WC */
+        --primary: #ed1c24; /* Red WC Accent */
         --primary-dark: #b91c1c;
-        --accent: #3b82f6; /* Blue WC */
-        --bg-body: #0a143c; /* Navy WC */
-        --surface: #101d4a; 
-        --surface-hover: #172a68; 
-        --border: rgba(255,255,255,0.1); 
+        --accent: #3b82f6; /* Blue Accent */
+        --bg-body: #020617; /* Very Dark Background to keep it Tech/Professional */
+        --surface: #0a143c; /* Navy WC for Cards/Surfaces */
+        --surface-hover: #101d4a; 
+        --border: rgba(59, 130, 246, 0.2); 
         --text-main: #f8fafc;
         --text-muted: #94a3b8;
     }
@@ -33,7 +33,7 @@
     /* --- UTILS --- */
     .premium-scroll::-webkit-scrollbar { width: 6px; }
     .premium-scroll::-webkit-scrollbar-track { background: transparent; }
-    .premium-scroll::-webkit-scrollbar-thumb { background-color: var(--accent); border-radius: 10px; opacity: 0.5; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: rgba(59, 130, 246, 0.3); border-radius: 10px; }
     .premium-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--primary); }
 
     /* --- MARQUEE --- */
@@ -41,23 +41,25 @@
     .marquee-content {
         display: inline-block; white-space: nowrap;
         animation: marquee-slide 60s linear infinite;
-        padding-left: 100%; font-size: 0.75rem; font-weight: 700; color: #cbd5e1;
+        padding-left: 100%; font-size: 0.75rem; font-weight: 600; color: #93c5fd;
     }
     @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
     /* --- PLAYER CARD --- */
     .player-card {
-        border-radius: 16px; overflow: hidden; background: #000;
-        box-shadow: 0 10px 40px -10px rgba(237, 28, 36, 0.25);
+        border-radius: 12px; /* Dikembalikan ke sudut profesional, tidak terlalu imut/bulat */
+        overflow: hidden; 
+        background: #000;
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.8);
         display: flex; flex-direction: column;
-        border: 2px solid var(--border);
+        border: 1px solid var(--border);
     }
      
     .player-header {
-        background: linear-gradient(135deg, #0a143c 0%, #1e3a8a 100%);
+        background: var(--surface);
         padding: 12px 16px; color: white;
         display: flex; justify-content: space-between; align-items: center;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     
     .cam-info-mobile {
@@ -86,7 +88,7 @@
     .accordion-group { 
         margin-bottom: 8px; 
         border: 1px solid var(--border); 
-        border-radius: 12px; 
+        border-radius: 8px; 
         background: var(--surface); 
         overflow: hidden; 
     }
@@ -95,30 +97,28 @@
         background: var(--surface); transition: all 0.2s;
     }
     .group-header:hover { background: var(--surface-hover); }
-    .group-header.active { background: #1e3a8a; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .group-title { font-size: 0.75rem; font-weight: 800; color: #93c5fd; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+    .group-header.active { background: #060b26; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .group-title { font-size: 0.75rem; font-weight: 800; color: #60a5fa; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
     .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: var(--surface); }
     .group-body.open { max-height: 5000px; }
 
-    /* --- LIST ITEM & LOGO --- */
+    /* --- LIST ITEM --- */
     .cam-item {
-        padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+        padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.02); cursor: pointer;
         display: flex; align-items: center; gap: 10px; transition: all 0.2s;
     }
     .cam-item:hover { background-color: var(--surface-hover); padding-left: 18px; }
-    .cam-item.active { background-color: #1e3a8a; border-left: 3px solid var(--primary); }
+    .cam-item.active { background-color: #060b26; border-left: 3px solid var(--primary); }
     .cam-item.active .cam-name { color: #ffffff; font-weight: 700; }
-    .cam-name { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); white-space: normal; line-height: 1.3; }
-    .cam-logo-img { width: 24px; height: 24px; object-fit: contain; border-radius: 6px; background: rgba(255,255,255,0.1); padding: 2px; }
+    .cam-item.active .play-icon { color: var(--primary) !important; }
+    .cam-name { font-size: 0.8rem; font-weight: 500; color: var(--text-muted); white-space: normal; line-height: 1.3; }
 
     /* --- LOADING ANIMATION --- */
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
-    @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 10px rgba(255,255,255,0.8)); } 50% { transform: scale(1.05); opacity: 0.7; } }
+    @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.7; } }
 
     /* --- RESOLUTION MONITOR --- */
-    .signal-container {
-        display: flex; flex-direction: column; align-items: flex-end;
-    }
+    .signal-container { display: flex; flex-direction: column; align-items: flex-end; }
     .signal-bars { display: flex; align-items: flex-end; gap: 2px; height: 10px; }
     .bar { width: 3px; background: #475569; border-radius: 1px; transition: height 0.3s, background 0.3s; }
     .bar.active { background: #22c55e; } 
@@ -126,7 +126,7 @@
     .bar:nth-child(2) { height: 6px; }
     .bar:nth-child(3) { height: 8px; }
     .bar:nth-child(4) { height: 10px; }
-    .net-label { font-size: 0.65rem; font-weight: 800; color: #93c5fd; margin-top: 1px; }
+    .net-label { font-size: 0.65rem; font-weight: 700; color: #64748b; margin-top: 1px; }
 
     /* --- RESPONSIVE LAYOUT --- */
     @media (min-width: 1024px) {
@@ -140,7 +140,6 @@
         .col-player { width: 100%; }
         .col-list { width: 100%; height: auto; }
         .list-scroll-area { height: auto; max-height: 500px; overflow-y: auto; }
-        
         .cam-info-mobile { max-width: 180px; }
         .cam-name-label { font-size: 0.85rem; }
     }
@@ -151,24 +150,24 @@
     }
 </style>
 
-<div class="min-h-screen w-full flex flex-col bg-[#0a143c] text-slate-200" id="main-content">
+<div class="min-h-screen w-full flex flex-col bg-[#020617] text-slate-200" id="main-content">
 
-    <nav class="bg-[#0a143c]/90 backdrop-blur-lg border-b border-blue-900 sticky top-0 z-50 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+    <nav class="bg-[#0a143c]/95 backdrop-blur-lg border-b border-blue-900/50 sticky top-0 z-50 shadow-lg shadow-black/40">
         <div class="max-w-[1920px] mx-auto px-4 lg:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="flex items-center gap-3 w-full md:w-auto navbar-brand">
-                <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-white/20 shrink-0 p-1 border border-white/50">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI CCTV" class="w-6 h-6 object-contain">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-900 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40 shrink-0 p-1 border border-blue-500/30">
+                    <img src="https://iili.io/f87539s.png" alt="KTVDI CCTV" class="w-6 h-6 object-contain brightness-0 invert">
                 </div>
                 <div class="flex-1 min-w-0">
-                    <h1 class="text-white font-extrabold text-lg tracking-tight leading-none uppercase">KTVDI <span class="text-[#ed1c24]">SMART CITY</span></h1>
-                    <p class="text-[10px] text-blue-200 font-bold mt-0.5 leading-snug">Portal LIVE CCTV terkini untuk memantau arus lalu lintas.</p>
+                    <h1 class="text-white font-extrabold text-lg tracking-tight leading-none">KTVDI <span class="text-blue-400">SMART CITY</span></h1>
+                    <p class="text-[10px] text-slate-400 font-medium mt-0.5 leading-snug">Portal LIVE CCTV terkini untuk memantau arus lalu lintas.</p>
                 </div>
             </div>
             <div class="relative w-full md:w-80 group">
                 <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-white transition-colors"></i>
+                    <i class="fa-solid fa-magnifying-glass text-slate-500 group-focus-within:text-blue-400 transition-colors"></i>
                 </div>
-                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-[#101d4a] border border-blue-800 text-white text-sm rounded-full py-2 pl-11 pr-5 focus:outline-none focus:border-[#ed1c24] focus:bg-[#0a143c] focus:ring-2 focus:ring-red-500/30 transition-all font-medium placeholder:text-blue-300 shadow-inner" placeholder="Cari lokasi kamera...">
+                <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-[#060b26] border border-blue-900/50 text-white text-sm rounded-full py-2 pl-11 pr-5 focus:outline-none focus:border-[#ed1c24] focus:bg-[#020617] focus:ring-2 focus:ring-red-500/30 transition-all font-medium placeholder:text-slate-500 shadow-inner" placeholder="Cari lokasi kamera...">
             </div>
         </div>
     </nav>
@@ -179,25 +178,22 @@
             <div class="player-card relative z-10">
                 <div class="player-header">
                     <div class="flex items-center gap-4 overflow-hidden">
-                        <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-[#ed1c24]/50 shrink-0">
+                        <div class="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-lg border border-red-500/30 shrink-0">
                             <span class="relative flex h-2 w-2">
                               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                              <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                              <span class="relative inline-flex rounded-full h-2 w-2 bg-[#ed1c24]"></span>
                             </span>
                             <span class="text-[9px] font-bold tracking-wider text-white">LIVE</span>
                         </div>
                         
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            <img id="active-cam-logo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo CCTV" class="w-8 h-8 rounded-full bg-white object-contain border-2 border-white/20 shadow-sm shrink-0 hidden sm:block">
-                            <div class="cam-info-mobile">
-                                <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
-                                <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
-                            </div>
+                        <div class="cam-info-mobile">
+                            <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
+                            <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
                         </div>
                     </div>
                      
-                    <div class="flex items-center gap-2 text-[10px] bg-blue-900/30 px-2 py-1 rounded border border-blue-500/30 shrink-0 shadow-inner ml-2">
-                         <i class="fa-solid fa-shield-halved text-[#ed1c24]"></i> <span class="hidden sm:inline text-white font-bold tracking-wider">SECURE</span>
+                    <div class="flex items-center gap-2 text-[10px] bg-white/5 px-2 py-1 rounded border border-white/10 shrink-0 shadow-inner">
+                         <i class="fa-solid fa-shield-halved text-emerald-400"></i> <span class="hidden sm:inline text-slate-200">Secure</span>
                     </div>
                 </div>
 
@@ -214,58 +210,60 @@
                         <i class="fa-solid fa-triangle-exclamation mr-2 text-yellow-300"></i>JALUR MENGALAMI KEPADATAN PARAH
                     </div>
 
-                    <div id="overlay-loading" class="absolute inset-0 bg-[#0a143c] z-40 flex flex-col items-center justify-center text-center p-4">
-                        <div class="relative w-24 h-24 mb-4 logo-pulse">
-                            <div class="absolute inset-0 bg-[#2563eb]/40 rounded-full blur-xl"></div>
-                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Loading" class="w-full h-full object-contain brightness-0 invert drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] relative z-10">
+                    <div id="overlay-loading" class="absolute inset-0 bg-[#020617] z-40 flex flex-col items-center justify-center text-center p-4">
+                        <div class="relative w-20 h-20 mb-4 logo-pulse">
+                            <div class="absolute inset-0 bg-blue-600/40 rounded-full blur-xl"></div>
+                            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Loading" class="w-full h-full object-contain brightness-0 invert drop-shadow-lg relative z-10">
                         </div>
-                        <h3 class="text-white font-black text-xl tracking-widest mb-1">KTVDI CCTV</h3>
-                        <p class="text-blue-300 text-xs font-bold animate-pulse">Menghubungkan ke Server Kamera...</p>
+                        <h3 class="text-white font-extrabold text-lg tracking-widest mb-1">KTVDI CCTV</h3>
+                        <p class="text-blue-400 text-xs font-semibold animate-pulse">Menghubungkan Kamera...</p>
                     </div>
 
                     <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm cursor-pointer transition-all hidden" onclick="startPlayback()">
-                        <div class="w-16 h-16 bg-[#ed1c24] border-2 border-white/40 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_20px_rgba(237,28,36,0.5)]">
+                        <div class="w-16 h-16 bg-white/10 border-2 border-white/40 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                             <i class="fa-solid fa-play text-white text-3xl ml-1"></i>
                         </div>
                     </div>
 
                     <div id="overlay-error" class="absolute inset-0 bg-[#0a143c] z-40 hidden flex flex-col items-center justify-center text-center px-6">
-                        <i class="fa-solid fa-video-slash text-slate-500 text-5xl mb-3"></i>
-                        <h4 class="text-white font-black text-lg mb-2">Kamera Offline</h4>
-                        <p class="text-blue-200 font-medium text-xs mb-4">Koneksi Internet dari Kamera terputus atau diblokir.</p>
-                        <p class="text-yellow-400 font-bold text-[10px] mb-2 hidden" id="http-warning">PENTING: Kamera ini menggunakan HTTP. Mohon izinkan "Insecure Content" di pengaturan browser Anda.</p>
-                        <button onclick="retryStream()" class="px-6 py-2.5 bg-[#ed1c24] hover:bg-red-700 text-white text-xs font-bold rounded-full shadow-[0_5px_15px_rgba(237,28,36,0.4)] transition-colors uppercase tracking-wider">Coba Lagi</button>
+                        <i class="fa-solid fa-video-slash text-slate-500 text-4xl mb-3"></i>
+                        <h4 class="text-white font-bold mb-2">Kamera Offline</h4>
+                        <p class="text-slate-400 text-xs mb-4">Koneksi Internet dari Kamera terputus atau diblokir.</p>
+                        <p class="text-yellow-500 text-[10px] mb-2 hidden" id="http-warning">PENTING: Kamera ini menggunakan HTTP. Mohon izinkan "Insecure Content" di pengaturan browser Anda agar bisa diputar.</p>
+                        <button onclick="retryStream()" class="px-6 py-2 bg-[#ed1c24] hover:bg-red-700 text-white text-xs font-bold rounded-full shadow-lg transition-colors tracking-wider uppercase">Coba Lagi</button>
                     </div>
                 </div>
 
-                <div class="bg-[#101d4a] px-4 py-2.5 flex items-center justify-between border-t border-blue-900 relative z-20">
+                <div class="bg-[#0a143c] px-4 py-2.5 flex items-center justify-between border-t border-blue-900/50 relative z-20">
                     <div class="flex items-center gap-3">
-                         <div id="default-status-text" class="text-[10px] text-blue-300 font-mono font-bold tracking-wider transition-all">PANTAUAN CCTV TERKINI</div>
+                         <div id="default-status-text" class="text-[10px] text-slate-400 font-mono tracking-wider transition-all">PANTAUAN CCTV TERKINI</div>
                          <div id="mobile-traffic-status" class="hidden text-[10px] font-bold tracking-wider transition-all"></div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button id="btn-volume" onclick="toggleMute()" class="text-blue-300 hover:text-white px-3 py-1.5 rounded hover:bg-blue-800 transition" title="Mute/Unmute">
+                        <button id="btn-volume" onclick="toggleMute()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-[#101d4a] transition" title="Mute/Unmute">
                             <i class="fa-solid fa-volume-xmark text-sm"></i>
                         </button>
-                        <button onclick="retryStream()" class="text-blue-300 hover:text-white px-3 py-1.5 rounded hover:bg-blue-800 transition" title="Reload"><i class="fa-solid fa-rotate-right text-sm"></i></button>
-                        <button onclick="toggleFullscreen()" class="text-blue-300 hover:text-white px-3 py-1.5 rounded hover:bg-blue-800 transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
+                        <button onclick="retryStream()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-[#101d4a] transition" title="Reload"><i class="fa-solid fa-rotate-right text-sm"></i></button>
+                        <button onclick="toggleFullscreen()" class="text-slate-400 hover:text-white px-3 py-1.5 rounded hover:bg-[#101d4a] transition" title="Fullscreen"><i class="fa-solid fa-expand text-sm"></i></button>
                     </div>
                 </div>
+
             </div>
 
-            <div class="mt-5 bg-[#101d4a] border border-blue-900 p-3 rounded-xl shadow-lg shadow-black/20 flex flex-col gap-3">
+            <div class="mt-5 bg-[#0a143c] border border-blue-900/50 p-3 rounded-xl shadow-lg shadow-black/20 flex flex-col gap-3">
                 <div class="flex flex-wrap justify-between items-center gap-3">
-                    <div class="flex items-center gap-3 bg-[#0a143c] px-3 py-2 rounded-lg border border-blue-800">
-                        <div class="w-8 h-8 rounded-full bg-[#1e3a8a] border border-blue-500 flex items-center justify-center text-white shadow-inner">
+                     
+                    <div class="flex items-center gap-3 bg-[#101d4a] px-3 py-2 rounded-lg border border-blue-800/50">
+                        <div class="w-8 h-8 rounded-full bg-[#0a143c] border border-blue-800 flex items-center justify-center text-blue-400 shadow-inner">
                             <i class="fa-regular fa-clock"></i>
                         </div>
                         <div>
                             <div id="digital-clock" class="text-white font-mono font-bold text-sm leading-none">00:00:00</div>
-                            <div id="date-display" class="text-[10px] text-blue-300 font-bold uppercase mt-0.5 tracking-wider">...</div>
+                            <div id="date-display" class="text-[10px] text-slate-400 font-semibold uppercase mt-0.5">...</div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3 bg-[#0a143c] px-3 py-2 rounded-lg border border-blue-800">
+                    <div class="flex items-center gap-3 bg-[#101d4a] px-3 py-2 rounded-lg border border-blue-800/50">
                         <div class="signal-container">
                             <div class="signal-bars" id="signal-meter">
                                 <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -273,27 +271,28 @@
                             <span class="net-label" id="resolution-display">DETECTING...</span>
                         </div>
                     </div>
+
                 </div>
                  
-                <div class="relative bg-[#0a143c] border border-blue-800 rounded-lg h-8 flex items-center overflow-hidden">
+                <div class="relative bg-[#101d4a] border border-blue-800/50 rounded-lg h-8 flex items-center overflow-hidden">
                     <div class="bg-[#ed1c24] h-full px-3 flex items-center justify-center shrink-0 z-10 shadow-lg"><i class="fa-solid fa-bullhorn text-white text-xs"></i></div>
                     <div class="marquee-container w-full bg-[#0a143c]">
-                        <div class="marquee-content text-blue-100">SELAMAT DATANG DI KTVDI SMARTCITY  //  FUNGSI UTAMA PENAYANGAN CCTV INI ADALAH UNTUK MEMUDAHKAN MASYARAKAT DALAM MEMANTAU KONDISI ARUS LALU LINTAS, SITUASI KEAMANAN, SERTA KETERTIBAN RUANG PUBLIK SECARA REAL-TIME  //  SEBAGAI PUSAT INFORMASI, KAMI MENAMPILKAN BEBERAPA TITIK LIVE CCTV YANG BERSUMBER DARI PEMERINTAH DAERAH, VENDOR, SERTA PEMPROV JATENG YANG BISA ANDA AKSES SECARA LANGSUNG  //  SELURUH ASET DAN LIVE STREAM ADALAH HAK CIPTA DARI MASING-MASING PEMILIK SUMBER ASLI, KAMI HANYA BERTINDAK SEBAGAI AGREGATOR LAYANAN  //  TERKAIT KEBIJAKAN PRIVASI, KAMI TIDAK MELAKUKAN PEREKAMAN VISUAL, PENYIMPANAN DATA PRIBADI, PENGENALAN WAJAH (FACIAL RECOGNITION), MAUPUN PELACAKAN IDENTITAS DARI VIDEO YANG DITAMPILKAN  //  TAYANGAN INI BERSIFAT STREAMING PUBLIK SATU ARAH YANG HANYA DITUJUKAN UNTUK KEPENTINGAN INFORMASI UMUM SERTA KESELAMATAN BERSAMA  //  GUNAKAN FASILITAS INI DENGAN BIJAK DAN TETAP PATUHI PERATURAN YANG BERLAKU DI RUANG PUBLIK   </div>
+                        <div class="marquee-content">SELAMAT DATANG DI KTVDI SMARTCITY  //  FUNGSI UTAMA PENAYANGAN CCTV INI ADALAH UNTUK MEMUDAHKAN MASYARAKAT DALAM MEMANTAU KONDISI ARUS LALU LINTAS, SITUASI KEAMANAN, SERTA KETERTIBAN RUANG PUBLIK SECARA REAL-TIME  //  SEBAGAI PUSAT INFORMASI, KAMI MENAMPILKAN BEBERAPA TITIK LIVE CCTV YANG BERSUMBER DARI PEMERINTAH DAERAH, VENDOR, SERTA PEMPROV JATENG YANG BISA ANDA AKSES SECARA LANGSUNG  //  SELURUH ASET DAN LIVE STREAM ADALAH HAK CIPTA DARI MASING-MASING PEMILIK SUMBER ASLI, KAMI HANYA BERTINDAK SEBAGAI AGREGATOR LAYANAN  //  TERKAIT KEBIJAKAN PRIVASI, KAMI TIDAK MELAKUKAN PEREKAMAN VISUAL, PENYIMPANAN DATA PRIBADI, PENGENALAN WAJAH (FACIAL RECOGNITION), MAUPUN PELACAKAN IDENTITAS DARI VIDEO YANG DITAMPILKAN  //  TAYANGAN INI BERSIFAT STREAMING PUBLIK SATU ARAH YANG HANYA DITUJUKAN UNTUK KEPENTINGAN INFORMASI UMUM SERTA KESELAMATAN BERSAMA  //  GUNAKAN FASILITAS INI DENGAN BIJAK DAN TETAP PATUHI PERATURAN YANG BERLAKU DI RUANG PUBLIK   </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <aside class="col-list bg-[#101d4a] rounded-xl border border-blue-900 shadow-xl shadow-black/40 relative z-10 overflow-hidden">
-            <div class="p-4 border-b border-blue-900 bg-[#0a143c] sticky top-0 z-20 flex justify-between items-center shadow-md">
+        <aside class="col-list bg-[#0a143c] rounded-xl border border-blue-900/50 shadow-xl shadow-black/40 relative z-10 overflow-hidden">
+            <div class="p-4 border-b border-blue-900/50 bg-[#0a143c] sticky top-0 z-20 flex justify-between items-center shadow-md">
                 <div>
-                    <h3 class="font-black text-white text-sm tracking-wide uppercase">Daftar Lokasi</h3>
-                    <p class="text-[10px] text-blue-300 font-bold">Pilih kota untuk melihat kamera</p>
+                    <h3 class="font-extrabold text-white text-sm uppercase tracking-wide">Daftar Lokasi</h3>
+                    <p class="text-[10px] text-blue-300">Pilih kota untuk melihat kamera</p>
                 </div>
-                <span class="text-[10px] bg-[#ed1c24] text-white px-3 py-1 rounded-full font-black shadow-md tracking-widest" id="total-cams">Loading...</span>
+                <span class="text-[10px] bg-[#ed1c24] text-white px-2.5 py-1 rounded-md font-bold shadow-md" id="total-cams">Loading...</span>
             </div>
-            <div id="camera-list-container" class="list-scroll-area premium-scroll p-2 bg-[#0a143c] shadow-inner"></div>
-            <div class="p-3 bg-[#0a143c] border-t border-blue-900 text-center text-[10px] text-blue-400 font-bold tracking-widest">© 2026 KTVDI NETWORK</div>
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-2 bg-[#020617] shadow-inner"></div>
+            <div class="p-3 bg-[#0a143c] border-t border-blue-900/50 text-center text-[10px] text-slate-500 font-medium tracking-widest">© 2026 KTVDI NETWORK</div>
         </aside>
 
     </div>
@@ -301,78 +300,74 @@
 
 <script>
     // ==========================================
-    // 1. DATA SOURCE LENGKAP 100% UTUH
-    // Ditambahkan logo spesifik Semarang (d6qnZTg.png)
+    // 1. DATA SOURCE LENGKAP 100% UTUH (390+ KAMERA)
     // ==========================================
-    const ktvdiLogo = "{{ url_for('static', filename='icons/icon-192.png') }}";
-    const semarangLogo = "https://iili.io/d6qnZTg.png";
-
     const streamSource = [
         // --- KOTA SEMARANG (NEW 64 CAMS) ---
-        {city: "KOTA SEMARANG", name: "ARAH TUGU TUNAS", url: "https://livepantau.semarangkota.go.id/1c874802-f4bd-47e6-8cd6-f14025691245/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "ARAH PANDANARAN", url: "https://livepantau.semarangkota.go.id/81585de0-f70c-4e95-a330-4b3886ad644a/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "DPU PAHLAWAN", url: "https://livepantau.semarangkota.go.id/51e354eb-e854-45de-995b-78a4be3d2cf9/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SIMPANG 5 1 360", url: "https://livepantau.semarangkota.go.id/60a2470e-dca8-4356-bb8a-5489e7bb0e15/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SIMPANG 5 2", url: "https://livepantau.semarangkota.go.id/01b239ba-f202-4c25-b999-aafd64281375/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SIMPANG TENTREM MALL", url: "https://livepantau.semarangkota.go.id/1ecaa846-da47-4eae-b239-6625325f56a6/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "GAJAHMADA", url: "https://livepantau.semarangkota.go.id/64ffd7f1-b0d6-412d-bfa9-6010365e9be8/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "BERGOTA 360", url: "https://livepantau.semarangkota.go.id/b72f8f10-915b-4cac-b8d8-750886a58806/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "THAMRIN PANDANARAN 360", url: "https://livepantau.semarangkota.go.id/e910f4f2-a77d-4cf8-8341-aa2e6c6b65c9/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SIMPANG THAMRIN", url: "https://livepantau.semarangkota.go.id/53c881b4-ef2f-41dd-9367-b4a7651bc168/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "BATHAN - THAMRIN", url: "https://livepantau.semarangkota.go.id/4cfc43e9-73a2-41e7-89d8-4f1132245876/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "KYAI SALEH", url: "https://livepantau.semarangkota.go.id/a10c85e5-a1ef-4041-9a0b-6c2e98c876bf/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "TITIK NOL KM", url: "https://livepantau.semarangkota.go.id/dc23feef-8cbd-4f67-8c46-382c691d5f09/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "BUKIT SARI", url: "https://livepantau.semarangkota.go.id/05b532ed-de45-4c94-9cf3-6cb9d4161169/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH", url: "https://livepantau.semarangkota.go.id/01f3980b-ff90-4505-8876-a3083767973a/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH WIDE", url: "https://livepantau.semarangkota.go.id/de90b316-e86b-4833-b27a-fa5fa3cb5501/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "COUNTING BANYUMANIK", url: "https://livepantau.semarangkota.go.id/87b22302-dd9e-483b-a11d-7ff2481f67e8/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA 2 WIDE", url: "https://livepantau.semarangkota.go.id/aceb3f67-76ea-443c-941d-0b27ad2bae9f/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA 3-2", url: "https://livepantau.semarangkota.go.id/a89ba74a-fdd9-4192-ae00-a99adea38932/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "DONBOSKO", url: "https://livepantau.semarangkota.go.id/4cf09eaf-df34-4047-b78a-8772f8208ad1/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SP.AKPOL", url: "https://livepantau.semarangkota.go.id/18f688f5-1489-4459-9ce4-d5549a4da59b/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "BUNDARAN DIPONEGORO", url: "https://livepantau.semarangkota.go.id/d272202d-046b-4327-b9d5-ff958c22725e/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "EXIT TOL KRAPYAK", url: "https://livepantau.semarangkota.go.id/79f0b673-df1b-470f-b3f1-5a81c7d2c578/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "PASAR KAMBING 360", url: "https://livepantau.semarangkota.go.id/118aa9fe-ed24-427a-80e2-7f5bd75277da/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "PETERONGAN", url: "https://livepantau.semarangkota.go.id/0d167ccf-9405-42fc-8896-7906c23b70a9/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "MILO", url: "https://livepantau.semarangkota.go.id/79c24687-f5f7-4822-8a5a-9007af0d7a09/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "BANGKONG", url: "https://livepantau.semarangkota.go.id/bca0b6e3-434f-4617-a8d1-7de8dee4a1d8/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "MT HARYONO", url: "https://livepantau.semarangkota.go.id/df53c838-efa5-460d-8f41-8a399e137c3b/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SRIWIJAYA 02", url: "https://livepantau.semarangkota.go.id/66632103-6b19-4f55-97b9-1d4ea18bb7c0/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SRIWIJAYA 01", url: "https://livepantau.semarangkota.go.id/481481b7-c444-499f-b32e-7445c29f48e9/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "KI MANGUN SARKORO", url: "https://livepantau.semarangkota.go.id/47159b17-2776-4509-a9cd-363062084d80/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "POLDA 360", url: "https://livepantau.semarangkota.go.id/a8da81c4-d251-40fd-9bad-993cfae8c1ac/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 01", url: "https://livepantau.semarangkota.go.id/ce7f738e-7e30-4e64-888c-1bd22062f225/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 02", url: "https://livepantau.semarangkota.go.id/a5e69eea-cd60-4cb1-a51a-209ec3704a71/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "PAHLAWAN 180", url: "https://livepantau.semarangkota.go.id/67e8ae0e-2ca1-4074-84fb-6a76503cd792/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "METRO JOHAR", url: "https://livepantau.semarangkota.go.id/c7340916-43bd-46fa-a85f-48dd05d85d1c/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "PEMUDA - GAJAHMADA", url: "https://livepantau.semarangkota.go.id/10d35089-abda-4772-ac32-6f15e53328ce/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "INDAPRASTA - IMAM BONJOL", url: "https://livepantau.semarangkota.go.id/c17d3f13-338a-4656-b555-1dd1a18153f3/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "KALIGARANG", url: "https://livepantau.semarangkota.go.id/82226691-f696-41eb-8a74-8b3c9d78b595/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA 2", url: "https://livepantau.semarangkota.go.id/123d07e9-fc3c-4893-85ba-cc4a51a3905e/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA 3", url: "https://livepantau.semarangkota.go.id/3cd13e1a-22fd-48b4-8928-33edc5044595/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA", url: "https://livepantau.semarangkota.go.id/41cc4b59-c86f-4307-939c-13a2026ff606/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "BUNDARAN MADUKORO", url: "https://livepantau.semarangkota.go.id/114bad06-4fc9-4c14-9c07-4d16720918c4/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "KALIBANTENG", url: "https://livepantau.semarangkota.go.id/516e0b27-49d0-41bc-924b-da7e07d389af/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "KALIBANTENG 2", url: "https://livepantau.semarangkota.go.id/1ba1a3b8-ff0b-4bbe-a1a1-ebb3ab40e6ed/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "HANOMAN", url: "https://livepantau.semarangkota.go.id/24d5674c-1193-4a41-a101-2a8bb6d7898c/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "COUNTING KRAPYAK", url: "https://livepantau.semarangkota.go.id/6237c48f-a8e8-46f8-bb7b-93641bb4fa8f/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "JRAKAH", url: "https://livepantau.semarangkota.go.id/b8f42795-4dbd-4712-9329-880e097fc614/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "DPU KEL WONOSARI", url: "https://livepantau.semarangkota.go.id/6c239119-5ac2-49e3-8bf0-22f583e2bbdc/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "BEA CUKAI", url: "https://livepantau.semarangkota.go.id/2d79e358-6c83-49f0-83c2-77bf8d1c0e3d/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "COUNTING EXIT SRONDOL", url: "https://livepantau.semarangkota.go.id/fdd31466-0281-4077-8415-a9a35c68c62f/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "COUNTING KIW", url: "https://livepantau.semarangkota.go.id/237ce305-7d7f-4c54-936b-98c7d18b04ec/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "JEMBATAN MBEROK", url: "https://livepantau.semarangkota.go.id/110c0652-bc7a-410b-9308-239ebd3e9e5c/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "PINTU MASUK LAWANG SEWU", url: "https://livepantau.semarangkota.go.id/c2e3af25-28cf-4e22-bad5-929fb60c368d/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 1", url: "https://livepantau.semarangkota.go.id/dac40f89-b786-4c67-99de-bc7e0c76c405/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 2", url: "https://livepantau.semarangkota.go.id/923bddf8-fcad-4583-a4db-1b1534fc8521/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 3", url: "https://livepantau.semarangkota.go.id/39bc6ec9-dd8c-474b-9605-f5b28232c550/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "GOA KREO 1", url: "https://livepantau.semarangkota.go.id/6ca1e29d-a022-4cbe-b676-128662304bfa/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "GOA KREO 2", url: "https://livepantau.semarangkota.go.id/51a48a8b-d271-420c-9640-e9ea816fb6e1/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "DEPAN OUDETRAP", url: "https://livepantau.semarangkota.go.id/458af900-91fe-49bc-afe0-5b70ae8e39f8/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "GEREJA BLENDUK", url: "https://livepantau.semarangkota.go.id/ea40ab3a-0362-4633-87a6-fbce5c8c2f93/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SRI GUNTING 1", url: "https://livepantau.semarangkota.go.id/acd57d3c-11cc-49df-980e-d510f7ed0164/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SRI GUNTING 3", url: "https://livepantau.semarangkota.go.id/78e2cf6b-6e09-426d-b7e1-ae12be415439/index.m3u8", logo: semarangLogo},
-        {city: "KOTA SEMARANG", name: "SRI GUNTING 2", url: "https://livepantau.semarangkota.go.id/5714aae6-e185-4bdb-bc80-6ab438c27799/index.m3u8", logo: semarangLogo},
+        {city: "KOTA SEMARANG", name: "ARAH TUGU TUNAS", url: "https://livepantau.semarangkota.go.id/1c874802-f4bd-47e6-8cd6-f14025691245/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "ARAH PANDANARAN", url: "https://livepantau.semarangkota.go.id/81585de0-f70c-4e95-a330-4b3886ad644a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU PAHLAWAN", url: "https://livepantau.semarangkota.go.id/51e354eb-e854-45de-995b-78a4be3d2cf9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG 5 1 360", url: "https://livepantau.semarangkota.go.id/60a2470e-dca8-4356-bb8a-5489e7bb0e15/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG 5 2", url: "https://livepantau.semarangkota.go.id/01b239ba-f202-4c25-b999-aafd64281375/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG TENTREM MALL", url: "https://livepantau.semarangkota.go.id/1ecaa846-da47-4eae-b239-6625325f56a6/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GAJAHMADA", url: "https://livepantau.semarangkota.go.id/64ffd7f1-b0d6-412d-bfa9-6010365e9be8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BERGOTA 360", url: "https://livepantau.semarangkota.go.id/b72f8f10-915b-4cac-b8d8-750886a58806/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "THAMRIN PANDANARAN 360", url: "https://livepantau.semarangkota.go.id/e910f4f2-a77d-4cf8-8341-aa2e6c6b65c9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG THAMRIN", url: "https://livepantau.semarangkota.go.id/53c881b4-ef2f-41dd-9367-b4a7651bc168/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BATHAN - THAMRIN", url: "https://livepantau.semarangkota.go.id/4cfc43e9-73a2-41e7-89d8-4f1132245876/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KYAI SALEH", url: "https://livepantau.semarangkota.go.id/a10c85e5-a1ef-4041-9a0b-6c2e98c876bf/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TITIK NOL KM", url: "https://livepantau.semarangkota.go.id/dc23feef-8cbd-4f67-8c46-382c691d5f09/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BUKIT SARI", url: "https://livepantau.semarangkota.go.id/05b532ed-de45-4c94-9cf3-6cb9d4161169/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH", url: "https://livepantau.semarangkota.go.id/01f3980b-ff90-4505-8876-a3083767973a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH WIDE", url: "https://livepantau.semarangkota.go.id/de90b316-e86b-4833-b27a-fa5fa3cb5501/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING BANYUMANIK", url: "https://livepantau.semarangkota.go.id/87b22302-dd9e-483b-a11d-7ff2481f67e8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 2 WIDE", url: "https://livepantau.semarangkota.go.id/aceb3f67-76ea-443c-941d-0b27ad2bae9f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 3-2", url: "https://livepantau.semarangkota.go.id/a89ba74a-fdd9-4192-ae00-a99adea38932/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DONBOSKO", url: "https://livepantau.semarangkota.go.id/4cf09eaf-df34-4047-b78a-8772f8208ad1/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SP.AKPOL", url: "https://livepantau.semarangkota.go.id/18f688f5-1489-4459-9ce4-d5549a4da59b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BUNDARAN DIPONEGORO", url: "https://livepantau.semarangkota.go.id/d272202d-046b-4327-b9d5-ff958c22725e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "EXIT TOL KRAPYAK", url: "https://livepantau.semarangkota.go.id/79f0b673-df1b-470f-b3f1-5a81c7d2c578/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PASAR KAMBING 360", url: "https://livepantau.semarangkota.go.id/118aa9fe-ed24-427a-80e2-7f5bd75277da/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PETERONGAN", url: "https://livepantau.semarangkota.go.id/0d167ccf-9405-42fc-8896-7906c23b70a9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "MILO", url: "https://livepantau.semarangkota.go.id/79c24687-f5f7-4822-8a5a-9007af0d7a09/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BANGKONG", url: "https://livepantau.semarangkota.go.id/bca0b6e3-434f-4617-a8d1-7de8dee4a1d8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "MT HARYONO", url: "https://livepantau.semarangkota.go.id/df53c838-efa5-460d-8f41-8a399e137c3b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRIWIJAYA 02", url: "https://livepantau.semarangkota.go.id/66632103-6b19-4f55-97b9-1d4ea18bb7c0/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRIWIJAYA 01", url: "https://livepantau.semarangkota.go.id/481481b7-c444-499f-b32e-7445c29f48e9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KI MANGUN SARKORO", url: "https://livepantau.semarangkota.go.id/47159b17-2776-4509-a9cd-363062084d80/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "POLDA 360", url: "https://livepantau.semarangkota.go.id/a8da81c4-d251-40fd-9bad-993cfae8c1ac/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 01", url: "https://livepantau.semarangkota.go.id/ce7f738e-7e30-4e64-888c-1bd22062f225/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 02", url: "https://livepantau.semarangkota.go.id/a5e69eea-cd60-4cb1-a51a-209ec3704a71/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN 180", url: "https://livepantau.semarangkota.go.id/67e8ae0e-2ca1-4074-84fb-6a76503cd792/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "METRO JOHAR", url: "https://livepantau.semarangkota.go.id/c7340916-43bd-46fa-a85f-48dd05d85d1c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PEMUDA - GAJAHMADA", url: "https://livepantau.semarangkota.go.id/10d35089-abda-4772-ac32-6f15e53328ce/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "INDAPRASTA - IMAM BONJOL", url: "https://livepantau.semarangkota.go.id/c17d3f13-338a-4656-b555-1dd1a18153f3/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIGARANG", url: "https://livepantau.semarangkota.go.id/82226691-f696-41eb-8a74-8b3c9d78b595/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 2", url: "https://livepantau.semarangkota.go.id/123d07e9-fc3c-4893-85ba-cc4a51a3905e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA 3", url: "https://livepantau.semarangkota.go.id/3cd13e1a-22fd-48b4-8928-33edc5044595/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA", url: "https://livepantau.semarangkota.go.id/41cc4b59-c86f-4307-939c-13a2026ff606/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BUNDARAN MADUKORO", url: "https://livepantau.semarangkota.go.id/114bad06-4fc9-4c14-9c07-4d16720918c4/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIBANTENG", url: "https://livepantau.semarangkota.go.id/516e0b27-49d0-41bc-924b-da7e07d389af/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIBANTENG 2", url: "https://livepantau.semarangkota.go.id/1ba1a3b8-ff0b-4bbe-a1a1-ebb3ab40e6ed/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "HANOMAN", url: "https://livepantau.semarangkota.go.id/24d5674c-1193-4a41-a101-2a8bb6d7898c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING KRAPYAK", url: "https://livepantau.semarangkota.go.id/6237c48f-a8e8-46f8-bb7b-93641bb4fa8f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JRAKAH", url: "https://livepantau.semarangkota.go.id/b8f42795-4dbd-4712-9329-880e097fc614/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU KEL WONOSARI", url: "https://livepantau.semarangkota.go.id/6c239119-5ac2-49e3-8bf0-22f583e2bbdc/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BEA CUKAI", url: "https://livepantau.semarangkota.go.id/2d79e358-6c83-49f0-83c2-77bf8d1c0e3d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING EXIT SRONDOL", url: "https://livepantau.semarangkota.go.id/fdd31466-0281-4077-8415-a9a35c68c62f/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING KIW", url: "https://livepantau.semarangkota.go.id/237ce305-7d7f-4c54-936b-98c7d18b04ec/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN MBEROK", url: "https://livepantau.semarangkota.go.id/110c0652-bc7a-410b-9308-239ebd3e9e5c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PINTU MASUK LAWANG SEWU", url: "https://livepantau.semarangkota.go.id/c2e3af25-28cf-4e22-bad5-929fb60c368d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 1", url: "https://livepantau.semarangkota.go.id/dac40f89-b786-4c67-99de-bc7e0c76c405/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 2", url: "https://livepantau.semarangkota.go.id/923bddf8-fcad-4583-a4db-1b1534fc8521/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JEMBATAN KACA TINJOMOYO 3", url: "https://livepantau.semarangkota.go.id/39bc6ec9-dd8c-474b-9605-f5b28232c550/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GOA KREO 1", url: "https://livepantau.semarangkota.go.id/6ca1e29d-a022-4cbe-b676-128662304bfa/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GOA KREO 2", url: "https://livepantau.semarangkota.go.id/51a48a8b-d271-420c-9640-e9ea816fb6e1/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DEPAN OUDETRAP", url: "https://livepantau.semarangkota.go.id/458af900-91fe-49bc-afe0-5b70ae8e39f8/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GEREJA BLENDUK", url: "https://livepantau.semarangkota.go.id/ea40ab3a-0362-4633-87a6-fbce5c8c2f93/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRI GUNTING 1", url: "https://livepantau.semarangkota.go.id/acd57d3c-11cc-49df-980e-d510f7ed0164/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRI GUNTING 3", url: "https://livepantau.semarangkota.go.id/78e2cf6b-6e09-426d-b7e1-ae12be415439/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRI GUNTING 2", url: "https://livepantau.semarangkota.go.id/5714aae6-e185-4bdb-bc80-6ab438c27799/index.m3u8"},
 
         // --- KAB. GROBOGAN ---
         {city: "KAB. GROBOGAN", name: "DEPAN SMAN 1 PURWODADI", url: "https://stream.dishub.grobogan.go.id/memfs/fa108bdc-0a01-416b-a47a-5d1f9131a1cf.m3u8"},
@@ -991,7 +986,7 @@
     const errorOverlay = document.getElementById('overlay-error');
     const playOverlay = document.getElementById('overlay-play');
     const httpWarning = document.getElementById('http-warning');
-    const activeCamLogo = document.getElementById('active-cam-logo'); // Element logo pada header desktop
+    const activeCamLogo = document.getElementById('active-cam-logo');
 
     video.addEventListener('loadedmetadata', updateResolutionDisplay);
     video.addEventListener('resize', updateResolutionDisplay);
@@ -1030,7 +1025,7 @@
         statusCity.innerText = stream.city;
         statusName.innerText = stream.name;
         
-        // Update Logo Header berdasarkan lokasi
+        // Update Logo Header
         if(activeCamLogo) {
             activeCamLogo.src = stream.logo || ktvdiLogo;
         }
@@ -1181,7 +1176,6 @@
                 row.id = `cam-${item.originalIndex}`;
                 row.onclick = () => loadStream(item.originalIndex);
                 
-                // Set the logo visual for each item
                 let itemLogo = item.logo ? item.logo : ktvdiLogo;
                 row.innerHTML = `<img src="${itemLogo}" class="cam-logo-img"><span class="cam-name flex-1">${item.name}</span>`;
                 body.appendChild(row);
