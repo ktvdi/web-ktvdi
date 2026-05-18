@@ -117,14 +117,6 @@
     .digital-unit {
         font-size: 1.2rem; color: #94a3b8; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px; z-index: 2;
     }
-    
-    /* Indikator Transmisi (Gear) & ECO */
-    .gear-indicator {
-        display: flex; gap: 15px; margin-top: 20px; z-index: 2;
-        font-weight: 900; font-size: 1.2rem; color: #475569;
-    }
-    .gear-item.active { color: #38bdf8; text-shadow: 0 0 10px #38bdf8; transform: scale(1.2); }
-    .gear-item.active-d { color: #10b981; text-shadow: 0 0 10px #10b981; transform: scale(1.2); }
 
     .eco-indicator {
         position: absolute; top: 20px; right: 20px;
@@ -139,7 +131,7 @@
         position: absolute; top: 15px; left: 15px; right: 15px;
         background: #dc2626; border: 2px solid #991b1b;
         color: #ffffff; padding: 12px; border-radius: 8px;
-        font-size: 0.75rem; font-weight: 900; text-align: center;
+        font-size: 0.70rem; font-weight: 900; text-align: center;
         text-transform: uppercase; letter-spacing: 0.5px;
         animation: blink-red 0.8s infinite;
         z-index: 10;
@@ -151,12 +143,22 @@
         50% { background: #991b1b; border-color: #dc2626; }
     }
 
+    /* === SPEED TEST WIDGET === */
+    .st-box {
+        background: #0b0f19; border: 1px solid #1e293b;
+        border-radius: 8px; padding: 12px 16px; 
+        display: flex; justify-content: space-between; align-items: center;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    }
+    .st-label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin: 0;}
+    .st-value { font-size: 1.3rem; font-weight: 900; color: #f8fafc; font-family: monospace; margin: 0;}
+
     /* === MAP STYLES (DARK MODE) === */
     #map {
         height: 100%;
         min-height: 400px;
         width: 100%;
-        background-color: #0b0f19;
+        background-color: #12151c;
         z-index: 1;
     }
     @media (min-width: 1024px) {
@@ -170,13 +172,13 @@
 
     .btn-center-map {
         position: absolute; bottom: 20px; right: 20px; z-index: 400;
-        background: #f8fafc; border: 2px solid #94a3b8;
-        color: #0f172a; padding: 10px 20px; border-radius: 8px;
+        background: #ffffff; border: 1px solid #cbd5e1;
+        color: #0f172a; padding: 10px 20px; border-radius: 4px;
         font-size: 0.85rem; font-weight: 900; cursor: pointer;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
     }
-    .btn-center-map:hover { background: #cbd5e1; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6); }
+    .btn-center-map:hover { background: #e2e8f0; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6); }
 
     /* === LIST ITEMS (DASHBOARD LOG) === */
     .list-item-custom {
@@ -199,7 +201,7 @@
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#0f172a] border border-[#334155] text-[#38bdf8] text-[9px] font-black tracking-widest uppercase mb-3 shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)]">
                     <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_#22c55e]"></div> SATELIT AKTIF
                 </div>
-                <h1 class="text-3xl md:text-5xl font-black tracking-tighter leading-none uppercase italic transform -skew-x-12" style="text-shadow: 3px 3px 0 #000, 5px 5px 15px rgba(0,0,0,0.8);">
+                <h1 class="text-3xl md:text-5xl font-black tracking-tighter leading-none uppercase" style="text-shadow: 2px 2px 0 #000, 4px 4px 10px rgba(0,0,0,0.8);">
                     <span class="text-slate-100">KTVDI</span> 
                     <span class="text-slate-400">MAPS</span>
                     <span class="text-red-600">CITY</span>
@@ -227,32 +229,42 @@
 
                         <div id="speedWarning" class="speed-warning">
                             <i class="fa-solid fa-triangle-exclamation text-xl mb-1 text-white animate-bounce"></i><br>
-                            KECEPATAN TINGGI!<br>GUNAKAN SABUK / HELM SNI.
+                            Terdeteksi Kecepatan Tinggi!<br>Pastikan sudah menggunakan Sabuk Keselamatan atau Helm SNI.
                         </div>
 
                         <div class="digital-speed" id="speedVal">0</div>
-                        <div class="digital-unit">KM/JAM</div>
+                        <div class="digital-unit mb-1">KM/JAM</div>
                         
-                        <div class="gear-indicator" id="gearStatus">
-                            <span class="gear-item active" id="gear-p">P</span>
-                            <span class="gear-item" id="gear-r">R</span>
-                            <span class="gear-item" id="gear-n">N</span>
-                            <span class="gear-item" id="gear-d">D</span>
-                        </div>
+                        <div id="driveMode" class="text-lg font-black tracking-widest" style="color: #94a3b8;">DIAM</div>
 
                         <div class="absolute bottom-4 left-4 right-4 flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-[#0b0f19] px-3 py-2 rounded-lg border border-[#1e293b]">
-                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-arrows-to-circle text-slate-500"></i> Mode: <span class="text-white">AUTO</span></span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-mountain text-emerald-500"></i> ELEVASI: <span id="altVal" class="text-white">---</span></span>
                             <span class="flex items-center gap-1.5"><i class="fa-regular fa-compass text-[#38bdf8]"></i> <span id="headingVal" class="text-white">---</span></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="dash-panel h-[350px]">
-                    <div class="panel-header justify-between">
-                        <span class="flex items-center gap-2 text-slate-300"><i class="fa-solid fa-network-wired text-[#a855f7]"></i> DIAGNOSTIK JARINGAN</span>
+                <div class="dash-panel h-[350px] flex flex-col">
+                    <div class="panel-header text-[#a855f7] justify-between">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-network-wired"></i> DIAGNOSTIK JARINGAN</span>
+                        <button onclick="runSpeedTest()" id="btn-speedtest" class="bg-[#a855f7]/20 text-[#a855f7] hover:bg-[#a855f7] hover:text-white border border-[#a855f7]/50 px-3 py-1 rounded text-[9px] transition font-bold uppercase cursor-pointer disabled:opacity-50">Uji Koneksi</button>
                     </div>
-                    <div class="w-full h-full bg-[#0b0f19] relative overflow-hidden">
-                        <iframe src="https://openspeedtest.com/speedtest" width="100%" height="100%" frameborder="0" loading="lazy" class="absolute inset-0"></iframe>
+                    <div class="p-4 grid grid-cols-1 gap-3 flex-1">
+                        <div class="st-box">
+                            <p class="st-label flex items-center"><i class="fa-solid fa-tower-broadcast text-slate-400 mr-2"></i> PING</p>
+                            <p class="st-value text-slate-300" id="st-ping">-- <span class="text-[10px] text-slate-500 font-sans">ms</span></p>
+                        </div>
+                        <div class="st-box">
+                            <p class="st-label flex items-center"><i class="fa-solid fa-download text-[#38bdf8] mr-2"></i> UNDUH</p>
+                            <p class="st-value text-[#38bdf8]" id="st-dl">-- <span class="text-[10px] text-slate-500 font-sans">Mbps</span></p>
+                        </div>
+                        <div class="st-box">
+                            <p class="st-label flex items-center"><i class="fa-solid fa-upload text-[#a855f7] mr-2"></i> UNGGAH</p>
+                            <p class="st-value text-[#a855f7]" id="st-ul">-- <span class="text-[10px] text-slate-500 font-sans">Mbps</span></p>
+                        </div>
+                    </div>
+                    <div class="h-1.5 w-full bg-[#1e293b]">
+                        <div id="st-progress" class="h-full bg-gradient-to-r from-[#38bdf8] to-[#a855f7] w-0 transition-all duration-200"></div>
                     </div>
                 </div>
 
@@ -363,12 +375,12 @@
         });
 
         const foodIcon = L.divIcon({
-            html: '<div class="w-7 h-7 bg-amber-500 text-white rounded-full flex items-center justify-center text-[11px] border-2 border-[#0f172a] shadow-lg"><i class="fa-solid fa-utensils"></i></div>',
+            html: '<div class="w-7 h-7 bg-amber-500 text-white rounded-full flex items-center justify-center text-[11px] border-2 border-[#0f172a] shadow-lg"><i class="fa-solid fa-burger"></i></div>',
             className: '', iconSize: [28, 28]
         });
 
         const tourIcon = L.divIcon({
-            html: '<div class="w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[11px] border-2 border-[#0f172a] shadow-lg"><i class="fa-solid fa-camera"></i></div>',
+            html: '<div class="w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[11px] border-2 border-[#0f172a] shadow-lg"><i class="fa-solid fa-tree"></i></div>',
             className: '', iconSize: [28, 28]
         });
 
@@ -379,12 +391,10 @@
         const warningEl = document.getElementById('speedWarning');
         const speedValEl = document.getElementById('speedVal');
         const headingValEl = document.getElementById('headingVal');
+        const altValEl = document.getElementById('altVal');
+        const driveModeEl = document.getElementById('driveMode');
         const accuracyBadge = document.getElementById('gps-accuracy-badge');
         const ecoIndicator = document.getElementById('ecoIndicator');
-        const gearP = document.getElementById('gear-p');
-        const gearR = document.getElementById('gear-r');
-        const gearN = document.getElementById('gear-n');
-        const gearD = document.getElementById('gear-d');
 
         function getDirection(heading) {
             if(heading === null || isNaN(heading)) return "N/A";
@@ -392,28 +402,32 @@
             return dirs[Math.round(heading / 45) % 8] + ` (${Math.round(heading)}°)`;
         }
 
-        function setGear(mode) {
-            [gearP, gearR, gearN, gearD].forEach(g => g.className = "gear-item");
-            if(mode === 'P') gearP.className = "gear-item active";
-            if(mode === 'D') gearD.className = "gear-item active-d";
-        }
-
-        function updateLocationLogic(lat, lon, speedKmh, heading, source) {
+        function updateLocationLogic(lat, lon, speedKmh, heading, altitude, source) {
             myLat = lat; myLon = lon;
             
-            // Update Speed & Heading
+            // Update Speed, Heading, Altitude
             speedValEl.innerText = speedKmh;
             headingValEl.innerText = getDirection(heading);
+            altValEl.innerText = (altitude !== null && !isNaN(altitude)) ? Math.round(altitude) + " MDPL" : "N/A";
             
-            // Update Gear & Eco Mode
-            if(speedKmh > 0) {
-                setGear('D');
-                if(speedKmh > 80) ecoIndicator.style.opacity = '0'; // ECO Off
-                else ecoIndicator.style.opacity = '1'; // ECO On
-            } else {
-                setGear('P');
-                ecoIndicator.style.opacity = '1';
-            }
+            // Logika Drive Mode Teks
+            let modeText = "DIAM";
+            let modeColor = "#94a3b8"; // Slate
+            
+            if (speedKmh > 105) { modeText = "SUPER NGEBUT"; modeColor = "#ea002a"; } // Red
+            else if (speedKmh >= 80) { modeText = "NGEBUT"; modeColor = "#f97316"; } // Orange
+            else if (speedKmh >= 60) { modeText = "CEPAT"; modeColor = "#eab308"; } // Yellow
+            else if (speedKmh >= 30) { modeText = "STANDAR"; modeColor = "#10b981"; } // Green
+            else if (speedKmh > 5) { modeText = "PELAN"; modeColor = "#38bdf8"; } // Blue
+            else { modeText = "DIAM"; modeColor = "#94a3b8"; }
+            
+            driveModeEl.innerText = modeText;
+            driveModeEl.style.color = modeColor;
+            driveModeEl.style.textShadow = `0 0 15px ${modeColor}`;
+
+            // Update Eco Mode
+            if(speedKmh > 80) ecoIndicator.style.opacity = '0'; // ECO Off
+            else ecoIndicator.style.opacity = '1'; // ECO On
             
             // Update Status GPS Label
             if(source === 'GPS') {
@@ -467,11 +481,12 @@
                 if (speedMs === null || speedMs < 0) speedMs = 0;
                 let speedKmh = Math.round(speedMs * 3.6);
                 let heading = pos.coords.heading; 
+                let altitude = pos.coords.altitude;
 
                 // --- UNCOMMENT UNTUK SIMULASI JIKA DITEST DI LAPTOP DIAM ---
-                // speedKmh = Math.floor(Math.random() * 100); heading = Math.floor(Math.random() * 360);
+                // speedKmh = Math.floor(Math.random() * 120); heading = Math.floor(Math.random() * 360); altitude = Math.floor(Math.random() * 500);
 
-                updateLocationLogic(pos.coords.latitude, pos.coords.longitude, speedKmh, heading, 'GPS');
+                updateLocationLogic(pos.coords.latitude, pos.coords.longitude, speedKmh, heading, altitude, 'GPS');
             }, (err) => {
                 console.warn("GPS Ditolak/Error, Fallback IP...", err.message);
                 fallbackToIPLocation(); 
@@ -484,12 +499,15 @@
         function fallbackToIPLocation() {
             if(myLat !== null) return; 
             headingValEl.innerText = "IP BASE";
+            altValEl.innerText = "N/A";
+            driveModeEl.innerText = "DIAM";
+            driveModeEl.style.color = "#94a3b8";
             
             fetch('https://ipapi.co/json/')
                 .then(res => res.json())
                 .then(data => {
                     if(data.latitude && data.longitude) {
-                        updateLocationLogic(data.latitude, data.longitude, 0, null, 'IP');
+                        updateLocationLogic(data.latitude, data.longitude, 0, null, null, 'IP');
                     }
                 })
                 .catch(e => {
@@ -581,6 +599,7 @@
             list.forEach(p => {
                 let distText = p.distance < 1 ? (Math.round(p.distance * 1000) + ' M') : (p.distance.toFixed(1) + ' KM');
                 let color = p.isFood ? 'text-amber-400' : 'text-emerald-400';
+                let bg = p.isFood ? 'bg-amber-400/10' : 'bg-emerald-400/10';
                 let icon = p.isFood ? 'fa-utensils' : 'fa-camera';
                 
                 html += `
@@ -673,6 +692,67 @@
             }
         }
         fetchBMKG();
+
+        // ==========================================
+        // 5. SPEED TEST INTERNET (AKURAT JS NATIVE CLOUDFLARE ENDPOINT)
+        // ==========================================
+        window.runSpeedTest = async function() {
+            const btn = document.getElementById('btn-speedtest');
+            const pPing = document.getElementById('st-ping');
+            const pDl = document.getElementById('st-dl');
+            const pUl = document.getElementById('st-ul');
+            const pBar = document.getElementById('st-progress');
+
+            if(btn.disabled) return;
+            btn.disabled = true;
+            btn.innerText = "MENGUKUR...";
+            pBar.style.width = "10%";
+
+            pPing.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-slate-500"></i>';
+            pDl.innerHTML = '--'; pUl.innerHTML = '--';
+
+            try {
+                // 1. Mengukur Ping ke Cloudflare
+                const pingStart = performance.now();
+                await fetch('https://cloudflare.com/cdn-cgi/trace', {cache: 'no-store'});
+                const pingTime = Math.round(performance.now() - pingStart);
+                pPing.innerHTML = `${pingTime} <span class="text-[10px] text-slate-500 font-sans">ms</span>`;
+                pBar.style.width = "40%";
+
+                // 2. Mengukur Download (Unduh Payload 10MB dari Server Cloudflare)
+                pDl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[#38bdf8]"></i>';
+                const dlStart = performance.now();
+                const dlResp = await fetch('https://speed.cloudflare.com/__down?bytes=10000000', {cache: 'no-store'});
+                await dlResp.blob();
+                const dlEnd = performance.now();
+                const dlDuration = (dlEnd - dlStart) / 1000;
+                const dlMbps = ((10000000 * 8) / dlDuration) / 1000000;
+                pDl.innerHTML = `${dlMbps.toFixed(2)} <span class="text-[10px] text-slate-500 font-sans">Mbps</span>`;
+                pBar.style.width = "70%";
+
+                // 3. Mengukur Upload (Unggah Payload 2MB Dummy ke Cloudflare)
+                pUl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[#a855f7]"></i>';
+                const ulStart = performance.now();
+                const uploadData = new Blob([new ArrayBuffer(2000000)]); 
+                await fetch('https://speed.cloudflare.com/__up', {
+                    method: 'POST',
+                    body: uploadData
+                });
+                const ulEnd = performance.now();
+                const ulDuration = (ulEnd - ulStart) / 1000;
+                const ulMbps = ((2000000 * 8) / ulDuration) / 1000000;
+                pUl.innerHTML = `${ulMbps.toFixed(2)} <span class="text-[10px] text-slate-500 font-sans">Mbps</span>`;
+                pBar.style.width = "100%";
+
+            } catch (err) {
+                console.error("Speedtest gagal", err);
+                pPing.innerHTML = "ERR"; pDl.innerHTML = "ERR"; pUl.innerHTML = "ERR";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "UJI ULANG";
+                setTimeout(() => { pBar.style.width = "0%"; }, 2000);
+            }
+        };
 
     });
 </script>
