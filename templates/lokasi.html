@@ -1,18 +1,24 @@
 {% extends 'base.html' %}
-{% block title %}Sistem Informasi Geospasial - KTVDI{% endblock %}
+{% block title %}KTVDI MAPS CITY - Geospasial{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
-    /* === THEME: WORLD CUP 2026 + FULL BLEED BREAKOUT === */
-    .geo-bg {
-        background: linear-gradient(135deg, #0a0a0f 0%, #150050 50%, #0a0a0f 100%);
+    /* === THEME: AUTOMOTIVE + WORLD CUP 2026 DARK === */
+    .maps-city-bg {
+        /* Carbon Fiber & Dark Navy Gradient */
+        background-color: #050508;
+        background-image: 
+            radial-gradient(at 0% 0%, rgba(21, 0, 80, 0.4) 0px, transparent 50%),
+            radial-gradient(at 100% 100%, rgba(234, 0, 42, 0.15) 0px, transparent 50%),
+            url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20.5h-2zM40 20.5V18H20v-2h20v-2H20v-2h20v-2H20V8h20V6H20V4h20V2H20V0h22v20.5h-2z' fill='%23ffffff' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
+        
         min-height: calc(100vh - 60px);
         color: #f8fafc;
         font-family: 'Inter', sans-serif;
         
-        /* Teknik Full-Bleed Breakout untuk menjebol batasan base.html */
+        /* Full-Bleed Breakout */
         width: 100vw !important;
         max-width: 100vw !important;
         position: relative;
@@ -20,346 +26,571 @@
         right: 50%;
         margin-left: -50vw !important;
         margin-right: -50vw !important;
-        margin-top: -3rem; /* Menghilangkan jarak kosong atas base.html */
+        margin-top: -3rem; 
         margin-bottom: -3rem;
         padding-top: 5rem;
         padding-bottom: 5rem;
         z-index: 10;
         
-        /* Lengkungan agar serasi dengan base.html */
         border-top-left-radius: 2rem;
         border-top-right-radius: 2rem;
+        overflow-x: hidden;
     }
 
     @media (min-width: 768px) {
-        .geo-bg {
+        .maps-city-bg {
             border-top-left-radius: 3rem;
             border-top-right-radius: 3rem;
             padding-top: 6rem;
         }
     }
 
-    /* === CUSTOM MAP STYLES (DARK MODE) === */
-    #map {
-        height: 500px;
-        border-radius: 20px;
-        border: 2px solid #222236;
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
-        z-index: 1;
-        background-color: #0a0a0f;
-    }
-    @media (min-width: 1024px) {
-        #map { height: calc(100vh - 180px); }
-    }
-    
-    /* Membuat peta OSM standard menjadi Dark Mode agar menyatu dengan Tema WC */
-    .leaflet-layer,
-    .leaflet-control-zoom-in,
-    .leaflet-control-zoom-out,
-    .leaflet-control-attribution {
-        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-    }
+    /* === SCROLLBAR === */
+    .premium-scroll::-webkit-scrollbar { width: 4px; }
+    .premium-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: #4a00e0; border-radius: 8px; }
 
-    /* === WC 2026 DATA CARDS === */
-    .control-panel::-webkit-scrollbar { width: 6px; }
-    .control-panel::-webkit-scrollbar-track { background: transparent; }
-    .control-panel::-webkit-scrollbar-thumb { background: #4a00e0; border-radius: 10px; }
-
-    .data-card {
-        background: rgba(18, 18, 26, 0.8);
-        backdrop-filter: blur(12px);
+    /* === DASHBOARD PANELS === */
+    .dash-panel {
+        background: rgba(18, 18, 26, 0.85);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
         border: 1px solid #222236;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        border-left: 4px solid #00e5ff; /* Default WC Cyan */
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .data-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-    }
-    .data-card.danger {
-        border-left-color: #ea002a; /* WC Red */
-        background: linear-gradient(145deg, rgba(234,0,42,0.1) 0%, rgba(18,18,26,0.9) 100%);
-    }
-    .data-card.warning {
-        border-left-color: #facc15; 
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+        overflow: hidden;
     }
     
-    .card-title-custom {
-        font-size: 0.8rem;
-        text-transform: uppercase;
+    .panel-header {
+        background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
+        border-bottom: 1px solid #222236;
+        padding: 12px 16px;
+        font-size: 0.75rem;
         font-weight: 800;
+        text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 12px;
         display: flex;
         align-items: center;
         gap: 8px;
     }
-    .metric-value {
-        font-size: 2.5rem;
+
+    /* === DIGITAL SPEEDOMETER === */
+    .speedo-container {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 30px 20px;
+        position: relative;
+    }
+    .digital-speed {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 4.5rem;
         font-weight: 900;
-        color: #ffffff;
+        color: #00e5ff;
+        text-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
         line-height: 1;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        letter-spacing: -2px;
     }
-    .metric-unit {
-        font-size: 0.9rem;
-        color: #94a3b8;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+    .digital-unit {
+        font-size: 1rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-top: 5px;
     }
-    .status-text {
-        font-size: 0.75rem;
-        font-weight: 700;
-        margin-top: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    .speed-warning {
+        position: absolute; top: 10px; left: 10px; right: 10px;
+        background: rgba(234, 0, 42, 0.2); border: 1px solid #ea002a;
+        color: #ffb3b3; padding: 10px; border-radius: 8px;
+        font-size: 0.7rem; font-weight: 800; text-align: center;
+        animation: pulse-red 1s infinite;
+        z-index: 10;
+        display: none;
     }
-    .bmkg-detail {
-        font-size: 0.85rem;
-        color: #cbd5e1;
-        margin-top: 12px;
-        line-height: 1.6;
+
+    @keyframes pulse-red {
+        0%, 100% { box-shadow: 0 0 10px rgba(234,0,42,0.5); opacity: 1; }
+        50% { box-shadow: 0 0 20px rgba(234,0,42,0.8); opacity: 0.8; }
     }
+
+    /* === MAP STYLES (DARK MODE) === */
+    #map {
+        height: 400px;
+        width: 100%;
+        background-color: #050508;
+        border-radius: 0 0 20px 20px;
+        z-index: 1;
+    }
+    @media (min-width: 1024px) {
+        #map { height: calc(100vh - 200px); border-radius: 20px; border: 1px solid #222236; }
+    }
+    .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out, .leaflet-control-attribution {
+        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+    }
+
+    /* === LIST ITEMS (POI & BMKG) === */
+    .list-item-custom {
+        padding: 12px 16px; border-bottom: 1px solid #222236;
+        display: flex; justify-content: space-between; align-items: center;
+        transition: background 0.2s;
+    }
+    .list-item-custom:last-child { border-bottom: none; }
+    .list-item-custom:hover { background: rgba(255,255,255,0.02); }
+
 </style>
 
-<div class="geo-bg">
-    <div class="max-w-[1920px] mx-auto px-4 lg:px-8 relative z-10">
+<div class="maps-city-bg">
+    <div class="max-w-[1920px] mx-auto px-4 lg:px-6 relative z-10">
         
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-[#222236] pb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 border-b border-[#222236] pb-4">
             <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#00e5ff] text-[10px] font-black tracking-widest uppercase mb-3 shadow-sm">
-                    <i class="fa-solid fa-satellite animate-pulse"></i> KTVDI Geospasial
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#00e5ff] text-[10px] font-black tracking-widest uppercase mb-2 shadow-sm">
+                    <i class="fa-solid fa-satellite-dish animate-pulse"></i> Auto-Tracking System
                 </div>
-                <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight leading-none">
-                    Peta <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#4a00e0] to-[#ea002a]">Telemetri</span>
+                <h1 class="text-3xl md:text-4xl font-black text-white tracking-tight leading-none uppercase italic transform -skew-x-6">
+                    KTVDI <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#4a00e0] to-[#ea002a]">MAPS CITY</span>
                 </h1>
             </div>
-            <a href="/" class="px-5 py-2.5 rounded-full bg-[#12121a] hover:bg-[#222236] border border-[#4a00e0] text-white text-xs font-bold transition flex items-center gap-2 shadow-lg">
-                <i class="fa-solid fa-arrow-left"></i> Kembali ke Dasbor
-            </a>
+            <div class="flex gap-2">
+                <button onclick="initSpeedTest()" id="btn-speedtest" class="px-4 py-2 rounded-lg bg-[#12121a] hover:bg-[#222236] border border-[#00e5ff]/50 text-[#00e5ff] text-xs font-bold transition flex items-center gap-2 shadow-[0_0_10px_rgba(0,229,255,0.2)]">
+                    <i class="fa-solid fa-gauge-high"></i> <span id="speedtest-txt">Speed Test</span>
+                </button>
+                <a href="/" class="px-4 py-2 rounded-lg bg-[#12121a] hover:bg-[#222236] border border-[#222236] text-white text-xs font-bold transition flex items-center gap-2">
+                    Kembali
+                </a>
+            </div>
         </div>
 
         <div class="flex flex-col lg:flex-row gap-6">
             
-            <div class="w-full lg:w-1/3 xl:w-1/4 control-panel lg:max-h-[calc(100vh-180px)] overflow-y-auto pr-2 premium-scroll">
+            <div class="w-full lg:w-1/4 flex flex-col gap-6">
                 
-                <div class="data-card">
-                    <div class="card-title-custom text-[#00e5ff]"><i class="fa-solid fa-gauge-high"></i> Telemetri Kecepatan</div>
-                    <div class="metric-value" id="speedVal">0 <span class="metric-unit">km/jam</span></div>
-                    <div class="status-text text-slate-400" id="geoStatus">
-                        <i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Inisialisasi Modul GPS...
-                    </div>
-                </div>
-
-                <div class="data-card danger">
-                    <div class="card-title-custom text-[#ea002a]"><i class="fa-solid fa-house-crack"></i> Peringatan Gempa Terkini</div>
-                    
-                    <div id="bmkgStatus">
-                        <div class="flex items-center text-slate-300 text-sm font-bold">
-                            <i class="fa-solid fa-circle-notch fa-spin text-[#ea002a] mr-2 text-lg"></i>
-                            Menghubungi Server BMKG...
+                <div class="dash-panel">
+                    <div class="panel-header text-[#00e5ff]"><i class="fa-solid fa-car"></i> Digital Speedometer</div>
+                    <div class="speedo-container">
+                        <div id="speedWarning" class="speed-warning">
+                            <i class="fa-solid fa-triangle-exclamation"></i> TERDETEKSI KECEPATAN TINGGI!<br>Pastikan menggunakan Sabuk Keselamatan / Helm SNI.
                         </div>
-                    </div>
-                    
-                    <div id="bmkgData" class="hidden">
-                        <div class="metric-value text-[#ea002a]" id="bmkgMag">-</div>
-                        <div class="bmkg-detail">
-                            <div class="mb-1"><strong class="text-slate-400">Lokasi:</strong> <span id="bmkgLoc" class="font-bold text-white">-</span></div>
-                            <div class="mb-2"><strong class="text-slate-400">Waktu:</strong> <span id="bmkgTime" class="font-bold text-white">-</span></div>
-                            <div>
-                                <strong class="text-slate-400 block mb-1">Potensi:</strong>
-                                <span id="bmkgPotensi" class="bg-[#ea002a] text-white px-3 py-1 rounded text-xs font-bold shadow-[0_0_10px_rgba(234,0,42,0.5)]">-</span>
-                            </div>
+                        <div class="digital-speed" id="speedVal">0</div>
+                        <div class="digital-unit">KM/JAM</div>
+                        <div id="headingStatus" class="mt-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                            <i class="fa-solid fa-compass text-slate-500"></i> Arah: <span id="headingVal" class="text-white">Menunggu...</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="data-card warning">
-                    <div class="card-title-custom text-yellow-400"><i class="fa-solid fa-map-location-dot"></i> Indeks Pariwisata</div>
-                    <p class="text-slate-400 text-xs leading-relaxed font-medium">Sistem memuat direktori titik pariwisata regional pada peta. Silakan klik penanda biru untuk detail infrastruktur lokasi.</p>
+                <div class="dash-panel hidden" id="speedtest-panel">
+                    <div class="panel-header text-[#9333ea]"><i class="fa-solid fa-wifi"></i> Status Jaringan</div>
+                    <div class="p-4 grid grid-cols-2 gap-4 text-center">
+                        <div class="bg-[#050508] p-3 rounded-xl border border-[#222236]">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Ping</p>
+                            <p class="text-lg font-black text-white" id="st-ping">-- <span class="text-[10px] text-slate-500">ms</span></p>
+                        </div>
+                        <div class="bg-[#050508] p-3 rounded-xl border border-[#222236]">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Download</p>
+                            <p class="text-lg font-black text-[#00e5ff]" id="st-dl">-- <span class="text-[10px] text-slate-500">Mbps</span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dash-panel flex-1 flex flex-col lg:max-h-[350px]">
+                    <div class="panel-header text-amber-400 justify-between">
+                        <span><i class="fa-solid fa-utensils"></i> Kuliner & Pariwisata</span>
+                        <i class="fa-solid fa-circle-notch fa-spin text-[10px] hidden" id="poi-loader"></i>
+                    </div>
+                    <div class="p-3 bg-[#0a0a0f] border-b border-[#222236] text-[10px] text-slate-400 font-bold text-center">
+                        Jarak Pantau: 100m - 5km
+                    </div>
+                    <div class="flex-1 overflow-y-auto premium-scroll" id="poi-list">
+                        <div class="p-4 text-center text-xs text-slate-500 font-bold mt-4">
+                            <i class="fa-solid fa-satellite-dish animate-pulse text-2xl mb-2 block"></i>
+                            Menyinkronkan lokasi...
+                        </div>
+                    </div>
                 </div>
 
             </div>
 
-            <div class="w-full lg:w-2/3 xl:w-3/4">
-                <div id="map"></div>
+            <div class="w-full lg:w-2/4">
+                <div class="dash-panel lg:h-full flex flex-col">
+                    <div class="panel-header text-white justify-between hidden lg:flex">
+                        <span><i class="fa-solid fa-map-location-dot text-[#4a00e0]"></i> Live Navigation Tracking</span>
+                        <div class="flex items-center gap-2 text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">
+                            <div class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div> GPS Aktif Akurasi Tinggi
+                        </div>
+                    </div>
+                    <div class="flex-1 relative">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full lg:w-1/4 dash-panel flex flex-col lg:max-h-[calc(100vh-180px)]">
+                <div class="panel-header text-[#ea002a]">
+                    <i class="fa-solid fa-house-crack"></i> Gempa Terkini (BMKG)
+                </div>
+                <div class="flex-1 overflow-y-auto premium-scroll" id="bmkg-list">
+                    <div class="p-6 text-center text-xs text-slate-500 font-bold">
+                        <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 block text-[#ea002a]"></i>
+                        Memuat data BMKG...
+                    </div>
+                </div>
             </div>
             
         </div>
     </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         
-        // 1. INISIALISASI PETA 
-        // Fokus awal pada koordinat Jawa Tengah (Area Semarang - Pekalongan)
-        const map = L.map('map').setView([-6.9667, 110.4167], 9);
-        
+        // ==========================================
+        // 1. PETA & MARKER (DARK MODE)
+        // ==========================================
+        const map = L.map('map', {zoomControl: false}).setView([-6.9667, 110.4167], 10);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap contributors | Infrastruktur Data Spasial KTVDI'
+            attribution: '© OSM | KTVDI Geospasial'
         }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-        // Layer Groups
         const userLayer = L.layerGroup().addTo(map);
-        const pariwisataLayer = L.layerGroup().addTo(map);
+        const poiLayer = L.layerGroup().addTo(map);
+        const bmkgLayer = L.layerGroup().addTo(map);
+
         let userMarker = null;
-
-        // Custom Markers
-        const redIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        const carIcon = L.divIcon({
+            html: `<div class="relative flex items-center justify-center w-8 h-8">
+                     <span class="absolute inline-flex h-full w-full rounded-full bg-[#00e5ff] opacity-40 animate-ping"></span>
+                     <div class="relative flex items-center justify-center w-6 h-6 bg-[#12121a] border-2 border-[#00e5ff] rounded-full shadow-[0_0_15px_#00e5ff]">
+                        <i class="fa-solid fa-car-side text-[#00e5ff] text-[10px]"></i>
+                     </div>
+                   </div>`,
+            className: '', iconSize: [32, 32], iconAnchor: [16, 16]
         });
 
-        const blueIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        const bmkgIcon = L.divIcon({
+            html: '<div class="text-2xl text-[#ea002a] drop-shadow-[0_0_10px_rgba(234,0,42,0.8)]"><i class="fa-solid fa-bullseye fa-fade"></i></div>',
+            className: '', iconSize: [24, 24], iconAnchor: [12, 12]
         });
 
-        const greenIcon = new L.Icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        const foodIcon = L.divIcon({
+            html: '<div class="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] border border-white shadow-md"><i class="fa-solid fa-utensils"></i></div>',
+            className: '', iconSize: [24, 24]
         });
 
-        // 2. PEMUATAN DATA PARIWISATA REGIONAL
-        const destinasiPariwisata = [
-            { nama: "Lawang Sewu", lat: -6.9839, lon: 110.4104, info: "Infrastruktur bersejarah peninggalan kolonial Belanda di Kota Semarang." },
-            { nama: "Museum Batik Pekalongan", lat: -6.8839, lon: 109.6766, info: "Pusat preservasi dan edukasi tekstil tradisional Nusantara." },
-            { nama: "Candi Borobudur", lat: -7.6079, lon: 110.2038, info: "Situs warisan dunia UNESCO, struktur candi Buddha terbesar." },
-            { nama: "Kawasan Simpang Lima", lat: -6.9904, lon: 110.4229, info: "Pusat aktivitas ekonomi dan ruang publik Kota Semarang." },
-            { nama: "Pantai Pasir Kencana", lat: -6.8660, lon: 109.6640, info: "Fasilitas rekreasi maritim di utara Kota Pekalongan." }
-        ];
-
-        destinasiPariwisata.forEach(tempat => {
-            L.marker([tempat.lat, tempat.lon], {icon: blueIcon})
-             .addTo(pariwisataLayer)
-             .bindPopup(`<div style="font-family: 'Inter', sans-serif;">
-                            <strong style="font-size:1.1em; color:#1e293b;">${tempat.nama}</strong><br>
-                            <span style="font-size:0.9em; color:#64748b;">${tempat.info}</span>
-                         </div>`);
+        const tourIcon = L.divIcon({
+            html: '<div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] border border-white shadow-md"><i class="fa-solid fa-camera"></i></div>',
+            className: '', iconSize: [24, 24]
         });
 
-        // 3. INTEGRASI API AUTO-GEMPA BMKG (XML PARSING)
-        const fetchBMKGData = async () => {
+        // ==========================================
+        // 2. BMKG GEMPA TERKINI (MULTIPLE)
+        // ==========================================
+        async function fetchBMKG() {
             try {
-                // Menggunakan proxy public untuk mem-bypass restriksi CORS dari server BMKG
+                // gempaterkini.xml berisi daftar 15 gempa terbaru M >= 5.0
                 const proxyUrl = 'https://api.allorigins.win/get?url=';
-                const targetUrl = encodeURIComponent('https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml');
+                const targetUrl = encodeURIComponent('https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.xml');
                 
                 const response = await fetch(proxyUrl + targetUrl);
                 const result = await response.json();
-                
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(result.contents, "text/xml");
                 
-                // Ekstraksi Node XML
-                const wilayah = xmlDoc.getElementsByTagName("Wilayah")[0].childNodes[0].nodeValue;
-                const magnitude = xmlDoc.getElementsByTagName("Magnitude")[0].childNodes[0].nodeValue;
-                const tanggal = xmlDoc.getElementsByTagName("Tanggal")[0].childNodes[0].nodeValue;
-                const jam = xmlDoc.getElementsByTagName("Jam")[0].childNodes[0].nodeValue;
-                const potensi = xmlDoc.getElementsByTagName("Potensi")[0].childNodes[0].nodeValue;
-                const coordinates = xmlDoc.getElementsByTagName("point")[0].getElementsByTagName("coordinates")[0].childNodes[0].nodeValue;
+                const gempaNodes = xmlDoc.getElementsByTagName("gempa");
+                const bmkgList = document.getElementById('bmkg-list');
+                bmkgList.innerHTML = '';
+
+                let bounds = [];
+
+                // Looping maksimal 10 gempa terbaru
+                const maxItems = Math.min(gempaNodes.length, 10);
+                for (let i = 0; i < maxItems; i++) {
+                    const node = gempaNodes[i];
+                    const tanggal = node.getElementsByTagName("Tanggal")[0].textContent;
+                    const jam = node.getElementsByTagName("Jam")[0].textContent;
+                    const coords = node.getElementsByTagName("coordinates")[0].textContent.split(',');
+                    const lat = parseFloat(coords[1]);
+                    const lon = parseFloat(coords[0]);
+                    const mag = node.getElementsByTagName("Magnitude")[0].textContent;
+                    const depth = node.getElementsByTagName("Kedalaman")[0].textContent;
+                    const wilayah = node.getElementsByTagName("Wilayah")[0].textContent;
+                    const potensi = node.getElementsByTagName("Potensi")[0].textContent;
+
+                    // Plot ke Map
+                    L.circle([lat, lon], { color: '#ea002a', fillColor: '#ea002a', fillOpacity: 0.2, radius: 15000 }).addTo(bmkgLayer);
+                    L.marker([lat, lon], {icon: bmkgIcon}).addTo(bmkgLayer)
+                     .bindPopup(`<div style="font-family:'Inter',sans-serif; color:#12121a;">
+                                    <strong>M ${mag} - ${wilayah}</strong><br>
+                                    Kedalaman: ${depth}<br>${potensi}
+                                 </div>`);
+                    bounds.push([lat, lon]);
+
+                    // Render ke List Sidebar
+                    bmkgList.innerHTML += `
+                        <div class="list-item-custom flex-col items-start gap-1">
+                            <div class="flex justify-between items-center w-full">
+                                <span class="bg-[#ea002a]/20 text-[#ea002a] border border-[#ea002a]/50 px-2 py-0.5 rounded text-[10px] font-black">MAG ${mag}</span>
+                                <span class="text-[9px] text-slate-500 font-bold">${tanggal} ${jam}</span>
+                            </div>
+                            <p class="text-xs font-bold text-white mt-1 leading-tight">${wilayah}</p>
+                            <p class="text-[10px] text-slate-400"><i class="fa-solid fa-water text-blue-400"></i> Kedalaman: ${depth}</p>
+                        </div>
+                    `;
+                }
                 
-                // Konversi string koordinat BMKG (Bujur, Lintang) -> (Lon, Lat)
-                const coordsArray = coordinates.split(',');
-                const lat = parseFloat(coordsArray[1]);
-                const lon = parseFloat(coordsArray[0]);
-
-                // Pembaruan UI Panel
-                document.getElementById('bmkgStatus').classList.add('hidden');
-                document.getElementById('bmkgData').classList.remove('hidden');
-                
-                document.getElementById('bmkgMag').innerHTML = magnitude + ' <span class="metric-unit">Magnitudo</span>';
-                document.getElementById('bmkgLoc').innerText = wilayah;
-                document.getElementById('bmkgTime').innerText = `${tanggal} | ${jam}`;
-                document.getElementById('bmkgPotensi').innerText = potensi;
-
-                // Penambahan Marka Pusat Gempa pada Peta
-                L.circle([lat, lon], {
-                    color: '#ea002a',
-                    fillColor: '#ea002a',
-                    fillOpacity: 0.3,
-                    radius: 25000 // Radius simulasi 25km
-                }).addTo(map);
-
-                L.marker([lat, lon], {icon: redIcon})
-                 .addTo(map)
-                 .bindPopup(`<div style="font-family: 'Inter', sans-serif;">
-                                <strong style="color:#ea002a;">Peringatan Gempa Terkini</strong><br>
-                                Magnitudo: <b>${magnitude}</b><br>
-                                Lokasi: ${wilayah}<br>
-                                Status: <b>${potensi}</b>
-                             </div>`)
-                 .openPopup();
+                // Fit map to quakes initially
+                if(bounds.length > 0 && !userMarker) {
+                    map.fitBounds(bounds, {padding: [50,50], maxZoom: 6});
+                }
 
             } catch (err) {
-                console.error("GALAT SISTEM: Gagal memuat data telemetri BMKG.", err);
-                document.getElementById('bmkgStatus').innerHTML = '<span class="text-[#ea002a] font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Gagal mengunduh data BMKG.</span>';
+                console.error("Gagal load BMKG", err);
+                document.getElementById('bmkg-list').innerHTML = '<div class="p-4 text-xs text-red-500 font-bold text-center">Gagal memuat data BMKG.</div>';
             }
-        };
+        }
+        fetchBMKG();
 
-        fetchBMKGData();
-
-        // 4. TELEMETRI LOKASI & KECEPATAN PENGGUNA (GEOLOCATION API)
-        const geoStatusEl = document.getElementById('geoStatus');
+        // ==========================================
+        // 3. TRACKING, SPEEDO & WARNING LOGIC
+        // ==========================================
+        let lastHeading = null;
+        const warningEl = document.getElementById('speedWarning');
         const speedValEl = document.getElementById('speedVal');
+        const headingValEl = document.getElementById('headingVal');
+
+        let myLat = null; let myLon = null;
+        let isTrackingActive = false;
+
+        function getDirection(heading) {
+            if(heading === null || isNaN(heading)) return "-";
+            const dirs = ["U", "TL", "T", "TG", "S", "BD", "B", "BL"];
+            return dirs[Math.round(heading / 45) % 8] + ` (${Math.round(heading)}°)`;
+        }
 
         if ("geolocation" in navigator) {
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    
-                    // Kecepatan dalam m/s dikonversi ke km/jam
-                    let speedMs = position.coords.speed;
-                    if (speedMs === null || speedMs < 0) speedMs = 0;
-                    const speedKmh = Math.round(speedMs * 3.6);
-                    
-                    // Update Panel UI
-                    speedValEl.innerHTML = `${speedKmh} <span class="metric-unit text-[#00e5ff]">km/jam</span>`;
-                    geoStatusEl.innerHTML = '<i class="fa-solid fa-satellite mr-1"></i> Sinyal Satelit Terhubung';
-                    geoStatusEl.className = "status-text text-[#00e5ff]";
+            navigator.geolocation.watchPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                myLat = lat; myLon = lon;
+                
+                // Speed (m/s to km/h)
+                let speedMs = pos.coords.speed;
+                if (speedMs === null || speedMs < 0) speedMs = 0;
+                let speedKmh = Math.round(speedMs * 3.6);
+                
+                // Heading (derajat)
+                let heading = pos.coords.heading; 
 
-                    // Update Marka Posisi Pengguna
-                    if (!userMarker) {
-                        userMarker = L.marker([lat, lon], {icon: greenIcon}).addTo(userLayer);
-                        userMarker.bindPopup(`<div style="font-family: 'Inter', sans-serif;">
-                                                <strong style="color:#10b981;">Posisi Telemetri Anda</strong><br>
-                                                Koordinat: ${lat.toFixed(5)}, ${lon.toFixed(5)}
-                                              </div>`).openPopup();
-                        
-                        // Opsional: Otomatis memusatkan peta ke lokasi pengguna saat deteksi pertama
-                        map.flyTo([lat, lon], 12, { animate: true, duration: 1.5 });
-                    } else {
-                        userMarker.setLatLng([lat, lon]);
-                    }
-                },
-                (error) => {
-                    console.warn("Peringatan Geolocation:", error.message);
-                    geoStatusEl.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i> Akses Modul GPS Ditolak / Tidak Tersedia';
-                    geoStatusEl.className = "status-text text-yellow-400";
-                },
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 10000,
-                    timeout: 10000
+                // Simulasi untuk testing desktop (HAPUS ATAU COMMENT BAGIAN INI SAAT PRODUCTION JIKA TIDAK PERLU)
+                // speedKmh = Math.floor(Math.random() * 100); 
+                // heading = Math.floor(Math.random() * 360);
+
+                // Update UI Speedo
+                speedValEl.innerText = speedKmh;
+                headingValEl.innerText = getDirection(heading);
+                
+                // Peringatan Kecepatan Tinggi + Berbelok
+                let isTurning = false;
+                if(heading !== null && lastHeading !== null) {
+                    let diff = Math.abs(heading - lastHeading);
+                    if(diff > 180) diff = 360 - diff; // Koreksi sudut putar balik
+                    if(diff > 15) isTurning = true; // Toleransi belok 15 derajat
                 }
-            );
-        } else {
-            geoStatusEl.innerHTML = '<i class="fa-solid fa-microchip mr-1"></i> Perangkat Keras GPS Tidak Terdukung';
-            geoStatusEl.className = "status-text text-[#ea002a]";
+                
+                if(speedKmh > 80 && isTurning) {
+                    warningEl.style.display = 'block';
+                    speedValEl.style.color = '#ea002a';
+                    speedValEl.style.textShadow = '0 0 20px rgba(234,0,42,0.6)';
+                } else {
+                    warningEl.style.display = 'none';
+                    speedValEl.style.color = '#00e5ff';
+                    speedValEl.style.textShadow = '0 0 20px rgba(0,229,255,0.6)';
+                }
+                lastHeading = heading;
+
+                // Update Map Position
+                if (!userMarker) {
+                    userMarker = L.marker([lat, lon], {icon: carIcon, zIndexOffset: 1000}).addTo(userLayer);
+                    map.flyTo([lat, lon], 15, {animate: true});
+                    triggerPOIFetch(lat, lon); // Fetch pertama kali
+                } else {
+                    userMarker.setLatLng([lat, lon]);
+                    // Auto-follow / auto-center logic
+                    map.panTo([lat, lon]);
+                    
+                    // Cek jarak dengan lokasi fetch POI terakhir, jika jauh (>3km), fetch ulang
+                    if(lastFetchLat && lastFetchLon) {
+                        let d = getDistanceFromLatLonInKm(lat, lon, lastFetchLat, lastFetchLon);
+                        if(d > 3) triggerPOIFetch(lat, lon);
+                    }
+                    
+                    // Update jarak POI secara lokal jika sedang bergerak
+                    updateLocalPOIDistances();
+                }
+
+            }, (err) => {
+                console.warn("GPS Error:", err.message);
+                speedValEl.innerText = "ERR";
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
         }
+
+        // ==========================================
+        // 4. PARIWISATA & KULINER (OVERPASS API)
+        // ==========================================
+        let rawPOIs = [];
+        let lastFetchLat = null; let lastFetchLon = null;
+
+        function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+            var R = 6371; 
+            var dLat = (lat2-lat1) * Math.PI/180;
+            var dLon = (lon2-lon1) * Math.PI/180; 
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            return R * c;
+        }
+
+        async function triggerPOIFetch(lat, lon) {
+            document.getElementById('poi-loader').classList.remove('hidden');
+            lastFetchLat = lat; lastFetchLon = lon;
+            
+            // Query Overpass: Ambil Restoran, Cafe, Attraction dalam radius 5000m (5km) max 20 item
+            const query = `
+                [out:json][timeout:10];
+                (
+                  node["amenity"~"restaurant|cafe|food_court"](around:5000,${lat},${lon});
+                  node["tourism"~"attraction|museum|viewpoint|theme_park"](around:5000,${lat},${lon});
+                );
+                out tags center 20;
+            `;
+            
+            try {
+                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                poiLayer.clearLayers();
+                rawPOIs = [];
+
+                if(data && data.elements) {
+                    data.elements.forEach(el => {
+                        if(el.tags && el.tags.name) {
+                            let isFood = el.tags.amenity ? true : false;
+                            let street = el.tags['addr:street'] || "Jalan tidak diketahui";
+                            
+                            rawPOIs.push({
+                                name: el.tags.name,
+                                type: isFood ? 'Kuliner' : 'Pariwisata',
+                                street: street,
+                                lat: el.lat,
+                                lon: el.lon,
+                                isFood: isFood
+                            });
+
+                            // Marker Peta
+                            L.marker([el.lat, el.lon], {icon: isFood ? foodIcon : tourIcon}).addTo(poiLayer)
+                             .bindPopup(`<strong style="color:#12121a">${el.tags.name}</strong><br><span style="font-size:10px;color:gray;">${street}</span>`);
+                        }
+                    });
+                }
+                updateLocalPOIDistances();
+            } catch(e) {
+                console.error("POI Fetch Error", e);
+            } finally {
+                document.getElementById('poi-loader').classList.add('hidden');
+            }
+        }
+
+        function updateLocalPOIDistances() {
+            if(!myLat || !myLon || rawPOIs.length === 0) {
+                document.getElementById('poi-list').innerHTML = '<div class="p-4 text-center text-xs text-slate-500 font-bold">Tidak ada tempat ditemukan dalam radius 5 KM.</div>';
+                return;
+            }
+
+            // Hitung jarak saat ini
+            let list = rawPOIs.map(p => {
+                p.distance = getDistanceFromLatLonInKm(myLat, myLon, p.lat, p.lon);
+                return p;
+            });
+
+            // Filter 100m - 5km dan Urutkan terdekat
+            list = list.filter(p => p.distance >= 0.1 && p.distance <= 5);
+            list.sort((a,b) => a.distance - b.distance);
+
+            let html = '';
+            list.forEach(p => {
+                let distText = p.distance < 1 ? (Math.round(p.distance * 1000) + ' M') : (p.distance.toFixed(1) + ' KM');
+                let color = p.isFood ? 'text-amber-500' : 'text-emerald-500';
+                let icon = p.isFood ? 'fa-utensils' : 'fa-camera';
+                
+                html += `
+                    <div class="list-item-custom">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center ${color}">
+                                <i class="fa-solid ${icon} text-[10px]"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-white">${p.name}</p>
+                                <p class="text-[9px] text-slate-400 flex items-center gap-1 mt-0.5"><i class="fa-solid fa-road"></i> ${p.street}</p>
+                            </div>
+                        </div>
+                        <div class="text-[10px] font-black text-[#00e5ff] bg-[#00e5ff]/10 px-2 py-1 rounded">
+                            ${distText}
+                        </div>
+                    </div>
+                `;
+            });
+
+            if(html === '') html = '<div class="p-4 text-center text-xs text-slate-500 font-bold">Terlalu dekat (< 100m) atau di luar radius 5 KM.</div>';
+            document.getElementById('poi-list').innerHTML = html;
+        }
+
+        // ==========================================
+        // 5. SPEED TEST JARINGAN (SIMULASI)
+        // ==========================================
+        window.initSpeedTest = function() {
+            const btn = document.getElementById('btn-speedtest');
+            const txt = document.getElementById('speedtest-txt');
+            const panel = document.getElementById('speedtest-panel');
+            const pPing = document.getElementById('st-ping');
+            const pDl = document.getElementById('st-dl');
+
+            panel.classList.remove('hidden');
+            txt.innerText = "Mengukur...";
+            btn.classList.add('animate-pulse');
+            pPing.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-slate-400"></i>';
+            pDl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[#00e5ff]"></i>';
+
+            // Mengukur Ping via Fetch ringan
+            const startTime = Date.now();
+            fetch('/?ping=' + startTime, {cache: 'no-store'}).then(() => {
+                const pingTime = Date.now() - startTime;
+                pPing.innerHTML = `${pingTime} <span class="text-[10px] text-slate-500">ms</span>`;
+                
+                // Mengukur Download via Image Dummy (Wikimedia: 1.5MB)
+                const dlStart = Date.now();
+                const cacheBuster = "?nnn=" + dlStart;
+                const downloadSizeBits = 1500000 * 8; // approx 1.5MB in bits
+                
+                const img = new Image();
+                img.onload = function() {
+                    const dlEnd = Date.now();
+                    const duration = (dlEnd - dlStart) / 1000; // seconds
+                    let mbps = (downloadSizeBits / duration) / 1000000;
+                    
+                    pDl.innerHTML = `${mbps.toFixed(1)} <span class="text-[10px] text-slate-500">Mbps</span>`;
+                    txt.innerText = "Uji Ulang";
+                    btn.classList.remove('animate-pulse');
+                };
+                img.onerror = function() {
+                    pDl.innerHTML = `<span class="text-red-500 text-sm">Gagal</span>`;
+                    txt.innerText = "Coba Lagi";
+                    btn.classList.remove('animate-pulse');
+                };
+                img.src = "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg" + cacheBuster;
+
+            }).catch(() => {
+                pPing.innerHTML = "ERR"; pDl.innerHTML = "ERR";
+                txt.innerText = "Coba Lagi";
+                btn.classList.remove('animate-pulse');
+            });
+        };
+
     });
 </script>
+
 {% endblock %}
