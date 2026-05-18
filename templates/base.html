@@ -236,6 +236,36 @@
         .font-impact { font-family: 'Arial Black', Impact, sans-serif; }
         .text-shadow-hero { text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
 
+        /* === IPHONE WHATSAPP BUBBLE STYLE UNTUK MENU DROPDOWN === */
+        .ios-bubble-menu {
+            border-radius: 1.25rem; 
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 2px 10px rgba(0,0,0,0.05);
+            padding: 4px;
+            border: 1px solid rgba(0,0,0,0.08);
+            transform-origin: top right;
+            animation: bubblePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .bubble-tail {
+            position: absolute;
+            top: -6px;
+            right: 14px;
+            width: 14px;
+            height: 14px;
+            background: rgba(255, 255, 255, 0.96);
+            transform: rotate(45deg);
+            border-top: 1px solid rgba(0,0,0,0.08);
+            border-left: 1px solid rgba(0,0,0,0.08);
+            border-top-left-radius: 3px;
+            z-index: -1;
+        }
+        @keyframes bubblePop {
+            0% { opacity: 0; transform: scale(0.9) translate(10px, -10px); }
+            100% { opacity: 1; transform: scale(1) translate(0, 0); }
+        }
+
         .ios-dock {
             background: rgba(10, 20, 60, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5); border-radius: 36px; margin: 0;
@@ -276,12 +306,6 @@
         .desktop-link:hover { color: #ffffff; }
         .desktop-link.active { color: #ffffff; font-weight: 800; }
 
-        .chat-bubble-bot { background: #e5e5ea; color: #000; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; position: relative; margin-bottom: 5px; margin-left: 10px; font-weight: 500; }
-        .chat-bubble-user { background: #2563eb; color: white; border-radius: 18px; padding: 10px 16px; font-size: 14px; max-width: 85%; margin-left: auto; position: relative; margin-bottom: 5px; margin-right: 10px; font-weight: 500; }
-        
-        .dropdown-menu-mobile { position: fixed !important; top: 80px !important; right: 16px !important; width: 250px !important; z-index: 9999 !important; transform-origin: top right; animation: scaleIn 0.2s ease-out; }
-        @media (min-width: 1024px) { .dropdown-menu-mobile { position: absolute !important; top: 100% !important; right: 0 !important; margin-top: 10px; } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .custom-scroll::-webkit-scrollbar { width: 4px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     </style>
 </head>
@@ -335,9 +359,9 @@
 
     <nav class="fixed top-4 left-0 right-0 w-full z-50 px-3 lg:px-6 transition-all duration-300">
         <div class="max-w-[1400px] mx-auto bg-[#0d1a4d]/90 backdrop-blur-md shadow-2xl rounded-2xl lg:rounded-[2rem] border border-blue-400/20">
-            <div class="flex justify-between items-center h-16 md:h-20 px-4 md:px-8">
+            <div class="flex justify-between items-center h-16 md:h-20 px-4 md:px-8 w-full">
                 
-                <div class="flex items-center gap-2 md:gap-4 lg:gap-8 border-r border-white/10 pr-2 md:pr-4 lg:pr-6 mr-1 lg:mr-2">
+                <div class="flex items-center gap-3 md:gap-5 border-r border-white/10 pr-3 md:pr-5 mr-1 lg:mr-2 w-full lg:w-auto overflow-hidden">
                     <a href="{{ url_for('home') }}" class="flex items-center group shrink-0">
                         <img id="navbar-logo" src="https://bolagembira.tvrinews.com/images/new-welcome/logo.png" alt="TVRI Logo" class="h-7 md:h-10 object-contain drop-shadow-md">
                     </a>
@@ -345,44 +369,24 @@
                     {% if session.get('user') %}
                         {% set safe_nama = session.get('nama') %}
                         {% if not safe_nama %}{% set safe_nama = 'Member' %}{% endif %}
-                        {% set init_nama = safe_nama[0]|upper %}
                         {% set first_nama = safe_nama.split(' ')[0] %}
                         
-                        <div class="xl:hidden h-8 w-px bg-white/20 mx-1 md:mx-2"></div>
-                        <div class="xl:hidden flex items-center gap-2">
-                            <a href="{{ url_for('home') }}" class="flex items-center gap-1.5 bg-black/20 border border-white/10 rounded-full px-1.5 py-1 transition shadow-inner shrink-0">
-                                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-4 h-4 object-contain brightness-0 invert ml-0.5">
-                                <div class="w-5 h-5 rounded-full bg-slate-500/80 flex items-center justify-center text-white text-[10px] font-bold">
-                                    {{ init_nama }}
-                                </div>
-                            </a>
-
-                            <div class="flex flex-col justify-center cursor-pointer ml-1" onclick="toggleDropdown('profile-dropdown-mobile-user')">
-                                <div class="flex items-center gap-1 text-[11px] font-bold text-white leading-tight">
-                                    <span id="mobile-greeting" class="font-medium text-slate-300">Hai,</span>
-                                    <span class="truncate max-w-[85px]">{{ safe_nama }}</span>
-                                </div>
-                                <div class="flex items-center mt-0.5">
-                                    <span class="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-600 border border-yellow-400/50 rounded-full text-[8px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center gap-1">
-                                        <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
-                                    </span>
-                                </div>
+                        <div class="xl:hidden h-8 w-px bg-white/20 mx-1 shrink-0"></div>
+                        
+                        <div class="xl:hidden flex flex-col justify-center min-w-0 pr-1">
+                            <div class="flex items-center gap-1 text-[11px] md:text-xs font-bold text-white leading-tight">
+                                <span id="mobile-greeting" class="font-medium text-slate-300 shrink-0">Hai,</span>
+                                <span class="truncate max-w-[110px] sm:max-w-[150px]">{{ safe_nama }}</span>
                             </div>
-                            
-                            <div id="profile-dropdown-mobile-user" class="hidden dropdown-menu-mobile !top-12 !right-0 transform origin-top-right absolute w-52 bg-white rounded-2xl shadow-2xl py-2 border border-slate-200 ring-1 ring-black/5">
-                                <div class="px-4 py-3 border-b border-slate-100 mb-1 bg-slate-50">
-                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
-                                    <p class="text-sm font-bold text-slate-900 truncate">{{ safe_nama }}</p>
-                                </div>
-                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 font-medium transition"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard</a>
-                                <div class="border-t border-slate-100 my-1"></div>
-                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-medium transition"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
+                            <div class="flex items-center mt-0.5">
+                                <span class="px-1.5 md:px-2 py-0.5 bg-gradient-to-r from-amber-500 to-yellow-600 border border-yellow-400/50 rounded-sm text-[7px] md:text-[8px] font-bold text-white uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                    <i class="fa-solid fa-crown text-[7px]"></i> MEMBER KTVDI
+                                </span>
                             </div>
                         </div>
                     {% endif %}
 
                     <div id="desktop-header-dynamic" class="hidden lg:flex relative items-center justify-center text-white min-w-[280px] h-12 overflow-hidden">
-                        
                         <div id="header-state-1" class="absolute flex items-center gap-3 transition-opacity duration-500">
                             <div class="flex flex-col items-center"><span id="cd-hari" class="text-[22px] font-black leading-none">--</span><span class="text-[8px] font-bold tracking-widest uppercase text-blue-200">Hari</span></div>
                             <span class="text-yellow-400 font-bold mb-3">:</span>
@@ -404,11 +408,10 @@
                         <div id="header-state-4" class="hidden absolute flex items-center justify-center transition-opacity duration-500 opacity-0 w-full">
                             <span class="text-xs font-bold tracking-widest uppercase text-blue-100 drop-shadow-md whitespace-nowrap">Komunitas TV Digital Indonesia</span>
                         </div>
-
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 lg:gap-4 flex-1 justify-end">
+                <div class="flex items-center gap-2 lg:gap-4 justify-end shrink-0">
                     
                     <div class="hidden xl:flex items-center space-x-2 mr-4">
                         <a href="{{ url_for('home') }}" class="desktop-link">Beranda</a>
@@ -422,43 +425,69 @@
                     </div>
 
                     <div class="relative group z-50 xl:hidden">
-                        <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition">
+                        <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/10">
                             <i class="fa-solid fa-bars text-sm md:text-base"></i>
                         </button>
                         
-                        <div id="info-dropdown" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200">
-                            <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col mb-1">
-                                <span class="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Lokasi Anda</span>
-                                <div class="flex items-center gap-2 text-sm font-black text-blue-600">
-                                    <i class="fa-solid fa-location-dot text-red-500"></i><span id="mobile-user-location" class="truncate">Mendeteksi...</span>
-                                </div>
+                        <div id="info-dropdown" class="hidden ios-bubble-menu absolute top-[50px] right-0 w-64 z-[9999]">
+                            <div class="bubble-tail"></div>
+                            
+                            <div class="overflow-hidden rounded-[1.1rem]">
+                                {% if session.get('user') %}
+                                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col">
+                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
+                                        <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama', 'Member') }}</p>
+                                    </div>
+                                    <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-gauge w-5 text-center text-blue-600"></i> Dashboard</a>
+                                    <div class="h-px bg-slate-200 my-0.5 mx-4"></div>
+                                {% else %}
+                                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col">
+                                        <span class="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Lokasi Anda</span>
+                                        <div class="flex items-center gap-2 text-sm font-black text-blue-600">
+                                            <i class="fa-solid fa-location-dot text-red-500"></i><span id="mobile-user-location" class="truncate">Mendeteksi...</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                <a href="{{ url_for('home') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-house w-5 text-center text-slate-500"></i> Beranda</a>
+                                <a href="{{ url_for('ews_jateng_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-water w-5 text-center text-blue-500"></i> EWS Bendungan</a>
+                                <a href="/lokasi" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-map-location-dot w-5 text-center text-red-500"></i> Peta Lokasi</a>
+                                <a href="{{ url_for('jadwal_sholat_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-mosque w-5 text-center text-emerald-500"></i> Jadwal Religi</a>
+                                <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-users w-5 text-center text-amber-500"></i> Tentang KTVDI</a>
+
+                                {% if session.get('user') %}
+                                    <div class="h-px bg-slate-200 my-0.5 mx-4"></div>
+                                    <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 font-bold hover:bg-red-50 transition"><i class="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> Keluar</a>
+                                {% endif %}
                             </div>
-                            <a href="{{ url_for('home') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-house w-5 text-center"></i> Beranda</a>
-                            <a href="{{ url_for('ews_jateng_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-water w-5 text-center text-blue-500"></i> EWS Bendungan</a>
-                            <a href="/lokasi" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-map-location-dot w-5 text-center text-red-500"></i> Peta Lokasi</a>
-                            <a href="{{ url_for('jadwal_sholat_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-mosque w-5 text-center text-emerald-500"></i> Jadwal Religi</a>
-                            <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium"><i class="fa-solid fa-users w-5 text-center text-amber-500"></i> Tentang KTVDI</a>
                         </div>
                     </div>
 
                     {% if session.get('user') %}
                         <div class="relative group z-50 hidden xl:block">
                             <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-[#ed1c24] hover:bg-red-700 transition border border-red-500 text-left shadow-lg">
-                                <img src="https://ui-avatars.com/api/?name={{ safe_nama | urlencode }}&background=fff&color=ed1c24&bold=true" class="h-8 w-8 rounded-full shadow-sm">
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'Member') | urlencode }}&background=fff&color=ed1c24&bold=true" class="h-8 w-8 rounded-full shadow-sm">
                                 <div class="flex flex-col">
-                                    <span class="text-xs font-bold text-white leading-tight">{{ first_nama }}</span>
+                                    <span class="text-xs font-bold text-white leading-tight">
+                                        {{ session.get('nama', 'Member').split(' ')[0] if session.get('nama') else 'Member' }}
+                                    </span>
                                     <span class="text-[8px] font-bold text-yellow-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
                                         <i class="fa-solid fa-crown text-[8px]"></i> MEMBER KTVDI
                                     </span>
                                 </div>
                             </button>
-                            <div id="profile-dropdown-desktop" class="hidden dropdown-menu-mobile bg-white rounded-2xl shadow-2xl py-2 border border-slate-200">
-                                <div class="px-5 py-3 border-b border-slate-100 mb-1 bg-slate-50">
-                                    <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
-                                    <p class="text-sm font-bold text-slate-900 truncate">{{ safe_nama }}</p>
+                            
+                            <div id="profile-dropdown-desktop" class="hidden ios-bubble-menu absolute top-[50px] right-0 w-60 z-[9999]">
+                                <div class="bubble-tail" style="right: 20px;"></div>
+                                <div class="overflow-hidden rounded-[1.1rem]">
+                                    <div class="px-5 py-3 border-b border-slate-100 bg-slate-50 flex flex-col">
+                                        <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
+                                        <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama', 'Member') }}</p>
+                                    </div>
+                                    <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-gauge w-5 text-center text-blue-600"></i> Dashboard KTVDI</a>
+                                    <div class="h-px bg-slate-200 my-0.5 mx-4"></div>
+                                    <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 font-bold hover:bg-red-50 transition"><i class="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> Keluar</a>
                                 </div>
-                                <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-50"><i class="fa-solid fa-gauge mr-3 opacity-60"></i> Dashboard KTVDI</a>
-                                <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 font-medium hover:bg-red-50"><i class="fa-solid fa-arrow-right-from-bracket mr-3 opacity-60"></i> Keluar</a>
                             </div>
                         </div>
                     {% else %}
@@ -566,28 +595,6 @@
         <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-red-100 hover:scale-110 transition"><i class="fa-solid fa-phone-volume text-lg animate-pulse"></i></a>
     </div>
 
-    <div id="modi-ai-widget" class="hidden fixed bottom-[160px] lg:bottom-24 right-4 z-[60] pb-safe flex-col items-end">
-        <div id="chat-window" class="hidden w-[85vw] max-w-[340px] bg-slate-50 rounded-3xl shadow-2xl overflow-hidden mb-4 border border-slate-100 flex flex-col transform origin-bottom-right transition-all">
-            <div class="bg-white/80 backdrop-blur-xl p-3 flex justify-between items-center border-b border-slate-200">
-                <div class="flex items-center gap-3"><img src="https://iili.io/f87Ctjt.md.png" class="h-9 w-9 rounded-full bg-white p-0.5 border-2 border-slate-100"><div><div class="font-bold text-sm">Modi AI</div><div class="text-[10px] text-slate-500">Online • KTVDI</div></div></div>
-                <button onclick="toggleChat()" class="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center"><i class="fa-solid fa-chevron-down text-xs"></i></button>
-            </div>
-            <div id="chat-messages" class="h-72 p-4 overflow-y-auto flex flex-col gap-1 custom-scroll">
-                <div class="flex flex-col gap-1 items-start"><div class="chat-bubble-bot shadow-sm font-medium">Halo! Saya Modi AI, asisten virtual KTVDI. Ada yang bisa saya bantu?</div></div>
-            </div>
-            <div class="p-3 bg-white border-t border-slate-100">
-                <form onsubmit="handleChat(event)" class="flex gap-2 relative">
-                    <input type="text" id="chat-input" placeholder="Tanya seputar TV Digital..." class="w-full bg-slate-50 border border-slate-200 text-sm px-4 py-2.5 rounded-full outline-none focus:border-blue-500" autocomplete="off">
-                    <button type="submit" class="absolute right-1.5 top-1.5 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-arrow-up text-xs"></i></button>
-                </form>
-            </div>
-        </div>
-        <button onclick="toggleChat()" class="w-14 h-14 rounded-full shadow-2xl hover:scale-105 transition border-2 border-white bg-white relative">
-             <img src="https://iili.io/f87Ctjt.md.png" class="w-full h-full object-cover">
-             <span class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-        </button>
-    </div>
-
     <script>
         // SCRIPT Sapaan Berdasarkan Waktu Khusus Mobile
         function updateMobileGreeting() {
@@ -613,7 +620,6 @@
             let currentIndex = 0;
 
             function showNextState() {
-                // Sembunyikan semuanya dengan transisi
                 states.forEach(state => {
                     const el = document.getElementById(state.id);
                     if(el) {
@@ -622,13 +628,12 @@
                     }
                 });
 
-                // Tampilkan target state
                 const currentEl = document.getElementById(states[currentIndex].id);
                 if(currentEl) {
                     setTimeout(() => {
                         currentEl.classList.remove('hidden');
                         currentEl.classList.add('flex');
-                        void currentEl.offsetWidth; // Memicu reflow browser agar animasi tereksekusi
+                        void currentEl.offsetWidth; 
                         currentEl.style.opacity = '1';
                     }, 550);
                 }
@@ -640,7 +645,6 @@
             showNextState();
         }
         
-        // Cek jika kita di desktop, maka jalankan rotator header
         if(window.innerWidth >= 1024) { initHeaderRotator(); }
 
         // SCRIPT LOGO SWAPPER PADA NAVBAR (TVRI <-> KTVDI)
@@ -675,9 +679,9 @@
             setTimeout(swapLogo, 7000);
         }
 
-        // SCRIPT COUNTDOWN WORLD CUP 2026 PRESISI (+24 Hari dari Waktu Sekarang)
+        // SCRIPT COUNTDOWN WORLD CUP 2026 PRESISI (24 Hari Lagi)
         function initWorldCupCountdown() {
-            // Target di-set menjadi 12 Juni 2026 agar menghasilkan display 24 Hari (berdasarkan konteks Mei 2026)
+            // Target di-set menjadi 12 Juni 2026 agar menghasilkan display 24 Hari dari tanggal 18 Mei 2026
             const targetDate = new Date("2026-06-12T00:00:00+07:00").getTime();
             setInterval(() => {
                 const now = new Date().getTime();
@@ -713,46 +717,6 @@
             const el = document.getElementById(id);
             document.querySelectorAll('[id$="-dropdown"], .dropdown-menu-mobile').forEach(d => { if(d.id !== id) d.classList.add('hidden'); });
             el.classList.toggle('hidden');
-        }
-
-        function toggleChat() { 
-            const win = document.getElementById('chat-window');
-            win.classList.toggle('hidden');
-            if(!win.classList.contains('hidden')) { setTimeout(() => document.getElementById('chat-messages').scrollTop = 99999, 100); }
-        }
-        
-        async function handleChat(e){ 
-            e.preventDefault(); 
-            const i=document.getElementById('chat-input'); const t=i.value.trim(); if(!t)return;
-            addMsg(t,'user'); i.value='';
-            
-            const loadId = 'loading-'+Date.now();
-            const msgs = document.getElementById('chat-messages');
-            const loadDiv = document.createElement('div');
-            loadDiv.id = loadId; loadDiv.className = "flex flex-col gap-1 items-start";
-            loadDiv.innerHTML = `<div class="chat-bubble-bot text-slate-400 italic text-xs">...</div>`;
-            msgs.appendChild(loadDiv); msgs.scrollTop = 99999;
-
-            try {
-                const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:t})});
-                const d=await r.json();
-                document.getElementById(loadId).remove(); addMsg(d.response,'bot');
-            } catch {
-                document.getElementById(loadId).remove(); addMsg("Koneksi terputus.", 'bot');
-            }
-        }
-
-        function addMsg(t,s){
-            const d=document.createElement('div'); 
-            if (s == 'user') {
-                d.className="flex flex-col gap-1 items-end";
-                d.innerHTML = `<div class="chat-bubble-user">${t}</div>`;
-            } else {
-                d.className="flex flex-col gap-1 items-start";
-                d.innerHTML = `<div class="chat-bubble-bot">${t.replace(/\n/g,'<br>')}</div>`;
-            }
-            const msgs = document.getElementById('chat-messages');
-            msgs.appendChild(d); msgs.scrollTop = 99999;
         }
 
         async function updateTicker() {
@@ -806,14 +770,11 @@
             const wibTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 7));
             const currentHour = wibTime.getHours();
             const callCenterWidget = document.getElementById('call-center-widget');
-            const modiAiWidget = document.getElementById('modi-ai-widget');
 
             if (currentHour >= 21 || currentHour < 8) {
                 if(callCenterWidget) { callCenterWidget.classList.remove('hidden'); callCenterWidget.classList.add('flex'); }
-                if(modiAiWidget) { modiAiWidget.classList.remove('hidden'); modiAiWidget.classList.add('flex'); }
             } else {
                 if(callCenterWidget) { callCenterWidget.classList.add('hidden'); callCenterWidget.classList.remove('flex'); }
-                if(modiAiWidget) { modiAiWidget.classList.add('hidden'); modiAiWidget.classList.remove('flex'); }
             }
         }
         window.addEventListener('DOMContentLoaded', () => { checkWidgetSchedule(); setInterval(checkWidgetSchedule, 60000); });
