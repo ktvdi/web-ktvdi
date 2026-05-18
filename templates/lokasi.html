@@ -1,20 +1,21 @@
 {% extends 'base.html' %}
-{% block title %}KTVDI MAPS CITY - Geospasial{% endblock %}
+{% block title %}KTVDI MAPS CITY - Geospasial Xpander{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <style>
-    /* === THEME: EV DASHBOARD + WORLD CUP 2026 DARK === */
+    /* === THEME: XPANDER CROSS DASHBOARD + FULL BLEED BREAKOUT === */
     .maps-city-bg {
-        background-color: #050508;
+        /* Latar belakang Carbon Fiber & Dashboard Metallic */
+        background-color: #0b0f19;
         background-image: 
-            radial-gradient(at 0% 0%, rgba(21, 0, 80, 0.5) 0px, transparent 40%),
-            radial-gradient(at 100% 100%, rgba(234, 0, 42, 0.15) 0px, transparent 40%),
-            url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l1.373 2.746L54.627 5.49 53.254 2.745zM38.163 0l1.373 2.746-1.373 2.745-1.373-2.745zM21.7 0l1.373 2.746L21.7 5.49l-1.373-2.745zM5.236 0l1.373 2.746L5.236 5.49 3.863 2.745z' fill='%23ffffff' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
+            linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0) 20%, rgba(0,0,0,0) 80%, rgba(0,0,0,0.8)),
+            radial-gradient(ellipse at top, rgba(56, 189, 248, 0.1) 0%, transparent 60%),
+            url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 0h2v2H2V0zm4 4h2v2H6V4zm4 4h2v2h-2V8zM0 8h2v2H0V8zm4-8h2v2H4V0zm4 4h2v2H8V4z' fill='%23ffffff' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
         
         min-height: calc(100vh - 60px);
-        color: #f8fafc;
+        color: #f1f5f9;
         font-family: 'Inter', sans-serif;
         
         /* Full-Bleed Breakout (Anti Celah Putih base.html) */
@@ -46,86 +47,106 @@
 
     /* === SCROLLBAR === */
     .premium-scroll::-webkit-scrollbar { width: 4px; }
-    .premium-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
-    .premium-scroll::-webkit-scrollbar-thumb { background-color: #4a00e0; border-radius: 8px; }
+    .premium-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 8px; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: #38bdf8; border-radius: 8px; }
 
-    /* === DASHBOARD PANELS (GLASSMORPHISM) === */
+    /* === DASHBOARD PANELS (INSTRUMENT CLUSTER STYLE) === */
     .dash-panel {
-        background: rgba(15, 15, 20, 0.7);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 24px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+        background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
+        border: 2px solid #1e293b;
+        border-top: 2px solid #334155;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.02);
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        position: relative;
     }
     
+    .dash-panel::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3), transparent);
+    }
+
     .panel-header {
-        background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%);
-        border-bottom: 1px solid rgba(255,255,255,0.05);
-        padding: 16px 20px;
-        font-size: 0.75rem;
+        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        border-bottom: 1px solid #0f172a;
+        padding: 12px 16px;
+        font-size: 0.7rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.15em;
         display: flex;
         align-items: center;
         gap: 10px;
+        color: #94a3b8;
     }
 
-    /* === DIGITAL SPEEDOMETER (AUTOMOTIVE STYLE) === */
+    /* === DIGITAL SPEEDOMETER (XPANDER STYLE MID) === */
     .speedo-wrapper {
         position: relative;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 40px 20px;
-        background: radial-gradient(circle at center, rgba(0, 229, 255, 0.05) 0%, transparent 70%);
+        padding: 30px 20px;
+        background: radial-gradient(circle at center, rgba(56, 189, 248, 0.1) 0%, transparent 60%);
+        height: 100%;
     }
+    
+    /* Aksen kurva speedometer */
+    .speedo-ring {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 180px; height: 180px; border-radius: 50%;
+        border: 4px dashed rgba(56, 189, 248, 0.2);
+        animation: spin-slow 30s linear infinite;
+        pointer-events: none;
+    }
+    @keyframes spin-slow { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
     .digital-speed {
         font-family: 'Courier New', Courier, monospace;
-        font-size: 6rem;
+        font-size: 5rem;
         font-weight: 900;
-        color: #00e5ff;
-        text-shadow: 0 0 30px rgba(0, 229, 255, 0.6), 0 0 10px rgba(0, 229, 255, 0.8);
+        color: #f8fafc;
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 0 0 5px #38bdf8;
         line-height: 0.9;
-        letter-spacing: -3px;
+        letter-spacing: -2px;
         transition: color 0.3s, text-shadow 0.3s;
+        z-index: 2;
     }
     .digital-unit {
-        font-size: 1.1rem; color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: 4px; margin-top: 5px;
+        font-size: 0.9rem; color: #38bdf8; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px; z-index: 2;
     }
     
     /* Warning Alert */
     .speed-warning {
-        position: absolute; top: 10px; left: 10px; right: 10px;
-        background: rgba(234, 0, 42, 0.15); border: 1px solid #ea002a;
-        color: #fca5a5; padding: 12px; border-radius: 12px;
-        font-size: 0.7rem; font-weight: 800; text-align: center;
-        animation: pulse-red 1s infinite;
+        position: absolute; top: 15px; left: 15px; right: 15px;
+        background: rgba(220, 38, 38, 0.1); border-left: 4px solid #ef4444;
+        color: #fca5a5; padding: 10px; border-radius: 4px;
+        font-size: 0.65rem; font-weight: 800; text-align: left;
+        animation: pulse-red 1.5s infinite;
         z-index: 10;
         display: none;
         backdrop-filter: blur(5px);
     }
     @keyframes pulse-red {
-        0%, 100% { box-shadow: 0 0 10px rgba(234,0,42,0.4); opacity: 1; }
-        50% { box-shadow: 0 0 25px rgba(234,0,42,0.8); opacity: 0.9; }
+        0%, 100% { box-shadow: 0 0 10px rgba(220,38,38,0.2); opacity: 1; }
+        50% { box-shadow: 0 0 20px rgba(220,38,38,0.5); opacity: 0.8; }
     }
 
     /* === SPEED TEST WIDGET === */
     .st-box {
-        background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);
-        border-radius: 16px; padding: 15px; text-align: center;
+        background: #0b0f19; border: 1px solid #1e293b;
+        border-radius: 8px; padding: 12px; text-align: center;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
     }
-    .st-label { font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 5px; }
-    .st-value { font-size: 1.5rem; font-weight: 900; color: #f8fafc; font-family: monospace; }
+    .st-label { font-size: 0.6rem; color: #64748b; text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin-bottom: 4px; }
+    .st-value { font-size: 1.2rem; font-weight: 900; color: #f8fafc; font-family: monospace; }
 
     /* === MAP STYLES (DARK MODE) === */
     #map {
         height: 100%;
         min-height: 400px;
         width: 100%;
-        background-color: #050508;
+        background-color: #0b0f19;
         z-index: 1;
     }
     @media (min-width: 1024px) {
@@ -134,22 +155,22 @@
     
     /* OSM Dark Mode Filter */
     .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out, .leaflet-control-attribution {
-        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%) sepia(10%);
     }
 
     .btn-center-map {
         position: absolute; bottom: 20px; right: 20px; z-index: 400;
-        background: rgba(18, 18, 26, 0.9); border: 1px solid #00e5ff;
-        color: #00e5ff; padding: 10px 15px; border-radius: 12px;
-        font-size: 0.8rem; font-weight: 800; cursor: pointer;
+        background: #1e293b; border: 1px solid #38bdf8;
+        color: #38bdf8; padding: 8px 16px; border-radius: 8px;
+        font-size: 0.75rem; font-weight: 800; cursor: pointer;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(5px); transition: all 0.2s;
+        transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
     }
-    .btn-center-map:hover { background: #00e5ff; color: #000; box-shadow: 0 5px 20px rgba(0, 229, 255, 0.4); }
+    .btn-center-map:hover { background: #38bdf8; color: #0b0f19; box-shadow: 0 5px 20px rgba(56, 189, 248, 0.4); }
 
     /* === LIST ITEMS === */
     .list-item-custom {
-        padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.03);
+        padding: 12px 16px; border-bottom: 1px solid #1e293b;
         display: flex; justify-content: space-between; align-items: center;
         transition: background 0.2s;
     }
@@ -161,53 +182,61 @@
 <div class="maps-city-bg">
     <div class="max-w-[1920px] mx-auto px-4 lg:px-6 relative z-10">
         
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 border-b border-white/10 pb-6">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 border-b border-[#1e293b] pb-4">
             <div>
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#00e5ff]/10 border border-[#00e5ff]/30 text-[#00e5ff] text-[10px] font-black tracking-widest uppercase mb-3 shadow-[0_0_10px_rgba(0,229,255,0.2)]">
-                    <i class="fa-solid fa-satellite-dish animate-pulse"></i> Auto-Tracking System
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-[#0b0f19] border border-[#1e293b] text-[#38bdf8] text-[9px] font-black tracking-widest uppercase mb-3 shadow-sm">
+                    <div class="w-1.5 h-1.5 bg-[#38bdf8] rounded-full animate-ping"></div> AUTO-TRACKING SYSTEM
                 </div>
-                <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight leading-none uppercase italic transform -skew-x-6">
-                    KTVDI <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#4a00e0] to-[#ea002a] drop-shadow-lg">MAPS CITY</span>
+                <h1 class="text-3xl md:text-5xl font-black tracking-tighter leading-none italic transform -skew-x-12" style="text-shadow: 2px 2px 0 #0f172a, 4px 4px 10px rgba(0,0,0,0.5);">
+                    <span class="text-white">KTVDI</span> 
+                    <span class="text-transparent bg-clip-text bg-gradient-to-b from-[#38bdf8] to-[#2563eb]">MAPS</span>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-b from-[#f87171] to-[#dc2626]">CITY</span>
                 </h1>
             </div>
-            <div class="flex gap-3">
-                <a href="/" class="px-6 py-2.5 rounded-xl bg-[#12121a] hover:bg-[#1a1a26] border border-white/10 text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-2 shadow-lg">
-                    <i class="fa-solid fa-arrow-left"></i> Dasbor
+            <div class="flex gap-2">
+                <a href="/" class="px-5 py-2.5 rounded bg-[#1e293b] hover:bg-[#334155] border-b-2 border-[#0f172a] text-slate-300 hover:text-white text-xs font-bold transition flex items-center gap-2">
+                    <i class="fa-solid fa-gauge"></i> Dasbor Utama
                 </a>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
             
-            <div class="lg:col-span-3 flex flex-col gap-6">
+            <div class="lg:col-span-3 flex flex-col gap-5">
                 
-                <div class="dash-panel">
-                    <div class="panel-header text-[#00e5ff]"><i class="fa-solid fa-car-side text-lg"></i> HUD Speedometer</div>
+                <div class="dash-panel h-64 lg:h-auto lg:flex-1">
+                    <div class="panel-header text-[#38bdf8]"><i class="fa-solid fa-gauge-simple-high"></i> INDIKATOR KECEPATAN</div>
                     <div class="speedo-wrapper">
+                        <div class="speedo-ring"></div>
                         <div id="speedWarning" class="speed-warning">
-                            <i class="fa-solid fa-triangle-exclamation text-lg mb-1"></i><br>TERDETEKSI KECEPATAN TINGGI!<br>Pastikan sabuk keselamatan / helm SNI terpasang.
+                            <i class="fa-solid fa-triangle-exclamation text-base mb-1 text-red-500"></i><br>
+                            KECEPATAN TINGGI! GUNAKAN SABUK KESELAMATAN/HELM.
                         </div>
                         <div class="digital-speed" id="speedVal">0</div>
                         <div class="digital-unit">KM/JAM</div>
-                        <div id="headingStatus" class="mt-6 text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-black/50 px-3 py-1.5 rounded-full border border-white/5 flex items-center gap-2">
-                            <i class="fa-regular fa-compass text-[#00e5ff]"></i> Arah: <span id="headingVal" class="text-white">Menunggu GPS...</span>
+                        <div id="headingStatus" class="mt-5 text-[9px] text-slate-400 font-bold uppercase tracking-widest bg-[#0b0f19] px-3 py-1.5 rounded border border-[#1e293b] flex items-center gap-2">
+                            <i class="fa-regular fa-compass text-[#38bdf8]"></i> <span id="headingVal" class="text-slate-300">Menunggu Satelit...</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="dash-panel">
-                    <div class="panel-header text-[#9333ea] justify-between">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-wifi text-lg"></i> Jaringan Internet</span>
-                        <button onclick="initSpeedTest()" id="btn-speedtest" class="bg-[#9333ea]/20 text-[#9333ea] hover:bg-[#9333ea] hover:text-white border border-[#9333ea]/50 px-3 py-1 rounded text-[10px] transition">UJI</button>
+                <div class="dash-panel h-auto">
+                    <div class="panel-header text-[#a855f7] justify-between">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-network-wired"></i> DIAGNOSTIK JARINGAN</span>
+                        <button onclick="runSpeedTest()" id="btn-speedtest" class="bg-[#a855f7]/10 text-[#a855f7] hover:bg-[#a855f7] hover:text-white border border-[#a855f7]/30 px-3 py-1 rounded text-[9px] transition font-bold uppercase">Uji Koneksi</button>
                     </div>
-                    <div class="p-5 grid grid-cols-2 gap-4">
+                    <div class="p-4 grid grid-cols-3 gap-2">
                         <div class="st-box">
                             <p class="st-label">Ping</p>
-                            <p class="st-value text-white" id="st-ping">-- <span class="text-[10px] text-slate-500 font-sans">ms</span></p>
+                            <p class="st-value text-slate-300" id="st-ping">--</p>
                         </div>
                         <div class="st-box">
-                            <p class="st-label">Download</p>
-                            <p class="st-value text-[#00e5ff]" id="st-dl">-- <span class="text-[10px] text-slate-500 font-sans">Mbps</span></p>
+                            <p class="st-label">Down</p>
+                            <p class="st-value text-[#38bdf8]" id="st-dl">--</p>
+                        </div>
+                        <div class="st-box">
+                            <p class="st-label">Up</p>
+                            <p class="st-value text-[#a855f7]" id="st-ul">--</p>
                         </div>
                     </div>
                 </div>
@@ -216,45 +245,45 @@
 
             <div class="lg:col-span-6">
                 <div class="dash-panel h-full flex flex-col min-h-[500px] relative">
-                    <div class="panel-header text-white justify-between">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-[#4a00e0] text-lg"></i> Live Tracking OSM</span>
-                        <div class="flex items-center gap-2 text-[10px] text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded border border-emerald-400/20">
-                            <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_#34d399]"></div> GPS Akurat
+                    <div class="panel-header text-slate-300 justify-between hidden lg:flex">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-[#38bdf8]"></i> SISTEM NAVIGASI SATELIT</span>
+                        <div class="flex items-center gap-2 text-[9px] text-[#34d399] bg-[#34d399]/10 px-2 py-1 rounded border border-[#34d399]/20">
+                            <div class="w-1.5 h-1.5 bg-[#34d399] rounded-full animate-pulse"></div> SENSOR AKTIF
                         </div>
                     </div>
-                    <div class="flex-1 relative bg-[#050508]">
+                    <div class="flex-1 relative bg-[#0b0f19]">
                         <div id="map"></div>
-                        <button class="btn-center-map" onclick="recenterMap()"><i class="fa-solid fa-crosshairs"></i> Fokuskan Lokasi</button>
+                        <button class="btn-center-map" onclick="recenterMap()"><i class="fa-solid fa-crosshairs"></i> FOKUS</button>
                     </div>
                 </div>
             </div>
 
-            <div class="lg:col-span-3 flex flex-col gap-6">
+            <div class="lg:col-span-3 flex flex-col gap-5">
                 
                 <div class="dash-panel lg:max-h-[350px] flex flex-col">
-                    <div class="panel-header text-[#ea002a] border-b border-[#ea002a]/20">
-                        <i class="fa-solid fa-house-crack text-lg"></i> Radar Gempa (BMKG)
+                    <div class="panel-header text-[#ef4444] border-b border-[#1e293b]">
+                        <i class="fa-solid fa-satellite-dish"></i> RADAR BENCANA (BMKG)
                     </div>
                     <div class="flex-1 overflow-y-auto premium-scroll" id="bmkg-list">
-                        <div class="p-8 text-center text-xs text-[#ea002a] font-bold">
-                            <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 block"></i>
-                            Menghubungkan ke BMKG...
+                        <div class="p-8 text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-3 block text-[#ef4444]"></i>
+                            Menghubungkan API...
                         </div>
                     </div>
                 </div>
 
                 <div class="dash-panel flex-1 flex flex-col lg:max-h-[350px]">
-                    <div class="panel-header text-amber-400 justify-between border-b border-amber-400/20">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-utensils text-lg"></i> Destinasi & Kuliner</span>
+                    <div class="panel-header text-[#facc15] justify-between border-b border-[#1e293b]">
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-location-crosshairs"></i> TITIK MENARIK (POI)</span>
                         <i class="fa-solid fa-circle-notch fa-spin text-[10px] hidden" id="poi-loader"></i>
                     </div>
-                    <div class="p-2 bg-[#050508] border-b border-white/5 text-[9px] text-slate-500 font-bold text-center uppercase tracking-widest">
-                        Jarak Pantau Sekitar: 100m - 5km
+                    <div class="p-2 bg-[#0b0f19] border-b border-[#1e293b] text-[9px] text-slate-500 font-bold text-center uppercase tracking-widest">
+                        RADAR LOKAL: 100M - 5KM
                     </div>
                     <div class="flex-1 overflow-y-auto premium-scroll" id="poi-list">
-                        <div class="p-8 text-center text-xs text-slate-500 font-bold">
-                            <i class="fa-solid fa-satellite-dish animate-pulse text-3xl mb-3 block text-slate-600"></i>
-                            Menunggu Koordinat GPS...
+                        <div class="p-8 text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            <i class="fa-solid fa-radar animate-spin text-2xl mb-3 block text-slate-600"></i>
+                            Menunggu GPS...
                         </div>
                     </div>
                 </div>
@@ -273,12 +302,12 @@
         // ==========================================
         // 1. INISIALISASI PETA (OSM DARK MODE)
         // ==========================================
+        // Set awal ke Indonesia tengah (Semarang)
         const map = L.map('map', {zoomControl: false}).setView([-6.9667, 110.4167], 12);
         
-        // Tile OpenStreetMap Standard yang di-invert via CSS (Dark Mode)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '© OpenStreetMap | KTVDI Geospasial'
+            attribution: '© OpenStreetMap | KTVDI Telemetry'
         }).addTo(map);
         
         L.control.zoom({ position: 'bottomleft' }).addTo(map);
@@ -290,45 +319,43 @@
         let userMarker = null;
         let myLat = null; 
         let myLon = null;
-        let autoCenter = true; // Flag agar map tidak memaksa pindah jika user sedang scroll peta manual
+        let autoCenter = true;
 
-        // Deteksi jika user menggeser peta secara manual
         map.on('dragstart', function() { autoCenter = false; });
 
-        // Tombol Recenter
         window.recenterMap = function() {
             if(myLat && myLon) {
                 map.flyTo([myLat, myLon], 16, {animate: true, duration: 1});
                 autoCenter = true;
             } else {
-                alert("Sinyal GPS belum terkunci. Pastikan izin lokasi diaktifkan.");
+                alert("Sedang mengunci posisi GPS Anda...");
             }
         };
 
-        // Icon Mobil (User)
+        // Icon Custom Otomotif
         const carIcon = L.divIcon({
-            html: `<div class="relative flex items-center justify-center w-10 h-10">
-                     <span class="absolute inline-flex h-full w-full rounded-full bg-[#00e5ff] opacity-30 animate-ping"></span>
-                     <div class="relative flex items-center justify-center w-7 h-7 bg-[#12121a] border-2 border-[#00e5ff] rounded-full shadow-[0_0_20px_#00e5ff]">
-                        <i class="fa-solid fa-car-side text-[#00e5ff] text-[11px]"></i>
+            html: `<div class="relative flex items-center justify-center w-8 h-8">
+                     <span class="absolute inline-flex h-full w-full rounded-full bg-[#00e5ff] opacity-40 animate-ping"></span>
+                     <div class="relative flex items-center justify-center w-6 h-6 bg-[#0f172a] border-2 border-[#00e5ff] rounded-full shadow-[0_0_15px_#00e5ff]">
+                        <i class="fa-solid fa-location-arrow text-[#00e5ff] text-[10px]"></i>
                      </div>
                    </div>`,
-            className: '', iconSize: [40, 40], iconAnchor: [20, 20]
+            className: '', iconSize: [32, 32], iconAnchor: [16, 16]
         });
 
         const bmkgIcon = L.divIcon({
-            html: '<div class="text-3xl text-[#ea002a] drop-shadow-[0_0_15px_rgba(234,0,42,0.9)]"><i class="fa-solid fa-bullseye fa-fade"></i></div>',
-            className: '', iconSize: [30, 30], iconAnchor: [15, 15]
+            html: '<div class="text-2xl text-[#ef4444] drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]"><i class="fa-solid fa-tower-broadcast fa-fade"></i></div>',
+            className: '', iconSize: [24, 24], iconAnchor: [12, 12]
         });
 
         const foodIcon = L.divIcon({
-            html: '<div class="w-7 h-7 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs border border-white shadow-lg"><i class="fa-solid fa-utensils"></i></div>',
-            className: '', iconSize: [28, 28]
+            html: '<div class="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] border border-[#0f172a] shadow-lg"><i class="fa-solid fa-burger"></i></div>',
+            className: '', iconSize: [24, 24]
         });
 
         const tourIcon = L.divIcon({
-            html: '<div class="w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs border border-white shadow-lg"><i class="fa-solid fa-camera"></i></div>',
-            className: '', iconSize: [28, 28]
+            html: '<div class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[10px] border border-[#0f172a] shadow-lg"><i class="fa-solid fa-tree"></i></div>',
+            className: '', iconSize: [24, 24]
         });
 
         // ==========================================
@@ -341,73 +368,86 @@
 
         function getDirection(heading) {
             if(heading === null || isNaN(heading)) return "-";
-            const dirs = ["Utara", "Timur Laut", "Timur", "Tenggara", "Selatan", "Barat Daya", "Barat", "Barat Laut"];
+            const dirs = ["U", "TL", "T", "TG", "S", "BD", "B", "BL"];
             return dirs[Math.round(heading / 45) % 8] + ` (${Math.round(heading)}°)`;
         }
 
+        // Fungsi Update Peta & POI jika Koordinat Ditemukan
+        function updateLocationLogic(lat, lon, speedKmh, heading) {
+            myLat = lat; myLon = lon;
+            
+            speedValEl.innerText = speedKmh;
+            headingValEl.innerText = getDirection(heading);
+            
+            let isTurning = false;
+            if(heading !== null && lastHeading !== null) {
+                let diff = Math.abs(heading - lastHeading);
+                if(diff > 180) diff = 360 - diff; 
+                if(diff > 15) isTurning = true;
+            }
+            
+            if(speedKmh > 80 && isTurning) {
+                warningEl.style.display = 'block';
+                speedValEl.style.color = '#ef4444';
+                speedValEl.style.textShadow = '0 0 20px rgba(239,68,68,0.8)';
+            } else {
+                warningEl.style.display = 'none';
+                speedValEl.style.color = '#00e5ff';
+                speedValEl.style.textShadow = '0 0 15px rgba(255,255,255,0.4), 0 0 5px #38bdf8';
+            }
+            lastHeading = heading;
+
+            if (!userMarker) {
+                userMarker = L.marker([lat, lon], {icon: carIcon, zIndexOffset: 1000}).addTo(userLayer);
+                map.flyTo([lat, lon], 14, {animate: true});
+                triggerPOIFetch(lat, lon);
+            } else {
+                userMarker.setLatLng([lat, lon]);
+                if(autoCenter) map.panTo([lat, lon]);
+                
+                if(lastFetchLat && lastFetchLon) {
+                    let d = getDistanceFromLatLonInKm(lat, lon, lastFetchLat, lastFetchLon);
+                    if(d > 3) triggerPOIFetch(lat, lon);
+                }
+                updateLocalPOIDistances();
+            }
+        }
+
+        // Coba pakai HTML5 Geolocation (Presisi)
         if ("geolocation" in navigator) {
             navigator.geolocation.watchPosition((pos) => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                myLat = lat; myLon = lon;
-                
-                // Konversi Kecepatan m/s -> km/jam
                 let speedMs = pos.coords.speed;
                 if (speedMs === null || speedMs < 0) speedMs = 0;
                 let speedKmh = Math.round(speedMs * 3.6);
-                
-                // Heading / Arah
                 let heading = pos.coords.heading; 
 
-                // --- HAPUS KOMENTAR DI BAWAH JIKA INGIN SIMULASI DI LAPTOP (KARENA LAPTOP TIDAK PUNYA SENSOR SPEED) ---
-                // speedKmh = Math.floor(Math.random() * 120); 
-                // heading = Math.floor(Math.random() * 360);
+                // HAPUS COMMENT DIBAWAH UNTUK SIMULASI JIKA DITEST DI LAPTOP DIAM
+                // speedKmh = Math.floor(Math.random() * 100); heading = Math.floor(Math.random() * 360);
 
-                // Update DOM
-                speedValEl.innerText = speedKmh;
-                headingValEl.innerText = getDirection(heading);
-                
-                // Deteksi Belok & Peringatan
-                let isTurning = false;
-                if(heading !== null && lastHeading !== null) {
-                    let diff = Math.abs(heading - lastHeading);
-                    if(diff > 180) diff = 360 - diff; 
-                    if(diff > 15) isTurning = true; // Jika arah berubah > 15 derajat
-                }
-                
-                if(speedKmh > 80 && isTurning) {
-                    warningEl.style.display = 'block';
-                    speedValEl.style.color = '#ea002a';
-                    speedValEl.style.textShadow = '0 0 30px rgba(234,0,42,0.8)';
-                } else {
-                    warningEl.style.display = 'none';
-                    speedValEl.style.color = '#00e5ff';
-                    speedValEl.style.textShadow = '0 0 30px rgba(0,229,255,0.6)';
-                }
-                lastHeading = heading;
-
-                // Update Marker Map
-                if (!userMarker) {
-                    userMarker = L.marker([lat, lon], {icon: carIcon, zIndexOffset: 1000}).addTo(userLayer);
-                    map.flyTo([lat, lon], 15, {animate: true});
-                    triggerPOIFetch(lat, lon); // Cari Kuliner pertama kali
-                } else {
-                    userMarker.setLatLng([lat, lon]);
-                    if(autoCenter) map.panTo([lat, lon]);
-                    
-                    // Jika user sudah jalan lebih dari 3KM dari titik terakhir dicari, fetch kuliner lagi
-                    if(lastFetchLat && lastFetchLon) {
-                        let d = getDistanceFromLatLonInKm(lat, lon, lastFetchLat, lastFetchLon);
-                        if(d > 3) triggerPOIFetch(lat, lon);
-                    }
-                    
-                    updateLocalPOIDistances();
-                }
-
+                updateLocationLogic(pos.coords.latitude, pos.coords.longitude, speedKmh, heading);
             }, (err) => {
-                console.warn("GPS Access Denied/Error:", err.message);
-                headingValEl.innerText = "GPS DITOLAK";
+                console.warn("GPS Ditolak/Error, menggunakan Fallback IP...", err.message);
+                headingValEl.innerText = "IP FALLBACK";
+                fallbackToIPLocation(); // Panggil IP Fallback
             }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
+        } else {
+            fallbackToIPLocation();
+        }
+
+        // FALLBACK JIKA LAPTOP TIDAK ADA SENSOR GPS
+        function fallbackToIPLocation() {
+            if(myLat !== null) return; // Jika sudah dapat, abaikan
+            fetch('https://ipapi.co/json/')
+                .then(res => res.json())
+                .then(data => {
+                    if(data.latitude && data.longitude) {
+                        updateLocationLogic(data.latitude, data.longitude, 0, null);
+                    }
+                })
+                .catch(e => {
+                    console.log("IP Fallback gagal.");
+                    headingValEl.innerText = "TIDAK ADA SINYAL";
+                });
         }
 
         // ==========================================
@@ -429,7 +469,6 @@
             document.getElementById('poi-loader').classList.remove('hidden');
             lastFetchLat = lat; lastFetchLon = lon;
             
-            // Radius 5KM, cari resto, cafe, tempat wisata
             const query = `
                 [out:json][timeout:10];
                 (
@@ -450,7 +489,7 @@
                     data.elements.forEach(el => {
                         if(el.tags && el.tags.name) {
                             let isFood = el.tags.amenity ? true : false;
-                            let street = el.tags['addr:street'] || "Detail jalan tidak tersedia";
+                            let street = el.tags['addr:street'] || "Jalan tidak terdata";
                             
                             rawPOIs.push({
                                 name: el.tags.name,
@@ -462,7 +501,7 @@
                             });
 
                             L.marker([el.lat, el.lon], {icon: isFood ? foodIcon : tourIcon}).addTo(poiLayer)
-                             .bindPopup(`<strong style="color:#12121a; font-family:'Inter'">${el.tags.name}</strong><br><span style="font-size:10px;color:gray;">${street}</span>`);
+                             .bindPopup(`<strong style="color:#0f172a; font-family:'Inter'; font-size:12px;">${el.tags.name}</strong><br><span style="font-size:9px;color:#64748b;">${street}</span>`);
                         }
                     });
                 }
@@ -476,7 +515,7 @@
 
         function updateLocalPOIDistances() {
             if(!myLat || !myLon || rawPOIs.length === 0) {
-                document.getElementById('poi-list').innerHTML = '<div class="p-8 text-center text-xs text-slate-500 font-bold">Tidak ada destinasi tercatat di satelit dalam radius 5 KM.</div>';
+                document.getElementById('poi-list').innerHTML = '<div class="p-8 text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">0 Objek dalam radius 5KM.</div>';
                 return;
             }
 
@@ -485,7 +524,6 @@
                 return p;
             });
 
-            // Filter 100 meter sampai 5 KM saja yang ditampilkan di list sidebar
             list = list.filter(p => p.distance >= 0.1 && p.distance <= 5);
             list.sort((a,b) => a.distance - b.distance);
 
@@ -493,37 +531,35 @@
             list.forEach(p => {
                 let distText = p.distance < 1 ? (Math.round(p.distance * 1000) + ' M') : (p.distance.toFixed(1) + ' KM');
                 let color = p.isFood ? 'text-amber-400' : 'text-emerald-400';
-                let bg = p.isFood ? 'bg-amber-400/10' : 'bg-emerald-400/10';
                 let icon = p.isFood ? 'fa-utensils' : 'fa-camera';
                 
                 html += `
                     <div class="list-item-custom group">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full ${bg} border border-white/5 flex items-center justify-center ${color} group-hover:scale-110 transition-transform shadow-md">
-                                <i class="fa-solid ${icon}"></i>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded bg-[#0f172a] border border-[#1e293b] flex items-center justify-center ${color} shadow-sm group-hover:bg-[#1e293b] transition">
+                                <i class="fa-solid ${icon} text-[10px]"></i>
                             </div>
                             <div>
-                                <p class="text-sm font-bold text-white leading-tight">${p.name}</p>
-                                <p class="text-[10px] text-slate-400 flex items-center gap-1.5 mt-1"><i class="fa-solid fa-road text-slate-600"></i> ${p.street}</p>
+                                <p class="text-xs font-bold text-slate-200 leading-tight">${p.name}</p>
+                                <p class="text-[9px] text-slate-500 flex items-center gap-1 mt-1 uppercase tracking-wider"><i class="fa-solid fa-road"></i> ${p.street}</p>
                             </div>
                         </div>
-                        <div class="text-[10px] font-black ${color} ${bg} border border-white/5 px-2.5 py-1.5 rounded-lg shadow-sm whitespace-nowrap">
+                        <div class="text-[9px] font-black text-slate-300 bg-[#0f172a] border border-[#1e293b] px-2 py-1 rounded whitespace-nowrap">
                             ${distText}
                         </div>
                     </div>
                 `;
             });
 
-            if(html === '') html = '<div class="p-8 text-center text-xs text-slate-500 font-bold">Terlalu dekat (< 100m) atau di luar radius 5 KM.</div>';
+            if(html === '') html = '<div class="p-8 text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">Di luar jangkauan radar.</div>';
             document.getElementById('poi-list').innerHTML = html;
         }
 
         // ==========================================
-        // 4. BMKG GEMPA TERKINI (MULTIPLE DATA)
+        // 4. BMKG GEMPA TERKINI (MULTIPLE DATA API)
         // ==========================================
         async function fetchBMKG() {
             try {
-                // Ambil daftar gempa terkini M >= 5.0
                 const proxyUrl = 'https://api.allorigins.win/get?url=';
                 const targetUrl = encodeURIComponent('https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.xml');
                 
@@ -538,8 +574,7 @@
 
                 let bounds = [];
 
-                // Ambil maksimal 10 gempa terbaru
-                const maxItems = Math.min(gempaNodes.length, 10);
+                const maxItems = Math.min(gempaNodes.length, 15); // Tampilkan 15 gempa
                 for (let i = 0; i < maxItems; i++) {
                     const node = gempaNodes[i];
                     const tanggal = node.getElementsByTagName("Tanggal")[0].textContent;
@@ -552,66 +587,62 @@
                     const wilayah = node.getElementsByTagName("Wilayah")[0].textContent;
                     const potensi = node.getElementsByTagName("Potensi")[0].textContent;
 
-                    // Plot ke Map
-                    L.circle([lat, lon], { color: '#ea002a', fillColor: '#ea002a', fillOpacity: 0.15, radius: 25000 }).addTo(bmkgLayer);
+                    L.circle([lat, lon], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.1, radius: 20000 }).addTo(bmkgLayer);
                     L.marker([lat, lon], {icon: bmkgIcon}).addTo(bmkgLayer)
-                     .bindPopup(`<div style="font-family:'Inter',sans-serif; color:#12121a;">
-                                    <strong style="color:#ea002a">M ${mag} - ${wilayah}</strong><br>
+                     .bindPopup(`<div style="font-family:'Inter',sans-serif; color:#0f172a;">
+                                    <strong style="color:#ef4444">M ${mag} - ${wilayah}</strong><br>
                                     Kedalaman: ${depth}<br><b>${potensi}</b>
                                  </div>`);
                     bounds.push([lat, lon]);
 
-                    // Render ke List Sidebar
                     bmkgList.innerHTML += `
-                        <div class="list-item-custom flex-col items-start gap-2 hover:bg-[#ea002a]/5 cursor-pointer">
-                            <div class="flex justify-between items-center w-full">
-                                <span class="bg-[#ea002a] text-white px-2 py-0.5 rounded text-[10px] font-black shadow-[0_0_10px_rgba(234,0,42,0.5)]">MAG ${mag}</span>
-                                <span class="text-[10px] text-slate-400 font-bold">${tanggal} ${jam}</span>
+                        <div class="list-item-custom flex-col items-start gap-1 hover:bg-white/5 cursor-pointer">
+                            <div class="flex justify-between items-center w-full mb-1">
+                                <span class="bg-[#ea002a]/20 text-[#ef4444] border border-[#ea002a]/50 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">MAG ${mag}</span>
+                                <span class="text-[9px] text-slate-500 font-bold">${tanggal} | ${jam}</span>
                             </div>
-                            <p class="text-xs font-bold text-white leading-snug mt-1">${wilayah}</p>
+                            <p class="text-xs font-bold text-slate-200 leading-snug">${wilayah}</p>
                             <div class="flex justify-between items-center w-full mt-1">
-                                <p class="text-[10px] text-slate-400 font-bold"><i class="fa-solid fa-water text-blue-500 mr-1"></i> Kedalaman: ${depth}</p>
-                                <p class="text-[9px] text-[#ea002a] font-black bg-[#ea002a]/10 px-2 py-0.5 rounded">${potensi}</p>
+                                <p class="text-[9px] text-slate-400 font-bold uppercase"><i class="fa-solid fa-arrow-down-up-across-line text-[#38bdf8] mr-1"></i> ${depth}</p>
+                                <p class="text-[8px] text-[#ef4444] font-black uppercase">${potensi}</p>
                             </div>
                         </div>
                     `;
                 }
                 
-                // Posisikan peta mencakup titik gempa (jika lokasi user belum dapat)
                 if(bounds.length > 0 && !myLat) {
                     map.fitBounds(bounds, {padding: [50,50], maxZoom: 6});
                 }
 
             } catch (err) {
                 console.error("Gagal load BMKG", err);
-                document.getElementById('bmkg-list').innerHTML = '<div class="p-8 text-xs text-red-500 font-bold text-center">Gagal memuat data BMKG. Server sibuk.</div>';
+                document.getElementById('bmkg-list').innerHTML = '<div class="p-8 text-[10px] text-red-500 font-bold text-center uppercase">Gagal koneksi ke server BMKG.</div>';
             }
         }
         fetchBMKG();
 
         // ==========================================
-        // 5. SPEED TEST INTERNET
+        // 5. SPEED TEST INTERNET (FUNGSIONAL)
         // ==========================================
-        window.initSpeedTest = function() {
+        window.runSpeedTest = function() {
             const btn = document.getElementById('btn-speedtest');
-            const txt = document.getElementById('speedtest-txt');
-            const panel = document.getElementById('speedtest-panel');
             const pPing = document.getElementById('st-ping');
             const pDl = document.getElementById('st-dl');
+            const pUl = document.getElementById('st-ul');
 
-            panel.classList.remove('hidden');
-            txt.innerText = "Mengukur...";
+            btn.innerText = "MENGUKUR...";
             btn.classList.add('animate-pulse');
             pPing.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-slate-500"></i>';
-            pDl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[#00e5ff]"></i>';
+            pDl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[#38bdf8]"></i>';
+            pUl.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[#a855f7]"></i>';
 
-            // Mengukur Ping via Fetch
-            const startTime = Date.now();
-            fetch('/?ping=' + startTime, {cache: 'no-store'}).then(() => {
-                const pingTime = Date.now() - startTime;
-                pPing.innerHTML = `${pingTime} <span class="text-[10px] text-slate-500 font-sans">ms</span>`;
+            // 1. Mengukur Ping (waktu bolak balik ke server KTVDI)
+            const pingStart = Date.now();
+            fetch('/?ping=' + pingStart, {cache: 'no-store'}).then(() => {
+                const pingTime = Date.now() - pingStart;
+                pPing.innerHTML = `${pingTime}`;
                 
-                // Mengukur Download Speed
+                // 2. Mengukur Download Speed (Download dummy file 1.5MB dari Wikipedia)
                 const dlStart = Date.now();
                 const cacheBuster = "?nnn=" + dlStart;
                 const downloadSizeBits = 1500000 * 8; // approx 1.5MB in bits
@@ -620,22 +651,41 @@
                 img.onload = function() {
                     const dlEnd = Date.now();
                     const duration = (dlEnd - dlStart) / 1000; 
-                    let mbps = (downloadSizeBits / duration) / 1000000;
+                    let mbpsDl = (downloadSizeBits / duration) / 1000000;
+                    pDl.innerHTML = `${mbpsDl.toFixed(1)}`;
                     
-                    pDl.innerHTML = `${mbps.toFixed(1)} <span class="text-[10px] text-slate-500 font-sans">Mbps</span>`;
-                    txt.innerText = "Uji Ulang";
-                    btn.classList.remove('animate-pulse');
+                    // 3. Mengukur Upload Speed (Simulasi upload blob data via POST ke httpbin)
+                    const ulStart = Date.now();
+                    const uploadData = new Blob([new ArrayBuffer(500000)]); // 500KB dummy data
+                    fetch('https://httpbin.org/post', {
+                        method: 'POST',
+                        body: uploadData
+                    }).then(() => {
+                        const ulEnd = Date.now();
+                        const ulDuration = (ulEnd - ulStart) / 1000;
+                        const uploadSizeBits = 500000 * 8;
+                        let mbpsUl = (uploadSizeBits / ulDuration) / 1000000;
+                        
+                        pUl.innerHTML = `${mbpsUl.toFixed(1)}`;
+                        btn.innerText = "UJI ULANG";
+                        btn.classList.remove('animate-pulse');
+                    }).catch(() => {
+                        pUl.innerHTML = "ERR";
+                        btn.innerText = "COBA LAGI";
+                        btn.classList.remove('animate-pulse');
+                    });
+
                 };
                 img.onerror = function() {
-                    pDl.innerHTML = `<span class="text-red-500 text-sm">Gagal</span>`;
-                    txt.innerText = "Coba Lagi";
+                    pDl.innerHTML = `ERR`; pUl.innerHTML = `ERR`;
+                    btn.innerText = "COBA LAGI";
                     btn.classList.remove('animate-pulse');
                 };
                 img.src = "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg" + cacheBuster;
 
             }).catch(() => {
-                pPing.innerHTML = "ERR"; pDl.innerHTML = "ERR";
-                txt.innerText = "Coba Lagi";
+                pPing.innerHTML = "ERR"; pDl.innerHTML = "ERR"; pUl.innerHTML = "ERR";
+                btn.innerText = "COBA LAGI";
                 btn.classList.remove('animate-pulse');
             });
         };
