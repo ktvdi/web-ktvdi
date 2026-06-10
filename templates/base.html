@@ -128,7 +128,7 @@
             window.addEventListener('wheel', blockAllKeys, {capture: true, passive: false});
             window.addEventListener('touchmove', blockAllKeys, {capture: true, passive: false});
 
-            // Mini Game Logic Fix
+            // Mini Game Logic Fix (Badminton)
             let score = 0;
             const ball = document.getElementById('game-ball');
             if (ball) {
@@ -136,7 +136,6 @@
                     e.stopPropagation();
                     score++;
                     document.getElementById('game-score').innerText = score;
-                    // Keep ball within bounds (15% to 85%)
                     const randomX = Math.floor(Math.random() * 70) + 15;
                     const randomY = Math.floor(Math.random() * 70) + 15;
                     ball.style.left = randomX + '%';
@@ -149,7 +148,7 @@
                         ball.style.left = randomX + '%';
                         ball.style.top = randomY + '%';
                     }
-                }, 1500); // Speed set to 1.5s for playability
+                }, 1500); 
             }
 
             const timerEl = document.getElementById('penalty-timer');
@@ -172,16 +171,14 @@
             }, 1000);
         }
 
-        // Fungsi Potong Kompas Waktu Blokir
         function reducePenaltyExpress() {
-            const newBlockUntil = Date.now() + 60000; // 1 Menit
+            const newBlockUntil = Date.now() + 60000; 
             localStorage.setItem('ktvdi_block_until', newBlockUntil.toString());
             window.open('https://bolagembira.tvrinews.com', '_blank');
             window.location.reload();
         }
 
         function blockAllKeys(e) { 
-            // Allow clicking express button and the game ball
             if(e.target.closest('#express-btn') || e.target.closest('#game-ball')) return;
             e.stopPropagation(); e.preventDefault(); return false; 
         }
@@ -281,7 +278,7 @@
         
         .font-impact { font-family: 'Arial Black', Impact, sans-serif; }
         .text-shadow-hero { text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .worldcup-font { font-family: 'Oswald', sans-serif; } /* TAMBAHAN KELAS FONT */
+        .worldcup-font { font-family: 'Oswald', sans-serif; } 
 
         .ios-bubble-menu {
             border-radius: 1.25rem; 
@@ -343,25 +340,37 @@
 
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
         
-        /* Ticker Default (Horizontal) */
-        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 120s linear infinite; }
+        /* Ticker Default (Horizontal) - DIPERLAMBAT JADI 300s */
+        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 300s linear infinite; }
         .ticker-item { padding: 0 3rem; display: flex; align-items: center; color: #ffffff; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-        /* REVISI: Ticker Night Mode (Vertikal Naik Turun) - TAMPILAN LEBIH RAPI & PELAN */
+        /* TAMBAHAN KELAS UNTUK MODE MALAM (Menyesuaikan container agar teks terlihat penuh) */
+        .glass-ticker-floating.night-mode-active { height: 56px; }
+        .desktop-bottom-bar.night-mode-active { height: 56px; }
+
+        /* Ticker Night Mode (Vertikal Naik Turun) - SANGAT PELAN JADI 180s */
         .ticker-vertical-move {
             display: flex; flex-direction: column; width: 100%; align-items: flex-start;
-            animation: tickerVertical 35s linear infinite; /* Animasi pelan dan smooth */
+            animation: tickerVertical 180s linear infinite; 
         }
         .ticker-item-vert {
-            height: 38px; display: flex; align-items: center;
+            height: 56px; display: flex; align-items: center;
             padding: 0 1rem; color: #fbbf24; font-family: 'Oswald', sans-serif;
-            font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; flex-shrink: 0;
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+            width: 100%; flex-shrink: 0; 
             border-left: 3px solid #fbbf24; background: linear-gradient(90deg, rgba(251,191,36,0.15) 0%, transparent 100%);
         }
+        .ticker-item-vert span {
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Maksimal 2 baris agar semua teks terlihat utuh */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            white-space: normal; /* Mengizinkan teks untuk turun ke baris baru jika panjang */
+            line-height: 1.4;
+        }
         @keyframes tickerVertical {
-            0% { transform: translateY(38px); }
+            0% { transform: translateY(56px); }
             100% { transform: translateY(-100%); }
         }
 
@@ -373,13 +382,35 @@
 
         .custom-scroll::-webkit-scrollbar { width: 4px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         
-        /* Pro Glass Panel untuk Security Overlay */
         .pro-glass-panel {
             background: linear-gradient(145deg, rgba(10, 20, 60, 0.8) 0%, rgba(37, 99, 235, 0.4) 100%);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 30px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
             backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
             border-radius: 28px; padding: 40px; text-align: center; max-width: 400px; width: 90%;
+        }
+
+        .badminton-court {
+            background-color: #2e8b57;
+            border: 3px solid white;
+            position: relative;
+        }
+        .badminton-lines {
+            position: absolute;
+            inset: 6px;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        .badminton-center-line {
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            border-left: 1px solid rgba(255,255,255,0.6);
+            transform: translateX(-50%);
+        }
+        .badminton-net {
+            position: absolute;
+            top: 50%; left: 0; right: 0;
+            border-top: 2px dashed rgba(255,255,255,0.8);
+            transform: translateY(-50%);
         }
     </style>
 </head>
@@ -390,10 +421,12 @@
 
     <audio id="security-audio" src="https://server.radioimeldafm.co.id:8040/gajahmadafm?_ic2=1776620223945" loop preload="none"></audio>
 
-    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-[#050a1f] text-white hidden flex-col items-center justify-start overflow-y-auto custom-scroll py-10 px-4" style="background-image: radial-gradient(circle at 50% 0%, #1e3a8a 0%, #050a1f 70%);">
+    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-[#050a1f] text-white hidden flex-col items-center justify-start overflow-y-auto custom-scroll py-8 px-4" style="background-image: radial-gradient(circle at 50% 0%, #1e3a8a 0%, #050a1f 70%);">
         <div class="absolute inset-0 z-[-1] opacity-20 mix-blend-screen bg-[url('https://images.unsplash.com/photo-1518605368461-1e122b10287b?auto=format&fit=crop&q=80')] bg-cover bg-center bg-fixed bg-no-repeat"></div>
         
-        <div class="w-full max-w-lg mx-auto flex flex-col items-center gap-6 mt-4 pb-12">
+        <div class="w-full max-w-lg mx-auto flex flex-col items-center gap-5 mt-2 pb-12">
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-16 w-16 mb-2 filter invert brightness-0 opacity-90 drop-shadow-lg" alt="KTVDI Logo">
+
             <div class="flex items-center gap-4 animate-pulse">
                 <i class="fa-solid fa-trophy text-4xl text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]"></i>
                 <i class="fa-solid fa-ban text-5xl md:text-6xl text-[#ed1c24] drop-shadow-[0_0_15px_rgba(237,28,36,0.5)]"></i>
@@ -405,21 +438,21 @@
                 <p class="text-blue-200 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran kebijakan keamanan. Anda diistirahatkan sementara.</p>
             </div>
             
-            <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center w-full shadow-2xl relative overflow-hidden mt-2">
+            <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center w-full shadow-2xl relative overflow-hidden mt-1">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-400 to-red-500"></div>
                 <p class="text-slate-400 text-[10px] uppercase tracking-widest mb-2 font-bold">Waktu Penangguhan</p>
                 <p id="penalty-timer" class="text-5xl md:text-6xl worldcup-font font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">60:00</p>
             </div>
 
-            <div id="penalty-game" class="relative w-full h-40 md:h-48 bg-[#2d6a4f] rounded-xl overflow-hidden border-2 border-white/20 shadow-[0_10px_30px_rgba(0,0,0,0.5)] select-none mt-2" style="background-image: repeating-linear-gradient(0deg, transparent, transparent 20px, rgba(255,255,255,0.05) 20px, rgba(255,255,255,0.05) 40px);">
-                <div class="absolute inset-0 border border-white/30 m-3 rounded"></div>
-                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border-2 border-white/30 rounded-full"></div>
-                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-white/60 rounded-full"></div>
+            <div id="penalty-game" class="badminton-court relative w-full h-40 md:h-48 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] select-none mt-2">
+                <div class="badminton-lines"></div>
+                <div class="badminton-center-line"></div>
+                <div class="badminton-net"></div>
                 
-                <div class="absolute top-2 left-3 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-white/90 text-[10px] font-bold z-0 border border-white/10"><i class="fa-solid fa-gamepad mr-1"></i> Usir Bosan!</div>
+                <div class="absolute top-2 left-3 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-white/90 text-[10px] font-bold z-0 border border-white/10"><i class="fa-solid fa-gamepad mr-1"></i> Tangkap Shuttlecock!</div>
                 <div class="absolute bottom-2 right-3 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white/90 text-xs font-bold z-0 border border-yellow-400/30">Skor: <span id="game-score" class="text-yellow-400 text-sm">0</span></div>
                 
-                <div id="game-ball" class="absolute w-10 h-10 cursor-pointer text-3xl transition-all duration-300 hover:scale-110 drop-shadow-[0_5px_10px_rgba(0,0,0,0.4)] flex items-center justify-center z-10" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">⚽</div>
+                <div id="game-ball" class="absolute w-10 h-10 cursor-pointer text-3xl transition-all duration-300 hover:scale-110 drop-shadow-[0_5px_10px_rgba(0,0,0,0.4)] flex items-center justify-center z-10" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">🏸</div>
             </div>
 
             <button id="express-btn" onclick="reducePenaltyExpress()" class="w-full bg-gradient-to-r from-[#ed1c24] to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-4 px-6 rounded-xl shadow-[0_10px_20px_rgba(237,28,36,0.3)] border border-red-400/50 transition-all active:scale-[0.98] flex items-center justify-center gap-3 mt-2">
@@ -429,6 +462,18 @@
                     <div class="text-[10px] text-red-200 font-normal">Kunjungi bolagembira.tvrinews.com</div>
                 </div>
             </button>
+
+            <div class="w-full bg-blue-900/40 backdrop-blur-md border border-blue-400/30 rounded-xl p-5 mt-2 text-left shadow-lg">
+                <h3 class="text-yellow-400 font-bold mb-3 flex items-center gap-2 border-b border-blue-400/30 pb-2">
+                    <i class="fa-solid fa-tv"></i> Info Nonton Piala Dunia 2026 Gratis!
+                </h3>
+                <ul class="text-xs text-blue-100 space-y-2 list-disc pl-4 marker:text-yellow-400">
+                    <li>Gunakan <strong>Antena UHF Outdoor</strong> untuk penerimaan sinyal yang lebih kuat dan stabil.</li>
+                    <li>Arahkan antena ke <strong>pemancar TVRI terdekat</strong> di kota Anda.</li>
+                    <li>Pastikan TV Anda sudah digital (DVB-T2) atau gunakan <strong>Set Top Box (STB) bersertifikat Kominfo</strong> jika masih TV analog.</li>
+                    <li>Lakukan <strong>Pencarian Saluran Otomatis (Auto Scan)</strong> untuk mendapatkan channel TVRI Nasional / Sport tanpa kuota internet!</li>
+                </ul>
+            </div>
             
             <div class="text-center text-xs text-slate-400 w-full mt-2">
                 IP Anda: <span id="penalty-ip" class="text-yellow-400 font-mono">Memeriksa...</span>
@@ -689,13 +734,13 @@
         </nav>
     </div>
 
-    <div class="glass-ticker-floating lg:hidden">
+    <div class="glass-ticker-floating lg:hidden transition-all duration-300">
         <div class="bg-[#ed1c24] h-full flex items-center px-3 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE</div>
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-mobile" class="ticker-move"></div></div>
         <div class="bg-white/10 backdrop-blur-md h-full px-2 border-l border-slate-200/20 z-20 shrink-0 flex items-center"><div id="clock-mobile" class="clock-container text-[10px]">00:00:00 WIB</div></div>
     </div>
 
-    <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto">
+    <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto transition-all duration-300">
         <div class="bg-[#ed1c24] h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> BERITA TERKINI</div>
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-desktop" class="ticker-move"></div></div>
         <div class="bg-white/5 backdrop-blur-md h-8 px-4 rounded-lg border border-white/10 z-20 shrink-0 flex items-center gap-2 ml-4 text-white text-[11px] font-bold"><i class="fa-solid fa-location-dot text-red-400 animate-bounce"></i><span id="desktop-user-location">Mendeteksi...</span></div>
@@ -852,22 +897,35 @@
                     const ch = wibNow.getHours();
                     const cm = wibNow.getMinutes();
                     
-                    // REVISI JAM NEWS TICKER: 01:45 - 06:59 WIB
-                    const isNightMode = (ch == 1 && cm >= 45) || (ch > 1 && ch < 6) || (ch == 6 && cm <= 59);
+                    const isNightMode = (ch == 2 && cm >= 00) || (ch > 1 && ch < 6) || (ch == 6 && cm <= 59);
 
                     const mobTicker = document.getElementById('unified-ticker-mobile');
                     const deskTicker = document.getElementById('unified-ticker-desktop');
 
                     if(isNightMode) {
+                        // Tambah class night-mode-active agar navbar ticker melebar
+                        const floatBar = document.querySelector('.glass-ticker-floating');
+                        if(floatBar) floatBar.classList.add('night-mode-active');
+                        
+                        const deskBar = document.querySelector('.desktop-bottom-bar');
+                        if(deskBar) deskBar.classList.add('night-mode-active');
+
                         // Ticker Vertikal
                         if(mobTicker) mobTicker.className = 'ticker-vertical-move';
                         if(deskTicker) deskTicker.className = 'ticker-vertical-move';
                         
-                        // Direpeat banyak agar animasinya seamless dan panjang
-                        const items = data.map(n => `<div class="ticker-item-vert">${n}</div>`).join('');
+                        // Bungkus teks dalam span untuk sistem wrap (dua baris)
+                        const items = data.map(n => `<div class="ticker-item-vert"><span>${n}</span></div>`).join('');
                         if(mobTicker) mobTicker.innerHTML = items.repeat(10);
                         if(deskTicker) deskTicker.innerHTML = items.repeat(10);
                     } else {
+                        // Hapus class jika kembali ke mode normal siang
+                        const floatBar = document.querySelector('.glass-ticker-floating');
+                        if(floatBar) floatBar.classList.remove('night-mode-active');
+                        
+                        const deskBar = document.querySelector('.desktop-bottom-bar');
+                        if(deskBar) deskBar.classList.remove('night-mode-active');
+
                         // Ticker Horizontal Normal
                         if(mobTicker) mobTicker.className = 'ticker-move';
                         if(deskTicker) deskTicker.className = 'ticker-move';
