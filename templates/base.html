@@ -540,6 +540,9 @@
                                 </span>
                             </div>
                         </div>
+                    {% else %}
+                        <div id="mobile-guest-schedule" class="xl:hidden relative flex-1 h-8 ml-1 overflow-hidden min-w-[120px]">
+                            </div>
                     {% endif %}
 
                     <div id="desktop-header-dynamic" class="hidden lg:flex relative items-center justify-center text-white min-w-[280px] h-12 overflow-hidden">
@@ -734,6 +737,16 @@
         </nav>
     </div>
 
+    {% if session.get('user') %}
+    <div id="pildun-ticker-container" class="glass-ticker-floating lg:hidden transition-all duration-300" style="bottom: 158px; height: 32px; background: rgba(10, 20, 60, 0.95); border-color: rgba(250, 204, 21, 0.4);">
+        <div class="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full flex items-center px-3 z-20 shrink-0 text-[#0a143c] text-[10px] font-black uppercase tracking-widest gap-2 shadow-[2px_0_10px_rgba(0,0,0,0.5)]">
+            <i class="fa-solid fa-trophy"></i> PILDUN
+        </div>
+        <div class="ticker-wrap relative flex-1">
+            <div id="pildun-ticker-mobile" class="ticker-move" style="animation-duration: 4000s;"></div> </div>
+    </div>
+    {% endif %}
+
     <div class="glass-ticker-floating lg:hidden transition-all duration-300">
         <div class="bg-[#ed1c24] h-full flex items-center px-3 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE</div>
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-mobile" class="ticker-move"></div></div>
@@ -765,9 +778,10 @@
         updateMobileGreeting();
 
         function initHeaderRotator() {
+            // Setup Default Header Desktop States
             let states = [
                 { id: 'header-state-1', duration: 15000 },
-                { id: 'header-state-2', duration: 6000 } // Durasi disesuaikan jadi 6 detik
+                { id: 'header-state-2', duration: 6000 }
             ];
 
             // --- DATA JADWAL PERTANDINGAN PIALA DUNIA 2026 ---
@@ -786,13 +800,16 @@
                 { t1: "Iran", t2: "Selandia Baru", time: "2026-06-16T08:00:00+07:00", label: "Sel 16 Jun, 08.00 WIB" }
             ];
 
-            const dynamicHeader = document.getElementById('desktop-header-dynamic');
             const nowMs = new Date().getTime();
+            // Filter Data: Hapus jadwal jika sudah lewat 30 menit dari jam tandingnya
+            const activeMatches = matches.filter(m => nowMs <= new Date(m.time).getTime() + (30 * 60 * 1000));
 
-            // Inject Jadwal ke dalam DOM jika valid (belum lewat 30 menit dari jadwalnya)
-            matches.forEach((m, idx) => {
-                const matchMs = new Date(m.time).getTime();
-                if (nowMs <= matchMs + (30 * 60 * 1000)) {
+            // ============================================
+            // 1. INJECT KE DESKTOP HEADER (Tengah Navbar)
+            // ============================================
+            const dynamicHeader = document.getElementById('desktop-header-dynamic');
+            if (dynamicHeader) {
+                activeMatches.forEach((m, idx) => {
                     const stateId = 'header-state-match-' + idx;
                     const html = `
                     <div id="${stateId}" class="hidden absolute flex flex-col items-center justify-center transition-opacity duration-1000 opacity-0 w-full">
@@ -803,13 +820,82 @@
                             <span>${m.t2}</span>
                         </div>
                     </div>`;
-                    if(dynamicHeader) {
-                        dynamicHeader.insertAdjacentHTML('beforeend', html);
-                        states.push({ id: stateId, duration: 6000 }); // Bergantian, durasi 6 detik
-                    }
-                }
-            });
+                    dynamicHeader.insertAdjacentHTML('beforeend', html);
+                    states.push({ id: stateId, duration: 6000 }); // Bergantian, durasi 6 detik
+                });
+            }
 
+            // ============================================
+            // 2. INJECT KE MOBILE GUEST (Samping Kanan Logo)
+            // ============================================
+            const mobileGuestHeader = document.getElementById('mobile-guest-schedule');
+            if (mobileGuestHeader) {
+                // Tambahkan teks #BolaGembira pertama sebagai rotasi
+                mobileGuestHeader.insertAdjacentHTML('beforeend', `
+                    <div id="mobile-guest-state-bola" class="absolute flex items-center justify-start transition-opacity duration-1000 opacity-0 w-full h-full left-0 top-0">
+                        <span class="text-[12px] font-black italic text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 drop-shadow-lg tracking-wide">#BolaGembira</span>
+                    </div>
+                `);
+                
+                let guestStates = ['mobile-guest-state-bola'];
+
+                if (activeMatches.length > 0) {
+                    activeMatches.forEach((m, idx) => {
+                        const matchId = `mobile-guest-match-${idx}`;
+                        const html = `
+                        <div id="${matchId}" class="hidden absolute flex-col items-start justify-center transition-opacity duration-1000 opacity-0 w-full h-full left-0 top-0">
+                            <span class="text-[7px] font-bold tracking-widest text-yellow-400 uppercase drop-shadow-md leading-none mb-0.5">${m.label}</span>
+                            <div class="flex items-center gap-1 text-[10px] font-black text-white drop-shadow-lg uppercase tracking-wide leading-none">
+                                <span class="truncate max-w-[55px]">${m.t1}</span>
+                                <span class="text-[7px] text-slate-400 italic font-bold">VS</span>
+                                <span class="truncate max-w-[55px]">${m.t2}</span>
+                            </div>
+                        </div>`;
+                        mobileGuestHeader.insertAdjacentHTML('beforeend', html);
+                        guestStates.push(matchId);
+                    });
+                }
+
+                // Rotasi khusus untuk Mobile Guest (6 detik)
+                let guestIdx = 0;
+                function rotateGuest() {
+                    guestStates.forEach(id => {
+                        const el = document.getElementById(id);
+                        if(el) {
+                            el.style.opacity = '0';
+                            setTimeout(() => { el.classList.add('hidden'); el.classList.remove('flex'); }, 1000);
+                        }
+                    });
+                    const current = document.getElementById(guestStates[guestIdx]);
+                    if(current) {
+                        setTimeout(() => {
+                            current.classList.remove('hidden');
+                            current.classList.add('flex');
+                            current.style.opacity = '1';
+                        }, 1050);
+                    }
+                    guestIdx = (guestIdx + 1) % guestStates.length;
+                    setTimeout(rotateGuest, 6000);
+                }
+                rotateGuest();
+            }
+
+            // ============================================
+            // 3. INJECT KE MOBILE LOGGED IN (Ticker Ekstra di atas utama)
+            // ============================================
+            const pildunTicker = document.getElementById('pildun-ticker-mobile');
+            if (pildunTicker) {
+                if (activeMatches.length > 0) {
+                    const tickerHtml = activeMatches.map(m => `<span class="mx-3"><span class="text-yellow-400 font-bold">${m.label}</span> | <span class="text-white">${m.t1} <span class="text-slate-400 text-[8px] mx-1">VS</span> ${m.t2}</span></span>`).join(' <i class="fa-solid fa-futbol text-white/50 text-[8px] mx-2"></i> ');
+                    pildunTicker.innerHTML = `<div class="ticker-item" style="padding: 0;">${tickerHtml}</div>`.repeat(5);
+                } else {
+                    const container = document.getElementById('pildun-ticker-container');
+                    if(container) container.style.display = 'none'; // Sembunyikan jika tidak ada pertandingan
+                }
+            }
+
+
+            // --- Sisa Logic Header Rotator Desktop (Utuh) ---
             states.push({ id: 'header-state-3', duration: 5000 });
             states.push({ id: 'header-state-4', duration: 10000 });
 
@@ -854,7 +940,7 @@
             showNextState();
         }
         
-        if(window.innerWidth >= 1024) { initHeaderRotator(); }
+        if(window.innerWidth >= 1024) { initHeaderRotator(); } else { initHeaderRotator(); } // Panggil juga di mobile karena sekarang kita pakai state injection untuk mobile guest
 
         const tvriLogoUrl = "https://bolagembira.tvrinews.com/images/new-welcome/logo.png";
         const ktvdiLogoUrl = "{{ url_for('static', filename='icons/icon-192.png') }}";
@@ -1004,7 +1090,7 @@
         fetchUserLocation();
 
         window.addEventListener('click', function(e){   
-            if (!e.target.closest('.relative.group') && !e.target.closest('.xl\\:hidden.flex-col')){
+            if (!e.target.closest('.relative.group') && !e.target.closest('.xl\\:hidden.flex-col') && !e.target.closest('#mobile-guest-schedule')){
                 document.querySelectorAll('.dropdown-menu-mobile').forEach(d => d.classList.add('hidden'));
             }
         });
