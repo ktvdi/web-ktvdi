@@ -12,6 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
+    <!-- Script Vidio Embed -->
+    <script src="//static-web.prod.vidiocdn.com/assets/javascripts/vidio-embed.js"></script>
+    
     <script>
         (function() {
             const ua = navigator.userAgent.toLowerCase();
@@ -137,28 +140,6 @@
             window.addEventListener('wheel', blockAllKeys, {capture: true, passive: false});
             window.addEventListener('touchmove', blockAllKeys, {capture: true, passive: false});
 
-            let score = 0;
-            const ball = document.getElementById('game-ball');
-            if (ball) {
-                ball.onclick = function(e) {
-                    e.stopPropagation();
-                    score++;
-                    document.getElementById('game-score').innerText = score;
-                    const randomX = Math.floor(Math.random() * 70) + 15;
-                    const randomY = Math.floor(Math.random() * 70) + 15;
-                    ball.style.left = randomX + '%';
-                    ball.style.top = randomY + '%';
-                };
-                setInterval(() => {
-                    if(!overlay.classList.contains('hidden')) {
-                        const randomX = Math.floor(Math.random() * 70) + 15;
-                        const randomY = Math.floor(Math.random() * 70) + 15;
-                        ball.style.left = randomX + '%';
-                        ball.style.top = randomY + '%';
-                    }
-                }, 1500); 
-            }
-
             const timerEl = document.getElementById('penalty-timer');
             const interval = setInterval(() => {
                 const remaining = blockUntil - Date.now();
@@ -179,20 +160,11 @@
             }, 1000);
         }
 
-        function reducePenaltyExpress() {
-            const newBlockUntil = Date.now() + 60000; 
-            localStorage.setItem('ktvdi_block_until', newBlockUntil.toString());
-            window.open('https://bolagembira.tvrinews.com', '_blank');
-            window.location.reload();
-        }
-
         function blockAllKeys(e) { 
-            if(e.target.closest('#express-btn') || e.target.closest('#game-ball')) return;
             e.stopPropagation(); e.preventDefault(); return false; 
         }
 
         document.addEventListener('contextmenu', event => { 
-            if(event.target.closest('#express-btn')) return;
             event.preventDefault(); handleSecurityViolation(); 
         });
         
@@ -280,26 +252,26 @@
         });
 
         // === LOGIKA TRAFFIC LIGHT QUIZ ===
-        const quizData = {
-            berita: {
-                q: "Terkait dengan upacara Kemerdekaan RI ke-81 pada 17 Agustus 2026, dimanakah fokus utama pelaksanaan upacara kenegaraan dilakukan?",
-                opt: ["A. Ibu Kota Nusantara (IKN)", "B. Istana Merdeka Jakarta", "C. Monumen Nasional (Monas)", "D. Garuda Wisnu Kencana (GWK)"],
-                ans: 0
-            },
-            tv: {
-                q: "Apa nama standar penyiaran televisi digital terestrial yang resmi digunakan secara nasional di wilayah Indonesia?",
-                opt: ["A. DVB-T2", "B. ATSC 3.0", "C. ISDB-T", "D. DVB-S2"],
-                ans: 0
-            },
-            sd: {
-                q: "Ibu membeli 5 buah apel, lalu adik memakan 2 buah apel tersebut. Berapa sisa apel ibu sekarang?",
-                opt: ["A. 1", "B. 2", "C. 3", "D. 4"],
-                ans: 2
-            }
+        const quizPool = {
+            berita: [
+                { q: "Terkait dengan upacara Kemerdekaan RI ke-81 pada 17 Agustus 2026, dimanakah fokus utama pelaksanaan upacara kenegaraan dilakukan?", opt: ["A. Ibu Kota Nusantara (IKN)", "B. Istana Merdeka Jakarta", "C. Monumen Nasional (Monas)", "D. Garuda Wisnu Kencana (GWK)"], ans: 0 },
+                { q: "Siapakah Presiden Republik Indonesia saat ini (Periode 2024-2029)?", opt: ["A. Joko Widodo", "B. Prabowo Subianto", "C. Susilo Bambang Yudhoyono", "D. Megawati Soekarnoputri"], ans: 1 },
+                { q: "Proyek kereta cepat pertama di Indonesia (Whoosh) menghubungkan antara kota?", opt: ["A. Jakarta - Surabaya", "B. Jakarta - Bandung", "C. Jakarta - Semarang", "D. Bandung - Surabaya"], ans: 1 }
+            ],
+            tv: [
+                { q: "Apa nama standar penyiaran televisi digital terestrial yang resmi digunakan secara nasional di wilayah Indonesia?", opt: ["A. DVB-T2", "B. ATSC 3.0", "C. ISDB-T", "D. DVB-S2"], ans: 0 },
+                { q: "Apa kepanjangan dari STB pada perangkat tambahan TV Digital?", opt: ["A. Signal Transmitter Box", "B. Set Top Box", "C. Standard Television Broadcasting", "D. Satellite Transmission Box"], ans: 1 },
+                { q: "Pada rentang pita frekuensi berapakah siaran TV Digital terestrial (UHF) beroperasi di Indonesia?", opt: ["A. VHF (30-300 MHz)", "B. L-Band (1-2 GHz)", "C. UHF (478-694 MHz)", "D. SHF (3-30 GHz)"], ans: 2 }
+            ],
+            sd: [
+                { q: "Ibu membeli 5 buah apel, lalu adik memakan 2 buah apel tersebut. Berapa sisa apel ibu sekarang?", opt: ["A. 1", "B. 2", "C. 3", "D. 4"], ans: 2 },
+                { q: "Berapakah hasil dari perkalian 7 x 8?", opt: ["A. 54", "B. 56", "C. 64", "D. 48"], ans: 1 },
+                { q: "Hewan mamalia darat apakah yang dikenal memiliki leher paling panjang?", opt: ["A. Gajah", "B. Jerapah", "C. Zebra", "D. Unta"], ans: 1 }
+            ]
         };
 
         let currentSkipTime = 0;
-        let currentQuizType = '';
+        let currentQuizData = null;
         let tlTimerInterval;
 
         function checkTrafficLightState() {
@@ -320,6 +292,21 @@
             }
         }
 
+        // Fungsi efek cahaya Traffic Light
+        function setLight(color) {
+            document.getElementById('light-red').classList.remove('glow-red');
+            document.getElementById('light-yellow').classList.remove('glow-yellow');
+            document.getElementById('light-green').classList.remove('glow-green');
+            if(color) document.getElementById('light-' + color).classList.add('glow-' + color);
+        }
+
+        function playTrafficLightAnim() {
+            setTimeout(() => setLight('red'), 300);
+            setTimeout(() => setLight('yellow'), 800);
+            setTimeout(() => setLight('green'), 1300);
+            setTimeout(() => setLight(''), 1800);
+        }
+
         function showTrafficLightBanner() {
             document.getElementById('traffic-light-overlay').classList.remove('hidden');
             document.getElementById('traffic-light-overlay').classList.add('flex');
@@ -327,35 +314,38 @@
             document.getElementById('traffic-light-quiz').classList.add('hidden');
             document.getElementById('traffic-light-timer').classList.add('hidden');
             document.body.style.overflow = 'hidden';
+            playTrafficLightAnim();
         }
 
         function startTrafficQuiz(seconds, type) {
             currentSkipTime = seconds;
-            currentQuizType = type;
+            
             document.getElementById('traffic-light-selection').classList.add('hidden');
             document.getElementById('traffic-light-quiz').classList.remove('hidden');
 
-            const qd = quizData[type];
+            // Ambil soal secara acak berdasarkan tipe
+            const categoryPool = quizPool[type];
+            currentQuizData = categoryPool[Math.floor(Math.random() * categoryPool.length)];
+
             document.getElementById('quiz-title').innerText = `Waktu Skip: ${seconds >= 60 ? (seconds/60) + ' Menit' : seconds + ' Detik'}`;
-            document.getElementById('quiz-question').innerText = qd.q;
+            document.getElementById('quiz-question').innerText = currentQuizData.q;
             
             const optsDiv = document.getElementById('quiz-options');
             optsDiv.innerHTML = '';
-            qd.opt.forEach((o, idx) => {
+            currentQuizData.opt.forEach((o, idx) => {
                 optsDiv.innerHTML += `<button onclick="answerTrafficQuiz(${idx})" class="p-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-white text-sm transition text-left font-semibold shadow-md active:scale-95">${o}</button>`;
             });
         }
 
         function answerTrafficQuiz(ansIdx) {
-            const qd = quizData[currentQuizType];
-            if (ansIdx === qd.ans) {
+            if (ansIdx === currentQuizData.ans) {
                 const unlockTime = Date.now() + (currentSkipTime * 1000);
                 localStorage.setItem('tl_unlock_time', unlockTime.toString());
                 document.getElementById('traffic-light-quiz').classList.add('hidden');
                 document.getElementById('traffic-light-timer').classList.remove('hidden');
                 startTLTimer();
             } else {
-                alert('Jawaban Salah! Akses Anda diblokir selama 2x24 Jam.');
+                alert('Jawaban Salah! Akses Anda diblokir selama 2x24 Jam tanpa toleransi.');
                 const blockUntil = Date.now() + PENALTY_DURATION; // 48 Jam
                 localStorage.setItem('ktvdi_block_until', blockUntil);
                 localStorage.setItem('ktvdi_strikes', 11);
@@ -420,6 +410,11 @@
         .font-impact { font-family: 'Arial Black', Impact, sans-serif; }
         .text-shadow-hero { text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .merdeka-font { font-family: 'Oswald', sans-serif; } 
+
+        /* Efek Glow Lampu Lalu Lintas Nyata */
+        .glow-red { background-color: #ff2a2a !important; box-shadow: 0 0 35px #ff0000, inset 0 0 10px #ffffff !important; }
+        .glow-yellow { background-color: #ffea00 !important; box-shadow: 0 0 35px #ffea00, inset 0 0 10px #ffffff !important; }
+        .glow-green { background-color: #00ff00 !important; box-shadow: 0 0 35px #00ff00, inset 0 0 10px #ffffff !important; }
 
         .ios-bubble-menu {
             border-radius: 1.25rem; 
@@ -528,29 +523,6 @@
             border-radius: 28px; padding: 40px; text-align: center; max-width: 400px; width: 90%;
         }
 
-        .badminton-court {
-            background-color: #2e8b57;
-            border: 3px solid white;
-            position: relative;
-        }
-        .badminton-lines {
-            position: absolute;
-            inset: 6px;
-            border: 1px solid rgba(255,255,255,0.6);
-        }
-        .badminton-center-line {
-            position: absolute;
-            top: 0; bottom: 0; left: 50%;
-            border-left: 1px solid rgba(255,255,255,0.6);
-            transform: translateX(-50%);
-        }
-        .badminton-net {
-            position: absolute;
-            top: 50%; left: 0; right: 0;
-            border-top: 2px dashed rgba(255,255,255,0.8);
-            transform: translateY(-50%);
-        }
-
         .team-name-container {
             max-width: 140px;
             overflow: hidden;
@@ -584,7 +556,7 @@
             
             <div class="text-center space-y-2">
                 <h1 class="text-3xl md:text-5xl merdeka-font font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-200 via-white to-red-100 tracking-wide uppercase drop-shadow-md">Akses Diblokir</h1>
-                <p class="text-red-200 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran keamanan fatal. Anda diistirahatkan 2x24 Jam.</p>
+                <p class="text-red-200 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran keamanan fatal. Anda diistirahatkan 2x24 Jam tanpa toleransi potong waktu.</p>
             </div>
             
             <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center w-full shadow-2xl relative overflow-hidden mt-1">
@@ -593,26 +565,17 @@
                 <p id="penalty-timer" class="text-5xl md:text-6xl merdeka-font font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">48:00:00</p>
             </div>
 
-            <div id="penalty-game" class="badminton-court relative w-full h-40 md:h-48 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] select-none mt-2">
-                <div class="badminton-lines"></div>
-                <div class="badminton-center-line"></div>
-                <div class="badminton-net"></div>
-                
-                <div class="absolute top-2 left-3 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-white/90 text-[10px] font-bold z-0 border border-white/10"><i class="fa-solid fa-gamepad mr-1"></i> Tangkap Shuttlecock!</div>
-                <div class="absolute bottom-2 right-3 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white/90 text-xs font-bold z-0 border border-red-400/30">Skor: <span id="game-score" class="text-yellow-400 text-sm">0</span></div>
-                
-                <div id="game-ball" class="absolute w-10 h-10 cursor-pointer text-3xl transition-all duration-300 hover:scale-110 drop-shadow-[0_5px_10px_rgba(0,0,0,0.4)] flex items-center justify-center z-10" style="top: 50%; left: 50%; transform: translate(-50%, -50%);">🏸</div>
-            </div>
-
-            <button id="express-btn" onclick="reducePenaltyExpress()" class="w-full bg-gradient-to-r from-[#ed1c24] to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold py-4 px-6 rounded-xl shadow-[0_10px_20px_rgba(237,28,36,0.3)] border border-red-400/50 transition-all active:scale-[0.98] flex items-center justify-center gap-3 mt-2">
-                <i class="fa-solid fa-bolt text-yellow-400 text-xl"></i> 
-                <div class="text-left">
-                    <div class="text-sm md:text-base leading-tight">Potong Waktu Jadi 1 Menit</div>
-                    <div class="text-[10px] text-red-200 font-normal">Kunjungi bolagembira.tvrinews.com</div>
+            <!-- Player Moji (Vidio) Pengganti Game / Potong Waktu -->
+            <div class="w-full relative mt-2 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-2 border-red-500/50 bg-black group" style="padding-top: 56.25%;">
+                <div class="absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between items-center pointer-events-none">
+                    <span class="text-xs font-bold text-red-500 bg-black/50 px-2 py-0.5 rounded border border-red-500/30 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> LIVE</span>
+                    <span class="text-xs font-bold text-white/70">Moji TV</span>
                 </div>
-            </button>
+                <iframe class="vidio-embed absolute top-0 left-0 w-full h-full" src="https://www.vidio.com/live/206/embed?autoplay=true&player_only=true&mute=false" width="560" height="317" scrolling="no" frameborder="0" allowfullscreen allow="encrypted-media *;"></iframe>
+            </div>
+            <p class="text-[10px] text-red-300/70 -mt-2">Sambil menunggu waktu blokir selesai, silakan menonton tayangan di atas.</p>
             
-            <div class="text-center text-xs text-red-200 w-full mt-2">
+            <div class="text-center text-xs text-red-200 w-full mt-4">
                 IP Anda: <span id="penalty-ip" class="text-white font-mono">Memeriksa...</span>
             </div>
         </div>
@@ -622,14 +585,26 @@
     <div id="traffic-light-overlay" class="fixed inset-0 z-[100006] bg-black/95 backdrop-blur-xl hidden flex-col items-center justify-center p-4">
         
         <!-- Pemilihan Waktu Skip (Lampu Merah/Kuning/Hijau) -->
-        <div id="traffic-light-selection" class="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+        <div id="traffic-light-selection" class="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden flex flex-col">
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
-            <i class="fa-solid fa-traffic-light text-5xl mb-4 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"></i>
-            <h2 class="text-2xl font-black text-white mb-2">Toleransi Inspeksi ke-5!</h2>
-            <p class="text-slate-400 text-sm mb-6">Anda telah melakukan inspect berkali-kali. Pilih tantangan waktu skip untuk memulihkan akses:</p>
             
-            <div class="flex flex-col gap-4 bg-slate-800 p-4 rounded-2xl border border-slate-600">
-                <button onclick="startTrafficQuiz(10, 'berita')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
+            <!-- Real UI Traffic Light Box -->
+            <div class="mx-auto w-24 h-64 bg-gray-900 rounded-[2rem] border-4 border-gray-700 shadow-[0_10px_30px_rgba(0,0,0,0.9)] flex flex-col items-center justify-evenly py-3 mb-6 relative">
+                <!-- Kanopi Topi Pelindung Lampu -->
+                <div class="absolute w-20 h-6 bg-black rounded-t-full top-3 opacity-60 shadow-md z-20"></div>
+                <div class="absolute w-20 h-6 bg-black rounded-t-full top-[5.2rem] opacity-60 shadow-md z-20"></div>
+                <div class="absolute w-20 h-6 bg-black rounded-t-full bottom-[4.8rem] opacity-60 shadow-md z-20"></div>
+                
+                <div id="light-red" class="w-14 h-14 rounded-full bg-red-950 border-[3px] border-black shadow-inner transition-all duration-300 relative z-10"></div>
+                <div id="light-yellow" class="w-14 h-14 rounded-full bg-yellow-950 border-[3px] border-black shadow-inner transition-all duration-300 relative z-10"></div>
+                <div id="light-green" class="w-14 h-14 rounded-full bg-green-950 border-[3px] border-black shadow-inner transition-all duration-300 relative z-10"></div>
+            </div>
+
+            <h2 class="text-2xl font-black text-white mb-2">Toleransi Inspeksi ke-5!</h2>
+            <p class="text-slate-400 text-sm mb-6">Anda telah melakukan inspect berulang kali. Selesaikan tantangan waktu skip untuk memulihkan akses:</p>
+            
+            <div class="flex flex-col gap-3 bg-slate-800 p-4 rounded-2xl border border-slate-600">
+                <button onmouseenter="setLight('red')" onmouseleave="setLight('')" onclick="startTrafficQuiz(10, 'berita')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
                     <div class="w-12 h-12 rounded-full bg-red-500 shadow-[0_0_15px_red] group-hover:scale-110 transition shrink-0 border-2 border-red-800 flex items-center justify-center text-white font-bold text-xs"><i class="fa-solid fa-fire"></i></div>
                     <div>
                         <div class="text-red-400 font-bold text-base md:text-lg">Skip 10 Detik</div>
@@ -637,7 +612,7 @@
                     </div>
                 </button>
                 <div class="h-px w-full bg-slate-700"></div>
-                <button onclick="startTrafficQuiz(60, 'tv')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
+                <button onmouseenter="setLight('yellow')" onmouseleave="setLight('')" onclick="startTrafficQuiz(60, 'tv')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
                     <div class="w-12 h-12 rounded-full bg-yellow-400 shadow-[0_0_15px_yellow] group-hover:scale-110 transition shrink-0 border-2 border-yellow-700 flex items-center justify-center text-slate-800 font-bold text-xs"><i class="fa-solid fa-tv"></i></div>
                     <div>
                         <div class="text-yellow-400 font-bold text-base md:text-lg">Skip 1 Menit</div>
@@ -645,7 +620,7 @@
                     </div>
                 </button>
                 <div class="h-px w-full bg-slate-700"></div>
-                <button onclick="startTrafficQuiz(600, 'sd')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
+                <button onmouseenter="setLight('green')" onmouseleave="setLight('')" onclick="startTrafficQuiz(600, 'sd')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
                     <div class="w-12 h-12 rounded-full bg-green-500 shadow-[0_0_15px_green] group-hover:scale-110 transition shrink-0 border-2 border-green-800 flex items-center justify-center text-white font-bold text-xs"><i class="fa-solid fa-child-reaching"></i></div>
                     <div>
                         <div class="text-green-400 font-bold text-base md:text-lg">Skip 10 Menit</div>
