@@ -70,7 +70,7 @@
     <script>
         // === LOGIKA KEAMANAN TINGKAT LANJUT & PENALTY ===
         window.userIP = "Memeriksa...";
-        const PENALTY_DURATION = 60 * 60 * 1000; 
+        const PENALTY_DURATION = 48 * 60 * 60 * 1000; // BLOKIR 2x24 JAM
 
         function checkPenaltyStatus() {
             try {
@@ -101,16 +101,25 @@
             }
         }
 
+        // FUNGSI UTAMA KONTROL INSPECT
         function handleSecurityViolation() {
             try {
                 let strikes = parseInt(localStorage.getItem('ktvdi_strikes') || '0');
                 strikes++;
                 localStorage.setItem('ktvdi_strikes', strikes);
-                if (strikes >= 3) {
+                
+                if (strikes < 5) {
+                    showInspectWarning();
+                } else if (strikes === 5) {
+                    showTrafficLightBanner();
+                } else if (strikes >= 6 && strikes <= 10) {
+                    showInspectWarning(); // 6-10 Aman (Hanya Peringatan)
+                } else if (strikes > 10) {
+                    // Lebh dari 10 -> BLOKIR 2x24 JAM
                     const blockUntil = Date.now() + PENALTY_DURATION;
                     localStorage.setItem('ktvdi_block_until', blockUntil);
                     activatePenalty(blockUntil);
-                } else { showInspectWarning(); }
+                }
             } catch(e) { showInspectWarning(); }
         }
 
@@ -128,7 +137,6 @@
             window.addEventListener('wheel', blockAllKeys, {capture: true, passive: false});
             window.addEventListener('touchmove', blockAllKeys, {capture: true, passive: false});
 
-            // Mini Game Logic Fix (Badminton)
             let score = 0;
             const ball = document.getElementById('game-ball');
             if (ball) {
@@ -193,8 +201,30 @@
             if(e.keyCode == 123) isBlocked = true; 
             if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) isBlocked = true;
             if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true;
+            if(e.key === 'PrintScreen' || e.keyCode == 44) {
+                try { navigator.clipboard.writeText(''); } catch(err) {}
+                const warningEl = document.getElementById('inspect-warning-toast');
+                if (warningEl) {
+                    warningEl.querySelector('p').innerText = "Tangkapan layar dinonaktifkan untuk alasan keamanan & privasi.";
+                    showInspectWarning();
+                }
+                e.preventDefault(); return false;
+            }
             if(isBlocked) { e.preventDefault(); handleSecurityViolation(); return false; }
         }
+
+        // BLOCK PRTSCN & COPY KEYBOARD
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'PrintScreen' || e.keyCode === 44) {
+                try { navigator.clipboard.writeText(''); } catch(err) {}
+                const warningEl = document.getElementById('inspect-warning-toast');
+                if (warningEl) {
+                    warningEl.querySelector('p').innerText = "Tangkapan layar dinonaktifkan untuk alasan keamanan & privasi.";
+                    showInspectWarning();
+                }
+            }
+        });
+
         document.addEventListener('dragstart', event => event.preventDefault());
         document.addEventListener('selectstart', event => event.preventDefault());
 
@@ -215,6 +245,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             document.body.addEventListener('click', unlockAudio);
             document.body.addEventListener('touchstart', unlockAudio);
+            checkTrafficLightState();
         });
 
         function enablePrivacyMode() {
@@ -247,15 +278,125 @@
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) enablePrivacyMode(); else disablePrivacyMode();
         });
+
+        // === LOGIKA TRAFFIC LIGHT QUIZ ===
+        const quizData = {
+            berita: {
+                q: "Terkait dengan upacara Kemerdekaan RI ke-81 pada 17 Agustus 2026, dimanakah fokus utama pelaksanaan upacara kenegaraan dilakukan?",
+                opt: ["A. Ibu Kota Nusantara (IKN)", "B. Istana Merdeka Jakarta", "C. Monumen Nasional (Monas)", "D. Garuda Wisnu Kencana (GWK)"],
+                ans: 0
+            },
+            tv: {
+                q: "Apa nama standar penyiaran televisi digital terestrial yang resmi digunakan secara nasional di wilayah Indonesia?",
+                opt: ["A. DVB-T2", "B. ATSC 3.0", "C. ISDB-T", "D. DVB-S2"],
+                ans: 0
+            },
+            sd: {
+                q: "Ibu membeli 5 buah apel, lalu adik memakan 2 buah apel tersebut. Berapa sisa apel ibu sekarang?",
+                opt: ["A. 1", "B. 2", "C. 3", "D. 4"],
+                ans: 2
+            }
+        };
+
+        let currentSkipTime = 0;
+        let currentQuizType = '';
+        let tlTimerInterval;
+
+        function checkTrafficLightState() {
+            let strikes = parseInt(localStorage.getItem('ktvdi_strikes') || '0');
+            if (strikes === 5) {
+                const unlockTime = localStorage.getItem('tl_unlock_time');
+                if (unlockTime) {
+                    if (Date.now() < parseInt(unlockTime)) {
+                        showTrafficLightBanner();
+                        document.getElementById('traffic-light-selection').classList.add('hidden');
+                        document.getElementById('traffic-light-quiz').classList.add('hidden');
+                        document.getElementById('traffic-light-timer').classList.remove('hidden');
+                        startTLTimer();
+                    }
+                } else {
+                    showTrafficLightBanner();
+                }
+            }
+        }
+
+        function showTrafficLightBanner() {
+            document.getElementById('traffic-light-overlay').classList.remove('hidden');
+            document.getElementById('traffic-light-overlay').classList.add('flex');
+            document.getElementById('traffic-light-selection').classList.remove('hidden');
+            document.getElementById('traffic-light-quiz').classList.add('hidden');
+            document.getElementById('traffic-light-timer').classList.add('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function startTrafficQuiz(seconds, type) {
+            currentSkipTime = seconds;
+            currentQuizType = type;
+            document.getElementById('traffic-light-selection').classList.add('hidden');
+            document.getElementById('traffic-light-quiz').classList.remove('hidden');
+
+            const qd = quizData[type];
+            document.getElementById('quiz-title').innerText = `Waktu Skip: ${seconds >= 60 ? (seconds/60) + ' Menit' : seconds + ' Detik'}`;
+            document.getElementById('quiz-question').innerText = qd.q;
+            
+            const optsDiv = document.getElementById('quiz-options');
+            optsDiv.innerHTML = '';
+            qd.opt.forEach((o, idx) => {
+                optsDiv.innerHTML += `<button onclick="answerTrafficQuiz(${idx})" class="p-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-white text-sm transition text-left font-semibold shadow-md active:scale-95">${o}</button>`;
+            });
+        }
+
+        function answerTrafficQuiz(ansIdx) {
+            const qd = quizData[currentQuizType];
+            if (ansIdx === qd.ans) {
+                const unlockTime = Date.now() + (currentSkipTime * 1000);
+                localStorage.setItem('tl_unlock_time', unlockTime.toString());
+                document.getElementById('traffic-light-quiz').classList.add('hidden');
+                document.getElementById('traffic-light-timer').classList.remove('hidden');
+                startTLTimer();
+            } else {
+                alert('Jawaban Salah! Akses Anda diblokir selama 2x24 Jam.');
+                const blockUntil = Date.now() + PENALTY_DURATION; // 48 Jam
+                localStorage.setItem('ktvdi_block_until', blockUntil);
+                localStorage.setItem('ktvdi_strikes', 11);
+                location.reload();
+            }
+        }
+
+        function startTLTimer() {
+            const display = document.getElementById('tl-timer-display');
+            clearInterval(tlTimerInterval);
+            
+            tlTimerInterval = setInterval(() => {
+                const unlockTime = parseInt(localStorage.getItem('tl_unlock_time') || '0');
+                const remaining = Math.max(0, Math.ceil((unlockTime - Date.now()) / 1000));
+                
+                const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+                const s = (remaining % 60).toString().padStart(2, '0');
+                display.innerText = `${m}:${s}`;
+                
+                if (remaining <= 0) {
+                    clearInterval(tlTimerInterval);
+                    document.getElementById('traffic-light-overlay').classList.add('hidden');
+                    document.getElementById('traffic-light-overlay').classList.remove('flex');
+                    document.body.style.overflow = '';
+                }
+            }, 1000);
+        }
     </script>
     
     <style>
+        /* MENCEGAH PRINT (Screenshot via Print Media / PDF Save) */
+        @media print {
+            html, body { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+        }
+
         body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none; }
         html { -webkit-tap-highlight-color: rgba(0,0,0,0); }
         a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(150, 150, 150, 0.2); } 
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
-        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay):not(.kemerdekaan-bg) {
+        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay):not(.kemerdekaan-bg):not(#traffic-light-overlay) {
             filter: blur(30px) grayscale(100%); pointer-events: none; opacity: 0.1; transition: 0s; 
         }
 
@@ -340,16 +481,13 @@
 
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
         
-        /* Ticker Default (Horizontal) - SANGAT PELAN */
         .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 2500s linear infinite; }
         .ticker-item { padding: 0 3rem; display: flex; align-items: center; color: #ffffff; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-        /* TAMBAHAN KELAS UNTUK MODE MALAM */
         .glass-ticker-floating.night-mode-active { height: 56px; }
         .desktop-bottom-bar.night-mode-active { height: 56px; }
 
-        /* Ticker Night Mode (Vertikal Naik Turun) - SANGAT PELAN */
         .ticker-vertical-move {
             display: flex; flex-direction: column; width: 100%; align-items: flex-start;
             animation: tickerVertical 2000s linear infinite; 
@@ -446,13 +584,13 @@
             
             <div class="text-center space-y-2">
                 <h1 class="text-3xl md:text-5xl merdeka-font font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-200 via-white to-red-100 tracking-wide uppercase drop-shadow-md">Akses Diblokir</h1>
-                <p class="text-red-200 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran kebijakan keamanan. Anda diistirahatkan sementara.</p>
+                <p class="text-red-200 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran keamanan fatal. Anda diistirahatkan 2x24 Jam.</p>
             </div>
             
             <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center w-full shadow-2xl relative overflow-hidden mt-1">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-white to-red-500"></div>
                 <p class="text-red-200 text-[10px] uppercase tracking-widest mb-2 font-bold">Waktu Penangguhan</p>
-                <p id="penalty-timer" class="text-5xl md:text-6xl merdeka-font font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">60:00</p>
+                <p id="penalty-timer" class="text-5xl md:text-6xl merdeka-font font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">48:00:00</p>
             </div>
 
             <div id="penalty-game" class="badminton-court relative w-full h-40 md:h-48 rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.5)] select-none mt-2">
@@ -476,6 +614,64 @@
             
             <div class="text-center text-xs text-red-200 w-full mt-2">
                 IP Anda: <span id="penalty-ip" class="text-white font-mono">Memeriksa...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TRAFFIC LIGHT QUIZ PADA TOLERANSI KE-5 -->
+    <div id="traffic-light-overlay" class="fixed inset-0 z-[100006] bg-black/95 backdrop-blur-xl hidden flex-col items-center justify-center p-4">
+        
+        <!-- Pemilihan Waktu Skip (Lampu Merah/Kuning/Hijau) -->
+        <div id="traffic-light-selection" class="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
+            <i class="fa-solid fa-traffic-light text-5xl mb-4 text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"></i>
+            <h2 class="text-2xl font-black text-white mb-2">Toleransi Inspeksi ke-5!</h2>
+            <p class="text-slate-400 text-sm mb-6">Anda telah melakukan inspect berkali-kali. Pilih tantangan waktu skip untuk memulihkan akses:</p>
+            
+            <div class="flex flex-col gap-4 bg-slate-800 p-4 rounded-2xl border border-slate-600">
+                <button onclick="startTrafficQuiz(10, 'berita')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
+                    <div class="w-12 h-12 rounded-full bg-red-500 shadow-[0_0_15px_red] group-hover:scale-110 transition shrink-0 border-2 border-red-800 flex items-center justify-center text-white font-bold text-xs"><i class="fa-solid fa-fire"></i></div>
+                    <div>
+                        <div class="text-red-400 font-bold text-base md:text-lg">Skip 10 Detik</div>
+                        <div class="text-slate-400 text-[10px] md:text-xs">Soal Berita Indonesia (Sulit)</div>
+                    </div>
+                </button>
+                <div class="h-px w-full bg-slate-700"></div>
+                <button onclick="startTrafficQuiz(60, 'tv')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
+                    <div class="w-12 h-12 rounded-full bg-yellow-400 shadow-[0_0_15px_yellow] group-hover:scale-110 transition shrink-0 border-2 border-yellow-700 flex items-center justify-center text-slate-800 font-bold text-xs"><i class="fa-solid fa-tv"></i></div>
+                    <div>
+                        <div class="text-yellow-400 font-bold text-base md:text-lg">Skip 1 Menit</div>
+                        <div class="text-slate-400 text-[10px] md:text-xs">Soal TV Digital (Sedang)</div>
+                    </div>
+                </button>
+                <div class="h-px w-full bg-slate-700"></div>
+                <button onclick="startTrafficQuiz(600, 'sd')" class="flex items-center gap-4 group hover:bg-slate-700 p-2 rounded-xl transition w-full text-left">
+                    <div class="w-12 h-12 rounded-full bg-green-500 shadow-[0_0_15px_green] group-hover:scale-110 transition shrink-0 border-2 border-green-800 flex items-center justify-center text-white font-bold text-xs"><i class="fa-solid fa-child-reaching"></i></div>
+                    <div>
+                        <div class="text-green-400 font-bold text-base md:text-lg">Skip 10 Menit</div>
+                        <div class="text-slate-400 text-[10px] md:text-xs">Soal Anak SD (Mudah)</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Render Kuis -->
+        <div id="traffic-light-quiz" class="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-lg w-full text-center shadow-2xl hidden relative overflow-hidden">
+            <h3 id="quiz-title" class="text-lg font-black text-white mb-1 uppercase tracking-widest text-red-400">Pertanyaan</h3>
+            <div class="w-16 h-1 bg-red-500 mx-auto mb-4 rounded-full"></div>
+            <p id="quiz-question" class="text-white text-sm md:text-base mb-6 min-h-[4rem] flex items-center justify-center font-medium leading-relaxed"></p>
+            <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Tombol dinamis -->
+            </div>
+        </div>
+
+        <!-- Timer Skip -->
+        <div id="traffic-light-timer" class="bg-slate-900 border border-green-700/50 rounded-3xl p-8 max-w-md w-full text-center shadow-[0_0_50px_rgba(34,197,94,0.1)] hidden relative">
+            <i class="fa-solid fa-circle-check text-6xl text-green-500 mb-4 drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]"></i>
+            <h3 class="text-2xl font-bold text-white mb-2">Jawaban Tepat!</h3>
+            <p class="text-slate-400 text-sm mb-6">Akses inspeksi (aman s/d 10x) akan dipulihkan dalam waktu:</p>
+            <div class="bg-black/50 p-6 rounded-2xl border border-white/5 inline-block mx-auto mb-4">
+                <div id="tl-timer-display" class="text-5xl md:text-6xl font-mono font-bold text-green-400 tracking-wider">00:00</div>
             </div>
         </div>
     </div>
@@ -767,12 +963,8 @@
             ];
 
             const nowMs = new Date().getTime();
-            // Filter Data: Hapus jadwal jika sudah lewat 5 menit dari jam upacara
             const activeEvents = events.filter(e => nowMs <= new Date(e.time).getTime() + (5 * 60 * 1000));
 
-            // ============================================
-            // 1. INJECT KE DESKTOP HEADER (Tengah Navbar)
-            // ============================================
             const dynamicHeader = document.getElementById('desktop-header-dynamic');
             if (dynamicHeader) {
                 if (activeEvents.length > 0) {
@@ -795,9 +987,6 @@
                 states.push({ id: 'header-state-4', duration: 10000 }); // Komunitas TV Digital Indonesia
             }
 
-            // ============================================
-            // 2. INJECT KE MOBILE GUEST (Samping Kanan Logo)
-            // ============================================
             const mobileGuestHeader = document.getElementById('mobile-guest-schedule');
             if (mobileGuestHeader) {
                 let guestStates = [];
@@ -865,7 +1054,6 @@
                 rotateGuest();
             }
 
-            // --- Logic Header Rotator Desktop (Utuh) ---
             let currentIndex = 0;
             if(states.length === 0) return;
 
