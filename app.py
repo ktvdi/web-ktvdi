@@ -3975,37 +3975,47 @@ Admin KTVDI
         total_users=total_users
     )
 
-
 # ==========================================
 # 11. FITUR DASHBOARD JARINGAN KTVDI
-#     LOCAL DEVICE NETWORK DISCOVERY
+#     CLIENT NETWORK + WIFI + ISP + SPEEDTEST
 # ==========================================
 
 #
-# IMPORTANT:
+# SUMBER DATA:
 #
-# Fungsi-fungsi berikut mendeteksi jaringan DARI MESIN
-# TEMPAT FLASK BERJALAN.
+# CLIENT:
+#   - public IP browser
+#   - ISP / ASN berdasarkan public IP client
+#   - browser
+#   - OS
+#   - effective connection type
+#   - browser downlink
+#   - browser RTT
 #
-# Jika Flask dijalankan di Windows laptop:
+# LOCAL BACKEND:
+#   - local IPv4
+#   - default gateway
+#   - subnet
+#   - ARP / neighbour table
+#   - hostname
+#   - SSID
+#   - Wi-Fi signal
+#   - Wi-Fi channel
+#   - Wi-Fi radio / band
+#   - interface
 #
-#     IP lokal       -> laptop
-#     gateway        -> router Wi-Fi laptop
-#     ARP            -> perangkat LAN laptop
+# SPEEDTEST:
+#   - Ookla Speedtest CLI jika tersedia
 #
-# Jika Flask dijalankan di Vercel/cloud:
+# PENTING:
 #
-#     IP lokal       -> container/server
-#     gateway        -> gateway container/server
-#     ARP            -> lingkungan server
+# Kalau Flask berjalan di laptop Windows:
+#     data LAN/WiFi = laptop tersebut.
 #
-# BUKAN jaringan Wi-Fi browser pengunjung.
+# Kalau Flask berjalan di Vercel/cloud:
+#     data LAN/WiFi = server cloud,
+#     BUKAN perangkat pengunjung.
 #
-# IP publik client seperti 202.x.x.x harus dibaca dari browser
-# menggunakan api.ipify.org melalui network.html.
-#
-# SSID, RSSI, bandwidth router dan daftar client Wi-Fi tidak
-# dipaksakan jika server tidak memiliki akses ke router/LAN.
 # ==========================================
 
 
@@ -4019,7 +4029,7 @@ NETWORK_CACHE = {
 
     "lock":
         __import__(
-            'threading'
+            "threading"
         ).RLock(),
 
     "building":
@@ -4030,7 +4040,7 @@ NETWORK_CACHE = {
 
 NETWORK_CACHE_TTL = max(
 
-    1,
+    3,
 
     int(
         os.environ.get(
@@ -4051,13 +4061,13 @@ NETWORK_ACTIVE_DISCOVERY = (
     .strip()
     .lower()
 
-    in
+    in (
 
-    (
         "1",
         "true",
         "yes",
         "on"
+
     )
 
 )
@@ -4072,12 +4082,10 @@ NETWORK_DISCOVERY_WORKERS = max(
         64,
 
         int(
-
             os.environ.get(
                 "NETWORK_DISCOVERY_WORKERS",
                 "32"
             )
-
         )
 
     )
@@ -4087,17 +4095,64 @@ NETWORK_DISCOVERY_WORKERS = max(
 
 NETWORK_DISCOVERY_TIMEOUT = max(
 
-    0.15,
+    0.2,
 
     min(
 
         1.5,
 
         float(
-
             os.environ.get(
                 "NETWORK_DISCOVERY_TIMEOUT",
-                "0.35"
+                "0.5"
+            )
+        )
+
+    )
+
+)
+
+
+# Jalankan speedtest hanya jika diaktifkan.
+#
+# .env:
+#
+# NETWORK_SPEEDTEST=true
+#
+NETWORK_SPEEDTEST_ENABLED = (
+
+    os.environ.get(
+        "NETWORK_SPEEDTEST",
+        "false"
+    )
+    .strip()
+    .lower()
+
+    in (
+
+        "1",
+        "true",
+        "yes",
+        "on"
+
+    )
+
+)
+
+
+NETWORK_SPEEDTEST_TIMEOUT = max(
+
+    10,
+
+    min(
+
+        120,
+
+        int(
+
+            os.environ.get(
+                "NETWORK_SPEEDTEST_TIMEOUT",
+                "60"
             )
 
         )
@@ -4116,15 +4171,15 @@ def _run_command(
     timeout=3
 ):
 
-    """
-    Menjalankan command OS secara aman.
-    """
-
     try:
 
         creationflags = 0
 
-        if platform.system().lower() == "windows":
+        if (
+            platform.system().lower()
+            ==
+            "windows"
+        ):
 
             creationflags = (
                 subprocess.CREATE_NO_WINDOW
@@ -4155,12 +4210,10 @@ def _run_command(
         )
 
     except (
-
         FileNotFoundError,
         subprocess.TimeoutExpired,
         PermissionError,
         OSError
-
     ):
 
         return ""
@@ -4170,20 +4223,33 @@ def _run_command(
 # VALIDASI IPV4
 # ==========================================
 
-def _is_valid_lan_ipv4(
+def _is_valid_ipv4(
     ip
 ):
-
-    """
-    Validasi alamat IPv4 LAN.
-
-    169.254.x.x / APIPA TIDAK dianggap sebagai LAN valid.
-    """
 
     try:
 
         parsed = ipaddress.ip_address(
-            ip
+            str(ip).strip()
+        )
+
+        return (
+            parsed.version == 4
+        )
+
+    except ValueError:
+
+        return False
+
+
+def _is_valid_lan_ipv4(
+    ip
+):
+
+    try:
+
+        parsed = ipaddress.ip_address(
+            str(ip).strip()
         )
 
         return (
@@ -4191,23 +4257,18 @@ def _is_valid_lan_ipv4(
             parsed.version == 4
 
             and
-
             parsed.is_private
 
             and
-
             not parsed.is_loopback
 
             and
-
             not parsed.is_link_local
 
             and
-
             not parsed.is_unspecified
 
             and
-
             not parsed.is_multicast
 
         )
@@ -4217,53 +4278,450 @@ def _is_valid_lan_ipv4(
         return False
 
 
-def _is_valid_ipv4(
-    ip
-):
+# ==========================================
+# PUBLIC IP BACKEND
+# ==========================================
 
-    try:
+def get_public_ip():
 
-        parsed = ipaddress.ip_address(
-            ip
+    services = [
+
+        (
+            "https://api.ipify.org"
+            "?format=json"
+        ),
+
+        (
+            "https://api64.ipify.org"
+            "?format=json"
         )
 
-        return (
-            parsed.version == 4
-        )
+    ]
 
-    except ValueError:
+    for service in services:
 
-        return False
+        try:
+
+            response = requests.get(
+
+                service,
+
+                timeout=3,
+
+                headers={
+                    "User-Agent":
+                        "KTVDI-NetSight/1.0"
+                }
+
+            )
+
+            if not response.ok:
+
+                continue
+
+            data = response.json()
+
+            public_ip = str(
+                data.get(
+                    "ip",
+                    ""
+                )
+            ).strip()
+
+            if _is_valid_ipv4(
+                public_ip
+            ):
+
+                return public_ip
+
+            # IPv6 juga valid.
+            try:
+
+                ipaddress.ip_address(
+                    public_ip
+                )
+
+                return public_ip
+
+            except ValueError:
+
+                continue
+
+        except Exception:
+
+            continue
+
+    return None
 
 
 # ==========================================
-# DETEKSI IP LOKAL
+# ISP / ASN CLIENT
+# ==========================================
+
+def get_ip_organization(
+    public_ip
+):
+
+    """
+    Lookup berdasarkan IP publik CLIENT.
+
+    IPinfo menyediakan field org/ASN organization.
+    """
+
+    if not public_ip:
+
+        return {
+
+            "isp":
+                None,
+
+            "asn":
+                None,
+
+            "org":
+                None,
+
+            "domain":
+                None,
+
+            "city":
+                None,
+
+            "region":
+                None,
+
+            "country":
+                None,
+
+            "source":
+                None
+
+        }
+
+
+    # --------------------------------------
+    # IPINFO TOKEN
+    # --------------------------------------
+
+    token = os.environ.get(
+        "IPINFO_TOKEN",
+        ""
+    ).strip()
+
+
+    urls = []
+
+
+    if token:
+
+        urls.append(
+
+            (
+                "https://ipinfo.io/"
+                f"{public_ip}/json"
+                f"?token={token}"
+            )
+
+        )
+
+    else:
+
+        urls.append(
+
+            (
+                "https://ipinfo.io/"
+                f"{public_ip}/json"
+            )
+
+        )
+
+
+    for url in urls:
+
+        try:
+
+            response = requests.get(
+
+                url,
+
+                timeout=4,
+
+                headers={
+
+                    "User-Agent":
+                        "KTVDI-NetSight/1.0",
+
+                    "Accept":
+                        "application/json"
+
+                }
+
+            )
+
+            if not response.ok:
+
+                continue
+
+
+            data = response.json()
+
+
+            org_raw = str(
+                data.get(
+                    "org",
+                    ""
+                )
+            ).strip()
+
+
+            isp = None
+
+            asn = None
+
+
+            if org_raw:
+
+                parts = org_raw.split(
+                    " ",
+                    1
+                )
+
+
+                if (
+                    parts
+                    and
+                    parts[0].upper().startswith(
+                        "AS"
+                    )
+                ):
+
+                    asn = parts[0]
+
+                    isp = (
+                        parts[1].strip()
+                        if len(parts) > 1
+                        else
+                        org_raw
+                    )
+
+                else:
+
+                    isp = org_raw
+
+
+            # Legacy / nested ASN
+            if not asn:
+
+                asn_data = data.get(
+                    "asn"
+                )
+
+                if isinstance(
+                    asn_data,
+                    dict
+                ):
+
+                    asn = asn_data.get(
+                        "asn"
+                    )
+
+                    if not isp:
+
+                        isp = (
+                            asn_data.get(
+                                "name"
+                            )
+                            or
+                            asn_data.get(
+                                "domain"
+                            )
+                        )
+
+
+            return {
+
+                "isp":
+                    isp,
+
+                "asn":
+                    asn,
+
+                "org":
+                    org_raw or None,
+
+                "domain":
+                    (
+                        data.get(
+                            "hostname"
+                        )
+                        or
+                        (
+                            data.get(
+                                "asn",
+                                {}
+                            ).get(
+                                "domain"
+                            )
+                            if isinstance(
+                                data.get(
+                                    "asn"
+                                ),
+                                dict
+                            )
+                            else
+                            None
+                        )
+                    ),
+
+                "city":
+                    data.get(
+                        "city"
+                    ),
+
+                "region":
+                    data.get(
+                        "region"
+                    ),
+
+                "country":
+                    data.get(
+                        "country"
+                    ),
+
+                "source":
+                    "IPinfo"
+
+            }
+
+
+        except Exception as e:
+
+            print(
+                "INFO: IP organization lookup gagal: "
+                f"{e}"
+            )
+
+            continue
+
+
+    return {
+
+        "isp":
+            None,
+
+        "asn":
+            None,
+
+        "org":
+            None,
+
+        "domain":
+            None,
+
+        "city":
+            None,
+
+        "region":
+            None,
+
+        "country":
+            None,
+
+        "source":
+            None
+
+    }
+
+
+# ==========================================
+# IP CLIENT VIA HTTP HEADER
+# ==========================================
+
+def get_request_public_ip():
+
+    """
+    Mendapatkan IP pengunjung dari request.
+
+    Prioritas:
+    X-Forwarded-For
+    X-Real-IP
+    remote_addr
+
+    Dipakai sebagai fallback apabila browser
+    tidak mengirim public IP melalui API.
+    """
+
+    candidates = [
+
+        request.headers.get(
+            "X-Forwarded-For"
+        ),
+
+        request.headers.get(
+            "X-Real-IP"
+        ),
+
+        request.remote_addr
+
+    ]
+
+
+    for candidate in candidates:
+
+        if not candidate:
+
+            continue
+
+
+        for raw_ip in str(
+            candidate
+        ).split(","):
+
+            raw_ip = raw_ip.strip()
+
+
+            if _is_valid_ipv4(
+                raw_ip
+            ):
+
+                try:
+
+                    parsed = ipaddress.ip_address(
+                        raw_ip
+                    )
+
+                    if not parsed.is_private:
+
+                        return raw_ip
+
+                except ValueError:
+
+                    continue
+
+
+    return None
+
+
+# ==========================================
+# IP LOKAL
 # ==========================================
 
 def get_local_ip():
 
     """
-    Mendapatkan IPv4 LAN dari interface yang digunakan OS.
-
-    Prioritas:
-    1. socket routing detection
-    2. Windows Get-NetIPAddress
-    3. hostname resolution
-
-    169.254.x.x selalu ditolak.
+    IPv4 interface LAN yang digunakan route utama.
     """
-
-    # --------------------------------------
-    # SOCKET ROUTE DETECTION
-    # --------------------------------------
 
     sock = None
 
     try:
 
         sock = socket.socket(
+
             socket.AF_INET,
+
             socket.SOCK_DGRAM
+
         )
 
         sock.settimeout(
@@ -4277,7 +4735,10 @@ def get_local_ip():
             )
         )
 
-        local_ip = sock.getsockname()[0]
+        local_ip = (
+            sock.getsockname()[0]
+        )
+
 
         if _is_valid_lan_ipv4(
             local_ip
@@ -4285,12 +4746,14 @@ def get_local_ip():
 
             return local_ip
 
+
     except (
         OSError,
         socket.error
     ):
 
         pass
+
 
     finally:
 
@@ -4304,11 +4767,13 @@ def get_local_ip():
 
                 pass
 
+
     system = platform.system().lower()
 
-    # --------------------------------------
+
+    # ======================================
     # WINDOWS
-    # --------------------------------------
+    # ======================================
 
     if system == "windows":
 
@@ -4319,21 +4784,24 @@ def get_local_ip():
                 "-NoProfile",
                 "-Command",
 
-                "Get-NetIPAddress "
-                "-AddressFamily IPv4 "
-                "| Where-Object {"
-                "$_.IPAddress -and "
-                "$_.PrefixOrigin -ne 'WellKnown' -and "
-                "$_.IPAddress -notlike '127.*' -and "
-                "$_.IPAddress -notlike '169.254.*'"
-                "} "
-                "| Select-Object -ExpandProperty IPAddress"
+                (
+                    "Get-NetIPAddress "
+                    "-AddressFamily IPv4 "
+                    "| Where-Object {"
+                    "$_.IPAddress -and "
+                    "$_.IPAddress -notlike '127.*' -and "
+                    "$_.IPAddress -notlike '169.254.*'"
+                    "} "
+                    "| Select-Object "
+                    "-ExpandProperty IPAddress"
+                )
 
             ],
 
             timeout=3
 
         )
+
 
         candidates = []
 
@@ -4349,43 +4817,15 @@ def get_local_ip():
                     candidate
                 )
 
+
         if candidates:
-
-            # Prioritaskan 192.168/10/172
-            # tetapi tetap menghindari APIPA.
-
-            candidates.sort(
-
-                key=lambda ip: (
-
-                    0
-                    if ip.startswith(
-                        "192.168."
-                    )
-
-                    else
-                    1
-                    if ip.startswith(
-                        "10."
-                    )
-
-                    else
-                    2
-                    if ip.startswith(
-                        "172."
-                    )
-
-                    else
-                    3
-                )
-
-            )
 
             return candidates[0]
 
-    # --------------------------------------
+
+    # ======================================
     # LINUX
-    # --------------------------------------
+    # ======================================
 
     if system == "linux":
 
@@ -4403,7 +4843,6 @@ def get_local_ip():
 
         )
 
-        candidates = []
 
         for line in output.splitlines():
 
@@ -4416,27 +4855,24 @@ def get_local_ip():
 
             )
 
+
             if match:
 
                 candidate = (
                     match.group(1)
                 )
 
+
                 if _is_valid_lan_ipv4(
                     candidate
                 ):
 
-                    candidates.append(
-                        candidate
-                    )
+                    return candidate
 
-        if candidates:
 
-            return candidates[0]
-
-    # --------------------------------------
-    # GENERIC HOSTNAME FALLBACK
-    # --------------------------------------
+    # ======================================
+    # GENERIC
+    # ======================================
 
     try:
 
@@ -4446,44 +4882,36 @@ def get_local_ip():
             hostname
         )[2]
 
-        candidates = [
 
-            ip
-
-            for ip in addresses
+        for ip in addresses:
 
             if _is_valid_lan_ipv4(
                 ip
-            )
+            ):
 
-        ]
+                return ip
 
-        if candidates:
-
-            return candidates[0]
 
     except Exception:
 
         pass
 
+
     return None
 
 
 # ==========================================
-# DETEKSI DEFAULT GATEWAY
+# DEFAULT GATEWAY
 # ==========================================
 
 def detect_default_gateway():
 
-    """
-    Deteksi default gateway dari routing table.
-    """
-
     system = platform.system().lower()
 
-    # --------------------------------------
+
+    # ======================================
     # WINDOWS
-    # --------------------------------------
+    # ======================================
 
     if system == "windows":
 
@@ -4500,7 +4928,6 @@ def detect_default_gateway():
 
         )
 
-        candidates = []
 
         for line in output.splitlines():
 
@@ -4510,7 +4937,9 @@ def detect_default_gateway():
 
                 continue
 
+
             parts = line.split()
+
 
             if len(parts) >= 3:
 
@@ -4518,19 +4947,13 @@ def detect_default_gateway():
 
                     gateway = parts[2]
 
+
                     if _is_valid_lan_ipv4(
                         gateway
                     ):
 
-                        candidates.append(
-                            gateway
-                        )
+                        return gateway
 
-        if candidates:
-
-            return candidates[0]
-
-        # PowerShell fallback
 
         ps_output = _run_command(
 
@@ -4539,16 +4962,18 @@ def detect_default_gateway():
                 "-NoProfile",
                 "-Command",
 
-                "(Get-NetRoute "
-                "-AddressFamily IPv4 "
-                "-DestinationPrefix '0.0.0.0/0' "
-                "| Where-Object {"
-                "$_.NextHop -and "
-                "$_.NextHop -ne '0.0.0.0'"
-                "} "
-                "| Sort-Object RouteMetric,ifMetric "
-                "| Select-Object -First 1 "
-                "-ExpandProperty NextHop)"
+                (
+                    "(Get-NetRoute "
+                    "-AddressFamily IPv4 "
+                    "-DestinationPrefix '0.0.0.0/0' "
+                    "| Where-Object {"
+                    "$_.NextHop -and "
+                    "$_.NextHop -ne '0.0.0.0'"
+                    "} "
+                    "| Sort-Object RouteMetric,ifMetric "
+                    "| Select-Object -First 1 "
+                    "-ExpandProperty NextHop)"
+                )
 
             ],
 
@@ -4556,19 +4981,21 @@ def detect_default_gateway():
 
         )
 
+
         for line in ps_output.splitlines():
 
-            candidate = line.strip()
+            gateway = line.strip()
 
             if _is_valid_lan_ipv4(
-                candidate
+                gateway
             ):
 
-                return candidate
+                return gateway
 
-    # --------------------------------------
+
+    # ======================================
     # LINUX
-    # --------------------------------------
+    # ======================================
 
     elif system == "linux":
 
@@ -4586,6 +5013,7 @@ def detect_default_gateway():
 
         )
 
+
         match = re.search(
 
             r"default\s+via\s+"
@@ -4595,9 +5023,11 @@ def detect_default_gateway():
 
         )
 
+
         if match:
 
             gateway = match.group(1)
+
 
             if _is_valid_lan_ipv4(
                 gateway
@@ -4605,45 +5035,10 @@ def detect_default_gateway():
 
                 return gateway
 
-        # route fallback
 
-        output = _run_command(
-
-            [
-                "route",
-                "-n"
-            ],
-
-            timeout=3
-
-        )
-
-        for line in output.splitlines():
-
-            parts = line.split()
-
-            if (
-
-                len(parts) >= 2
-
-                and
-
-                parts[0] ==
-                "0.0.0.0"
-
-            ):
-
-                gateway = parts[1]
-
-                if _is_valid_lan_ipv4(
-                    gateway
-                ):
-
-                    return gateway
-
-    # --------------------------------------
+    # ======================================
     # MACOS
-    # --------------------------------------
+    # ======================================
 
     elif system == "darwin":
 
@@ -4660,6 +5055,7 @@ def detect_default_gateway():
 
         )
 
+
         match = re.search(
 
             r"gateway:\s+"
@@ -4669,9 +5065,11 @@ def detect_default_gateway():
 
         )
 
+
         if match:
 
             gateway = match.group(1)
+
 
             if _is_valid_lan_ipv4(
                 gateway
@@ -4679,11 +5077,12 @@ def detect_default_gateway():
 
                 return gateway
 
+
     return None
 
 
 # ==========================================
-# DETEKSI SUBNET
+# SUBNET
 # ==========================================
 
 def get_interface_network(
@@ -4691,50 +5090,58 @@ def get_interface_network(
     gateway=None
 ):
 
-    """
-    Mendapatkan subnet/prefix interface.
-    """
-
     if not local_ip:
 
         return None
 
+
     system = platform.system().lower()
 
-    # --------------------------------------
-    # WINDOWS
-    # --------------------------------------
+
+    # ======================================
+    # WINDOWS POWERSHELL
+    # ======================================
 
     if system == "windows":
 
-        ps_output = _run_command(
+        command = (
+
+            "Get-NetIPAddress "
+
+            "-AddressFamily IPv4 "
+
+            f"-IPAddress '{local_ip}' "
+
+            "| Select-Object "
+            "IPAddress,PrefixLength "
+
+            "| ConvertTo-Json -Compress"
+
+        )
+
+
+        output = _run_command(
 
             [
                 "powershell",
                 "-NoProfile",
                 "-Command",
-
-                (
-                    "Get-NetIPAddress "
-                    "-AddressFamily IPv4 "
-                    f"-IPAddress '{local_ip}' "
-                    "| Select-Object IPAddress,PrefixLength "
-                    "| ConvertTo-Json -Compress"
-                )
-
+                command
             ],
 
             timeout=4
 
         )
 
-        if ps_output:
+
+        if output:
 
             try:
 
                 data = json.loads(
-                    ps_output
+                    output
                 )
+
 
                 if isinstance(
                     data,
@@ -4748,6 +5155,7 @@ def get_interface_network(
                         None
                     )
 
+
                 if isinstance(
                     data,
                     dict
@@ -4757,108 +5165,31 @@ def get_interface_network(
                         "PrefixLength"
                     )
 
+
                     if prefix is not None:
 
                         prefix = int(
                             prefix
                         )
 
-                        if 0 <= prefix <= 32:
-
-                            return ipaddress.ip_network(
-
-                                f"{local_ip}/{prefix}",
-
-                                strict=False
-
-                            )
-
-            except Exception:
-
-                pass
-
-        # IPConfig fallback
-
-        output = _run_command(
-            [
-                "ipconfig"
-            ],
-            timeout=4
-        )
-
-        lines = output.splitlines()
-
-        found_local = False
-
-        for line in lines:
-
-            stripped = line.strip()
-
-            ip_match = re.search(
-
-                r"(?:IPv4 Address|Alamat IPv4)"
-                r".*?"
-                r"(\d+\.\d+\.\d+\.\d+)",
-
-                stripped,
-
-                re.I
-
-            )
-
-            if (
-
-                ip_match
-
-                and
-
-                ip_match.group(1)
-                ==
-                local_ip
-
-            ):
-
-                found_local = True
-
-                continue
-
-            if found_local:
-
-                mask_match = re.search(
-
-                    r"(?:Subnet Mask|Maska Subnet)"
-                    r".*?"
-                    r"(\d+\.\d+\.\d+\.\d+)",
-
-                    stripped,
-
-                    re.I
-
-                )
-
-                if mask_match:
-
-                    subnet_mask = (
-                        mask_match.group(1)
-                    )
-
-                    try:
 
                         return ipaddress.ip_network(
 
-                            f"{local_ip}/{subnet_mask}",
+                            f"{local_ip}/{prefix}",
 
                             strict=False
 
                         )
 
-                    except ValueError:
 
-                        pass
+            except Exception:
 
-    # --------------------------------------
+                pass
+
+
+    # ======================================
     # LINUX
-    # --------------------------------------
+    # ======================================
 
     elif system == "linux":
 
@@ -4876,6 +5207,7 @@ def get_interface_network(
 
         )
 
+
         for line in output.splitlines():
 
             match = re.search(
@@ -4887,6 +5219,7 @@ def get_interface_network(
 
             )
 
+
             if match:
 
                 candidate_ip = (
@@ -4897,102 +5230,21 @@ def get_interface_network(
                     match.group(2)
                 )
 
-                if candidate_ip == local_ip:
-
-                    try:
-
-                        return ipaddress.ip_network(
-
-                            f"{local_ip}/{prefix}",
-
-                            strict=False
-
-                        )
-
-                    except ValueError:
-
-                        pass
-
-    # --------------------------------------
-    # MACOS
-    # --------------------------------------
-
-    elif system == "darwin":
-
-        output = _run_command(
-            [
-                "ifconfig"
-            ],
-            timeout=3
-        )
-
-        for line in output.splitlines():
-
-            match = re.search(
-
-                r"\binet\s+"
-                r"(\d+\.\d+\.\d+\.\d+)"
-                r"\s+netmask\s+"
-                r"(0x[0-9a-fA-F]+|\d+\.\d+\.\d+\.\d+)",
-
-                line
-
-            )
-
-            if match:
-
-                candidate_ip = (
-                    match.group(1)
-                )
 
                 if candidate_ip == local_ip:
 
-                    raw_mask = (
-                        match.group(2)
+                    return ipaddress.ip_network(
+
+                        f"{local_ip}/{prefix}",
+
+                        strict=False
+
                     )
 
-                    try:
 
-                        if raw_mask.startswith(
-                            "0x"
-                        ):
-
-                            mask_int = int(
-                                raw_mask,
-                                16
-                            )
-
-                            prefix = (
-                                bin(
-                                    mask_int
-                                ).count(
-                                    "1"
-                                )
-                            )
-
-                            return ipaddress.ip_network(
-
-                                f"{local_ip}/{prefix}",
-
-                                strict=False
-
-                            )
-
-                        return ipaddress.ip_network(
-
-                            f"{local_ip}/{raw_mask}",
-
-                            strict=False
-
-                        )
-
-                    except ValueError:
-
-                        pass
-
-    # --------------------------------------
+    # ======================================
     # FALLBACK
-    # --------------------------------------
+    # ======================================
 
     try:
 
@@ -5010,42 +5262,859 @@ def get_interface_network(
 
 
 # ==========================================
-# ARP / NEIGHBOUR TABLE
+# WINDOWS WIFI INFO
 # ==========================================
 
-def get_arp_neighbors():
+def get_windows_wifi_info():
 
     """
-    Mengambil perangkat yang dikenal OS.
+    Membaca Wi-Fi interface aktif dengan:
+
+        netsh wlan show interfaces
+
+    Informasi yang dicoba:
+        SSID
+        BSSID
+        Signal
+        Channel
+        Radio type
+        Authentication
+        Receive rate
+        Transmit rate
+        State
     """
+
+    if (
+        platform.system().lower()
+        !=
+        "windows"
+    ):
+
+        return {
+
+            "available":
+                False,
+
+            "connected":
+                False,
+
+            "ssid":
+                None,
+
+            "bssid":
+                None,
+
+            "signal_percent":
+                None,
+
+            "channel":
+                None,
+
+            "radio_type":
+                None,
+
+            "band":
+                None,
+
+            "interface":
+                None,
+
+            "receive_mbps":
+                None,
+
+            "transmit_mbps":
+                None,
+
+            "authentication":
+                None,
+
+            "state":
+                None,
+
+            "source":
+                None
+
+        }
+
+
+    output = _run_command(
+
+        [
+            "netsh",
+            "wlan",
+            "show",
+            "interfaces"
+        ],
+
+        timeout=5
+
+    )
+
+
+    result = {
+
+        "available":
+            bool(output),
+
+        "connected":
+            False,
+
+        "ssid":
+            None,
+
+        "bssid":
+            None,
+
+        "signal_percent":
+            None,
+
+        "channel":
+            None,
+
+        "radio_type":
+            None,
+
+        "band":
+            None,
+
+        "interface":
+            None,
+
+        "receive_mbps":
+            None,
+
+        "transmit_mbps":
+            None,
+
+        "authentication":
+            None,
+
+        "state":
+            None,
+
+        "source":
+            "netsh wlan"
+
+    }
+
+
+    if not output:
+
+        return result
+
+
+    # ======================================
+    # PARSER FIELD
+    # ======================================
+
+    field_patterns = {
+
+        "interface":
+            [
+                r"^\s*Name\s*:\s*(.+)$",
+                r"^\s*Nama\s*:\s*(.+)$"
+            ],
+
+        "state":
+            [
+                r"^\s*State\s*:\s*(.+)$",
+                r"^\s*Status\s*:\s*(.+)$"
+            ],
+
+        "ssid":
+            [
+                r"^\s*SSID\s*:\s*(.*)$"
+            ],
+
+        "bssid":
+            [
+                r"^\s*BSSID\s*:\s*(.*)$"
+            ],
+
+        "signal":
+            [
+                r"^\s*Signal\s*:\s*(\d+)%"
+            ],
+
+        "channel":
+            [
+                r"^\s*Channel\s*:\s*(\d+)"
+            ],
+
+        "radio_type":
+            [
+                r"^\s*Radio type\s*:\s*(.+)$",
+                r"^\s*Tipe radio\s*:\s*(.+)$"
+            ],
+
+        "authentication":
+            [
+                r"^\s*Authentication\s*:\s*(.+)$",
+                r"^\s*Authentication\s*:\s*(.+)$"
+            ],
+
+        "receive":
+            [
+                r"^\s*Receive rate \(Mbps\)\s*:\s*([\d.]+)",
+                r"^\s*Kecepatan penerimaan \(Mbps\)\s*:\s*([\d.]+)"
+            ],
+
+        "transmit":
+            [
+                r"^\s*Transmit rate \(Mbps\)\s*:\s*([\d.]+)",
+                r"^\s*Kecepatan transmisi \(Mbps\)\s*:\s*([\d.]+)"
+            ]
+
+    }
+
+
+    for line in output.splitlines():
+
+        for key, patterns in field_patterns.items():
+
+            for pattern in patterns:
+
+                match = re.search(
+                    pattern,
+                    line,
+                    re.I
+                )
+
+
+                if not match:
+
+                    continue
+
+
+                value = (
+                    match.group(1).strip()
+                )
+
+
+                if key == "signal":
+
+                    try:
+
+                        result[
+                            "signal_percent"
+                        ] = int(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                elif key == "channel":
+
+                    try:
+
+                        result[
+                            "channel"
+                        ] = int(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                elif key == "receive":
+
+                    try:
+
+                        result[
+                            "receive_mbps"
+                        ] = float(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                elif key == "transmit":
+
+                    try:
+
+                        result[
+                            "transmit_mbps"
+                        ] = float(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                else:
+
+                    result[key] = value
+
+
+                break
+
+
+    # ======================================
+    # NORMALISASI STATE
+    # ======================================
+
+    state_value = (
+        str(
+            result.get(
+                "state"
+            )
+            or
+            ""
+        )
+        .strip()
+        .lower()
+    )
+
+
+    if (
+        state_value
+        in
+        (
+            "connected",
+            "terhubung"
+        )
+    ):
+
+        result[
+            "connected"
+        ] = True
+
+
+    # ======================================
+    # BAND
+    # ======================================
+
+    channel = result.get(
+        "channel"
+    )
+
+
+    radio_type = (
+        str(
+            result.get(
+                "radio_type"
+            )
+            or
+            ""
+        )
+        .lower()
+    )
+
+
+    if channel is not None:
+
+        if (
+            1
+            <=
+            int(channel)
+            <=
+            14
+        ):
+
+            result[
+                "band"
+            ] = "2.4 GHz"
+
+        elif (
+            32
+            <=
+            int(channel)
+            <=
+            177
+        ):
+
+            result[
+                "band"
+            ] = "5 GHz"
+
+
+    if not result.get(
+        "band"
+    ):
+
+        if (
+            "802.11ax"
+            in
+            radio_type
+        ):
+
+            result[
+                "band"
+            ] = "5/2.4 GHz"
+
+        elif (
+            "802.11ac"
+            in
+            radio_type
+        ):
+
+            result[
+                "band"
+            ] = "5 GHz"
+
+
+    return result
+
+
+# ==========================================
+# GENERIC WIFI INFO
+# ==========================================
+
+def get_wifi_info():
+
+    system = platform.system().lower()
+
+
+    if system == "windows":
+
+        return get_windows_wifi_info()
+
+
+    # ======================================
+    # LINUX
+    # ======================================
+
+    if system == "linux":
+
+        result = {
+
+            "available":
+                False,
+
+            "connected":
+                False,
+
+            "ssid":
+                None,
+
+            "bssid":
+                None,
+
+            "signal_percent":
+                None,
+
+            "channel":
+                None,
+
+            "radio_type":
+                None,
+
+            "band":
+                None,
+
+            "interface":
+                None,
+
+            "receive_mbps":
+                None,
+
+            "transmit_mbps":
+                None,
+
+            "authentication":
+                None,
+
+            "state":
+                None,
+
+            "source":
+                "Linux"
+
+        }
+
+
+        iw_output = _run_command(
+
+            [
+                "iw",
+                "dev"
+            ],
+
+            timeout=4
+
+        )
+
+
+        if iw_output:
+
+            result[
+                "available"
+            ] = True
+
+
+        # interface
+        match = re.search(
+
+            r"Interface\s+(\S+)",
+
+            iw_output
+
+        )
+
+
+        if match:
+
+            result[
+                "interface"
+            ] = match.group(1)
+
+
+        if result.get(
+            "interface"
+        ):
+
+            link = _run_command(
+
+                [
+                    "iw",
+                    "dev",
+                    result["interface"],
+                    "link"
+                ],
+
+                timeout=4
+
+            )
+
+
+            if link:
+
+                result[
+                    "connected"
+                ] = "Connected" in link
+
+
+                match = re.search(
+
+                    r"SSID\s+(.+)",
+
+                    link
+
+                )
+
+
+                if match:
+
+                    result[
+                        "ssid"
+                    ] = match.group(1).strip()
+
+
+                match = re.search(
+
+                    r"signal:\s+(-?\d+)",
+
+                    link
+
+                )
+
+
+                if match:
+
+                    result[
+                        "signal_dbm"
+                    ] = int(
+                        match.group(1)
+                    )
+
+
+        return result
+
+
+    # ======================================
+    # MACOS
+    # ======================================
+
+    if system == "darwin":
+
+        result = {
+
+            "available":
+                True,
+
+            "connected":
+                False,
+
+            "ssid":
+                None,
+
+            "bssid":
+                None,
+
+            "signal_percent":
+                None,
+
+            "signal_dbm":
+                None,
+
+            "channel":
+                None,
+
+            "radio_type":
+                None,
+
+            "band":
+                None,
+
+            "interface":
+                None,
+
+            "receive_mbps":
+                None,
+
+            "transmit_mbps":
+                None,
+
+            "authentication":
+                None,
+
+            "state":
+                None,
+
+            "source":
+                "macOS"
+
+        }
+
+
+        airport_output = _run_command(
+
+            [
+                "/System/Library/PrivateFrameworks/"
+                "Apple80211.framework/Versions/Current/"
+                "Resources/airport",
+                "-I"
+            ],
+
+            timeout=5
+
+        )
+
+
+        if airport_output:
+
+            result[
+                "connected"
+            ] = True
+
+
+            patterns = {
+
+                "ssid":
+                    r"^\s*SSID:\s*(.+)$",
+
+                "bssid":
+                    r"^\s*BSSID:\s*(.+)$",
+
+                "signal_dbm":
+                    r"^\s*agrCtlRSSI:\s*(-?\d+)",
+
+                "channel":
+                    r"^\s*channel:\s*(\d+)"
+
+            }
+
+
+            for key, pattern in patterns.items():
+
+                match = re.search(
+
+                    pattern,
+
+                    airport_output,
+
+                    re.I |
+                    re.M
+
+                )
+
+
+                if match:
+
+                    value = match.group(1).strip()
+
+
+                    try:
+
+                        result[key] = (
+                            int(value)
+                            if key in
+                            (
+                                "channel",
+                                "signal_dbm"
+                            )
+                            else
+                            value
+                        )
+
+                    except:
+
+                        result[key] = value
+
+
+            channel = result.get(
+                "channel"
+            )
+
+
+            if channel:
+
+                result[
+                    "band"
+                ] = (
+                    "2.4 GHz"
+                    if channel <= 14
+                    else
+                    "5 GHz"
+                )
+
+
+        return result
+
+
+    return {
+
+        "available":
+            False,
+
+        "connected":
+            False,
+
+        "ssid":
+            None,
+
+        "bssid":
+            None,
+
+        "signal_percent":
+            None,
+
+        "signal_dbm":
+            None,
+
+        "channel":
+            None,
+
+        "radio_type":
+            None,
+
+        "band":
+            None,
+
+        "interface":
+            None,
+
+        "receive_mbps":
+            None,
+
+        "transmit_mbps":
+            None,
+
+        "authentication":
+            None,
+
+        "state":
+            None,
+
+        "source":
+            None
+
+    }
+
+
+# ==========================================
+# ARP / NEIGHBOUR
+# ==========================================
+
+def normalize_mac(
+    mac
+):
+
+    if not mac:
+
+        return None
+
+
+    compact = re.sub(
+
+        r"[^0-9A-Fa-f]",
+
+        "",
+
+        str(mac)
+
+    )
+
+
+    if len(compact) == 12:
+
+        return ":".join(
+
+            [
+
+                compact[0:2],
+                compact[2:4],
+                compact[4:6],
+                compact[6:8],
+                compact[8:10],
+                compact[10:12]
+
+            ]
+
+        ).upper()
+
+
+    return str(
+        mac
+    ).replace(
+        "-",
+        ":"
+    ).upper()
+
+
+def get_arp_neighbors():
 
     neighbors = {}
 
     system = platform.system().lower()
 
+
     # ======================================
-    # WINDOWS ARP
+    # WINDOWS
     # ======================================
 
     if system == "windows":
 
         output = _run_command(
+
             [
                 "arp",
                 "-a"
             ],
+
             timeout=4
+
         )
 
+
         current_interface = None
+
 
         for line in output.splitlines():
 
             line = line.strip()
 
+
             if not line:
 
                 continue
+
 
             interface_match = re.search(
 
@@ -5058,6 +6127,7 @@ def get_arp_neighbors():
 
             )
 
+
             if interface_match:
 
                 current_interface = (
@@ -5065,6 +6135,7 @@ def get_arp_neighbors():
                 )
 
                 continue
+
 
             match = re.search(
 
@@ -5078,19 +6149,31 @@ def get_arp_neighbors():
 
             )
 
+
             if match:
 
-                ip_addr = match.group(1)
+                ip_addr = (
+                    match.group(1)
+                )
 
-                mac_addr = match.group(2)
-
-                state = match.group(3)
 
                 if not _is_valid_ipv4(
                     ip_addr
                 ):
 
                     continue
+
+
+                mac_addr = (
+                    match.group(2)
+                )
+
+
+                state = (
+                    match.group(3)
+                    .upper()
+                )
+
 
                 neighbors[
                     ip_addr
@@ -5105,15 +6188,16 @@ def get_arp_neighbors():
                         ),
 
                     "state":
-                        state.upper(),
+                        state,
 
                     "interface":
                         current_interface
 
                 }
 
+
         # ==================================
-        # PowerShell
+        # POWERSHELL
         # ==================================
 
         ps_output = _run_command(
@@ -5123,21 +6207,24 @@ def get_arp_neighbors():
                 "-NoProfile",
                 "-Command",
 
-                "Get-NetNeighbor "
-                "-AddressFamily IPv4 "
-                "| Where-Object {"
-                "$_.IPAddress -and "
-                "$_.LinkLayerAddress"
-                "} "
-                "| Select-Object "
-                "IPAddress,LinkLayerAddress,State "
-                "| ConvertTo-Json -Compress"
+                (
+                    "Get-NetNeighbor "
+                    "-AddressFamily IPv4 "
+                    "| Where-Object {"
+                    "$_.IPAddress -and "
+                    "$_.LinkLayerAddress"
+                    "} "
+                    "| Select-Object "
+                    "IPAddress,LinkLayerAddress,State "
+                    "| ConvertTo-Json -Compress"
+                )
 
             ],
 
             timeout=5
 
         )
+
 
         if ps_output:
 
@@ -5147,6 +6234,7 @@ def get_arp_neighbors():
                     ps_output
                 )
 
+
                 if isinstance(
                     data,
                     dict
@@ -5154,80 +6242,83 @@ def get_arp_neighbors():
 
                     data = [data]
 
-                if isinstance(
-                    data,
-                    list
-                ):
 
-                    for item in data:
+                for item in data:
 
-                        if not isinstance(
-                            item,
-                            dict
-                        ):
+                    if not isinstance(
+                        item,
+                        dict
+                    ):
 
-                            continue
+                        continue
 
-                        ip_addr = str(
-                            item.get(
-                                "IPAddress",
-                                ""
-                            )
-                        ).strip()
 
-                        mac_addr = str(
-                            item.get(
-                                "LinkLayerAddress",
-                                ""
-                            )
-                        ).strip()
+                    ip_addr = str(
+                        item.get(
+                            "IPAddress",
+                            ""
+                        )
+                    ).strip()
 
-                        state = str(
-                            item.get(
-                                "State",
-                                "UNKNOWN"
-                            )
-                        ).upper()
 
-                        if not _is_valid_ipv4(
-                            ip_addr
-                        ):
+                    mac_addr = str(
+                        item.get(
+                            "LinkLayerAddress",
+                            ""
+                        )
+                    ).strip()
 
-                            continue
 
-                        if not re.match(
+                    state = str(
+                        item.get(
+                            "State",
+                            "UNKNOWN"
+                        )
+                    ).upper()
 
+
+                    if not _is_valid_ipv4(
+                        ip_addr
+                    ):
+
+                        continue
+
+
+                    if (
+                        not re.match(
                             r"^[0-9A-Fa-f:-]{17}$",
-
                             mac_addr
+                        )
+                    ):
 
-                        ):
+                        continue
 
-                            continue
 
-                        neighbors[
-                            ip_addr
-                        ] = {
+                    neighbors[
+                        ip_addr
+                    ] = {
 
-                            "ip":
-                                ip_addr,
+                        "ip":
+                            ip_addr,
 
-                            "mac":
-                                normalize_mac(
-                                    mac_addr
-                                ),
+                        "mac":
+                            normalize_mac(
+                                mac_addr
+                            ),
 
-                            "state":
-                                state,
+                        "state":
+                            state,
 
-                            "interface":
-                                None
+                        "interface":
+                            None
 
-                        }
+                    }
+
 
             except Exception:
 
                 pass
+
 
     # ======================================
     # LINUX
@@ -5248,6 +6339,7 @@ def get_arp_neighbors():
 
         )
 
+
         for line in output.splitlines():
 
             match = re.search(
@@ -5257,8 +6349,7 @@ def get_arp_neighbors():
                 r"(?:lladdr\s+"
                 r"([0-9a-fA-F:]{17}))?"
                 r".*?"
-                r"\b"
-                r"(REACHABLE|STALE|DELAY|PROBE|FAILED|PERMANENT|NOARP|INCOMPLETE)\b",
+                r"(REACHABLE|STALE|DELAY|PROBE|FAILED|PERMANENT|NOARP|INCOMPLETE)",
 
                 line,
 
@@ -5266,25 +6357,13 @@ def get_arp_neighbors():
 
             )
 
+
             if match:
 
                 ip_addr = (
                     match.group(1)
                 )
 
-                mac_addr = (
-                    match.group(2)
-                    if match.group(2)
-                    else
-                    None
-                )
-
-                state = (
-                    match.group(3)
-                    if match.group(3)
-                    else
-                    "UNKNOWN"
-                )
 
                 neighbors[
                     ip_addr
@@ -5295,16 +6374,21 @@ def get_arp_neighbors():
 
                     "mac":
                         normalize_mac(
-                            mac_addr
+                            match.group(2)
                         ),
 
                     "state":
-                        state.upper(),
+                        (
+                            match.group(3)
+                            or
+                            "UNKNOWN"
+                        ).upper(),
 
                     "interface":
                         None
 
                 }
+
 
     # ======================================
     # MACOS
@@ -5323,14 +6407,14 @@ def get_arp_neighbors():
 
         )
 
+
         for line in output.splitlines():
 
             match = re.search(
 
                 r"\((\d+\.\d+\.\d+\.\d+)\)"
                 r"\s+at\s+"
-                r"([0-9a-fA-F:]{17})"
-                r"(?:\s+on\s+(\S+))?",
+                r"([0-9a-fA-F:]{17})",
 
                 line,
 
@@ -5338,27 +6422,13 @@ def get_arp_neighbors():
 
             )
 
+
             if match:
 
                 ip_addr = (
                     match.group(1)
                 )
 
-                mac_addr = (
-                    match.group(2)
-                )
-
-                interface_name = (
-
-                    match.group(3)
-
-                    if match.group(3)
-
-                    else
-
-                    None
-
-                )
 
                 neighbors[
                     ip_addr
@@ -5369,572 +6439,23 @@ def get_arp_neighbors():
 
                     "mac":
                         normalize_mac(
-                            mac_addr
+                            match.group(2)
                         ),
 
                     "state":
                         "KNOWN",
 
                     "interface":
-                        interface_name
+                        None
 
                 }
+
 
     return neighbors
 
 
 # ==========================================
-# HOSTNAME
-# ==========================================
-
-def resolve_hostname(
-    ip,
-    timeout=0.5
-):
-
-    old_timeout = (
-        socket.getdefaulttimeout()
-    )
-
-    try:
-
-        socket.setdefaulttimeout(
-            timeout
-        )
-
-        result = socket.gethostbyaddr(
-            ip
-        )
-
-        if result:
-
-            return result[0]
-
-    except (
-        socket.herror,
-        socket.gaierror,
-        socket.timeout,
-        OSError
-    ):
-
-        pass
-
-    finally:
-
-        try:
-
-            socket.setdefaulttimeout(
-                old_timeout
-            )
-
-        except:
-
-            pass
-
-    return None
-
-
-def resolve_hostnames_parallel(
-    devices,
-    max_workers=16
-):
-
-    targets = [
-
-        device
-
-        for device in devices
-
-        if (
-
-            device.get(
-                "ip"
-            )
-
-            and
-
-            not device.get(
-                "hostname"
-            )
-
-            and
-
-            device.get(
-                "role"
-            )
-            !=
-            "local_device"
-
-        )
-
-    ]
-
-    if not targets:
-
-        return devices
-
-    workers = max(
-
-        1,
-
-        min(
-            max_workers,
-            len(targets)
-        )
-
-    )
-
-    with ThreadPoolExecutor(
-        max_workers=workers
-    ) as executor:
-
-        future_map = {
-
-            executor.submit(
-                resolve_hostname,
-                device["ip"]
-            ):
-                device
-
-            for device in targets
-
-        }
-
-        for future in as_completed(
-            future_map
-        ):
-
-            device = future_map[
-                future
-            ]
-
-            try:
-
-                hostname = future.result()
-
-                if hostname:
-
-                    device[
-                        "hostname"
-                    ] = hostname
-
-            except Exception:
-
-                pass
-
-    return devices
-
-
-# ==========================================
-# GATEWAY LATENCY
-# ==========================================
-
-def ping_host(
-    ip,
-    timeout=1
-):
-
-    if not ip:
-
-        return False, None
-
-    if not _is_valid_ipv4(
-        ip
-    ):
-
-        return False, None
-
-    system = platform.system().lower()
-
-    if system == "windows":
-
-        command = [
-
-            "ping",
-
-            "-n",
-            "1",
-
-            "-w",
-            str(
-                max(
-                    1,
-                    int(
-                        timeout
-                        *
-                        1000
-                    )
-                )
-            ),
-
-            ip
-
-        ]
-
-    else:
-
-        command = [
-
-            "ping",
-
-            "-c",
-            "1",
-
-            "-W",
-            str(
-                max(
-                    1,
-                    int(
-                        timeout
-                    )
-                )
-            ),
-
-            ip
-
-        ]
-
-    start = time.perf_counter()
-
-    output = _run_command(
-
-        command,
-
-        timeout=(
-            timeout
-            +
-            1.2
-        )
-
-    )
-
-    elapsed = round(
-
-        (
-            time.perf_counter()
-            -
-            start
-        )
-
-        *
-        1000,
-
-        1
-
-    )
-
-    if output:
-
-        output_lower = (
-            output.lower()
-        )
-
-        if (
-
-            "ttl=" in output_lower
-
-            or
-
-            "time=" in output_lower
-
-            or
-
-            "time<" in output_lower
-
-        ):
-
-            return True, elapsed
-
-    return False, None
-
-
-# ==========================================
-# ACTIVE HOST PROBE
-# ==========================================
-
-def probe_host(
-    ip,
-    timeout=0.35
-):
-
-    online, latency = ping_host(
-        ip,
-        timeout
-    )
-
-    return {
-
-        "ip":
-            ip,
-
-        "online":
-            online,
-
-        "latency_ms":
-            latency
-
-    }
-
-
-def active_network_discovery(
-    network,
-    known_neighbors=None,
-    local_ip=None,
-    gateway=None
-):
-
-    """
-    Discovery tambahan untuk host yang belum terdapat di ARP.
-
-    Hanya aktif jika:
-        NETWORK_ACTIVE_DISCOVERY=true
-
-    Maksimal subnet:
-        /16 hingga /24
-
-    Untuk internet/cloud:
-        biasanya tidak berguna untuk menemukan
-        perangkat LAN user.
-    """
-
-    if not NETWORK_ACTIVE_DISCOVERY:
-
-        return {}
-
-    if not network:
-
-        return {}
-
-    if not isinstance(
-        network,
-        ipaddress.IPv4Network
-    ):
-
-        return {}
-
-    if (
-
-        network.prefixlen < 16
-
-        or
-
-        network.prefixlen > 24
-
-    ):
-
-        return {}
-
-    known_neighbors = (
-
-        known_neighbors
-
-        if isinstance(
-            known_neighbors,
-            dict
-        )
-
-        else
-
-        {}
-
-    )
-
-    known_ips = set(
-        known_neighbors.keys()
-    )
-
-    targets = []
-
-    for host in network.hosts():
-
-        ip_addr = str(
-            host
-        )
-
-        if ip_addr == local_ip:
-
-            continue
-
-        if ip_addr == gateway:
-
-            continue
-
-        if ip_addr in known_ips:
-
-            continue
-
-        targets.append(
-            ip_addr
-        )
-
-    if not targets:
-
-        return {}
-
-    discovered = {}
-
-    workers = max(
-
-        1,
-
-        min(
-            NETWORK_DISCOVERY_WORKERS,
-            len(targets)
-        )
-
-    )
-
-    with ThreadPoolExecutor(
-        max_workers=workers
-    ) as executor:
-
-        futures = {
-
-            executor.submit(
-                probe_host,
-                ip_addr,
-                NETWORK_DISCOVERY_TIMEOUT
-            ):
-                ip_addr
-
-            for ip_addr in targets
-
-        }
-
-        for future in as_completed(
-            futures
-        ):
-
-            try:
-
-                result = (
-                    future.result()
-                )
-
-                if result.get(
-                    "online"
-                ):
-
-                    discovered[
-                        result["ip"]
-                    ] = result
-
-            except Exception:
-
-                continue
-
-    return discovered
-
-
-# ==========================================
-# PUBLIC IP SERVER
-# ==========================================
-
-def get_public_ip():
-
-    """
-    IP publik dari server Flask.
-
-    PENTING:
-    Bila Flask berada di Vercel/cloud, ini bukan IP
-    MyRepublic dari browser pengunjung.
-    """
-
-    services = [
-
-        "https://api.ipify.org?format=json",
-
-        "https://api64.ipify.org?format=json"
-
-    ]
-
-    for service in services:
-
-        try:
-
-            response = requests.get(
-                service,
-                timeout=2
-            )
-
-            if not response.ok:
-
-                continue
-
-            data = response.json()
-
-            public_ip = data.get(
-                "ip"
-            )
-
-            if public_ip:
-
-                try:
-
-                    ipaddress.ip_address(
-                        public_ip
-                    )
-
-                    return public_ip
-
-                except ValueError:
-
-                    continue
-
-        except Exception:
-
-            continue
-
-    return None
-
-
-# ==========================================
-# MAC
-# ==========================================
-
-def normalize_mac(
-    mac
-):
-
-    if not mac:
-
-        return None
-
-    compact = re.sub(
-        r"[^0-9A-Fa-f]",
-        "",
-        str(mac)
-    )
-
-    if len(
-        compact
-    ) == 12:
-
-        return ":".join(
-
-            [
-
-                compact[0:2],
-                compact[2:4],
-                compact[4:6],
-                compact[6:8],
-                compact[8:10],
-                compact[10:12]
-
-            ]
-
-        ).upper()
-
-    return str(
-        mac
-    ).replace(
-        "-",
-        ":"
-    ).upper()
-
-
-# ==========================================
-# VENDOR MAC
+# MAC VENDOR
 # ==========================================
 
 def get_mac_vendor(
@@ -5945,19 +6466,23 @@ def get_mac_vendor(
         mac
     )
 
+
     if not mac:
 
         return None
 
+
     compact = re.sub(
         r"[^0-9A-F]",
         "",
-        mac
+        mac.upper()
     )
+
 
     if len(compact) < 6:
 
         return None
+
 
     oui = ":".join(
 
@@ -5970,6 +6495,7 @@ def get_mac_vendor(
         ]
 
     )
+
 
     common_oui = {
 
@@ -6050,13 +6576,520 @@ def get_mac_vendor(
 
     }
 
+
     return common_oui.get(
         oui
     )
 
 
 # ==========================================
-# DEVICE LIST
+# HOSTNAME
+# ==========================================
+
+def resolve_hostname(
+    ip,
+    timeout=0.5
+):
+
+    old_timeout = (
+        socket.getdefaulttimeout()
+    )
+
+
+    try:
+
+        socket.setdefaulttimeout(
+            timeout
+        )
+
+
+        result = socket.gethostbyaddr(
+            ip
+        )
+
+
+        if result:
+
+            return result[0]
+
+
+    except (
+        socket.herror,
+        socket.gaierror,
+        socket.timeout,
+        OSError
+    ):
+
+        pass
+
+
+    finally:
+
+        try:
+
+            socket.setdefaulttimeout(
+                old_timeout
+            )
+
+        except:
+
+            pass
+
+
+    return None
+
+
+def resolve_hostnames_parallel(
+    devices,
+    max_workers=16
+):
+
+    targets = [
+
+        device
+
+        for device in devices
+
+        if (
+
+            device.get(
+                "ip"
+            )
+
+            and
+
+            not device.get(
+                "hostname"
+            )
+
+            and
+
+            device.get(
+                "role"
+            )
+            !=
+            "local_device"
+
+        )
+
+    ]
+
+
+    if not targets:
+
+        return devices
+
+
+    workers = max(
+
+        1,
+
+        min(
+            max_workers,
+            len(targets)
+        )
+
+    )
+
+
+    with ThreadPoolExecutor(
+        max_workers=workers
+    ) as executor:
+
+        futures = {
+
+            executor.submit(
+
+                resolve_hostname,
+
+                device["ip"]
+
+            ):
+                device
+
+            for device in targets
+
+        }
+
+
+        for future in as_completed(
+            futures
+        ):
+
+            device = futures[
+                future
+            ]
+
+
+            try:
+
+                hostname = (
+                    future.result()
+                )
+
+
+                if hostname:
+
+                    device[
+                        "hostname"
+                    ] = hostname
+
+
+            except Exception:
+
+                pass
+
+
+    return devices
+
+
+# ==========================================
+# PING
+# ==========================================
+
+def ping_host(
+    ip,
+    timeout=1
+):
+
+    if not ip:
+
+        return False, None
+
+
+    if not _is_valid_ipv4(
+        ip
+    ):
+
+        return False, None
+
+
+    system = platform.system().lower()
+
+
+    if system == "windows":
+
+        command = [
+
+            "ping",
+
+            "-n",
+            "1",
+
+            "-w",
+            str(
+                max(
+                    1,
+                    int(
+                        timeout
+                        *
+                        1000
+                    )
+                )
+            ),
+
+            ip
+
+        ]
+
+
+    else:
+
+        command = [
+
+            "ping",
+
+            "-c",
+            "1",
+
+            "-W",
+            str(
+                max(
+                    1,
+                    int(timeout)
+                )
+            ),
+
+            ip
+
+        ]
+
+
+    started = time.perf_counter()
+
+
+    output = _run_command(
+
+        command,
+
+        timeout=(
+            timeout
+            +
+            1.5
+        )
+
+    )
+
+
+    elapsed = round(
+
+        (
+            time.perf_counter()
+            -
+            started
+        )
+        *
+        1000,
+
+        1
+
+    )
+
+
+    if output:
+
+        text = output.lower()
+
+
+        if (
+
+            "ttl=" in text
+
+            or
+
+            "time=" in text
+
+            or
+
+            "time<" in text
+
+        ):
+
+            # Coba ambil angka ping asli.
+            match = re.search(
+
+                r"(?:time[=<])\s*(\d+(?:[.,]\d+)?)\s*ms",
+
+                text
+
+            )
+
+
+            if match:
+
+                try:
+
+                    return True, float(
+                        match.group(1)
+                        .replace(
+                            ",",
+                            "."
+                        )
+                    )
+
+                except:
+
+                    pass
+
+
+            return True, elapsed
+
+
+    return False, None
+
+
+# ==========================================
+# ACTIVE DISCOVERY
+# ==========================================
+
+def probe_host(
+    ip,
+    timeout=0.5
+):
+
+    online, latency = ping_host(
+
+        ip,
+
+        timeout=timeout
+
+    )
+
+
+    return {
+
+        "ip":
+            ip,
+
+        "online":
+            online,
+
+        "latency_ms":
+            latency
+
+    }
+
+
+def active_network_discovery(
+    network,
+    known_neighbors=None,
+    local_ip=None,
+    gateway=None
+):
+
+    if not NETWORK_ACTIVE_DISCOVERY:
+
+        return {}
+
+
+    if not network:
+
+        return {}
+
+
+    if not isinstance(
+        network,
+        ipaddress.IPv4Network
+    ):
+
+        return {}
+
+
+    # Hindari scan terlalu besar.
+    if (
+
+        network.prefixlen < 16
+
+        or
+
+        network.prefixlen > 24
+
+    ):
+
+        return {}
+
+
+    known_neighbors = (
+
+        known_neighbors
+
+        if isinstance(
+            known_neighbors,
+            dict
+        )
+
+        else
+
+        {}
+
+    )
+
+
+    known_ips = set(
+        known_neighbors.keys()
+    )
+
+
+    targets = []
+
+
+    for host in network.hosts():
+
+        ip_addr = str(
+            host
+        )
+
+
+        if ip_addr == local_ip:
+
+            continue
+
+
+        if ip_addr == gateway:
+
+            continue
+
+
+        if ip_addr in known_ips:
+
+            continue
+
+
+        targets.append(
+            ip_addr
+        )
+
+
+    if not targets:
+
+        return {}
+
+
+    discovered = {}
+
+
+    workers = min(
+
+        NETWORK_DISCOVERY_WORKERS,
+
+        len(targets)
+
+    )
+
+
+    with ThreadPoolExecutor(
+        max_workers=max(
+            1,
+            workers
+        )
+    ) as executor:
+
+        futures = {
+
+            executor.submit(
+
+                probe_host,
+
+                ip_addr,
+
+                NETWORK_DISCOVERY_TIMEOUT
+
+            ):
+                ip_addr
+
+            for ip_addr in targets
+
+        }
+
+
+        for future in as_completed(
+            futures
+        ):
+
+            try:
+
+                item = future.result()
+
+
+                if item.get(
+                    "online"
+                ):
+
+                    discovered[
+                        item["ip"]
+                    ] = item
+
+
+            except Exception:
+
+                continue
+
+
+    return discovered
+
+
+# ==========================================
+# BUILD DEVICES
 # ==========================================
 
 def build_device_list(
@@ -6068,6 +7101,7 @@ def build_device_list(
 ):
 
     devices = {}
+
 
     active_discovered = (
 
@@ -6083,6 +7117,7 @@ def build_device_list(
         {}
 
     )
+
 
     # --------------------------------------
     # LOCAL
@@ -6123,33 +7158,26 @@ def build_device_list(
 
         }
 
+
     # --------------------------------------
-    # NEIGHBORS
+    # NEIGHBOR
     # --------------------------------------
 
     online_states = {
 
         "REACHABLE",
-
         "STALE",
-
         "DELAY",
-
         "PROBE",
-
         "PERMANENT",
-
         "PUBLISHED",
-
         "KNOWN",
-
         "DYNAMIC",
-
         "STATIC",
-
         "NOARP"
 
     }
+
 
     for ip_addr, item in neighbors.items():
 
@@ -6159,11 +7187,13 @@ def build_device_list(
 
             continue
 
+
         mac = normalize_mac(
             item.get(
                 "mac"
             )
         )
+
 
         state = str(
             item.get(
@@ -6172,17 +7202,18 @@ def build_device_list(
             )
         ).upper()
 
+
         is_online = (
 
             state
-
             in
-
             online_states
 
         )
 
+
         role = "device"
+
 
         if (
 
@@ -6196,7 +7227,10 @@ def build_device_list(
 
             role = "router"
 
-            is_online = True
+            # Gateway routing table saja tidak
+            # berarti ping wajib berhasil.
+            # Status ditentukan ping di tahap berikut.
+
 
         if (
 
@@ -6211,6 +7245,7 @@ def build_device_list(
             role = "local_device"
 
             is_online = True
+
 
         devices[
             ip_addr
@@ -6247,6 +7282,7 @@ def build_device_list(
 
         }
 
+
     # --------------------------------------
     # ACTIVE DISCOVERY
     # --------------------------------------
@@ -6259,11 +7295,13 @@ def build_device_list(
 
             continue
 
+
         if ip_addr in devices:
 
             devices[
                 ip_addr
             ]["online"] = True
+
 
             devices[
                 ip_addr
@@ -6272,6 +7310,7 @@ def build_device_list(
                     "latency_ms"
                 )
             )
+
 
             devices[
                 ip_addr
@@ -6289,7 +7328,9 @@ def build_device_list(
 
             )
 
+
             continue
+
 
         devices[
             ip_addr
@@ -6326,6 +7367,7 @@ def build_device_list(
 
         }
 
+
     # --------------------------------------
     # GATEWAY
     # --------------------------------------
@@ -6360,7 +7402,7 @@ def build_device_list(
                     None,
 
                 "state":
-                    "NOT_IN_ARP",
+                    "ROUTING_TABLE",
 
                 "source":
                     "routing_table"
@@ -6375,9 +7417,593 @@ def build_device_list(
                 "router"
             )
 
+
     return list(
         devices.values()
     )
+
+
+# ==========================================
+# SPEEDTEST OOKLA CLI
+# ==========================================
+
+def find_speedtest_command():
+
+    candidates = [
+
+        "speedtest",
+
+        "speedtest.exe"
+
+    ]
+
+
+    for command in candidates:
+
+        output = _run_command(
+
+            [
+                command,
+                "--version"
+            ],
+
+            timeout=5
+
+        )
+
+
+        if output:
+
+            return command
+
+
+    # Windows common path
+    windows_paths = [
+
+        os.path.join(
+            os.environ.get(
+                "ProgramFiles",
+                "C:\\Program Files"
+            ),
+            "Ookla",
+            "Speedtest",
+            "speedtest.exe"
+        ),
+
+        os.path.join(
+            os.environ.get(
+                "ProgramFiles(x86)",
+                "C:\\Program Files (x86)"
+            ),
+            "Ookla",
+            "Speedtest",
+            "speedtest.exe"
+        ),
+
+        os.path.join(
+            os.environ.get(
+                "LOCALAPPDATA",
+                ""
+            ),
+            "Programs",
+            "speedtest",
+            "speedtest.exe"
+        )
+
+    ]
+
+
+    for path in windows_paths:
+
+        if os.path.isfile(
+            path
+        ):
+
+            return path
+
+
+    return None
+
+
+def run_ookla_speedtest():
+
+    """
+    Menjalankan Ookla Speedtest CLI jika tersedia.
+
+    Hasil:
+        ping_ms
+        download_mbps
+        upload_mbps
+        server
+        isp
+        packet_loss
+    """
+
+    if not NETWORK_SPEEDTEST_ENABLED:
+
+        return {
+
+            "available":
+                False,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest dinonaktifkan."
+
+        }
+
+
+    command = find_speedtest_command()
+
+
+    if not command:
+
+        return {
+
+            "available":
+                False,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                (
+                    "Ookla Speedtest CLI tidak ditemukan "
+                    "di komputer tempat Flask berjalan."
+                )
+
+        }
+
+
+    try:
+
+        # JSON output dipakai agar tidak perlu parsing
+        # teks progress yang panjang.
+        result = subprocess.run(
+
+            [
+                command,
+                "--format=json",
+                "--accept-license",
+                "--accept-gdpr"
+            ],
+
+            stdout=subprocess.PIPE,
+
+            stderr=subprocess.DEVNULL,
+
+            stdin=subprocess.DEVNULL,
+
+            text=True,
+
+            timeout=NETWORK_SPEEDTEST_TIMEOUT,
+
+            check=False,
+
+            creationflags=(
+
+                subprocess.CREATE_NO_WINDOW
+
+                if platform.system().lower()
+                ==
+                "windows"
+
+                else
+
+                0
+
+            )
+
+        )
+
+
+        raw = (
+            result.stdout
+            or
+            ""
+        ).strip()
+
+
+        if not raw:
+
+            return {
+
+                "available":
+                    True,
+
+                "running":
+                    False,
+
+                "success":
+                    False,
+
+                "download_mbps":
+                    None,
+
+                "upload_mbps":
+                    None,
+
+                "ping_ms":
+                    None,
+
+                "packet_loss_percent":
+                    None,
+
+                "server":
+                    None,
+
+                "isp":
+                    None,
+
+                "source":
+                    "Ookla Speedtest CLI",
+
+                "message":
+                    "Speedtest tidak mengembalikan data."
+
+            }
+
+
+        # Terkadang output memiliki line tambahan.
+        # Ambil JSON object pertama.
+        json_start = raw.find(
+            "{"
+        )
+
+        json_end = raw.rfind(
+            "}"
+        )
+
+
+        if (
+            json_start == -1
+            or
+            json_end == -1
+        ):
+
+            raise ValueError(
+                "Output Speedtest bukan JSON."
+            )
+
+
+        payload = json.loads(
+
+            raw[
+                json_start:
+                json_end + 1
+            ]
+
+        )
+
+
+        download_bps = None
+
+        upload_bps = None
+
+        ping_ms = None
+
+        packet_loss = None
+
+
+        if isinstance(
+            payload.get("download"),
+            dict
+        ):
+
+            download_bps = payload[
+                "download"
+            ].get(
+                "bandwidth"
+            )
+
+
+        if isinstance(
+            payload.get("upload"),
+            dict
+        ):
+
+            upload_bps = payload[
+                "upload"
+            ].get(
+                "bandwidth"
+            )
+
+
+        if isinstance(
+            payload.get("ping"),
+            dict
+        ):
+
+            ping_ms = payload[
+                "ping"
+            ].get(
+                "latency"
+            )
+
+
+            packet_loss = payload[
+                "ping"
+            ].get(
+                "packetLoss"
+            )
+
+
+        # Ookla JSON menggunakan bandwidth bytes/sec.
+        #
+        # Konversi:
+        # bytes/s -> bits/s -> Mbps
+        #
+        download_mbps = (
+
+            (
+                float(download_bps)
+                *
+                8
+            )
+            /
+            1_000_000
+
+            if download_bps is not None
+
+            else
+
+            None
+
+        )
+
+
+        upload_mbps = (
+
+            (
+                float(upload_bps)
+                *
+                8
+            )
+            /
+            1_000_000
+
+            if upload_bps is not None
+
+            else
+
+            None
+
+        )
+
+
+        server = (
+            payload.get(
+                "server"
+            )
+            if isinstance(
+                payload.get(
+                    "server"
+                ),
+                dict
+            )
+            else
+            {}
+        )
+
+
+        server_name = (
+
+            server.get(
+                "name"
+            )
+            or
+            server.get(
+                "host"
+            )
+
+        )
+
+
+        isp = (
+            payload.get(
+                "isp"
+            )
+        )
+
+
+        return {
+
+            "available":
+                True,
+
+            "running":
+                False,
+
+            "success":
+                True,
+
+            "download_mbps":
+                round(
+                    download_mbps,
+                    2
+                )
+                if download_mbps is not None
+                else
+                None,
+
+            "upload_mbps":
+                round(
+                    upload_mbps,
+                    2
+                )
+                if upload_mbps is not None
+                else
+                None,
+
+            "ping_ms":
+                round(
+                    float(ping_ms),
+                    2
+                )
+                if ping_ms is not None
+                else
+                None,
+
+            "packet_loss_percent":
+                (
+                    round(
+                        float(packet_loss),
+                        2
+                    )
+                    if packet_loss is not None
+                    else
+                    None
+                ),
+
+            "server":
+                server_name,
+
+            "isp":
+                isp,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest berhasil."
+
+        }
+
+
+    except subprocess.TimeoutExpired:
+
+        return {
+
+            "available":
+                True,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest melebihi batas waktu."
+
+        }
+
+
+    except Exception as e:
+
+        print(
+            "INFO: Ookla Speedtest gagal: "
+            f"{e}"
+        )
+
+
+        return {
+
+            "available":
+                True,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                str(e)
+
+        }
 
 
 # ==========================================
@@ -6388,40 +8014,35 @@ def build_network_snapshot():
 
     started = time.perf_counter()
 
-    # --------------------------------------
-    # 1. LOCAL IP
-    # --------------------------------------
+
+    # ======================================
+    # LOCAL NETWORK
+    # ======================================
 
     local_ip = get_local_ip()
 
-    # --------------------------------------
-    # 2. GATEWAY
-    # --------------------------------------
 
-    gateway = (
-        detect_default_gateway()
-    )
+    gateway = detect_default_gateway()
 
-    # --------------------------------------
-    # 3. SUBNET
-    # --------------------------------------
 
     network = get_interface_network(
+
         local_ip,
+
         gateway
+
     )
 
-    # --------------------------------------
-    # 4. ARP
-    # --------------------------------------
 
-    neighbors = (
-        get_arp_neighbors()
-    )
+    neighbors = get_arp_neighbors()
 
-    # --------------------------------------
-    # 5. ACTIVE DISCOVERY
-    # --------------------------------------
+
+    wifi = get_wifi_info()
+
+
+    # ======================================
+    # ACTIVE DISCOVERY
+    # ======================================
 
     active_discovered = (
 
@@ -6429,14 +8050,11 @@ def build_network_snapshot():
 
             network,
 
-            known_neighbors=
-                neighbors,
+            known_neighbors=neighbors,
 
-            local_ip=
-                local_ip,
+            local_ip=local_ip,
 
-            gateway=
-                gateway
+            gateway=gateway
 
         )
 
@@ -6448,9 +8066,10 @@ def build_network_snapshot():
 
     )
 
-    # --------------------------------------
-    # 6. DEVICES
-    # --------------------------------------
+
+    # ======================================
+    # DEVICES
+    # ======================================
 
     devices = build_device_list(
 
@@ -6466,19 +8085,20 @@ def build_network_snapshot():
 
     )
 
-    # --------------------------------------
-    # 7. HOSTNAME
-    # --------------------------------------
 
-    devices = (
-        resolve_hostnames_parallel(
-            devices
-        )
+    devices = resolve_hostnames_parallel(
+        devices
     )
 
-    # --------------------------------------
-    # 8. GATEWAY PING
-    # --------------------------------------
+
+    # ======================================
+    # GATEWAY PING
+    # ======================================
+
+    gateway_online = False
+
+    gateway_latency = None
+
 
     router = next(
 
@@ -6500,18 +8120,21 @@ def build_network_snapshot():
 
     )
 
-    gateway_online = False
-
-    gateway_latency = None
 
     if gateway:
 
         gateway_online, gateway_latency = (
+
             ping_host(
+
                 gateway,
+
                 timeout=1
+
             )
+
         )
+
 
         if router:
 
@@ -6523,9 +8146,10 @@ def build_network_snapshot():
                 "latency_ms"
             ] = gateway_latency
 
-    # --------------------------------------
-    # 9. ACTIVE DEVICES
-    # --------------------------------------
+
+    # ======================================
+    # CLIENT DEVICE STATUS
+    # ======================================
 
     active_devices = [
 
@@ -6554,29 +8178,34 @@ def build_network_snapshot():
 
     ]
 
-    # --------------------------------------
-    # 10. KNOWN DEVICES
-    # --------------------------------------
 
-    known_devices_count = len(
+    known_devices = [
 
-        [
+        device
 
-            d
+        for device in devices
 
-            for d in devices
+        if device.get(
+            "role"
+        )
+        ==
+        "device"
 
-            if d.get(
-                "role"
-            ) == "device"
+    ]
 
-        ]
 
+    # ======================================
+    # BACKEND PUBLIC IP
+    # ======================================
+
+    server_public_ip = (
+        get_public_ip()
     )
 
-    # --------------------------------------
-    # 11. ROUTER DATA
-    # --------------------------------------
+
+    # ======================================
+    # ROUTER INFO
+    # ======================================
 
     router_data = {
 
@@ -6588,32 +8217,22 @@ def build_network_snapshot():
 
         "mac":
             (
-
                 router.get(
                     "mac"
                 )
-
                 if router
-
                 else
-
                 None
-
             ),
 
         "hostname":
             (
-
                 router.get(
                     "hostname"
                 )
-
                 if router
-
                 else
-
                 None
-
             ),
 
         "latency_ms":
@@ -6621,73 +8240,77 @@ def build_network_snapshot():
 
         "vendor":
             (
-
                 router.get(
                     "vendor"
                 )
-
                 if router
-
                 else
-
                 None
-
             ),
 
         "state":
             (
-
                 router.get(
                     "state"
                 )
-
                 if router
-
                 else
-
                 None
-
             )
 
     }
 
-    # --------------------------------------
-    # 12. NETWORK
-    # --------------------------------------
 
-    network_description = (
+    # ======================================
+    # SPEEDTEST
+    # ======================================
 
-        str(network)
-
-        if network
-
+    speedtest = (
+        run_ookla_speedtest()
+        if NETWORK_SPEEDTEST_ENABLED
         else
+        {
 
-        None
+            "available":
+                False,
 
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest tidak dijalankan."
+
+        }
     )
 
-    prefix = (
 
-        network.prefixlen
-
-        if network
-
-        else
-
-        None
-
-    )
-
-    # --------------------------------------
-    # 13. SERVER PUBLIC IP
-    # --------------------------------------
-
-    server_public_ip = get_public_ip()
-
-    # --------------------------------------
-    # 14. FINAL DATA
-    # --------------------------------------
+    # ======================================
+    # RESPONSE
+    # ======================================
 
     return {
 
@@ -6711,13 +8334,10 @@ def build_network_snapshot():
             round(
 
                 (
-
                     time.perf_counter()
                     -
                     started
-
                 )
-
                 *
                 1000,
 
@@ -6725,14 +8345,26 @@ def build_network_snapshot():
 
             ),
 
+
+        # ==================================
+        # ROUTER
+        # ==================================
+
         "router":
             router_data,
+
 
         "gateway":
             gateway,
 
+
         "gateway_ip":
             gateway,
+
+
+        # ==================================
+        # LOCAL
+        # ==================================
 
         "local":
             {
@@ -6741,23 +8373,30 @@ def build_network_snapshot():
                     local_ip,
 
                 "network":
-                    network_description,
+                    (
+                        str(network)
+                        if network
+                        else
+                        None
+                    ),
 
                 "prefix":
-                    prefix,
+                    (
+                        network.prefixlen
+                        if network
+                        else
+                        None
+                    ),
 
                 "hostname":
                     socket.gethostname()
 
             },
 
-        "wan":
-            {
 
-                "public_ip":
-                    server_public_ip
-
-            },
+        # ==================================
+        # SERVER
+        # ==================================
 
         "server":
             {
@@ -6776,37 +8415,185 @@ def build_network_snapshot():
 
             },
 
+
         # ==================================
-        # DATA ROUTER
+        # WIFI
         # ==================================
-        #
-        # Tidak boleh diisi palsu.
-        #
+
+        "wifi":
+            wifi,
+
+
         "ssid":
-            None,
+            wifi.get(
+                "ssid"
+            ),
+
+
+        "bssid":
+            wifi.get(
+                "bssid"
+            ),
+
 
         "channel":
-            None,
+            wifi.get(
+                "channel"
+            ),
 
-        "avg_signal":
-            None,
+
+        "band":
+            wifi.get(
+                "band"
+            ),
+
+
+        "wifi_signal_percent":
+            wifi.get(
+                "signal_percent"
+            ),
+
+
+        "wifi_signal_dbm":
+            wifi.get(
+                "signal_dbm"
+            ),
+
+
+        "wifi_radio_type":
+            wifi.get(
+                "radio_type"
+            ),
+
+
+        "wifi_interface":
+            wifi.get(
+                "interface"
+            ),
+
+
+        "wifi_receive_mbps":
+            wifi.get(
+                "receive_mbps"
+            ),
+
+
+        "wifi_transmit_mbps":
+            wifi.get(
+                "transmit_mbps"
+            ),
+
+
+        # ==================================
+        # SPEEDTEST
+        # ==================================
+
+        "speedtest":
+            speedtest,
+
 
         "download_mbps":
-            None,
+            speedtest.get(
+                "download_mbps"
+            ),
+
 
         "upload_mbps":
-            None,
+            speedtest.get(
+                "upload_mbps"
+            ),
+
+
+        "speedtest_ping_ms":
+            speedtest.get(
+                "ping_ms"
+            ),
+
+
+        "speedtest_server":
+            speedtest.get(
+                "server"
+            ),
+
+
+        "speedtest_isp":
+            speedtest.get(
+                "isp"
+            ),
+
+
+        # ==================================
+        # CLIENT
+        # ==================================
+
+        #
+        # Data client dikirim oleh browser
+        # melalui /api/client-network.
+        #
+        "client":
+            {
+
+                "public_ip":
+                    None,
+
+                "isp":
+                    None,
+
+                "asn":
+                    None,
+
+                "org":
+                    None,
+
+                "city":
+                    None,
+
+                "region":
+                    None,
+
+                "country":
+                    None,
+
+                "browser":
+                    None,
+
+                "os":
+                    None,
+
+                "connection_type":
+                    None,
+
+                "downlink_mbps":
+                    None,
+
+                "rtt_ms":
+                    None,
+
+                "save_data":
+                    None
+
+            },
+
+
+        # ==================================
+        # DEVICES
+        # ==================================
 
         "clients_count":
             len(
                 active_devices
             ),
 
+
         "known_devices_count":
-            known_devices_count,
+            len(
+                known_devices
+            ),
+
 
         "active_discovery":
             NETWORK_ACTIVE_DISCOVERY,
+
 
         "devices":
             sorted(
@@ -6838,7 +8625,6 @@ def build_network_snapshot():
                     2,
 
                     (
-
                         int(
                             ipaddress.ip_address(
                                 x["ip"]
@@ -6858,6 +8644,11 @@ def build_network_snapshot():
                 )
 
             ),
+
+
+        # ==================================
+        # CAPABILITIES
+        # ==================================
 
         "capabilities":
             {
@@ -6883,23 +8674,66 @@ def build_network_snapshot():
                 "ping_gateway":
                     True,
 
-                "public_ip_server":
-                    True,
+                "wifi_ssid":
+                    bool(
+                        wifi.get(
+                            "ssid"
+                        )
+                    ),
 
-                "public_ip_client":
-                    "browser",
+                "wifi_band":
+                    bool(
+                        wifi.get(
+                            "band"
+                        )
+                    ),
 
-                "active_discovery":
-                    NETWORK_ACTIVE_DISCOVERY,
-
-                "ssid":
-                    False,
+                "wifi_channel":
+                    bool(
+                        wifi.get(
+                            "channel"
+                        )
+                    ),
 
                 "wifi_signal":
-                    False,
+                    (
+                        wifi.get(
+                            "signal_percent"
+                        )
+                        is not None
+                        or
+                        wifi.get(
+                            "signal_dbm"
+                        )
+                        is not None
+                    ),
+
+                "wifi_interface":
+                    bool(
+                        wifi.get(
+                            "interface"
+                        )
+                    ),
+
+                "ookla_speedtest":
+                    bool(
+                        speedtest.get(
+                            "available"
+                        )
+                    ),
 
                 "router_bandwidth":
+                    bool(
+                        speedtest.get(
+                            "success"
+                        )
+                    ),
+
+                "client_isp":
                     False,
+
+                "client_public_ip":
+                    "browser",
 
                 "tr069":
                     False,
@@ -6907,26 +8741,31 @@ def build_network_snapshot():
                 "snmp":
                     False,
 
+                "active_discovery":
+                    NETWORK_ACTIVE_DISCOVERY,
+
                 "full_subnet_scan":
                     NETWORK_ACTIVE_DISCOVERY
 
             },
 
+
         "message":
             (
 
-                "Deteksi jaringan backend selesai menggunakan "
-                "routing table, neighbour/ARP table, resolusi "
-                "hostname, dan optional active discovery. "
+                "Deteksi jaringan lokal berhasil. "
 
-                "Alamat IP publik pada field wan.public_ip "
-                "adalah IP server Flask, bukan IP publik "
-                "pengunjung. "
+                "Gateway, LAN, ARP, hostname, dan Wi-Fi "
+                "dibaca dari mesin tempat Flask berjalan. "
 
-                "SSID, RSSI Wi-Fi, dan bandwidth router tidak "
-                "dipalsukan karena tidak dapat diperoleh secara "
-                "universal dari server cloud tanpa akses ke "
-                "jaringan lokal/router."
+                "Informasi ISP client tidak diambil dari "
+                "IP server backend; ISP akan ditentukan "
+                "berdasarkan IP publik client yang dikirim "
+                "oleh browser. "
+
+                "Bandwidth aktual hanya diisi dari "
+                "Ookla Speedtest CLI apabila tersedia "
+                "dan NETWORK_SPEEDTEST=true."
 
             )
 
@@ -6943,6 +8782,7 @@ def get_network_snapshot(
 
     now = time.time()
 
+
     with NETWORK_CACHE[
         "lock"
     ]:
@@ -6953,12 +8793,14 @@ def get_network_snapshot(
             )
         )
 
+
         cached_timestamp = (
             NETWORK_CACHE.get(
                 "timestamp",
                 0
             )
         )
+
 
         cache_valid = (
 
@@ -6970,11 +8812,12 @@ def get_network_snapshot(
                 now
                 -
                 cached_timestamp
-                <
-                NETWORK_CACHE_TTL
             )
+            <
+            NETWORK_CACHE_TTL
 
         )
+
 
         if (
 
@@ -6988,6 +8831,7 @@ def get_network_snapshot(
 
             return cached_data
 
+
         if NETWORK_CACHE.get(
             "building"
         ):
@@ -6996,15 +8840,18 @@ def get_network_snapshot(
 
                 return cached_data
 
+
         NETWORK_CACHE[
             "building"
         ] = True
+
 
     try:
 
         data = (
             build_network_snapshot()
         )
+
 
         with NETWORK_CACHE[
             "lock"
@@ -7022,7 +8869,9 @@ def get_network_snapshot(
                 "building"
             ] = False
 
+
         return data
+
 
     except Exception:
 
@@ -7034,6 +8883,7 @@ def get_network_snapshot(
                 "building"
             ] = False
 
+
         raise
 
 
@@ -7042,7 +8892,7 @@ def get_network_snapshot(
 # ==========================================
 
 @app.route(
-    '/network'
+    "/network"
 )
 def network_page():
 
@@ -7053,6 +8903,7 @@ def network_page():
                 'login'
             )
         )
+
 
     return render_template(
         'network.html'
@@ -7069,22 +8920,6 @@ def network_page():
 )
 def client_network_api():
 
-    """
-    Menerima data yang diketahui oleh browser client.
-
-    Dipakai oleh network.html untuk mengirim:
-    - public_ip
-    - browser
-    - os
-    - connection_type
-    - downlink
-    - rtt
-    - save_data
-
-    Endpoint ini TIDAK mencoba membaca ARP/MAC client,
-    karena browser tidak memberikan akses tersebut.
-    """
-
     if 'user' not in session:
 
         return jsonify({
@@ -7097,11 +8932,13 @@ def client_network_api():
 
         }), 401
 
+
     try:
 
         data = request.get_json(
             silent=True
         ) or {}
+
 
         public_ip = str(
             data.get(
@@ -7110,12 +8947,14 @@ def client_network_api():
             )
         ).strip()
 
+
         browser = str(
             data.get(
                 "browser",
                 ""
             )
         ).strip()
+
 
         operating_system = str(
             data.get(
@@ -7124,6 +8963,7 @@ def client_network_api():
             )
         ).strip()
 
+
         connection_type = str(
             data.get(
                 "connection_type",
@@ -7131,19 +8971,28 @@ def client_network_api():
             )
         ).strip()
 
+
         downlink = data.get(
             "downlink"
         )
+
 
         rtt = data.get(
             "rtt"
         )
 
+
         save_data = data.get(
             "save_data"
         )
 
+
+        # ----------------------------------
+        # VALIDATE PUBLIC IP
+        # ----------------------------------
+
         valid_public_ip = None
+
 
         if public_ip:
 
@@ -7153,9 +9002,14 @@ def client_network_api():
                     public_ip
                 )
 
-                if parsed.version in (
-                    4,
-                    6
+
+                if (
+                    parsed.version
+                    in
+                    (
+                        4,
+                        6
+                    )
                 ):
 
                     valid_public_ip = (
@@ -7164,15 +9018,35 @@ def client_network_api():
 
             except ValueError:
 
-                valid_public_ip = None
+                pass
+
+
+        # ----------------------------------
+        # FALLBACK HEADER
+        # ----------------------------------
+
+        if not valid_public_ip:
+
+            valid_public_ip = (
+                get_request_public_ip()
+            )
+
+
+        # ----------------------------------
+        # NUMBERS
+        # ----------------------------------
 
         try:
 
             downlink_value = (
-                float(downlink)
+
+                float(
+                    downlink
+                )
                 if downlink is not None
                 else
                 None
+
             )
 
         except (
@@ -7182,13 +9056,18 @@ def client_network_api():
 
             downlink_value = None
 
+
         try:
 
             rtt_value = (
-                float(rtt)
+
+                float(
+                    rtt
+                )
                 if rtt is not None
                 else
                 None
+
             )
 
         except (
@@ -7198,10 +9077,57 @@ def client_network_api():
 
             rtt_value = None
 
+
+        # ----------------------------------
+        # ISP LOOKUP
+        # ----------------------------------
+
+        organization = (
+            get_ip_organization(
+                valid_public_ip
+            )
+        )
+
+
         client_data = {
 
             "public_ip":
                 valid_public_ip,
+
+            "isp":
+                organization.get(
+                    "isp"
+                ),
+
+            "asn":
+                organization.get(
+                    "asn"
+                ),
+
+            "org":
+                organization.get(
+                    "org"
+                ),
+
+            "domain":
+                organization.get(
+                    "domain"
+                ),
+
+            "city":
+                organization.get(
+                    "city"
+                ),
+
+            "region":
+                organization.get(
+                    "region"
+                ),
+
+            "country":
+                organization.get(
+                    "country"
+                ),
 
             "browser":
                 browser or None,
@@ -7233,8 +9159,6 @@ def client_network_api():
 
         }
 
-        # Tidak disimpan permanen otomatis.
-        # Endpoint hanya mengembalikan data tervalidasi.
 
         return jsonify({
 
@@ -7246,18 +9170,20 @@ def client_network_api():
 
             "message":
                 (
-                    "Data jaringan client diterima. "
-                    "Informasi tersebut berasal dari browser "
-                    "dan bukan dari routing table server."
+                    "Data client diterima dan ISP "
+                    "ditentukan berdasarkan IP publik "
+                    "client."
                 )
 
         })
+
 
     except Exception as e:
 
         app.logger.exception(
             "Client network API error"
         )
+
 
         return jsonify({
 
@@ -7279,12 +9205,95 @@ def client_network_api():
 )
 def network_data_api():
 
-    """
-    GET:
-        /api/network-data
+    if 'user' not in session:
 
-    Force:
-        /api/network-data?refresh=1
+        return jsonify({
+
+            "status":
+                "error",
+
+            "message":
+                "Unauthorized"
+
+        }), 401
+
+
+    force = (
+
+        request.args.get(
+            'refresh',
+            '0'
+        )
+        .lower()
+
+        in
+
+        (
+            '1',
+            'true',
+            'yes'
+        )
+
+    )
+
+
+    try:
+
+        data = (
+            get_network_snapshot(
+                force=force
+            )
+        )
+
+
+        return jsonify(
+            data
+        )
+
+
+    except Exception as e:
+
+        app.logger.exception(
+            "Network discovery error"
+        )
+
+
+        return jsonify({
+
+            "status":
+                "error",
+
+            "auto_detected":
+                False,
+
+            "message":
+                "Gagal mendeteksi jaringan lokal: "
+                +
+                str(e)
+
+        }), 500
+
+
+# ==========================================
+# MERGE CLIENT DATA KE NETWORK DATA
+# ==========================================
+
+@app.route(
+    '/api/network-client-merge',
+    methods=['POST']
+)
+def network_client_merge():
+
+    """
+    Endpoint alternatif apabila network.html ingin
+    mengirim data client dan langsung menerima
+    snapshot lengkap.
+
+    Browser mengirim public IP + metadata.
+    Backend kemudian:
+        1. lookup ISP client
+        2. ambil snapshot LAN/Wi-Fi
+        3. gabungkan semuanya
     """
 
     if 'user' not in session:
@@ -7299,46 +9308,227 @@ def network_data_api():
 
         }), 401
 
-    force = (
-        request.args.get(
-            'refresh',
-            '0'
-        ).lower()
-        in
-        (
-            '1',
-            'true',
-            'yes'
-        )
-    )
 
     try:
 
-        data = get_network_snapshot(
-            force=force
+        client_payload = (
+            request.get_json(
+                silent=True
+            )
+            or
+            {}
         )
 
-        return jsonify(
-            data
+
+        public_ip = str(
+            client_payload.get(
+                "public_ip",
+                ""
+            )
+        ).strip()
+
+
+        browser = str(
+            client_payload.get(
+                "browser",
+                ""
+            )
+        ).strip()
+
+
+        operating_system = str(
+            client_payload.get(
+                "os",
+                ""
+            )
+        ).strip()
+
+
+        connection_type = str(
+            client_payload.get(
+                "connection_type",
+                ""
+            )
+        ).strip()
+
+
+        downlink = client_payload.get(
+            "downlink"
         )
+
+
+        rtt = client_payload.get(
+            "rtt"
+        )
+
+
+        save_data = client_payload.get(
+            "save_data"
+        )
+
+
+        if public_ip:
+
+            try:
+
+                ipaddress.ip_address(
+                    public_ip
+                )
+
+            except ValueError:
+
+                public_ip = (
+                    get_request_public_ip()
+                )
+
+        else:
+
+            public_ip = (
+                get_request_public_ip()
+            )
+
+
+        organization = (
+            get_ip_organization(
+                public_ip
+            )
+        )
+
+
+        try:
+
+            downlink = (
+                float(
+                    downlink
+                )
+                if downlink is not None
+                else
+                None
+            )
+
+        except:
+
+            downlink = None
+
+
+        try:
+
+            rtt = (
+                float(
+                    rtt
+                )
+                if rtt is not None
+                else
+                None
+            )
+
+        except:
+
+            rtt = None
+
+
+        snapshot = (
+            get_network_snapshot(
+                force=True
+            )
+        )
+
+
+        snapshot[
+            "client"
+        ] = {
+
+            "public_ip":
+                public_ip,
+
+            "isp":
+                organization.get(
+                    "isp"
+                ),
+
+            "asn":
+                organization.get(
+                    "asn"
+                ),
+
+            "org":
+                organization.get(
+                    "org"
+                ),
+
+            "domain":
+                organization.get(
+                    "domain"
+                ),
+
+            "city":
+                organization.get(
+                    "city"
+                ),
+
+            "region":
+                organization.get(
+                    "region"
+                ),
+
+            "country":
+                organization.get(
+                    "country"
+                ),
+
+            "browser":
+                browser or None,
+
+            "os":
+                operating_system or None,
+
+            "connection_type":
+                connection_type or None,
+
+            "downlink_mbps":
+                downlink,
+
+            "rtt_ms":
+                rtt,
+
+            "save_data":
+                save_data,
+
+            "source":
+                "browser_client"
+
+        }
+
+
+        snapshot[
+            "capabilities"
+        ][
+            "client_isp"
+        ] = bool(
+            organization.get(
+                "isp"
+            )
+        )
+
+
+        return jsonify(
+            snapshot
+        )
+
 
     except Exception as e:
 
         app.logger.exception(
-            "Network discovery error"
+            "Network client merge error"
         )
+
 
         return jsonify({
 
             "status":
                 "error",
 
-            "auto_detected":
-                False,
-
             "message":
-                "Gagal mendeteksi jaringan lokal: "
-                +
                 str(e)
 
         }), 500
@@ -7366,21 +9556,27 @@ def network_refresh_api():
 
         }), 401
 
+
     try:
 
-        data = get_network_snapshot(
-            force=True
+        data = (
+            get_network_snapshot(
+                force=True
+            )
         )
+
 
         return jsonify(
             data
         )
+
 
     except Exception as e:
 
         app.logger.exception(
             "Forced network discovery error"
         )
+
 
         return jsonify({
 
