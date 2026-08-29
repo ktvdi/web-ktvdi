@@ -306,41 +306,49 @@
         <div class="header">
             <div>
                 <h1 style="margin: 0; font-size: 1.8rem;">Analisis Jaringan & Sinyal</h1>
-                <p style="margin: 5px 0 0 0; color: var(--text-muted);">Memantau koneksi SSID: <strong id="ssid-name">KTVDI NETWORK</strong> (Channel <span id="channel-num">36</span>)</p>
+                <p style="margin: 5px 0 0 0; color: var(--text-muted);">
+    Jaringan saat ini: <strong id="network-name">Mendeteksi...</strong>
+    · Gateway <strong id="gateway-ip">-</strong>
+    · <span id="network-status">Mendeteksi jaringan...</span>
+</p>
             </div>
             <div>
-                <button class="btn-action" onclick="fetchRealTimeData()" style="background-color: var(--accent-blue); border-color: var(--accent-blue);"><i class="fas fa-sync-alt"></i> Pindai Ulang</button>
+                <button class="btn-action" onclick="forceNetworkScan()" style="background-color: var(--accent-blue); border-color: var(--accent-blue);"><i class="fas fa-sync-alt"></i> Pindai Ulang</button>
             </div>
         </div>
 
-        <!-- Quick Stats (Di-update via API) -->
+        <!-- Quick Stats -->
         <div class="stats-summary">
+            <div class="stat-box">
+                <i class="fas fa-router stat-icon"></i>
+                <div class="stat-info">
+                    <h4>Router / Gateway</h4>
+                    <h2 id="router-ip">Mendeteksi...</h2>
+                    <small id="router-model" style="color:var(--text-muted);">-</small>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-circle-notch stat-icon" id="router-status-icon"></i>
+                <div class="stat-info">
+                    <h4>Status Router</h4>
+                    <h2 id="router-status">Mendeteksi...</h2>
+                    <small id="router-latency" style="color:var(--text-muted);">Latency: -</small>
+                </div>
+            </div>
             <div class="stat-box">
                 <i class="fas fa-users stat-icon"></i>
                 <div class="stat-info">
-                    <h4>Klien Aktif</h4>
+                    <h4>Perangkat Aktif</h4>
                     <h2 id="client-count">...</h2>
+                    <small id="scan-info" style="color:var(--text-muted);">-</small>
                 </div>
             </div>
             <div class="stat-box">
-                <i class="fas fa-wifi stat-icon" id="signal-icon" style="color: var(--text-muted);"></i>
+                <i class="fas fa-globe stat-icon"></i>
                 <div class="stat-info">
-                    <h4>Rata-rata Sinyal</h4>
-                    <h2><span id="avg-signal">...</span> <span id="signal-status" style="font-size:0.8rem;"></span></h2>
-                </div>
-            </div>
-            <div class="stat-box">
-                <i class="fas fa-download stat-icon" style="color: #a855f7;"></i>
-                <div class="stat-info">
-                    <h4>Download</h4>
-                    <h2 id="dl-speed">...</h2>
-                </div>
-            </div>
-            <div class="stat-box">
-                <i class="fas fa-upload stat-icon" style="color: #f97316;"></i>
-                <div class="stat-info">
-                    <h4>Upload</h4>
-                    <h2 id="ul-speed">...</h2>
+                    <h4>IP Publik</h4>
+                    <h2 id="public-ip">Mendeteksi...</h2>
+                    <small id="local-ip" style="color:var(--text-muted);">Local: -</small>
                 </div>
             </div>
         </div>
@@ -407,188 +415,514 @@
 
 <script>
     let trafficChart;
-    
+    let networkRefreshTimer = null;
+    let isScanning = false;
+
     document.addEventListener('DOMContentLoaded', () => {
-        // Membersihkan background bawaan base.html
+        // Membersihkan background bawaan base.html tanpa mengubah desain NetSight Pro
         const baseCanvas = document.querySelector('main > div.bg-white');
-        if(baseCanvas) {
+        if (baseCanvas) {
             baseCanvas.classList.remove('bg-white');
-            baseCanvas.style.backgroundColor = '#0f172a'; 
+            baseCanvas.style.backgroundColor = '#0f172a';
         }
-        
+
         const innerWrapper = document.querySelector('main > div > div.max-w-7xl');
-        if(innerWrapper) {
-            innerWrapper.classList.remove('max-w-7xl', 'px-4', 'md:px-6', 'lg:px-8', 'py-8', 'md:py-12');
+        if (innerWrapper) {
+            innerWrapper.classList.remove(
+                'max-w-7xl', 'px-4', 'md:px-6', 'lg:px-8', 'py-8', 'md:py-12'
+            );
             innerWrapper.classList.add('w-full', 'p-0');
         }
 
-        // Inisialisasi Chart Kosong
         const ctx = document.getElementById('trafficChart').getContext('2d');
         trafficChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ['-30s', '-25s', '-20s', '-15s', '-10s', '-5s', 'Now'],
                 datasets: [
-                    { label: 'Download (Mbps)', data: [0, 0, 0, 0, 0, 0, 0], borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.1)', borderWidth: 2, fill: true, tension: 0.4 },
-                    { label: 'Upload (Mbps)', data: [0, 0, 0, 0, 0, 0, 0], borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.1)', borderWidth: 2, fill: true, tension: 0.4 }
+                    {
+                        label: 'Download (Mbps)',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Upload (Mbps)',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
                 ]
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#94a3b8' } } },
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#94a3b8' }
+                    }
+                },
                 scales: {
-                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' }, suggestedMin: 0, suggestedMax: 100 }
+                    x: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
                 }
             }
         });
 
-        // Ambil data pertama kali
         fetchRealTimeData();
-        
-        // Auto-refresh setiap 10 detik (opsional)
-        // setInterval(fetchRealTimeData, 10000);
+
+        // Deteksi jaringan otomatis setiap 5 detik.
+        // Backend /api/network-data yang menentukan gateway/router sebenarnya.
+        networkRefreshTimer = setInterval(fetchRealTimeData, 5000);
     });
 
     async function fetchRealTimeData() {
+        if (isScanning) return;
+        isScanning = true;
+
+        const scanButton = document.querySelector('.btn-action[onclick="fetchRealTimeData()"]');
+        if (scanButton) {
+            scanButton.disabled = true;
+            scanButton.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Memindai...';
+        }
+
         try {
-            // Memanggil endpoint backend yang sudah Anda buat di app.py
-            const response = await fetch('/api/network-data');
+            const response = await fetch('/api/network-data?_=' + Date.now(), {
+                method: 'GET',
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/json',
+                    'Cache-Control': 'no-cache'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
             const data = await response.json();
-            
-            if(data.status === "success") {
+
+            if (data.status === 'success') {
                 updateDashboardUI(data);
+                showConnectionState(true);
+            } else {
+                showConnectionState(false, data.message || 'Service jaringan tidak mengembalikan data.');
+                renderEmptyDevices(data.message || 'Jaringan belum terdeteksi.');
             }
         } catch (error) {
-            console.error("Gagal menarik data dari server:", error);
-            document.getElementById('device-table-body').innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: var(--signal-weak); padding: 30px;">
-                        <i class="fas fa-exclamation-triangle"></i> Gagal terhubung ke service API Router. Pastikan script backend aktif.
-                    </td>
-                </tr>
-            `;
+            console.error('Gagal menarik data jaringan:', error);
+            showConnectionState(false, 'Backend monitoring tidak dapat dihubungi.');
+            renderEmptyDevices('Gagal terhubung ke service monitoring jaringan.');
+        } finally {
+            isScanning = false;
+
+            if (scanButton) {
+                scanButton.disabled = false;
+                scanButton.innerHTML = '<i class="fas fa-sync-alt"></i> Pindai Ulang';
+            }
         }
     }
 
     function updateDashboardUI(data) {
-        // Update Teks Header & Stats
-        document.getElementById('ssid-name').innerText = data.ssid || 'KTVDI NETWORK';
-        document.getElementById('channel-num').innerText = data.channel || '-';
-        document.getElementById('client-count').innerText = `${data.clients_count} Perangkat`;
-        document.getElementById('avg-signal').innerText = `${data.avg_signal} dBm`;
-        document.getElementById('dl-speed').innerText = `${data.download_mbps} Mbps`;
-        document.getElementById('ul-speed').innerText = `${data.upload_mbps} Mbps`;
+        /*
+         * Backend baru dapat mengirim:
+         * {
+         *   status: "success",
+         *   router: {
+         *      gateway, local_ip, public_ip, mac, hostname,
+         *      vendor, online, latency_ms, uptime
+         *   },
+         *   ssid, channel, clients_count, avg_signal,
+         *   download_mbps, upload_mbps,
+         *   devices: [...]
+         * }
+         *
+         * Kita dukung kedua bentuk: field langsung dan data.router.
+         */
+        const router = data.router || {};
 
-        // Update Warna Icon Sinyal Rata-rata
+        const ssid = data.ssid || router.ssid || '-';
+        const channel = data.channel ?? router.channel ?? '-';
+        const devices = Array.isArray(data.devices) ? data.devices : [];
+
+        const clientsCount = Number.isFinite(Number(data.clients_count))
+            ? Number(data.clients_count)
+            : devices.length;
+
+        const avgSignal = Number.isFinite(Number(data.avg_signal))
+            ? Number(data.avg_signal)
+            : null;
+
+        const download = Number.isFinite(Number(data.download_mbps))
+            ? Number(data.download_mbps)
+            : 0;
+
+        const upload = Number.isFinite(Number(data.upload_mbps))
+            ? Number(data.upload_mbps)
+            : 0;
+
+        // Header jaringan aktif
+        document.getElementById('ssid-name').innerText =
+            ssid !== '-' ? ssid : (router.gateway ? `Gateway ${router.gateway}` : 'Jaringan Lokal');
+
+        document.getElementById('channel-num').innerText = channel;
+
+        // Statistik
+        document.getElementById('client-count').innerText =
+            `${clientsCount} Perangkat`;
+
+        document.getElementById('avg-signal').innerText =
+            avgSignal !== null ? `${avgSignal} dBm` : 'N/A';
+
+        document.getElementById('dl-speed').innerText =
+            `${formatNumber(download)} Mbps`;
+
+        document.getElementById('ul-speed').innerText =
+            `${formatNumber(upload)} Mbps`;
+
+        updateSignal(avgSignal);
+        updateTrafficChart(download, upload);
+        renderDevices(devices);
+        updateRouterInfo(router);
+    }
+
+    function updateRouterInfo(router) {
+        // Tidak mengubah layout/desain. Informasi router ditaruh sebagai tooltip
+        // pada judul agar IP/gateway tetap dapat dilihat tanpa menambah elemen UI.
+        const header = document.querySelector('#netmon-wrapper .header h1');
+        if (!header) return;
+
+        const parts = [];
+
+        if (router.gateway) parts.push(`Gateway: ${router.gateway}`);
+        if (router.local_ip) parts.push(`Local IP: ${router.local_ip}`);
+        if (router.public_ip) parts.push(`WAN: ${router.public_ip}`);
+        if (router.latency_ms !== undefined && router.latency_ms !== null) {
+            parts.push(`Ping: ${router.latency_ms} ms`);
+        }
+
+        if (parts.length) {
+            header.title = parts.join(' | ');
+        }
+    }
+
+    function updateSignal(avgSignal) {
         const sigIcon = document.getElementById('signal-icon');
         const sigStatus = document.getElementById('signal-status');
-        if(data.avg_signal < 0 && data.avg_signal > -60) {
+
+        if (avgSignal === null || avgSignal >= 0) {
+            sigIcon.style.color = 'var(--text-muted)';
+            sigStatus.innerText = '(Tidak tersedia)';
+            sigStatus.style.color = 'var(--text-muted)';
+            return;
+        }
+
+        if (avgSignal > -60) {
             sigIcon.style.color = 'var(--signal-excellent)';
             sigStatus.innerText = '(Bagus)';
             sigStatus.style.color = 'var(--signal-excellent)';
-        } else if (data.avg_signal <= -60 && data.avg_signal > -80) {
+        } else if (avgSignal > -80) {
             sigIcon.style.color = 'var(--signal-good)';
             sigStatus.innerText = '(Sedang)';
             sigStatus.style.color = 'var(--signal-good)';
-        } else if (data.avg_signal <= -80) {
+        } else {
             sigIcon.style.color = 'var(--signal-weak)';
             sigStatus.innerText = '(Lemah)';
             sigStatus.style.color = 'var(--signal-weak)';
         }
+    }
 
-        // Update Chart Bawaan
-        if(trafficChart) {
-            // Simulasi pergeseran data jika endpoint belum memancarkan data array historis
-            const dlData = trafficChart.data.datasets[0].data;
-            const ulData = trafficChart.data.datasets[1].data;
-            
-            dlData.shift(); dlData.push(data.download_mbps);
-            ulData.shift(); ulData.push(data.upload_mbps);
-            
-            trafficChart.update();
-        }
+    function updateTrafficChart(download, upload) {
+        if (!trafficChart) return;
 
-        // Render Tabel Perangkat
+        const dlData = trafficChart.data.datasets[0].data;
+        const ulData = trafficChart.data.datasets[1].data;
+
+        dlData.shift();
+        dlData.push(download);
+
+        ulData.shift();
+        ulData.push(upload);
+
+        trafficChart.update('none');
+    }
+
+    function renderDevices(devices) {
         const tbody = document.getElementById('device-table-body');
         const radar = document.getElementById('radar-container');
-        
-        // Hapus node perangkat lama di radar (sisakan circle & center)
-        const oldNodes = radar.querySelectorAll('.device-node');
-        oldNodes.forEach(node => node.remove());
 
-        if(!data.devices || data.devices.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                        <i class="fas fa-info-circle"></i> Tidak ada perangkat yang terdeteksi atau API belum terhubung dengan Router lokal.
-                    </td>
-                </tr>
-            `;
+        radar.querySelectorAll('.device-node').forEach(node => node.remove());
+
+        if (!devices.length) {
+            renderEmptyDevices('Tidak ada perangkat aktif yang terdeteksi pada jaringan saat ini.');
             return;
         }
 
         tbody.innerHTML = '';
-        
-        data.devices.forEach(device => {
-            // Kalkulasi Bar & Warna Sinyal
-            let signalClass = 'bg-weak';
-            let badgeText = 'Lemah';
-            let barWidth = 20;
-            let iconClass = 'node-weak';
-            
-            if(device.signal > -60) {
-                signalClass = 'bg-excellent'; badgeText = 'Sangat Kuat'; barWidth = 95; iconClass = 'node-excellent';
-            } else if (device.signal > -80) {
-                signalClass = 'bg-good'; badgeText = 'Sedang'; barWidth = 60; iconClass = 'node-good';
-            }
-            
-            // Tambah baris ke Tabel
+
+        devices.forEach((device, index) => {
+            const signal = normalizeSignal(device.signal);
+            const signalInfo = getSignalInfo(signal);
+
+            const hostname = escapeHtml(
+                device.hostname ||
+                device.name ||
+                device.ip ||
+                'Unknown Device'
+            );
+
+            const os = escapeHtml(
+                device.os ||
+                device.vendor ||
+                device.type ||
+                'Unknown Device'
+            );
+
+            const ip = escapeHtml(device.ip || '-');
+            const mac = escapeHtml(device.mac || '-');
+
             const tr = document.createElement('tr');
+
             tr.innerHTML = `
                 <td>
-                    <strong>${device.hostname || 'Unknown'}</strong><br>
-                    <span style="color: var(--text-muted); font-size: 0.8rem;">${device.os || 'Unknown Device'}</span>
+                    <strong>${hostname}</strong><br>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">${os}</span>
                 </td>
                 <td>
-                    ${device.ip}<br>
-                    <span style="color: var(--text-muted); font-size: 0.8rem;">${device.mac}</span>
+                    ${ip}<br>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">${mac}</span>
                 </td>
                 <td>
-                    <div style="font-weight: bold;">${device.signal} dBm</div>
+                    <div style="font-weight: bold;">
+                        ${signal !== null ? signal + ' dBm' : 'N/A'}
+                    </div>
                     <div class="signal-bar-container">
-                        <div class="signal-bar ${signalClass}" style="width: ${barWidth}%;"></div>
+                        <div class="signal-bar ${signalInfo.signalClass}"
+                             style="width: ${signalInfo.barWidth}%;"></div>
                     </div>
                 </td>
-                <td><span class="badge ${signalClass}">${badgeText}</span></td>
-                <td><button class="btn-action">Putus</button></td>
+                <td>
+                    <span class="badge ${signalInfo.signalClass}">
+                        ${signalInfo.badgeText}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn-action"
+                            onclick="showDeviceInfo(${JSON.stringify({
+                                hostname: device.hostname || device.name || 'Unknown Device',
+                                ip: device.ip || '-',
+                                mac: device.mac || '-',
+                                signal: signal,
+                                os: device.os || device.vendor || device.type || '-'
+                            }).replace(/"/g, '&quot;')})">
+                        Detail
+                    </button>
+                </td>
             `;
+
             tbody.appendChild(tr);
 
-            // Tambah Titik ke Radar Topologi (Posisi Acak berdasarkan kekuatan sinyal)
-            // Sinyal kuat (-40) = tengah (radius kecil). Sinyal lemah (-90) = pinggir (radius besar)
-            const signalStrength = Math.abs(device.signal); // 40 to 90
-            const radiusPercent = Math.max(10, Math.min(45, (signalStrength - 30) * 0.8)); // Mapping kasar ke persentase CSS
-            
-            const randomAngle = Math.random() * 2 * Math.PI;
-            const topPos = 50 + radiusPercent * Math.sin(randomAngle);
-            const leftPos = 50 + radiusPercent * Math.cos(randomAngle);
-
-            // Tentukan icon berdasarkan OS/Hostname secara sederhana
-            let deviceIcon = 'fa-mobile-alt';
-            if(device.os && device.os.toLowerCase().includes('windows')) deviceIcon = 'fa-desktop';
-            else if(device.os && device.os.toLowerCase().includes('mac')) deviceIcon = 'fa-laptop';
-            
-            const nodeDiv = document.createElement('div');
-            nodeDiv.className = 'device-node';
-            nodeDiv.style.top = `${topPos}%`;
-            nodeDiv.style.left = `${leftPos}%`;
-            nodeDiv.innerHTML = `
-                <div class="node-icon ${iconClass}"><i class="fas ${deviceIcon}"></i></div>
-                <div class="node-label">${device.hostname} (${device.signal}dBm)</div>
-            `;
-            radar.appendChild(nodeDiv);
+            createRadarNode(radar, device, signal, signalInfo, index);
         });
+    }
+
+    function createRadarNode(radar, device, signal, signalInfo, index) {
+        /*
+         * Posisi stabil berdasarkan index + IP/MAC, bukan Math.random(),
+         * sehingga node tidak "loncat-loncat" setiap 5 detik.
+         */
+        const angle = getStableAngle(device, index);
+        const radius = signal === null
+            ? 35
+            : Math.max(10, Math.min(44, (Math.abs(signal) - 30) * 0.8));
+
+        const topPos = 50 + radius * Math.sin(angle);
+        const leftPos = 50 + radius * Math.cos(angle);
+
+        let deviceIcon = 'fa-mobile-alt';
+        const deviceText = (
+            `${device.os || ''} ${device.vendor || ''} ${device.type || ''} ${device.hostname || ''}`
+        ).toLowerCase();
+
+        if (
+            deviceText.includes('windows') ||
+            deviceText.includes('desktop') ||
+            deviceText.includes('pc')
+        ) {
+            deviceIcon = 'fa-desktop';
+        } else if (
+            deviceText.includes('mac') ||
+            deviceText.includes('laptop')
+        ) {
+            deviceIcon = 'fa-laptop';
+        } else if (
+            deviceText.includes('router') ||
+            deviceText.includes('gateway')
+        ) {
+            deviceIcon = 'fa-network-wired';
+        } else if (
+            deviceText.includes('tv') ||
+            deviceText.includes('television')
+        ) {
+            deviceIcon = 'fa-tv';
+        }
+
+        const nodeDiv = document.createElement('div');
+        nodeDiv.className = 'device-node';
+        nodeDiv.style.top = `${Math.max(5, Math.min(90, topPos))}%`;
+        nodeDiv.style.left = `${Math.max(5, Math.min(90, leftPos))}%`;
+
+        const label = escapeHtml(
+            `${device.hostname || device.ip || 'Device'}${signal !== null ? ` (${signal}dBm)` : ''}`
+        );
+
+        nodeDiv.innerHTML = `
+            <div class="node-icon ${signalInfo.iconClass}">
+                <i class="fas ${deviceIcon}"></i>
+            </div>
+            <div class="node-label">${label}</div>
+        `;
+
+        nodeDiv.title =
+            `${device.ip || '-'} | ${device.mac || '-'}${signal !== null ? ` | ${signal} dBm` : ''}`;
+
+        nodeDiv.addEventListener('click', () => showDeviceInfo({
+            hostname: device.hostname || device.name || 'Unknown Device',
+            ip: device.ip || '-',
+            mac: device.mac || '-',
+            signal: signal,
+            os: device.os || device.vendor || device.type || '-'
+        }));
+
+        radar.appendChild(nodeDiv);
+    }
+
+    function getStableAngle(device, index) {
+        const key = `${device.mac || ''}-${device.ip || ''}-${index}`;
+        let hash = 0;
+
+        for (let i = 0; i < key.length; i++) {
+            hash = ((hash << 5) - hash) + key.charCodeAt(i);
+            hash |= 0;
+        }
+
+        return Math.abs(hash % 360) * Math.PI / 180;
+    }
+
+    function normalizeSignal(value) {
+        if (value === undefined || value === null || value === '') {
+            return null;
+        }
+
+        const n = Number(value);
+        if (!Number.isFinite(n)) return null;
+
+        // RSSI normal umumnya bernilai negatif.
+        return n > 0 ? -n : n;
+    }
+
+    function getSignalInfo(signal) {
+        if (signal === null) {
+            return {
+                signalClass: 'bg-offline',
+                iconClass: 'node-weak',
+                badgeText: 'N/A',
+                barWidth: 0
+            };
+        }
+
+        if (signal > -60) {
+            return {
+                signalClass: 'bg-excellent',
+                iconClass: 'node-excellent',
+                badgeText: 'Sangat Kuat',
+                barWidth: 95
+            };
+        }
+
+        if (signal > -80) {
+            return {
+                signalClass: 'bg-good',
+                iconClass: 'node-good',
+                badgeText: 'Sedang',
+                barWidth: 60
+            };
+        }
+
+        return {
+            signalClass: 'bg-weak',
+            iconClass: 'node-weak',
+            badgeText: 'Lemah',
+            barWidth: 20
+        };
+    }
+
+    function renderEmptyDevices(message) {
+        document.getElementById('device-table-body').innerHTML = `
+            <tr>
+                <td colspan="5"
+                    style="text-align: center; color: var(--text-muted); padding: 30px;">
+                    <i class="fas fa-info-circle"></i> ${escapeHtml(message)}
+                </td>
+            </tr>
+        `;
+
+        const radar = document.getElementById('radar-container');
+        radar.querySelectorAll('.device-node').forEach(node => node.remove());
+    }
+
+    function showConnectionState(online, message = '') {
+        const header = document.querySelector('#netmon-wrapper .header h1');
+        if (!header) return;
+
+        header.dataset.networkStatus = online ? 'online' : 'offline';
+
+        if (!online && message) {
+            header.title = message;
+        }
+    }
+
+    function showDeviceInfo(device) {
+        const details = [
+            `Hostname : ${device.hostname || '-'}`,
+            `IP       : ${device.ip || '-'}`,
+            `MAC      : ${device.mac || '-'}`,
+            `Signal   : ${device.signal !== null && device.signal !== undefined ? device.signal + ' dBm' : 'N/A'}`,
+            `Device   : ${device.os || '-'}`
+        ].join('\n');
+
+        // Tidak mengubah desain; detail ditampilkan dengan dialog bawaan browser.
+        window.alert(details);
+    }
+
+    function formatNumber(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n)) return '0';
+        return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 </script>
 {% endblock %}
