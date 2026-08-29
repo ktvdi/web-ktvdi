@@ -3014,7 +3014,7 @@ def api_detect_violation():
 def about():
 
     return render_template(
-        'about.html'
+        "about.html"
     )
 
 
@@ -3293,22 +3293,43 @@ Admin KTVDI
 # - Status koneksi gateway
 # - Latency gateway
 #
+# TAMBAHAN:
+#
+# - Active discovery opsional
+# - Discovery perangkat dengan ping paralel
+# - Reverse DNS secara paralel
+# - PowerShell Get-NetNeighbor untuk Windows
+# - PowerShell Get-NetIPAddress untuk prefix Windows
+#
 # TIDAK:
 #
 # - Membutuhkan IP router statis
 # - Membutuhkan TR-069
 # - Membutuhkan login router
 # - Mengakses ACS operator
-# - Melakukan scan 254 IP setiap request
 #
-# CATATAN:
+# CATATAN PENTING:
 #
 # Jika Flask dijalankan di laptop Windows yang tersambung
-# ke Wi-Fi rumah, maka data yang tampil adalah jaringan
-# Wi-Fi laptop tersebut.
+# ke Wi-Fi rumah, maka jaringan yang terdeteksi adalah
+# jaringan laptop tersebut.
 #
-# Jika Flask dijalankan di Vercel/cloud, data yang terlihat
-# adalah jaringan server cloud, BUKAN Wi-Fi pengguna.
+# Jika Flask dijalankan di Vercel/cloud, maka jaringan yang
+# terlihat adalah jaringan server cloud, BUKAN jaringan
+# Wi-Fi pengguna yang membuka website.
+#
+# Active discovery diatur oleh ENV:
+#
+# NETWORK_ACTIVE_DISCOVERY=false
+#
+# Untuk mengaktifkan:
+#
+# NETWORK_ACTIVE_DISCOVERY=true
+#
+# Discovery aktif hanya dilakukan untuk subnet IPv4
+# privat dengan prefix >= /16 dan <= /24.
+#
+# Default false untuk menjaga response tetap ringan.
 # ==========================================
 
 
@@ -3321,7 +3342,10 @@ NETWORK_CACHE = {
         0,
 
     "lock":
-        __import__('threading').Lock()
+        __import__('threading').RLock(),
+
+    "building":
+        False
 }
 
 
@@ -3329,6 +3353,49 @@ NETWORK_CACHE_TTL = int(
     os.environ.get(
         "NETWORK_CACHE_TTL",
         "5"
+    )
+)
+
+
+NETWORK_ACTIVE_DISCOVERY = (
+    os.environ.get(
+        "NETWORK_ACTIVE_DISCOVERY",
+        "false"
+    ).strip().lower()
+    in
+    (
+        "1",
+        "true",
+        "yes",
+        "on"
+    )
+)
+
+
+NETWORK_DISCOVERY_WORKERS = max(
+    4,
+    min(
+        64,
+        int(
+            os.environ.get(
+                "NETWORK_DISCOVERY_WORKERS",
+                "32"
+            )
+        )
+    )
+)
+
+
+NETWORK_DISCOVERY_TIMEOUT = max(
+    0.15,
+    min(
+        1.5,
+        float(
+            os.environ.get(
+                "NETWORK_DISCOVERY_TIMEOUT",
+                "0.35"
+            )
+        )
     )
 )
 
@@ -3366,7 +3433,16 @@ def _run_command(
 
             timeout=timeout,
 
-            check=False
+            check=False,
+
+            creationflags=(
+                subprocess.CREATE_NO_WINDOW
+                if platform.system().lower()
+                ==
+                "windows"
+                else
+                0
+            )
         )
 
         return result.stdout.strip()
@@ -3382,18 +3458,42 @@ def _run_command(
 
 
 # ==========================================
+# VALIDASI IP
+# ==========================================
+
+def _is_private_ipv4(ip):
+
+    try:
+
+        parsed = ipaddress.ip_address(
+            ip
+        )
+
+        return (
+            parsed.version == 4
+            and
+            parsed.is_private
+            and
+            not parsed.is_loopback
+        )
+
+    except ValueError:
+
+        return False
+
+
+# ==========================================
 # DETEKSI IP LOKAL
 # ==========================================
 
 def get_local_ip():
 
     """
-    Mendapatkan IP LAN dari interface yang sedang digunakan.
+    Mendapatkan IP LAN dari interface yang sedang aktif.
 
-    UDP socket hanya digunakan untuk menentukan
-    interface/IP.
-
-    Tidak mengirim data aplikasi ke 8.8.8.8.
+    Mekanisme utama menggunakan socket UDP untuk meminta
+    OS menentukan route/interface yang akan digunakan.
+    Tidak mengirim payload aplikasi.
     """
 
     sock = None
@@ -3405,11 +3505,7 @@ def get_local_ip():
             socket.SOCK_DGRAM
         )
 
-        sock.settimeout(1)
-
-        # Tidak melakukan koneksi TCP.
-        # Sistem hanya menentukan route/interface
-        # yang digunakan.
+        sock.settimeout(0.8)
 
         sock.connect(
             ("8.8.8.8", 80)
@@ -3421,6 +3517,10 @@ def get_local_ip():
             local_ip
             and
             local_ip != "0.0.0.0"
+            and
+            _is_private_ipv4(
+                local_ip
+            )
         ):
 
             return local_ip
@@ -3444,7 +3544,44 @@ def get_local_ip():
 
                 pass
 
-    # Fallback
+    # --------------------------------------
+    # WINDOWS FALLBACK
+    # --------------------------------------
+
+    system = platform.system().lower()
+
+    if system == "windows":
+
+        output = _run_command(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-NetIPAddress "
+                "-AddressFamily IPv4 "
+                "| Where-Object {"
+                "$_.IPAddress -and "
+                "$_.IPAddress -notlike '127.*' -and "
+                "$_.IPAddress -notlike '169.254.*'"
+                "} "
+                "| Select-Object -ExpandProperty IPAddress"
+            ],
+            timeout=3
+        )
+
+        for line in output.splitlines():
+
+            candidate = line.strip()
+
+            if _is_private_ipv4(
+                candidate
+            ):
+
+                return candidate
+
+    # --------------------------------------
+    # GENERIC FALLBACK
+    # --------------------------------------
 
     try:
 
@@ -3456,23 +3593,11 @@ def get_local_ip():
 
         for ip in addresses:
 
-            try:
+            if _is_private_ipv4(
+                ip
+            ):
 
-                parsed = ipaddress.ip_address(
-                    ip
-                )
-
-                if (
-                    parsed.version == 4
-                    and
-                    not parsed.is_loopback
-                ):
-
-                    return ip
-
-            except ValueError:
-
-                continue
+                return ip
 
     except Exception:
 
@@ -3511,6 +3636,8 @@ def detect_default_gateway():
             timeout=3
         )
 
+        candidates = []
+
         for line in output.splitlines():
 
             line = line.strip()
@@ -3528,47 +3655,71 @@ def detect_default_gateway():
 
                     try:
 
-                        ipaddress.ip_address(
-                            gateway
+                        parsed_gateway = (
+                            ipaddress.ip_address(
+                                gateway
+                            )
                         )
 
-                        if gateway != "0.0.0.0":
+                        if (
+                            parsed_gateway.version == 4
+                            and
+                            gateway != "0.0.0.0"
+                        ):
 
-                            return gateway
+                            candidates.append(
+                                gateway
+                            )
 
                     except ValueError:
 
                         continue
 
-        # Fallback PowerShell
+        if candidates:
+
+            return candidates[0]
+
+        # ----------------------------------
+        # POWERSHELL
+        # ----------------------------------
 
         ps_output = _run_command(
             [
                 "powershell",
                 "-NoProfile",
                 "-Command",
-                "(Get-NetRoute -AddressFamily IPv4 "
+                "(Get-NetRoute "
+                "-AddressFamily IPv4 "
                 "-DestinationPrefix '0.0.0.0/0' "
-                "| Sort-Object RouteMetric "
+                "| Where-Object {$_.NextHop -ne '0.0.0.0'} "
+                "| Sort-Object RouteMetric,ifMetric "
                 "| Select-Object -First 1 "
                 "-ExpandProperty NextHop)"
             ],
             timeout=4
         )
 
-        try:
+        for line in ps_output.splitlines():
 
-            ipaddress.ip_address(
-                ps_output
-            )
+            candidate = line.strip()
 
-            if ps_output != "0.0.0.0":
+            try:
 
-                return ps_output
+                parsed = ipaddress.ip_address(
+                    candidate
+                )
 
-        except ValueError:
+                if (
+                    parsed.version == 4
+                    and
+                    candidate != "0.0.0.0"
+                ):
 
-            pass
+                    return candidate
+
+            except ValueError:
+
+                continue
 
     # --------------------------------------
     # LINUX
@@ -3619,11 +3770,15 @@ def detect_default_gateway():
 
                     gateway = parts[1]
 
-                    ipaddress.ip_address(
+                    parsed = ipaddress.ip_address(
                         gateway
                     )
 
-                    if gateway != "0.0.0.0":
+                    if (
+                        parsed.version == 4
+                        and
+                        gateway != "0.0.0.0"
+                    ):
 
                         return gateway
 
@@ -3670,11 +3825,8 @@ def get_interface_network(
 ):
 
     """
-    Menentukan network/prefix berdasarkan
-    routing table.
-
-    Tidak langsung mengasumsikan /24 jika OS
-    memberikan informasi subnet yang lebih akurat.
+    Menentukan network/prefix menggunakan informasi
+    interface OS jika tersedia.
     """
 
     if not local_ip:
@@ -3683,10 +3835,78 @@ def get_interface_network(
     system = platform.system().lower()
 
     # --------------------------------------
-    # WINDOWS
+    # WINDOWS - POWERSHELL
     # --------------------------------------
 
     if system == "windows":
+
+        ps_command = (
+            "Get-NetIPAddress "
+            "-AddressFamily IPv4 "
+            f"-IPAddress '{local_ip}' "
+            "| Select-Object IPAddress,PrefixLength "
+            "| ConvertTo-Json -Compress"
+        )
+
+        ps_output = _run_command(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                ps_command
+            ],
+            timeout=4
+        )
+
+        if ps_output:
+
+            try:
+
+                data = json.loads(
+                    ps_output
+                )
+
+                if isinstance(
+                    data,
+                    list
+                ):
+
+                    data = (
+                        data[0]
+                        if data
+                        else
+                        None
+                    )
+
+                if isinstance(
+                    data,
+                    dict
+                ):
+
+                    prefix = data.get(
+                        "PrefixLength"
+                    )
+
+                    if prefix is not None:
+
+                        prefix = int(
+                            prefix
+                        )
+
+                        if 0 <= prefix <= 32:
+
+                            return ipaddress.ip_network(
+                                f"{local_ip}/{prefix}",
+                                strict=False
+                            )
+
+            except Exception:
+
+                pass
+
+        # ----------------------------------
+        # WINDOWS IPConfig FALLBACK
+        # ----------------------------------
 
         output = _run_command(
             [
@@ -3695,62 +3915,66 @@ def get_interface_network(
             timeout=4
         )
 
-        current_adapter = False
+        lines = output.splitlines()
 
-        subnet_mask = None
+        found_ip = False
 
-        for line in output.splitlines():
+        for index, line in enumerate(lines):
 
             stripped = line.strip()
 
-            if "IPv4 Address" in stripped:
-
-                match = re.search(
-                    r"(\d+\.\d+\.\d+\.\d+)",
-                    stripped
-                )
-
-                if (
-                    match
-                    and
-                    match.group(1) == local_ip
-                ):
-
-                    current_adapter = True
-
-                    continue
+            ip_match = re.search(
+                r"IPv4.*?(\d+\.\d+\.\d+\.\d+)",
+                stripped,
+                re.I
+            )
 
             if (
-                current_adapter
+                ip_match
                 and
-                "Subnet Mask" in stripped
+                ip_match.group(1)
+                ==
+                local_ip
             ):
 
-                match = re.search(
+                found_ip = True
+
+                continue
+
+            if found_ip:
+
+                mask_match = re.search(
+                    r"(?:Subnet Mask|Maska Subnet)"
+                    r".*?"
                     r"(\d+\.\d+\.\d+\.\d+)",
-                    stripped
+                    stripped,
+                    re.I
                 )
 
-                if match:
+                if mask_match:
 
-                    subnet_mask = match.group(1)
+                    subnet_mask = (
+                        mask_match.group(1)
+                    )
+
+                    try:
+
+                        return ipaddress.ip_network(
+                            f"{local_ip}/{subnet_mask}",
+                            strict=False
+                        )
+
+                    except ValueError:
+
+                        pass
+
+                if (
+                    "IPv4" in stripped
+                    and
+                    local_ip not in stripped
+                ):
 
                     break
-
-        if subnet_mask:
-
-            try:
-
-                network = ipaddress.ip_network(
-                    f"{local_ip}/{subnet_mask}",
-                    strict=False
-                )
-
-                return network
-
-            except ValueError:
-
-                pass
 
     # --------------------------------------
     # LINUX
@@ -3799,6 +4023,73 @@ def get_interface_network(
                     continue
 
     # --------------------------------------
+    # MACOS
+    # --------------------------------------
+
+    elif system == "darwin":
+
+        output = _run_command(
+            [
+                "ifconfig"
+            ],
+            timeout=3
+        )
+
+        current_network = None
+
+        for line in output.splitlines():
+
+            match_ip = re.search(
+                r"inet\s+"
+                r"(\d+\.\d+\.\d+\.\d+)"
+                r"\s+netmask\s+"
+                r"(0x[0-9a-fA-F]+|\d+\.\d+\.\d+\.\d+)",
+                line
+            )
+
+            if match_ip:
+
+                candidate_ip = (
+                    match_ip.group(1)
+                )
+
+                if candidate_ip == local_ip:
+
+                    raw_mask = (
+                        match_ip.group(2)
+                    )
+
+                    try:
+
+                        if raw_mask.startswith(
+                            "0x"
+                        ):
+
+                            mask_int = int(
+                                raw_mask,
+                                16
+                            )
+
+                            prefix = (
+                                bin(mask_int)
+                                .count("1")
+                            )
+
+                            return ipaddress.ip_network(
+                                f"{local_ip}/{prefix}",
+                                strict=False
+                            )
+
+                        return ipaddress.ip_network(
+                            f"{local_ip}/{raw_mask}",
+                            strict=False
+                        )
+
+                    except ValueError:
+
+                        pass
+
+    # --------------------------------------
     # FALLBACK
     # --------------------------------------
 
@@ -3821,16 +4112,9 @@ def get_interface_network(
 def get_arp_neighbors():
 
     """
-    Mengambil perangkat yang diketahui oleh OS.
+    Mengambil perangkat yang diketahui OS.
 
-    Ini jauh lebih ringan dibanding ping seluruh subnet.
-
-    Hasil dapat berisi perangkat yang:
-    - aktif
-    - baru berkomunikasi
-    - tersimpan di ARP cache
-
-    Tidak menjamin semua perangkat Wi-Fi terlihat.
+    Tidak menjamin semua client Wi-Fi terlihat.
     """
 
     neighbors = {}
@@ -3838,7 +4122,7 @@ def get_arp_neighbors():
     system = platform.system().lower()
 
     # ======================================
-    # WINDOWS
+    # WINDOWS - ARP
     # ======================================
 
     if system == "windows":
@@ -3856,6 +4140,9 @@ def get_arp_neighbors():
         for line in output.splitlines():
 
             line = line.strip()
+
+            if not line:
+                continue
 
             interface_match = re.search(
                 r"Interface:\s+"
@@ -3907,10 +4194,9 @@ def get_arp_neighbors():
                         ip_addr,
 
                     "mac":
-                        mac_addr.replace(
-                            "-",
-                            ":"
-                        ).upper(),
+                        normalize_mac(
+                            mac_addr
+                        ),
 
                     "state":
                         state.upper(),
@@ -3920,78 +4206,184 @@ def get_arp_neighbors():
                 }
 
         # ==================================
-        # PowerShell tambahan
+        # WINDOWS POWERSHELL
         # ==================================
+
+        ps_command = (
+            "Get-NetNeighbor "
+            "-AddressFamily IPv4 "
+            "| Where-Object {"
+            "$_.IPAddress -and "
+            "$_.LinkLayerAddress"
+            "} "
+            "| Select-Object "
+            "IPAddress,LinkLayerAddress,State "
+            "| ConvertTo-Json -Compress"
+        )
 
         ps_output = _run_command(
             [
                 "powershell",
                 "-NoProfile",
                 "-Command",
-                "Get-NetNeighbor "
-                "-AddressFamily IPv4 "
-                "| Where-Object "
-                "{$_.IPAddress -and $_.LinkLayerAddress} "
-                "| Select-Object "
-                "IPAddress,LinkLayerAddress,State "
-                "| ConvertTo-Csv "
-                "-NoTypeInformation"
+                ps_command
             ],
             timeout=5
         )
 
-        lines = ps_output.splitlines()
-
-        for line in lines[1:]:
+        if ps_output:
 
             try:
 
-                parts = [
-
-                    x.strip().strip('"')
-
-                    for x in line.split(",")
-                ]
-
-                if len(parts) < 3:
-                    continue
-
-                ip_addr = parts[0]
-
-                mac_addr = parts[1]
-
-                state = parts[2]
-
-                ipaddress.ip_address(
-                    ip_addr
+                data = json.loads(
+                    ps_output
                 )
 
-                if re.match(
-                    r"^[0-9A-Fa-f:-]{17}$",
-                    mac_addr
+                if isinstance(
+                    data,
+                    dict
                 ):
 
-                    neighbors[ip_addr] = {
+                    data = [data]
 
-                        "ip":
-                            ip_addr,
+                if isinstance(
+                    data,
+                    list
+                ):
 
-                        "mac":
-                            mac_addr.replace(
-                                "-",
-                                ":"
-                            ).upper(),
+                    for item in data:
 
-                        "state":
-                            state.upper(),
+                        if not isinstance(
+                            item,
+                            dict
+                        ):
 
-                        "interface":
-                            None
-                    }
+                            continue
+
+                        ip_addr = str(
+                            item.get(
+                                "IPAddress",
+                                ""
+                            )
+                        ).strip()
+
+                        mac_addr = str(
+                            item.get(
+                                "LinkLayerAddress",
+                                ""
+                            )
+                        ).strip()
+
+                        state = str(
+                            item.get(
+                                "State",
+                                "UNKNOWN"
+                            )
+                        ).upper()
+
+                        try:
+
+                            ipaddress.ip_address(
+                                ip_addr
+                            )
+
+                        except ValueError:
+
+                            continue
+
+                        if not re.match(
+                            r"^[0-9A-Fa-f:-]{17}$",
+                            mac_addr
+                        ):
+
+                            continue
+
+                        neighbors[ip_addr] = {
+
+                            "ip":
+                                ip_addr,
+
+                            "mac":
+                                normalize_mac(
+                                    mac_addr
+                                ),
+
+                            "state":
+                                state,
+
+                            "interface":
+                                None
+                        }
 
             except Exception:
 
-                continue
+                # Fallback CSV jika JSON gagal
+                ps_csv = _run_command(
+                    [
+                        "powershell",
+                        "-NoProfile",
+                        "-Command",
+                        "Get-NetNeighbor "
+                        "-AddressFamily IPv4 "
+                        "| Where-Object "
+                        "{$_.IPAddress -and $_.LinkLayerAddress} "
+                        "| Select-Object "
+                        "IPAddress,LinkLayerAddress,State "
+                        "| ConvertTo-Csv "
+                        "-NoTypeInformation"
+                    ],
+                    timeout=5
+                )
+
+                lines = ps_csv.splitlines()
+
+                for line in lines[1:]:
+
+                    try:
+
+                        parts = [
+                            x.strip().strip('"')
+                            for x in line.split(",")
+                        ]
+
+                        if len(parts) < 3:
+                            continue
+
+                        ip_addr = parts[0]
+
+                        mac_addr = parts[1]
+
+                        state = parts[2]
+
+                        ipaddress.ip_address(
+                            ip_addr
+                        )
+
+                        if re.match(
+                            r"^[0-9A-Fa-f:-]{17}$",
+                            mac_addr
+                        ):
+
+                            neighbors[ip_addr] = {
+
+                                "ip":
+                                    ip_addr,
+
+                                "mac":
+                                    normalize_mac(
+                                        mac_addr
+                                    ),
+
+                                "state":
+                                    state.upper(),
+
+                                "interface":
+                                    None
+                            }
+
+                    except Exception:
+
+                        continue
 
     # ======================================
     # LINUX
@@ -4015,11 +4407,14 @@ def get_arp_neighbors():
 
                 r"(\d+\.\d+\.\d+\.\d+)"
                 r".*?"
-                r"lladdr\s+"
-                r"([0-9a-fA-F:]{17})"
-                r"(?:\s+(\w+))?",
+                r"(?:lladdr\s+"
+                r"([0-9a-fA-F:]{17}))?"
+                r".*?"
+                r"\b"
+                r"(REACHABLE|STALE|DELAY|PROBE|FAILED|PERMANENT|NOARP|INCOMPLETE)\b",
 
                 line,
+
                 re.I
             )
 
@@ -4027,11 +4422,17 @@ def get_arp_neighbors():
 
                 ip_addr = match.group(1)
 
-                mac_addr = match.group(2)
+                mac_addr = (
+                    match.group(2)
+                    if match.group(2)
+                    else
+                    None
+                )
 
                 state = (
                     match.group(3)
-                    or
+                    if match.group(3)
+                    else
                     "UNKNOWN"
                 )
 
@@ -4041,7 +4442,9 @@ def get_arp_neighbors():
                         ip_addr,
 
                     "mac":
-                        mac_addr.upper(),
+                        normalize_mac(
+                            mac_addr
+                        ),
 
                     "state":
                         state.upper(),
@@ -4070,9 +4473,11 @@ def get_arp_neighbors():
 
                 r"\((\d+\.\d+\.\d+\.\d+)\)"
                 r"\s+at\s+"
-                r"([0-9a-fA-F:]{17})",
+                r"([0-9a-fA-F:]{17})"
+                r"(?:\s+on\s+(\S+))?",
 
                 line,
+
                 re.I
             )
 
@@ -4082,19 +4487,28 @@ def get_arp_neighbors():
 
                 mac_addr = match.group(2)
 
+                interface_name = (
+                    match.group(3)
+                    if match.group(3)
+                    else
+                    None
+                )
+
                 neighbors[ip_addr] = {
 
                     "ip":
                         ip_addr,
 
                     "mac":
-                        mac_addr.upper(),
+                        normalize_mac(
+                            mac_addr
+                        ),
 
                     "state":
                         "KNOWN",
 
                     "interface":
-                        None
+                        interface_name
                 }
 
     return neighbors
@@ -4104,13 +4518,16 @@ def get_arp_neighbors():
 # HOSTNAME
 # ==========================================
 
-def resolve_hostname(ip):
+def resolve_hostname(
+    ip,
+    timeout=0.5
+):
 
     """
-    Reverse DNS / hostname.
-
-    Dibatasi timeout supaya dashboard tidak macet.
+    Reverse DNS dengan timeout pendek.
     """
+
+    old_timeout = None
 
     try:
 
@@ -4119,15 +4536,18 @@ def resolve_hostname(ip):
         )
 
         socket.setdefaulttimeout(
-            0.4
+            timeout
         )
 
-        hostname = socket.gethostbyaddr(
+        result = socket.gethostbyaddr(
             ip
-        )[0]
+        )
 
-        socket.setdefaulttimeout(
-            old_timeout
+        hostname = (
+            result[0]
+            if result
+            else
+            None
         )
 
         return hostname
@@ -4139,6 +4559,10 @@ def resolve_hostname(ip):
         OSError
     ):
 
+        return None
+
+    finally:
+
         try:
 
             socket.setdefaulttimeout(
@@ -4149,7 +4573,84 @@ def resolve_hostname(ip):
 
             pass
 
-        return None
+
+def resolve_hostnames_parallel(
+    devices,
+    max_workers=16
+):
+
+    """
+    Resolusi hostname dilakukan paralel.
+    Tidak membiarkan satu host lambat menahan semua host.
+    """
+
+    targets = [
+
+        device
+
+        for device in devices
+
+        if (
+            device.get("ip")
+            and
+            not device.get("hostname")
+            and
+            device.get("role")
+            !=
+            "local_device"
+        )
+    ]
+
+    if not targets:
+
+        return devices
+
+    workers = max(
+        1,
+        min(
+            max_workers,
+            len(targets)
+        )
+    )
+
+    with ThreadPoolExecutor(
+        max_workers=workers
+    ) as executor:
+
+        futures = {
+
+            executor.submit(
+                resolve_hostname,
+                device["ip"]
+            ):
+                device
+
+            for device in targets
+        }
+
+        for future in as_completed(
+            futures
+        ):
+
+            device = futures[
+                future
+            ]
+
+            try:
+
+                hostname = future.result()
+
+                if hostname:
+
+                    device[
+                        "hostname"
+                    ] = hostname
+
+            except Exception:
+
+                pass
+
+    return devices
 
 
 # ==========================================
@@ -4163,9 +4664,6 @@ def ping_host(
 
     """
     Ping satu host.
-
-    Hanya digunakan untuk gateway atau host tertentu,
-    bukan melakukan ping seluruh subnet.
     """
 
     if not ip:
@@ -4185,8 +4683,11 @@ def ping_host(
 
             "-w",
             str(
-                int(
-                    timeout * 1000
+                max(
+                    1,
+                    int(
+                        timeout * 1000
+                    )
                 )
             ),
 
@@ -4217,7 +4718,7 @@ def ping_host(
 
     output = _run_command(
         command,
-        timeout=timeout + 1.5
+        timeout=timeout + 1.2
     )
 
     elapsed = round(
@@ -4248,6 +4749,196 @@ def ping_host(
             return True, elapsed
 
     return False, None
+
+
+# ==========================================
+# ACTIVE HOST PROBE
+# ==========================================
+
+def probe_host(
+    ip,
+    timeout=0.35
+):
+
+    """
+    Mencoba mengetahui host aktif.
+
+    Ping dilakukan satu host per task,
+    kemudian dijalankan paralel.
+    """
+
+    online, latency = ping_host(
+        ip,
+        timeout=timeout
+    )
+
+    if not online:
+
+        return {
+
+            "ip":
+                ip,
+
+            "online":
+                False,
+
+            "latency_ms":
+                None
+        }
+
+    return {
+
+        "ip":
+            ip,
+
+        "online":
+            True,
+
+        "latency_ms":
+            latency
+    }
+
+
+def active_network_discovery(
+    network,
+    known_neighbors=None,
+    local_ip=None,
+    gateway=None
+):
+
+    """
+    Active discovery opsional.
+
+    Aman untuk dashboard karena:
+    - hanya subnet privat;
+    - maksimal /24;
+    - tidak menjalankan lebih dari worker yang dikonfigurasi;
+    - host yang sudah diketahui tidak diprobe ulang;
+    - broadcast/network address dilewati.
+    """
+
+    if not NETWORK_ACTIVE_DISCOVERY:
+
+        return {}
+
+    if not network:
+
+        return {}
+
+    if not isinstance(
+        network,
+        ipaddress.IPv4Network
+    ):
+
+        return {}
+
+    if (
+        network.prefixlen < 16
+        or
+        network.prefixlen > 24
+    ):
+
+        return {}
+
+    known_neighbors = (
+        known_neighbors
+        if isinstance(
+            known_neighbors,
+            dict
+        )
+        else
+        {}
+    )
+
+    known_ips = set(
+        known_neighbors.keys()
+    )
+
+    targets = []
+
+    for host in network.hosts():
+
+        ip_addr = str(
+            host
+        )
+
+        if ip_addr == local_ip:
+            continue
+
+        if ip_addr == gateway:
+            continue
+
+        if ip_addr in known_ips:
+            continue
+
+        targets.append(
+            ip_addr
+        )
+
+    if not targets:
+
+        return {}
+
+    discovered = {}
+
+    workers = max(
+        1,
+        min(
+            NETWORK_DISCOVERY_WORKERS,
+            len(targets)
+        )
+    )
+
+    started = time.perf_counter()
+
+    with ThreadPoolExecutor(
+        max_workers=workers
+    ) as executor:
+
+        future_map = {
+
+            executor.submit(
+                probe_host,
+                ip_addr,
+                NETWORK_DISCOVERY_TIMEOUT
+            ):
+                ip_addr
+
+            for ip_addr in targets
+        }
+
+        for future in as_completed(
+            future_map
+        ):
+
+            try:
+
+                result = future.result()
+
+                if result.get(
+                    "online"
+                ):
+
+                    discovered[
+                        result["ip"]
+                    ] = result
+
+            except Exception:
+
+                continue
+
+    elapsed = (
+        time.perf_counter()
+        - started
+    )
+
+    print(
+        "INFO: Active network discovery selesai "
+        f"dalam {elapsed:.2f}s, "
+        f"ditemukan {len(discovered)} host."
+    )
+
+    return discovered
 
 
 # ==========================================
@@ -4315,7 +5006,21 @@ def normalize_mac(mac):
     if not mac:
         return None
 
-    return mac.replace(
+    return re.sub(
+        r"[^0-9A-Fa-f]",
+        ":",
+        mac
+    ).strip(":").upper() if (
+        len(
+            re.sub(
+                r"[^0-9A-Fa-f]",
+                "",
+                mac
+            )
+        )
+        ==
+        12
+    ) else mac.replace(
         "-",
         ":"
     ).upper()
@@ -4324,10 +5029,7 @@ def normalize_mac(mac):
 def get_mac_vendor(mac):
 
     """
-    Vendor tidak dipaksa dari hostname.
-
-    Untuk saat ini hanya memberikan informasi
-    dasar berdasarkan OUI yang umum.
+    Identifikasi vendor berdasarkan OUI yang umum.
     """
 
     mac = normalize_mac(
@@ -4337,7 +5039,22 @@ def get_mac_vendor(mac):
     if not mac:
         return None
 
-    oui = mac[:8]
+    compact = re.sub(
+        r"[^0-9A-F]",
+        "",
+        mac.upper()
+    )
+
+    if len(compact) < 6:
+        return None
+
+    oui = ":".join(
+        [
+            compact[0:2],
+            compact[2:4],
+            compact[4:6]
+        ]
+    )
 
     common_oui = {
 
@@ -4392,7 +5109,41 @@ def get_mac_vendor(mac):
             "Samsung",
 
         "CC:07:AB":
-            "Samsung"
+            "Samsung",
+
+        # Intel
+        "00:1B:21":
+            "Intel",
+
+        "00:1E:67":
+            "Intel",
+
+        "3C:F0:11":
+            "Intel",
+
+        # Realtek
+        "00:E0:4C":
+            "Realtek",
+
+        # Cisco
+        "00:00:0C":
+            "Cisco",
+
+        # Dell
+        "00:14:22":
+            "Dell",
+
+        # HP
+        "00:1E:0B":
+            "HP",
+
+        # ASUS
+        "00:1F:C6":
+            "ASUS",
+
+        # Google
+        "3C:5A:B4":
+            "Google"
     }
 
     return common_oui.get(
@@ -4408,18 +5159,29 @@ def build_device_list(
     local_ip,
     gateway,
     network,
-    neighbors
+    neighbors,
+    active_discovered=None
 ):
 
     """
-    Membentuk daftar perangkat berdasarkan:
-
+    Membentuk daftar perangkat dari:
     - perangkat lokal
     - gateway
-    - ARP/neighbour table
+    - ARP/neighbour
+    - active discovery
     """
 
     devices = {}
+
+    active_discovered = (
+        active_discovered
+        if isinstance(
+            active_discovered,
+            dict
+        )
+        else
+        {}
+    )
 
     # --------------------------------------
     # PERANGKAT LOKAL
@@ -4451,14 +5213,50 @@ def build_device_list(
                 None,
 
             "state":
-                "LOCAL"
+                "LOCAL",
+
+            "source":
+                "local_interface"
         }
 
     # --------------------------------------
-    # PERANGKAT DARI ARP
+    # ARP / NEIGHBOR
     # --------------------------------------
 
+    online_states = {
+
+        "REACHABLE",
+
+        "STALE",
+
+        "DELAY",
+
+        "PROBE",
+
+        "PERMANENT",
+
+        "PUBLISHED",
+
+        "KNOWN",
+
+        "DYNAMIC",
+
+        "STATIC",
+
+        "NOARP"
+    }
+
     for ip_addr, item in neighbors.items():
+
+        try:
+
+            ipaddress.ip_address(
+                ip_addr
+            )
+
+        except ValueError:
+
+            continue
 
         mac = normalize_mac(
             item.get(
@@ -4472,27 +5270,6 @@ def build_device_list(
                 "UNKNOWN"
             )
         ).upper()
-
-        online_states = {
-
-            "REACHABLE",
-
-            "STALE",
-
-            "DELAY",
-
-            "PROBE",
-
-            "PERMANENT",
-
-            "PUBLISHED",
-
-            "KNOWN",
-
-            "DYNAMIC",
-
-            "STATIC"
-        }
 
         is_online = (
             state
@@ -4531,9 +5308,7 @@ def build_device_list(
                 mac,
 
             "hostname":
-                resolve_hostname(
-                    ip_addr
-                ),
+                None,
 
             "online":
                 is_online,
@@ -4550,7 +5325,91 @@ def build_device_list(
                 ),
 
             "state":
-                state
+                state,
+
+            "source":
+                "arp"
+        }
+
+    # --------------------------------------
+    # ACTIVE DISCOVERY RESULT
+    # --------------------------------------
+
+    for ip_addr, item in active_discovered.items():
+
+        try:
+
+            ipaddress.ip_address(
+                ip_addr
+            )
+
+        except ValueError:
+
+            continue
+
+        if ip_addr in devices:
+
+            devices[
+                ip_addr
+            ]["online"] = True
+
+            if item.get(
+                "latency_ms"
+            ) is not None:
+
+                devices[
+                    ip_addr
+                ]["latency_ms"] = (
+                    item.get(
+                        "latency_ms"
+                    )
+                )
+
+            devices[
+                ip_addr
+            ]["source"] = (
+                devices[
+                    ip_addr
+                ].get(
+                    "source",
+                    "arp"
+                )
+                +
+                "+probe"
+            )
+
+            continue
+
+        devices[ip_addr] = {
+
+            "ip":
+                ip_addr,
+
+            "mac":
+                None,
+
+            "hostname":
+                None,
+
+            "online":
+                True,
+
+            "latency_ms":
+                item.get(
+                    "latency_ms"
+                ),
+
+            "role":
+                "device",
+
+            "vendor":
+                None,
+
+            "state":
+                "PROBE_REACHABLE",
+
+            "source":
+                "active_probe"
         }
 
     # --------------------------------------
@@ -4585,8 +5444,17 @@ def build_device_list(
                     None,
 
                 "state":
-                    "NOT_IN_ARP"
+                    "NOT_IN_ARP",
+
+                "source":
+                    "routing_table"
             }
+
+        else:
+
+            devices[
+                gateway
+            ]["role"] = "router"
 
     return list(
         devices.values()
@@ -4601,9 +5469,6 @@ def build_network_snapshot():
 
     """
     Mengambil kondisi jaringan perangkat lokal.
-
-    Penting:
-    Fungsi ini TIDAK melakukan scan 254 IP.
     """
 
     started = time.perf_counter()
@@ -4636,18 +5501,44 @@ def build_network_snapshot():
     neighbors = get_arp_neighbors()
 
     # --------------------------------------
-    # 5. DEVICE LIST
+    # 5. ACTIVE DISCOVERY
+    # --------------------------------------
+
+    active_discovered = (
+        active_network_discovery(
+            network,
+            known_neighbors=neighbors,
+            local_ip=local_ip,
+            gateway=gateway
+        )
+        if NETWORK_ACTIVE_DISCOVERY
+        else
+        {}
+    )
+
+    # --------------------------------------
+    # 6. DEVICE LIST
     # --------------------------------------
 
     devices = build_device_list(
         local_ip,
         gateway,
         network,
-        neighbors
+        neighbors,
+        active_discovered
     )
 
     # --------------------------------------
-    # 6. PING GATEWAY SAJA
+    # 7. HOSTNAME PARALLEL
+    # --------------------------------------
+
+    devices = resolve_hostnames_parallel(
+        devices,
+        max_workers=16
+    )
+
+    # --------------------------------------
+    # 8. PING GATEWAY
     # --------------------------------------
 
     router = next(
@@ -4689,7 +5580,7 @@ def build_network_snapshot():
             )
 
     # --------------------------------------
-    # 7. STATUS DEVICE
+    # 9. ACTIVE DEVICES
     # --------------------------------------
 
     active_devices = [
@@ -4712,7 +5603,20 @@ def build_network_snapshot():
     ]
 
     # --------------------------------------
-    # 8. ROUTER DATA
+    # 10. KNOWN DEVICES
+    # --------------------------------------
+
+    known_devices_count = len(
+
+        [
+            d
+            for d in devices
+            if d.get("role") == "device"
+        ]
+    )
+
+    # --------------------------------------
+    # 11. ROUTER DATA
     # --------------------------------------
 
     router_data = {
@@ -4748,11 +5652,37 @@ def build_network_snapshot():
                 if router
                 else
                 None
+            ),
+
+        "state":
+            (
+                router.get("state")
+                if router
+                else
+                None
             )
     }
 
     # --------------------------------------
-    # 9. FINAL RESPONSE
+    # 12. NETWORK DESCRIPTION
+    # --------------------------------------
+
+    network_description = (
+        str(network)
+        if network
+        else
+        None
+    )
+
+    prefix = (
+        network.prefixlen
+        if network
+        else
+        None
+    )
+
+    # --------------------------------------
+    # 13. FINAL RESPONSE
     # --------------------------------------
 
     return {
@@ -4792,20 +5722,10 @@ def build_network_snapshot():
                 local_ip,
 
             "network":
-                (
-                    str(network)
-                    if network
-                    else
-                    None
-                ),
+                network_description,
 
             "prefix":
-                (
-                    network.prefixlen
-                    if network
-                    else
-                    None
-                ),
+                prefix,
 
             "hostname":
                 socket.gethostname()
@@ -4817,12 +5737,6 @@ def build_network_snapshot():
                 get_public_ip()
         },
 
-        # Data berikut tidak bisa diperoleh
-        # secara universal hanya dari OS.
-        #
-        # Bisa ditambahkan nanti melalui API router
-        # jika router menyediakan API resmi.
-
         "ssid":
             None,
 
@@ -4830,7 +5744,12 @@ def build_network_snapshot():
             None,
 
         "clients_count":
-            len(active_devices),
+            len(
+                active_devices
+            ),
+
+        "known_devices_count":
+            known_devices_count,
 
         "avg_signal":
             None,
@@ -4840,6 +5759,9 @@ def build_network_snapshot():
 
         "upload_mbps":
             None,
+
+        "active_discovery":
+            NETWORK_ACTIVE_DISCOVERY,
 
         "devices":
             sorted(
@@ -4865,10 +5787,18 @@ def build_network_snapshot():
                     "router"
 
                     else
+
                     2,
 
-                    ipaddress.ip_address(
-                        x["ip"]
+                    (
+                        int(
+                            ipaddress.ip_address(
+                                x["ip"]
+                            )
+                        )
+                        if x.get("ip")
+                        else
+                        0
                     )
                 )
             ),
@@ -4887,11 +5817,20 @@ def build_network_snapshot():
             "arp_discovery":
                 True,
 
+            "neighbor_table_discovery":
+                True,
+
+            "hostname_resolution":
+                True,
+
             "ping_gateway":
                 True,
 
             "public_ip":
                 True,
+
+            "active_discovery":
+                NETWORK_ACTIVE_DISCOVERY,
 
             "tr069":
                 False,
@@ -4900,17 +5839,27 @@ def build_network_snapshot():
                 False,
 
             "full_subnet_scan":
-                False
+                NETWORK_ACTIVE_DISCOVERY
         },
 
         "message":
             (
                 "Jaringan perangkat lokal berhasil "
-                "dideteksi menggunakan routing table "
-                "dan ARP/neighbour table. "
-                "Pemindaian seluruh subnet tidak dilakukan "
-                "secara otomatis agar dashboard tidak "
-                "mengalami proses yang terlalu lama."
+                "diproses menggunakan routing table, "
+                "ARP/neighbour table, dan resolusi "
+                "hostname paralel. "
+                +
+                (
+                    "Active discovery juga diaktifkan "
+                    "untuk menemukan host yang belum "
+                    "tercatat di neighbour table."
+                    if NETWORK_ACTIVE_DISCOVERY
+                    else
+                    "Active discovery tidak diaktifkan. "
+                    "Aktifkan NETWORK_ACTIVE_DISCOVERY=true "
+                    "jika ingin mencoba menemukan host "
+                    "yang belum tercatat pada neighbour table."
+                )
             )
     }
 
@@ -4926,9 +5875,8 @@ def get_network_snapshot(
     """
     Mengambil snapshot jaringan.
 
-    Cache digunakan agar API tidak menjalankan
-    semua command OS setiap kali browser melakukan
-    polling.
+    Cache dipakai agar browser polling
+    tidak terus menjalankan command OS.
     """
 
     now = time.time()
@@ -4937,8 +5885,10 @@ def get_network_snapshot(
         "lock"
     ]:
 
-        cached_data = NETWORK_CACHE.get(
-            "data"
+        cached_data = (
+            NETWORK_CACHE.get(
+                "data"
+            )
         )
 
         cached_timestamp = (
@@ -4967,17 +5917,51 @@ def get_network_snapshot(
 
             return cached_data
 
+        if NETWORK_CACHE.get(
+            "building"
+        ):
+
+            if cached_data is not None:
+
+                return cached_data
+
+        NETWORK_CACHE[
+            "building"
+        ] = True
+
+    try:
+
         data = build_network_snapshot()
 
-        NETWORK_CACHE[
-            "data"
-        ] = data
+        with NETWORK_CACHE[
+            "lock"
+        ]:
 
-        NETWORK_CACHE[
-            "timestamp"
-        ] = now
+            NETWORK_CACHE[
+                "data"
+            ] = data
+
+            NETWORK_CACHE[
+                "timestamp"
+            ] = time.time()
+
+            NETWORK_CACHE[
+                "building"
+            ] = False
 
         return data
+
+    except Exception:
+
+        with NETWORK_CACHE[
+            "lock"
+        ]:
+
+            NETWORK_CACHE[
+                "building"
+            ] = False
+
+        raise
 
 
 # ==========================================
