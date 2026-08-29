@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Analyzer & Topology Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --signal-excellent: #10b981;
+            --signal-good: #eab308;
+            --signal-weak: #ef4444;
+            --border-color: #334155;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            padding: 24px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-items {
+            padding: 20px 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(6, 182, 212, 0.1);
+            color: var(--accent-cyan);
+            border-right: 4px solid var(--accent-cyan);
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 32px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        /* Grid Layout for Top Section */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Radar / Topology CSS */
+        .radar-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background: radial-gradient(circle, rgba(30,41,59,1) 0%, rgba(15,23,42,1) 100%);
+            border-radius: 8px;
+        }
+
+        .radar-circle {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px dashed var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            padding-top: 5px;
+        }
+
+        .circle-1 { width: 280px; height: 280px; border-color: rgba(239, 68, 68, 0.3); } /* -90dBm */
+        .circle-2 { width: 200px; height: 200px; border-color: rgba(234, 179, 8, 0.3); } /* -70dBm */
+        .circle-3 { width: 120px; height: 120px; border-color: rgba(16, 185, 129, 0.3); } /* -50dBm */
+        
+        .router-center {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            box-shadow: 0 0 15px var(--accent-blue);
+        }
+
+        .device-node {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            z-index: 5;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .device-node:hover { transform: scale(1.1); }
+
+        .node-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            background-color: #334155;
+        }
+
+        .node-excellent { border: 2px solid var(--signal-excellent); color: var(--signal-excellent); }
+        .node-good { border: 2px solid var(--signal-good); color: var(--signal-good); }
+        .node-weak { border: 2px solid var(--signal-weak); color: var(--signal-weak); }
+
+        .node-label {
+            font-size: 0.7rem;
+            background: rgba(0,0,0,0.6);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        tr:hover { background-color: rgba(255,255,255,0.02); }
+
+        .signal-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .signal-bar { height: 100%; }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .bg-excellent { background-color: rgba(16, 185, 129, 0.2); color: var(--signal-excellent); }
+        .bg-good { background-color: rgba(234, 179, 8, 0.2); color: var(--signal-good); }
+        .bg-weak { background-color: rgba(239, 68, 68, 0.2); color: var(--signal-weak); }
+
+        .btn-action {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-action:hover { background-color: var(--border-color); }
+        
+        /* Stats summary */
+        .stats-summary {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        
+        .stat-box {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            width: 23%;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .stat-icon {
+            font-size: 2rem;
+            color: var(--accent-cyan);
+        }
+        
+        .stat-info h4 { margin: 0 0 5px 0; color: var(--text-muted); font-size: 0.9rem; font-weight: normal;}
+        .stat-info h2 { margin: 0; font-size: 1.5rem; }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">
+            <i class="fas fa-network-wired"></i> NetSight Pro
+        </div>
+        <div class="nav-items">
+            <a href="#" class="nav-item active"><i class="fas fa-chart-pie"></i> Dashboard Utama</a>
+            <a href="#" class="nav-item"><i class="fas fa-laptop-house"></i> Topologi & Sinyal</a>
+            <a href="#" class="nav-item"><i class="fas fa-shield-alt"></i> Keamanan Jaringan</a>
+            <a href="#" class="nav-item"><i class="fas fa-chart-line"></i> Analisis Bandwidth</a>
+            <a href="#" class="nav-item"><i class="fas fa-cog"></i> Pengaturan Router</a>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="header">
+            <div>
+                <h1 style="margin: 0; font-size: 1.8rem;">Analisis Jaringan & Sinyal</h1>
+                <p style="margin: 5px 0 0 0; color: var(--text-muted);">Memantau koneksi SSID: <strong>KTVDI_WIFI_5G</strong> (Channel 36)</p>
+            </div>
+            <div>
+                <button class="btn-action" style="background-color: var(--accent-blue); border-color: var(--accent-blue);"><i class="fas fa-sync-alt"></i> Pindai Ulang</button>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="stats-summary">
+            <div class="stat-box">
+                <i class="fas fa-users stat-icon"></i>
+                <div class="stat-info">
+                    <h4>Total Klien Aktif</h4>
+                    <h2>14 Perangkat</h2>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-wifi stat-icon" style="color: var(--signal-excellent);"></i>
+                <div class="stat-info">
+                    <h4>Kualitas Sinyal Rata-rata</h4>
+                    <h2>-58 dBm <span style="font-size:0.8rem; color:var(--signal-excellent)">(Bagus)</span></h2>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-download stat-icon" style="color: #a855f7;"></i>
+                <div class="stat-info">
+                    <h4>Traffic Download</h4>
+                    <h2>142 Mbps</h2>
+                </div>
+            </div>
+            <div class="stat-box">
+                <i class="fas fa-upload stat-icon" style="color: #f97316;"></i>
+                <div class="stat-info">
+                    <h4>Traffic Upload</h4>
+                    <h2>38 Mbps</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Topology Radar -->
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fas fa-bullseye"></i> Topologi Jangkauan Sinyal (dBm)</span>
+                </div>
+                <div class="radar-container">
+                    <div class="radar-circle circle-1">-90 dBm (Lemah)</div>
+                    <div class="radar-circle circle-2">-70 dBm (Sedang)</div>
+                    <div class="radar-circle circle-3">-50 dBm (Kuat)</div>
+                    
+                    <div class="router-center">
+                        <i class="fas fa-wifi" style="color: white;"></i>
+                    </div>
+
+                    <!-- Example Devices mapped by signal strength (distance from center) -->
+                    <!-- Strong Signal (-30 to -50) -->
+                    <div class="device-node" style="top: 35%; left: 60%;">
+                        <div class="node-icon node-excellent"><i class="fas fa-desktop"></i></div>
+                        <div class="node-label">Admin-PC (-42dBm)</div>
+                    </div>
+                    
+                    <div class="device-node" style="top: 60%; left: 40%;">
+                        <div class="node-icon node-excellent"><i class="fas fa-tv"></i></div>
+                        <div class="node-label">SmartTV (-48dBm)</div>
+                    </div>
+
+                    <!-- Good Signal (-50 to -70) -->
+                    <div class="device-node" style="top: 20%; left: 30%;">
+                        <div class="node-icon node-good"><i class="fas fa-mobile-alt"></i></div>
+                        <div class="node-label">iPhone-13 (-65dBm)</div>
+                    </div>
+
+                    <div class="device-node" style="top: 75%; left: 70%;">
+                        <div class="node-icon node-good"><i class="fas fa-laptop"></i></div>
+                        <div class="node-label">MacBook-Pro (-62dBm)</div>
+                    </div>
+
+                    <!-- Weak Signal (-70 to -90) -->
+                    <div class="device-node" style="top: 10%; left: 80%;">
+                        <div class="node-icon node-weak"><i class="fas fa-mobile"></i></div>
+                        <div class="node-label">Guest-Android (-82dBm)</div>
+                    </div>
+                    
+                    <div class="device-node" style="top: 85%; left: 20%;">
+                        <div class="node-icon node-weak"><i class="fas fa-tablet-alt"></i></div>
+                        <div class="node-label">iPad-KTV (-85dBm)</div>
+                    </div>
+                </div>
+                <p style="text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 15px;">
+                    *Jarak titik ke tengah mengilustrasikan kekuatan sinyal (Redaman/dBm). Semakin dekat semakin kuat.
+                </p>
+            </div>
+
+            <!-- Bandwidth Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fas fa-chart-area"></i> Real-time Traffic (Mbps)</span>
+                </div>
+                <canvas id="trafficChart" style="width: 100%; height: 260px;"></canvas>
+            </div>
+        </div>
+
+        <!-- Detail Table -->
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-list"></i> Detail Perangkat & Kekuatan Jaringan</span>
+                <button class="btn-action"><i class="fas fa-filter"></i> Filter</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Perangkat (Hostname)</th>
+                        <th>IP / MAC Address</th>
+                        <th>Kekuatan Sinyal (dBm)</th>
+                        <th>Status Sinyal</th>
+                        <th>Bandwidth (Tx/Rx)</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <strong>Admin-PC</strong><br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">Desktop / Windows 11</span>
+                        </td>
+                        <td>
+                            192.168.1.10<br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">A1:B2:C3:D4:E5:F6</span>
+                        </td>
+                        <td>
+                            <div style="font-weight: bold;">-42 dBm</div>
+                            <div class="signal-bar-container">
+                                <div class="signal-bar bg-excellent" style="width: 95%;"></div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-excellent">Sangat Kuat</span></td>
+                        <td>25.4 / 110.2 Mbps</td>
+                        <td><button class="btn-action">Detail</button></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>MacBook-Pro</strong><br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">Laptop / macOS</span>
+                        </td>
+                        <td>
+                            192.168.1.15<br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">11:22:33:44:55:66</span>
+                        </td>
+                        <td>
+                            <div style="font-weight: bold;">-62 dBm</div>
+                            <div class="signal-bar-container">
+                                <div class="signal-bar bg-good" style="width: 60%;"></div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-good">Cukup / Sedang</span></td>
+                        <td>12.1 / 45.8 Mbps</td>
+                        <td><button class="btn-action">Detail</button></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <strong>Guest-Android</strong><br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">Mobile / Android</span>
+                        </td>
+                        <td>
+                            192.168.1.108<br>
+                            <span style="color: var(--text-muted); font-size: 0.8rem;">99:88:77:66:55:44</span>
+                        </td>
+                        <td>
+                            <div style="font-weight: bold;">-82 dBm</div>
+                            <div class="signal-bar-container">
+                                <div class="signal-bar bg-weak" style="width: 25%;"></div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-weak">Lemah / Terganggu</span></td>
+                        <td>1.2 / 3.4 Mbps</td>
+                        <td><button class="btn-action">Detail</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Script for Chart.js -->
+    <script>
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        const trafficChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+                datasets: [
+                    {
+                        label: 'Download (Mbps)',
+                        data: [120, 150, 140, 180, 130, 160, 142],
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Upload (Mbps)',
+                        data: [30, 45, 35, 50, 40, 55, 38],
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#94a3b8' }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    y: {
+                        grid: { color: '#334155' },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
