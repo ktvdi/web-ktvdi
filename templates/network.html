@@ -1,10 +1,16 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+<link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    rel="stylesheet"
+>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+
     :root {
         --bg-dark: #0f172a;
         --bg-card: #1e293b;
@@ -18,746 +24,1734 @@
         --border-color: #334155;
     }
 
+
     #netmon-wrapper {
+
         width: 100%;
         min-height: 100vh;
+
         margin: 0;
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        background-color: var(--bg-dark);
-        color: var(--text-main);
+
+        font-family:
+            'Inter',
+            'Segoe UI',
+            sans-serif;
+
+        background-color:
+            var(--bg-dark);
+
+        color:
+            var(--text-main);
+
         display: flex;
+
         overflow: hidden;
+
     }
+
 
     #netmon-wrapper .sidebar {
+
         width: 260px;
-        background-color: var(--bg-card);
-        border-right: 1px solid var(--border-color);
+
+        background-color:
+            var(--bg-card);
+
+        border-right:
+            1px solid var(--border-color);
+
         display: flex;
+
         flex-direction: column;
+
         flex-shrink: 0;
+
     }
+
 
     #netmon-wrapper .brand {
+
         padding: 24px;
+
         font-size: 1.5rem;
+
         font-weight: bold;
-        color: var(--accent-cyan);
-        border-bottom: 1px solid var(--border-color);
+
+        color:
+            var(--accent-cyan);
+
+        border-bottom:
+            1px solid var(--border-color);
+
         display: flex;
+
         align-items: center;
+
         gap: 12px;
+
     }
+
 
     #netmon-wrapper .nav-items {
+
         padding: 20px 0;
+
         flex: 1;
+
     }
 
+
     #netmon-wrapper .nav-item {
+
         padding: 16px 24px;
+
         display: flex;
+
         align-items: center;
+
         gap: 16px;
-        color: var(--text-muted);
+
+        color:
+            var(--text-muted);
+
         text-decoration: none;
-        transition: all 0.3s;
+
+        transition:
+            all 0.3s;
+
     }
+
 
     #netmon-wrapper .nav-item:hover,
     #netmon-wrapper .nav-item.active {
-        background-color: rgba(6, 182, 212, 0.1);
-        color: var(--accent-cyan);
-        border-right: 4px solid var(--accent-cyan);
+
+        background-color:
+            rgba(6, 182, 212, 0.1);
+
+        color:
+            var(--accent-cyan);
+
+        border-right:
+            4px solid var(--accent-cyan);
+
     }
+
 
     #netmon-wrapper .main {
+
         flex: 1;
+
         overflow-y: auto;
+
         padding: 24px 32px;
+
     }
+
 
     #netmon-wrapper .header {
+
         display: flex;
-        justify-content: space-between;
+
+        justify-content:
+            space-between;
+
         align-items: center;
-        margin-bottom: 24px;
+
+        margin-bottom:
+            24px;
+
+        gap: 20px;
+
     }
+
 
     #netmon-wrapper .dashboard-grid {
+
         display: grid;
-        grid-template-columns: 1fr 1fr;
+
+        grid-template-columns:
+            1fr 1fr;
+
         gap: 24px;
+
         margin-bottom: 24px;
+
     }
+
 
     #netmon-wrapper .card {
-        background-color: var(--bg-card);
+
+        background-color:
+            var(--bg-card);
+
         border-radius: 12px;
+
         padding: 24px;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+        border:
+            1px solid var(--border-color);
+
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
     }
+
 
     #netmon-wrapper .card-header {
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin-bottom: 16px;
+
+        font-size:
+            1.1rem;
+
+        font-weight:
+            600;
+
+        margin-bottom:
+            16px;
+
         display: flex;
-        justify-content: space-between;
+
+        justify-content:
+            space-between;
+
         align-items: center;
+
     }
+
+
+    /* =====================================================
+       NETWORK MAP
+    ===================================================== */
 
     #netmon-wrapper .radar-container {
+
         position: relative;
+
         width: 100%;
+
         height: 300px;
+
         display: flex;
-        justify-content: center;
-        align-items: center;
+
+        justify-content:
+            center;
+
+        align-items:
+            center;
+
         overflow: hidden;
-        background: radial-gradient(
-            circle,
-            rgba(30,41,59,1) 0%,
-            rgba(15,23,42,1) 100%
-        );
-        border-radius: 8px;
+
+        background:
+            radial-gradient(
+                circle,
+                rgba(30,41,59,1) 0%,
+                rgba(15,23,42,1) 100%
+            );
+
+        border-radius:
+            8px;
+
     }
+
 
     #netmon-wrapper .radar-circle {
+
         position: absolute;
+
         border-radius: 50%;
-        border: 1px dashed var(--border-color);
+
+        border:
+            1px dashed var(--border-color);
+
         display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        color: var(--text-muted);
-        font-size: 0.7rem;
-        padding-top: 5px;
+
+        justify-content:
+            center;
+
+        align-items:
+            flex-start;
+
+        color:
+            var(--text-muted);
+
+        font-size:
+            0.7rem;
+
+        padding-top:
+            5px;
+
+        pointer-events:
+            none;
+
     }
+
 
     #netmon-wrapper .circle-1 {
+
         width: 280px;
+
         height: 280px;
-        border-color: rgba(239, 68, 68, 0.3);
+
+        border-color:
+            rgba(239, 68, 68, 0.3);
+
     }
+
 
     #netmon-wrapper .circle-2 {
+
         width: 200px;
+
         height: 200px;
-        border-color: rgba(234, 179, 8, 0.3);
+
+        border-color:
+            rgba(234, 179, 8, 0.3);
+
     }
+
 
     #netmon-wrapper .circle-3 {
+
         width: 120px;
+
         height: 120px;
-        border-color: rgba(16, 185, 129, 0.3);
+
+        border-color:
+            rgba(16, 185, 129, 0.3);
+
     }
+
 
     #netmon-wrapper .router-center {
+
         position: absolute;
-        width: 40px;
-        height: 40px;
-        background-color: var(--accent-blue);
+
+        width: 48px;
+
+        height: 48px;
+
+        background-color:
+            var(--accent-blue);
+
         border-radius: 50%;
+
         display: flex;
-        justify-content: center;
-        align-items: center;
+
+        justify-content:
+            center;
+
+        align-items:
+            center;
+
         z-index: 10;
-        box-shadow: 0 0 15px var(--accent-blue);
+
+        box-shadow:
+            0 0 20px rgba(59,130,246,0.7);
+
     }
+
 
     #netmon-wrapper .device-node {
+
         position: absolute;
+
         display: flex;
+
         flex-direction: column;
+
         align-items: center;
+
         gap: 4px;
+
         z-index: 5;
+
         cursor: pointer;
-        transition: transform 0.2s;
-        transform: translate(-50%, -50%);
+
+        transition:
+            transform 0.2s;
+
+        transform:
+            translate(-50%, -50%);
+
     }
+
 
     #netmon-wrapper .device-node:hover {
-        transform: translate(-50%, -50%) scale(1.1);
+
+        transform:
+            translate(-50%, -50%)
+            scale(1.08);
+
     }
+
 
     #netmon-wrapper .node-icon {
-        width: 28px;
-        height: 28px;
+
+        width: 34px;
+
+        height: 34px;
+
         border-radius: 50%;
+
         display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 0.8rem;
-        background-color: #334155;
+
+        justify-content:
+            center;
+
+        align-items:
+            center;
+
+        font-size:
+            0.85rem;
+
+        background-color:
+            #334155;
+
     }
 
-    #netmon-wrapper .node-excellent {
-        border: 2px solid var(--signal-excellent);
-        color: var(--signal-excellent);
+
+    #netmon-wrapper .node-online {
+
+        border:
+            2px solid var(--signal-excellent);
+
+        color:
+            var(--signal-excellent);
+
     }
 
-    #netmon-wrapper .node-good {
-        border: 2px solid var(--signal-good);
-        color: var(--signal-good);
+
+    #netmon-wrapper .node-latency {
+
+        border:
+            2px solid var(--signal-good);
+
+        color:
+            var(--signal-good);
+
     }
 
-    #netmon-wrapper .node-weak {
-        border: 2px solid var(--signal-weak);
-        color: var(--signal-weak);
+
+    #netmon-wrapper .node-offline {
+
+        border:
+            2px solid var(--text-muted);
+
+        color:
+            var(--text-muted);
+
     }
+
 
     #netmon-wrapper .node-label {
-        font-size: 0.7rem;
-        background: rgba(0,0,0,0.6);
-        padding: 2px 6px;
-        border-radius: 4px;
-        white-space: nowrap;
+
+        font-size:
+            0.7rem;
+
+        background:
+            rgba(0,0,0,0.72);
+
+        padding:
+            3px 7px;
+
+        border-radius:
+            4px;
+
+        white-space:
+            nowrap;
+
+        max-width:
+            180px;
+
+        overflow:
+            hidden;
+
+        text-overflow:
+            ellipsis;
+
     }
 
+
+    /* =====================================================
+       TABLE
+    ===================================================== */
+
     #netmon-wrapper table {
+
         width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
+
+        border-collapse:
+            collapse;
+
+        margin-top:
+            10px;
+
     }
+
 
     #netmon-wrapper th,
     #netmon-wrapper td {
-        padding: 16px;
-        text-align: left;
-        border-bottom: 1px solid var(--border-color);
+
+        padding:
+            16px;
+
+        text-align:
+            left;
+
+        border-bottom:
+            1px solid var(--border-color);
+
     }
+
 
     #netmon-wrapper th {
-        color: var(--text-muted);
-        font-weight: 500;
-        text-transform: uppercase;
-        font-size: 0.8rem;
+
+        color:
+            var(--text-muted);
+
+        font-weight:
+            500;
+
+        text-transform:
+            uppercase;
+
+        font-size:
+            0.8rem;
+
     }
+
 
     #netmon-wrapper tr:hover {
-        background-color: rgba(255,255,255,0.02);
+
+        background-color:
+            rgba(255,255,255,0.02);
+
     }
 
-    #netmon-wrapper .signal-bar-container {
-        width: 100%;
-        height: 8px;
-        background-color: #334155;
-        border-radius: 4px;
-        overflow: hidden;
-        margin-top: 6px;
-    }
 
-    #netmon-wrapper .signal-bar {
-        height: 100%;
-    }
+    /* =====================================================
+       BADGES
+    ===================================================== */
 
     #netmon-wrapper .badge {
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: bold;
+
+        padding:
+            5px 10px;
+
+        border-radius:
+            12px;
+
+        font-size:
+            0.75rem;
+
+        font-weight:
+            bold;
+
+        display:
+            inline-block;
+
     }
 
-    #netmon-wrapper .bg-excellent {
-        background-color: rgba(16, 185, 129, 0.2);
-        color: var(--signal-excellent);
+
+    #netmon-wrapper .bg-online {
+
+        background-color:
+            rgba(16,185,129,0.18);
+
+        color:
+            var(--signal-excellent);
+
     }
 
-    #netmon-wrapper .bg-good {
-        background-color: rgba(234, 179, 8, 0.2);
-        color: var(--signal-good);
+
+    #netmon-wrapper .bg-warning {
+
+        background-color:
+            rgba(234,179,8,0.18);
+
+        color:
+            var(--signal-good);
+
     }
 
-    #netmon-wrapper .bg-weak {
-        background-color: rgba(239, 68, 68, 0.2);
-        color: var(--signal-weak);
-    }
 
     #netmon-wrapper .bg-offline {
-        background-color: rgba(148, 163, 184, 0.2);
-        color: var(--text-muted);
+
+        background-color:
+            rgba(148,163,184,0.18);
+
+        color:
+            var(--text-muted);
+
     }
+
+
+    #netmon-wrapper .bg-router {
+
+        background-color:
+            rgba(59,130,246,0.18);
+
+        color:
+            var(--accent-blue);
+
+    }
+
 
     #netmon-wrapper .btn-action {
-        background: none;
-        border: 1px solid var(--border-color);
-        color: var(--text-main);
-        padding: 6px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: 0.2s;
+
+        background:
+            none;
+
+        border:
+            1px solid var(--border-color);
+
+        color:
+            var(--text-main);
+
+        padding:
+            8px 14px;
+
+        border-radius:
+            6px;
+
+        cursor:
+            pointer;
+
+        transition:
+            0.2s;
+
     }
+
 
     #netmon-wrapper .btn-action:hover {
-        background-color: var(--border-color);
+
+        background-color:
+            var(--border-color);
+
     }
+
 
     #netmon-wrapper .btn-action:disabled {
-        opacity: 0.7;
-        cursor: wait;
+
+        opacity:
+            0.7;
+
+        cursor:
+            wait;
+
     }
+
+
+    /* =====================================================
+       STATS
+    ===================================================== */
 
     #netmon-wrapper .stats-summary {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 24px;
-        gap: 20px;
+
+        display:
+            flex;
+
+        justify-content:
+            space-between;
+
+        margin-bottom:
+            24px;
+
+        gap:
+            20px;
+
     }
+
 
     #netmon-wrapper .stat-box {
-        background-color: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 20px;
-        flex: 1;
-        display: flex;
-        align-items: center;
-        gap: 16px;
+
+        background-color:
+            var(--bg-card);
+
+        border:
+            1px solid var(--border-color);
+
+        border-radius:
+            12px;
+
+        padding:
+            20px;
+
+        flex:
+            1;
+
+        display:
+            flex;
+
+        align-items:
+            center;
+
+        gap:
+            16px;
+
+        min-width:
+            0;
+
     }
+
 
     #netmon-wrapper .stat-icon {
-        font-size: 2rem;
-        color: var(--accent-cyan);
+
+        font-size:
+            2rem;
+
+        color:
+            var(--accent-cyan);
+
+        flex-shrink:
+            0;
+
     }
+
+
+    #netmon-wrapper .stat-info {
+
+        min-width:
+            0;
+
+    }
+
 
     #netmon-wrapper .stat-info h4 {
-        margin: 0 0 5px 0;
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        font-weight: normal;
+
+        margin:
+            0 0 5px 0;
+
+        color:
+            var(--text-muted);
+
+        font-size:
+            0.9rem;
+
+        font-weight:
+            normal;
+
     }
+
 
     #netmon-wrapper .stat-info h2 {
-        margin: 0;
-        font-size: 1.5rem;
+
+        margin:
+            0;
+
+        font-size:
+            1.35rem;
+
+        word-break:
+            break-word;
+
     }
 
-    @media (max-width: 1024px) {
-        #netmon-wrapper {
-            flex-direction: column;
-            overflow-y: auto;
+
+    /* =====================================================
+       INFORMATION BLOCK
+    ===================================================== */
+
+    #netmon-wrapper .network-info-grid {
+
+        display:
+            grid;
+
+        grid-template-columns:
+            repeat(4, 1fr);
+
+        gap:
+            15px;
+
+        margin-bottom:
+            24px;
+
+    }
+
+
+    #netmon-wrapper .network-info-item {
+
+        padding:
+            16px;
+
+        border:
+            1px solid var(--border-color);
+
+        border-radius:
+            8px;
+
+        background:
+            rgba(15,23,42,0.4);
+
+    }
+
+
+    #netmon-wrapper .network-info-label {
+
+        font-size:
+            0.75rem;
+
+        color:
+            var(--text-muted);
+
+        margin-bottom:
+            5px;
+
+        text-transform:
+            uppercase;
+
+    }
+
+
+    #netmon-wrapper .network-info-value {
+
+        font-size:
+            0.95rem;
+
+        font-weight:
+            600;
+
+        word-break:
+            break-word;
+
+    }
+
+
+    @media (max-width: 1300px) {
+
+        #netmon-wrapper .network-info-grid {
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
         }
+
+    }
+
+
+    @media (max-width: 1024px) {
+
+        #netmon-wrapper {
+
+            flex-direction:
+                column;
+
+            overflow-y:
+                auto;
+
+        }
+
 
         #netmon-wrapper .sidebar {
+
             width: 100%;
-            flex-direction: row;
-            overflow-x: auto;
-            height: auto;
+
+            flex-direction:
+                row;
+
+            overflow-x:
+                auto;
+
+            height:
+                auto;
+
         }
+
 
         #netmon-wrapper .brand {
-            border-right: 1px solid var(--border-color);
-            border-bottom: none;
+
+            border-right:
+                1px solid var(--border-color);
+
+            border-bottom:
+                none;
+
         }
+
 
         #netmon-wrapper .nav-items {
-            display: flex;
-            padding: 0;
+
+            display:
+                flex;
+
+            padding:
+                0;
+
         }
 
+
         #netmon-wrapper .nav-item {
-            padding: 12px 16px;
-            white-space: nowrap;
-            border-right: none;
-            border-bottom: 4px solid transparent;
+
+            padding:
+                12px 16px;
+
+            white-space:
+                nowrap;
+
+            border-right:
+                none;
+
+            border-bottom:
+                4px solid transparent;
+
         }
+
 
         #netmon-wrapper .nav-item:hover,
         #netmon-wrapper .nav-item.active {
-            border-right: none;
-            border-bottom: 4px solid var(--accent-cyan);
+
+            border-right:
+                none;
+
+            border-bottom:
+                4px solid var(--accent-cyan);
+
         }
+
 
         #netmon-wrapper .stats-summary,
         #netmon-wrapper .dashboard-grid {
-            flex-direction: column;
-            display: flex;
+
+            flex-direction:
+                column;
+
+            display:
+                flex;
+
         }
+
+
+        #netmon-wrapper .header {
+
+            flex-direction:
+                column;
+
+            align-items:
+                flex-start;
+
+        }
+
     }
+
+
+    @media (max-width: 640px) {
+
+        #netmon-wrapper .main {
+
+            padding:
+                18px;
+
+        }
+
+
+        #netmon-wrapper .network-info-grid {
+
+            grid-template-columns:
+                1fr;
+
+        }
+
+
+        #netmon-wrapper .card {
+
+            padding:
+                16px;
+
+        }
+
+
+        #netmon-wrapper .stat-box {
+
+            padding:
+                15px;
+
+        }
+
+    }
+
 </style>
 
 <div id="netmon-wrapper">
 
-    <!-- Sidebar -->
-    <div class="sidebar">
+```
+<!-- ===================================================
+     SIDEBAR
+==================================================== -->
 
-        <div class="brand">
-            <i class="fas fa-network-wired"></i>
-            NetSight Pro
-        </div>
+<div class="sidebar">
 
-        <div class="nav-items">
+    <div class="brand">
 
-            <a href="#" class="nav-item active">
-                <i class="fas fa-chart-pie"></i>
-                Dashboard Utama
-            </a>
+        <i class="fas fa-network-wired"></i>
 
-            <a href="#" class="nav-item">
-                <i class="fas fa-laptop-house"></i>
-                Topologi & Sinyal
-            </a>
+        NetSight Pro
 
-            <a href="#" class="nav-item">
-                <i class="fas fa-shield-alt"></i>
-                Keamanan
-            </a>
-
-            <a href="#" class="nav-item">
-                <i class="fas fa-chart-line"></i>
-                Bandwidth
-            </a>
-
-        </div>
     </div>
 
-    <!-- Main -->
-    <div class="main">
 
-        <!-- Header -->
-        <div class="header">
+    <div class="nav-items">
 
-            <div>
+        <a
+            href="#"
+            class="nav-item active"
+            onclick="return false;"
+        >
+            <i class="fas fa-chart-pie"></i>
+            Dashboard Utama
+        </a>
 
-                <h1 style="margin: 0; font-size: 1.8rem;">
-                    Analisis Jaringan & Sinyal
-                </h1>
 
-                <p style="margin: 5px 0 0 0; color: var(--text-muted);">
+        <a
+            href="#"
+            class="nav-item"
+            onclick="scrollToSection('topology-section'); return false;"
+        >
+            <i class="fas fa-laptop-house"></i>
+            Topologi
+        </a>
 
-                    Jaringan saat ini:
-                    <strong id="network-name">Mendeteksi...</strong>
 
-                    · Gateway
-                    <strong id="gateway-ip">-</strong>
+        <a
+            href="#"
+            class="nav-item"
+            onclick="scrollToSection('devices-section'); return false;"
+        >
+            <i class="fas fa-list"></i>
+            Perangkat
+        </a>
 
-                    ·
-                    <span id="network-status">
-                        Mendeteksi jaringan...
-                    </span>
 
-                </p>
+        <a
+            href="#"
+            class="nav-item"
+            onclick="scrollToSection('traffic-section'); return false;"
+        >
+            <i class="fas fa-chart-line"></i>
+            Bandwidth
+        </a>
 
-            </div>
+    </div>
 
-            <div>
+</div>
 
-                <button
-                    id="scan-network-btn"
-                    class="btn-action"
-                    onclick="forceNetworkScan()"
+
+<!-- ===================================================
+     MAIN
+==================================================== -->
+
+<div class="main">
+
+
+    <!-- =================================================
+         HEADER
+    ================================================== -->
+
+    <div class="header">
+
+        <div>
+
+            <h1
+                style="
+                    margin: 0;
+                    font-size: 1.8rem;
+                "
+            >
+                Analisis Jaringan &amp; Perangkat
+            </h1>
+
+
+            <p
+                style="
+                    margin: 5px 0 0 0;
+                    color: var(--text-muted);
+                "
+            >
+
+                Network:
+                <strong id="network-name">
+                    Mendeteksi...
+                </strong>
+
+                · Gateway
+                <strong id="gateway-ip">
+                    -
+                </strong>
+
+                ·
+                <span id="network-status">
+                    Mendeteksi jaringan...
+                </span>
+
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <button
+                id="scan-network-btn"
+                class="btn-action"
+                onclick="forceNetworkScan()"
+                style="
+                    background-color:
+                        var(--accent-blue);
+                    border-color:
+                        var(--accent-blue);
+                "
+            >
+
+                <i class="fas fa-sync-alt"></i>
+
+                Pindai Ulang
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         QUICK STATS
+    ================================================== -->
+
+    <div class="stats-summary">
+
+
+        <!-- ROUTER -->
+
+        <div class="stat-box">
+
+            <i
+                class="fas fa-router stat-icon"
+            ></i>
+
+            <div class="stat-info">
+
+                <h4>
+                    Router / Gateway
+                </h4>
+
+                <h2 id="router-ip">
+                    Mendeteksi...
+                </h2>
+
+                <small
+                    id="router-model"
                     style="
-                        background-color: var(--accent-blue);
-                        border-color: var(--accent-blue);
+                        color:
+                            var(--text-muted);
                     "
                 >
-                    <i class="fas fa-sync-alt"></i>
-                    Pindai Ulang
-                </button>
+                    -
+                </small>
 
             </div>
 
         </div>
 
-        <!-- Quick Stats -->
-        <div class="stats-summary">
 
-            <!-- Router -->
-            <div class="stat-box">
+        <!-- STATUS -->
 
-                <i class="fas fa-router stat-icon"></i>
+        <div class="stat-box">
 
-                <div class="stat-info">
+            <i
+                class="fas fa-circle-notch stat-icon"
+                id="router-status-icon"
+            ></i>
 
-                    <h4>Router / Gateway</h4>
+            <div class="stat-info">
 
-                    <h2 id="router-ip">
-                        Mendeteksi...
-                    </h2>
+                <h4>
+                    Status Router
+                </h4>
 
-                    <small
-                        id="router-model"
-                        style="color:var(--text-muted);"
-                    >
-                        -
-                    </small>
+                <h2 id="router-status">
+                    Mendeteksi...
+                </h2>
 
-                </div>
-
-            </div>
-
-            <!-- Status -->
-            <div class="stat-box">
-
-                <i
-                    class="fas fa-circle-notch stat-icon"
-                    id="router-status-icon"
-                ></i>
-
-                <div class="stat-info">
-
-                    <h4>Status Router</h4>
-
-                    <h2 id="router-status">
-                        Mendeteksi...
-                    </h2>
-
-                    <small
-                        id="router-latency"
-                        style="color:var(--text-muted);"
-                    >
-                        Latency: -
-                    </small>
-
-                </div>
-
-            </div>
-
-            <!-- Client -->
-            <div class="stat-box">
-
-                <i class="fas fa-users stat-icon"></i>
-
-                <div class="stat-info">
-
-                    <h4>Perangkat Aktif</h4>
-
-                    <h2 id="client-count">
-                        ...
-                    </h2>
-
-                    <small
-                        id="scan-info"
-                        style="color:var(--text-muted);"
-                    >
-                        -
-                    </small>
-
-                </div>
-
-            </div>
-
-            <!-- Public IP -->
-            <div class="stat-box">
-
-                <i class="fas fa-globe stat-icon"></i>
-
-                <div class="stat-info">
-
-                    <h4>IP Publik</h4>
-
-                    <h2 id="public-ip">
-                        Mendeteksi...
-                    </h2>
-
-                    <small
-                        id="local-ip"
-                        style="color:var(--text-muted);"
-                    >
-                        Local: -
-                    </small>
-
-                </div>
+                <small
+                    id="router-latency"
+                    style="
+                        color:
+                            var(--text-muted);
+                    "
+                >
+                    Latency: -
+                </small>
 
             </div>
 
         </div>
 
-        <!-- Dashboard Grid -->
-        <div class="dashboard-grid">
 
-            <!-- Radar -->
-            <div class="card">
+        <!-- CLIENT -->
 
-                <div class="card-header">
+        <div class="stat-box">
 
-                    <span>
-                        <i class="fas fa-bullseye"></i>
-                        Topologi Jangkauan (dBm)
-                    </span>
+            <i
+                class="fas fa-users stat-icon"
+            ></i>
 
-                </div>
+            <div class="stat-info">
 
-                <div
-                    class="radar-container"
-                    id="radar-container"
-                >
+                <h4>
+                    Perangkat Aktif
+                </h4>
 
-                    <div class="radar-circle circle-1">
-                        -90 dBm
-                    </div>
+                <h2 id="client-count">
+                    ...
+                </h2>
 
-                    <div class="radar-circle circle-2">
-                        -70 dBm
-                    </div>
-
-                    <div class="radar-circle circle-3">
-                        -50 dBm
-                    </div>
-
-                    <div class="router-center">
-                        <i
-                            class="fas fa-wifi"
-                            style="color: white;"
-                        ></i>
-                    </div>
-
-                </div>
-
-                <p
+                <small
+                    id="scan-info"
                     style="
-                        text-align: center;
-                        font-size: 0.8rem;
-                        color: var(--text-muted);
-                        margin-top: 15px;
+                        color:
+                            var(--text-muted);
                     "
                 >
-                    *Semakin dekat ke tengah,
-                    semakin kuat sinyal perangkat.
-                </p>
-
-            </div>
-
-            <!-- Traffic -->
-            <div class="card">
-
-                <div class="card-header">
-
-                    <span>
-                        <i class="fas fa-chart-area"></i>
-                        Real-time Traffic (Mbps)
-                    </span>
-
-                </div>
-
-                <div
-                    style="
-                        position: relative;
-                        height: 260px;
-                        width: 100%;
-                    "
-                >
-                    <canvas id="trafficChart"></canvas>
-                </div>
+                    -
+                </small>
 
             </div>
 
         </div>
 
-        <!-- Device Table -->
+
+        <!-- PUBLIC IP -->
+
+        <div class="stat-box">
+
+            <i
+                class="fas fa-globe stat-icon"
+            ></i>
+
+            <div class="stat-info">
+
+                <h4>
+                    IP Publik
+                </h4>
+
+                <h2 id="public-ip">
+                    Mendeteksi...
+                </h2>
+
+                <small
+                    id="local-ip"
+                    style="
+                        color:
+                            var(--text-muted);
+                    "
+                >
+                    Local: -
+                </small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         NETWORK INFORMATION
+    ================================================== -->
+
+    <div class="network-info-grid">
+
+
+        <div class="network-info-item">
+
+            <div class="network-info-label">
+                Network
+            </div>
+
+            <div
+                class="network-info-value"
+                id="network-cidr"
+            >
+                -
+            </div>
+
+        </div>
+
+
+        <div class="network-info-item">
+
+            <div class="network-info-label">
+                Prefix
+            </div>
+
+            <div
+                class="network-info-value"
+                id="network-prefix"
+            >
+                -
+            </div>
+
+        </div>
+
+
+        <div class="network-info-item">
+
+            <div class="network-info-label">
+                Hostname Lokal
+            </div>
+
+            <div
+                class="network-info-value"
+                id="local-hostname"
+            >
+                -
+            </div>
+
+        </div>
+
+
+        <div class="network-info-item">
+
+            <div class="network-info-label">
+                Discovery
+            </div>
+
+            <div
+                class="network-info-value"
+                id="discovery-mode"
+            >
+                -
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         TOPOLOGY + TRAFFIC
+    ================================================== -->
+
+    <div
+        class="dashboard-grid"
+        id="topology-section"
+    >
+
+
+        <!-- TOPOLOGY -->
+
+        <div class="card">
+
+            <div class="card-header">
+
+                <span>
+
+                    <i class="fas fa-project-diagram"></i>
+
+                    Topologi Jaringan
+
+                </span>
+
+
+                <span
+                    id="topology-count"
+                    style="
+                        color:
+                            var(--text-muted);
+                        font-size:
+                            0.8rem;
+                    "
+                >
+                    0 perangkat
+                </span>
+
+            </div>
+
+
+            <div
+                class="radar-container"
+                id="radar-container"
+            >
+
+                <div class="radar-circle circle-1">
+                    Distant
+                </div>
+
+
+                <div class="radar-circle circle-2">
+                    Medium
+                </div>
+
+
+                <div class="radar-circle circle-3">
+                    Near
+                </div>
+
+
+                <div class="router-center">
+
+                    <i
+                        class="fas fa-router"
+                        style="
+                            color:
+                                white;
+                        "
+                    ></i>
+
+                </div>
+
+            </div>
+
+
+            <p
+                style="
+                    text-align: center;
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                    margin-top: 15px;
+                "
+            >
+
+                Posisi perangkat pada visualisasi
+                merupakan representasi topologi,
+                bukan jarak fisik atau kekuatan
+                sinyal Wi-Fi.
+
+            </p>
+
+        </div>
+
+
+        <!-- TRAFFIC -->
+
         <div
             class="card"
-            style="overflow-x: auto;"
+            id="traffic-section"
         >
 
             <div class="card-header">
 
                 <span>
-                    <i class="fas fa-list"></i>
-                    Detail Perangkat Terhubung
+
+                    <i class="fas fa-chart-area"></i>
+
+                    Real-time Traffic
+
+                </span>
+
+
+                <span
+                    id="traffic-state"
+                    style="
+                        color:
+                            var(--text-muted);
+                        font-size:
+                            0.8rem;
+                    "
+                >
+
+                    Data belum tersedia
+
                 </span>
 
             </div>
 
-            <table style="min-width: 700px;">
 
-                <thead>
+            <div
+                style="
+                    position:
+                        relative;
+                    height:
+                        260px;
+                    width:
+                        100%;
+                "
+            >
 
-                    <tr>
+                <canvas id="trafficChart"></canvas>
 
-                        <th>
-                            Perangkat (Hostname)
-                        </th>
+            </div>
 
-                        <th>
-                            IP / MAC Address
-                        </th>
 
-                        <th>
-                            Kekuatan Sinyal
-                        </th>
-
-                        <th>
-                            Status Sinyal
-                        </th>
-
-                        <th>
-                            Aksi
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody id="device-table-body">
-
-                    <tr>
-
-                        <td
-                            colspan="5"
-                            style="
-                                text-align: center;
-                                color: var(--text-muted);
-                                padding: 30px;
-                            "
-                        >
-
-                            <i class="fas fa-spinner fa-spin"></i>
-
-                            Menghubungkan ke API Router...
-
-                        </td>
-
-                    </tr>
-
-                </tbody>
-
-            </table>
+            <div
+                style="
+                    text-align:center;
+                    color:var(--text-muted);
+                    font-size:.8rem;
+                    margin-top:12px;
+                "
+                id="traffic-note"
+            >
+                Backend belum menyediakan data throughput.
+            </div>
 
         </div>
 
     </div>
+
+
+    <!-- =================================================
+         ROUTER DETAIL
+    ================================================== -->
+
+    <div
+        class="card"
+        style="
+            margin-bottom:24px;
+        "
+    >
+
+        <div class="card-header">
+
+            <span>
+
+                <i class="fas fa-router"></i>
+
+                Detail Gateway / Router
+
+            </span>
+
+        </div>
+
+
+        <div class="network-info-grid">
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Gateway
+                </div>
+
+                <div
+                    class="network-info-value"
+                    id="detail-gateway"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    MAC
+                </div>
+
+                <div
+                    class="network-info-value"
+                    id="detail-router-mac"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Vendor
+                </div>
+
+                <div
+                    class="network-info-value"
+                    id="detail-router-vendor"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Hostname
+                </div>
+
+                <div
+                    class="network-info-value"
+                    id="detail-router-hostname"
+                >
+                    -
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         DEVICE TABLE
+    ================================================== -->
+
+    <div
+        class="card"
+        id="devices-section"
+        style="
+            overflow-x:auto;
+        "
+    >
+
+        <div class="card-header">
+
+            <span>
+
+                <i class="fas fa-list"></i>
+
+                Detail Perangkat Terhubung
+
+            </span>
+
+
+            <span
+                id="device-table-info"
+                style="
+                    color:
+                        var(--text-muted);
+                    font-size:
+                        0.8rem;
+                "
+            >
+                Menunggu data...
+            </span>
+
+        </div>
+
+
+        <table
+            style="
+                min-width:
+                    900px;
+            "
+        >
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Perangkat
+                    </th>
+
+                    <th>
+                        IP
+                    </th>
+
+                    <th>
+                        MAC
+                    </th>
+
+                    <th>
+                        Vendor
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Sinyal / Latency
+                    </th>
+
+                    <th>
+                        Sumber
+                    </th>
+
+                    <th>
+                        Aksi
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody
+                id="device-table-body"
+            >
+
+                <tr>
+
+                    <td
+                        colspan="8"
+                        style="
+                            text-align:
+                                center;
+                            color:
+                                var(--text-muted);
+                            padding:
+                                30px;
+                        "
+                    >
+
+                        <i
+                            class="fas fa-spinner fa-spin"
+                        ></i>
+
+                        Membaca jaringan lokal...
+
+                    </td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+```
+
 </div>
 
 <script>
 
 let trafficChart = null;
+
 let networkRefreshTimer = null;
 
 let isScanning = false;
+
 let scanController = null;
 
 
 /* =========================================================
-   INIT
+   INITIALIZE
 ========================================================= */
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
 
-    cleanupBaseLayout();
+        cleanupBaseLayout();
 
-    initializeTrafficChart();
+        initializeTrafficChart();
 
-    fetchRealTimeData();
+        fetchRealTimeData(true);
 
-    /*
-     * Polling otomatis.
-     *
-     * Dibuat 5 detik tetapi request baru tidak akan
-     * dijalankan jika request sebelumnya masih berjalan.
-     */
-    networkRefreshTimer = setInterval(function () {
 
-        if (!isScanning) {
-            fetchRealTimeData(false);
-        }
+        /*
+         * Polling.
+         */
+        networkRefreshTimer =
+            setInterval(
+                function () {
 
-    }, 5000);
+                    if (!isScanning) {
 
-});
+                        fetchRealTimeData(false);
+
+                    }
+
+                },
+                5000
+            );
+
+    }
+);
 
 
 /* =========================================================
@@ -767,11 +1761,15 @@ document.addEventListener('DOMContentLoaded', function () {
 function cleanupBaseLayout() {
 
     const baseCanvas =
-        document.querySelector('main > div.bg-white');
+        document.querySelector(
+            'main > div.bg-white'
+        );
 
     if (baseCanvas) {
 
-        baseCanvas.classList.remove('bg-white');
+        baseCanvas.classList.remove(
+            'bg-white'
+        );
 
         baseCanvas.style.backgroundColor =
             '#0f172a';
@@ -806,133 +1804,188 @@ function cleanupBaseLayout() {
 
 
 /* =========================================================
-   CHART
+   TRAFFIC CHART
 ========================================================= */
 
 function initializeTrafficChart() {
 
     const canvas =
-        document.getElementById('trafficChart');
+        document.getElementById(
+            'trafficChart'
+        );
 
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
 
-    trafficChart = new Chart(ctx, {
+    const ctx =
+        canvas.getContext('2d');
 
-        type: 'line',
 
-        data: {
+    trafficChart =
+        new Chart(
+            ctx,
+            {
 
-            labels: [
-                '-30s',
-                '-25s',
-                '-20s',
-                '-15s',
-                '-10s',
-                '-5s',
-                'Now'
-            ],
+                type:
+                    'line',
 
-            datasets: [
+                data:
+                    {
 
-                {
-                    label: 'Download (Mbps)',
+                        labels:
+                            [
+                                '-30s',
+                                '-25s',
+                                '-20s',
+                                '-15s',
+                                '-10s',
+                                '-5s',
+                                'Now'
+                            ],
 
-                    data: [
-                        0, 0, 0, 0, 0, 0, 0
-                    ],
+                        datasets:
+                            [
 
-                    borderColor: '#06b6d4',
+                                {
+                                    label:
+                                        'Download (Mbps)',
 
-                    backgroundColor:
-                        'rgba(6, 182, 212, 0.1)',
+                                    data:
+                                        [
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0
+                                        ],
 
-                    borderWidth: 2,
+                                    borderColor:
+                                        '#06b6d4',
 
-                    fill: true,
+                                    backgroundColor:
+                                        'rgba(6,182,212,0.10)',
 
-                    tension: 0.4
-                },
+                                    borderWidth:
+                                        2,
 
-                {
-                    label: 'Upload (Mbps)',
+                                    fill:
+                                        true,
 
-                    data: [
-                        0, 0, 0, 0, 0, 0, 0
-                    ],
+                                    tension:
+                                        0.4
+                                },
 
-                    borderColor: '#a855f7',
+                                {
+                                    label:
+                                        'Upload (Mbps)',
 
-                    backgroundColor:
-                        'rgba(168, 85, 247, 0.1)',
+                                    data:
+                                        [
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0,
+                                            0
+                                        ],
 
-                    borderWidth: 2,
+                                    borderColor:
+                                        '#a855f7',
 
-                    fill: true,
+                                    backgroundColor:
+                                        'rgba(168,85,247,0.10)',
 
-                    tension: 0.4
-                }
+                                    borderWidth:
+                                        2,
 
-            ]
+                                    fill:
+                                        true,
 
-        },
+                                    tension:
+                                        0.4
+                                }
 
-        options: {
+                            ]
 
-            responsive: true,
+                    },
 
-            maintainAspectRatio: false,
+                options:
+                    {
 
-            animation: false,
+                        responsive:
+                            true,
 
-            plugins: {
+                        maintainAspectRatio:
+                            false,
 
-                legend: {
+                        animation:
+                            false,
 
-                    labels: {
-                        color: '#94a3b8'
+                        plugins:
+                            {
+
+                                legend:
+                                    {
+
+                                        labels:
+                                            {
+                                                color:
+                                                    '#94a3b8'
+                                            }
+
+                                    }
+
+                            },
+
+                        scales:
+                            {
+
+                                x:
+                                    {
+
+                                        grid:
+                                            {
+                                                color:
+                                                    '#334155'
+                                            },
+
+                                        ticks:
+                                            {
+                                                color:
+                                                    '#94a3b8'
+                                            }
+
+                                    },
+
+                                y:
+                                    {
+
+                                        beginAtZero:
+                                            true,
+
+                                        grid:
+                                            {
+                                                color:
+                                                    '#334155'
+                                            },
+
+                                        ticks:
+                                            {
+                                                color:
+                                                    '#94a3b8'
+                                            }
+
+                                    }
+
+                            }
+
                     }
-
-                }
-
-            },
-
-            scales: {
-
-                x: {
-
-                    grid: {
-                        color: '#334155'
-                    },
-
-                    ticks: {
-                        color: '#94a3b8'
-                    }
-
-                },
-
-                y: {
-
-                    grid: {
-                        color: '#334155'
-                    },
-
-                    ticks: {
-                        color: '#94a3b8'
-                    },
-
-                    suggestedMin: 0,
-
-                    suggestedMax: 100
-
-                }
 
             }
-
-        }
-
-    });
+        );
 
 }
 
@@ -943,36 +1996,50 @@ function initializeTrafficChart() {
 
 function forceNetworkScan() {
 
-    /*
-     * Batalkan request sebelumnya jika masih berjalan.
-     */
     if (scanController) {
 
         try {
+
             scanController.abort();
+
         } catch (e) {}
 
     }
 
-    fetchRealTimeData(true);
+
+    fetchRealTimeData(
+        true
+    );
 
 }
 
 
 /* =========================================================
-   FETCH NETWORK DATA
+   FETCH
 ========================================================= */
 
-async function fetchRealTimeData(manual = false) {
+async function fetchRealTimeData(
+    manual = false
+) {
 
-    if (isScanning && !manual) {
+    if (
+        isScanning &&
+        !manual
+    ) {
+
         return;
+
     }
+
 
     isScanning = true;
 
+
     const button =
-        document.getElementById('scan-network-btn');
+        document.getElementById(
+            'scan-network-btn'
+        );
+
 
     if (button) {
 
@@ -984,57 +2051,82 @@ async function fetchRealTimeData(manual = false) {
     }
 
 
-    /*
-     * AbortController untuk mencegah frontend
-     * menggantung terlalu lama.
-     */
-    scanController = new AbortController();
+    scanController =
+        new AbortController();
+
 
     const timeout =
-        setTimeout(function () {
+        setTimeout(
+            function () {
 
-            if (scanController) {
-                scanController.abort();
-            }
+                try {
 
-        }, 15000);
+                    scanController.abort();
+
+                } catch (e) {}
+
+            },
+            15000
+        );
 
 
     try {
 
-        const response = await fetch(
-            '/api/network-data?_=' + Date.now(),
-            {
-                method: 'GET',
+        const url =
+            '/api/network-data' +
+            (
+                manual
+                    ? '?refresh=1&_='
+                    : '?_='
+            ) +
+            Date.now();
 
-                cache: 'no-store',
 
-                signal: scanController.signal,
+        const response =
+            await fetch(
+                url,
+                {
 
-                headers: {
+                    method:
+                        'GET',
 
-                    'Accept':
-                        'application/json',
+                    cache:
+                        'no-store',
 
-                    'Cache-Control':
-                        'no-cache',
+                    signal:
+                        scanController.signal,
 
-                    'Pragma':
-                        'no-cache'
+                    credentials:
+                        'same-origin',
+
+                    headers:
+                        {
+
+                            'Accept':
+                                'application/json',
+
+                            'Cache-Control':
+                                'no-cache',
+
+                            'Pragma':
+                                'no-cache'
+
+                        }
 
                 }
+            );
 
-            }
+
+        clearTimeout(
+            timeout
         );
-
-
-        clearTimeout(timeout);
 
 
         if (!response.ok) {
 
             throw new Error(
-                'HTTP ' + response.status
+                'HTTP ' +
+                response.status
             );
 
         }
@@ -1045,20 +2137,19 @@ async function fetchRealTimeData(manual = false) {
 
 
         console.log(
-            'Network API:',
+            'NETWORK DATA:',
             data
         );
 
 
         if (
             data &&
-            (
-                data.status === 'success' ||
-                data.success === true
-            )
+            data.status === 'success'
         ) {
 
-            updateDashboardUI(data);
+            updateDashboardUI(
+                data
+            );
 
             showConnectionState(
                 true,
@@ -1069,53 +2160,57 @@ async function fetchRealTimeData(manual = false) {
 
             const message =
                 data?.message ||
-                'Backend tidak mengembalikan data jaringan.';
+                'Data jaringan tidak tersedia.';
+
 
             showConnectionState(
                 false,
                 message
             );
 
-            renderEmptyDevices(message);
+
+            renderEmptyDevices(
+                message
+            );
 
         }
 
 
     } catch (error) {
 
-        clearTimeout(timeout);
+        clearTimeout(
+            timeout
+        );
 
 
         if (
-            error.name === 'AbortError'
+            error.name ===
+            'AbortError'
         ) {
-
-            console.warn(
-                'Request network-data timeout/dibatalkan.'
-            );
 
             showConnectionState(
                 false,
-                'Pengecekan jaringan terlalu lama.'
+                'Proses deteksi terlalu lama.'
             );
 
         } else {
 
             console.error(
-                'Gagal mengambil data jaringan:',
+                'NETWORK ERROR:',
                 error
             );
 
+
             showConnectionState(
                 false,
-                'Backend monitoring tidak dapat dihubungi.'
+                'API jaringan tidak dapat dihubungi.'
             );
 
         }
 
 
         renderEmptyDevices(
-            'Gagal mendapatkan data perangkat dari service monitoring.'
+            'Perangkat belum berhasil diperoleh dari backend.'
         );
 
 
@@ -1141,132 +2236,106 @@ async function fetchRealTimeData(manual = false) {
 
 
 /* =========================================================
-   UPDATE DASHBOARD
+   DASHBOARD UPDATE
 ========================================================= */
 
-function updateDashboardUI(data) {
+function updateDashboardUI(
+    data
+) {
 
     const router =
         data.router || {};
 
 
-    /*
-     * Mendukung beberapa kemungkinan nama field
-     * dari backend.
-     */
+    const local =
+        data.local || {};
 
-    const ssid =
-        data.ssid ||
-        data.network_name ||
-        data.network ||
-        router.ssid ||
-        router.network_name ||
-        '-';
+
+    const wan =
+        data.wan || {};
+
+
+    const devices =
+        Array.isArray(
+            data.devices
+        )
+            ? data.devices
+            : [];
 
 
     const gateway =
-        router.gateway ||
-        data.gateway ||
-        data.gateway_ip ||
+        router.ip ||
         '-';
 
 
     const localIP =
-        router.local_ip ||
-        data.local_ip ||
-        data.localIp ||
+        local.ip ||
         '-';
 
 
     const publicIP =
-        router.public_ip ||
-        data.public_ip ||
-        data.publicIp ||
+        wan.public_ip ||
         '-';
 
 
-    const routerMAC =
-        router.mac ||
-        data.router_mac ||
-        data.mac ||
+    const routerVendor =
+        router.vendor ||
         '-';
 
 
     const routerHostname =
         router.hostname ||
-        data.router_hostname ||
-        data.hostname ||
-        'Router';
-
-
-    const routerVendor =
-        router.vendor ||
-        data.router_vendor ||
-        data.vendor ||
-        routerHostname ||
         '-';
 
 
-    const latency =
-        router.latency_ms ??
-        data.latency_ms ??
-        data.latency ??
-        null;
+    const routerMAC =
+        router.mac ||
+        '-';
 
 
     const routerOnline =
-        router.online !== undefined
-            ? router.online
-            : (
-                data.router_online !== undefined
-                    ? data.router_online
-                    : true
-            );
-
-
-    const devices =
-        Array.isArray(data.devices)
-            ? data.devices
-            : [];
-
-
-    const clientsCount =
-        Number.isFinite(
-            Number(data.clients_count)
-        )
-            ? Number(data.clients_count)
-            : (
-                Number.isFinite(
-                    Number(data.client_count)
-                )
-                    ? Number(data.client_count)
-                    : devices.length
-            );
-
-
-    const download =
-        parseNumber(
-            data.download_mbps ??
-            data.download ??
-            data.download_speed ??
-            0
+        Boolean(
+            router.online
         );
 
 
-    const upload =
-        parseNumber(
-            data.upload_mbps ??
-            data.upload ??
-            data.upload_speed ??
-            0
+    const latency =
+        router.latency_ms !== undefined &&
+        router.latency_ms !== null
+            ? Number(
+                router.latency_ms
+            )
+            : null;
+
+
+    const network =
+        local.network ||
+        '-';
+
+
+    const prefix =
+        local.prefix !== undefined &&
+        local.prefix !== null
+            ? '/' +
+                local.prefix
+            : '-';
+
+
+    const clientCount =
+        Number(
+            data.clients_count || 0
         );
 
 
-    const avgSignal =
-        parseSignal(
-            data.avg_signal ??
-            data.average_signal ??
-            null
+    const knownCount =
+        Number(
+            data.known_devices_count || 0
+        );
+
+
+    const activeDiscovery =
+        Boolean(
+            data.active_discovery
         );
 
 
@@ -1276,7 +2345,9 @@ function updateDashboardUI(data) {
 
     setText(
         'network-name',
-        ssid !== '-' ? ssid : 'Jaringan Lokal'
+        network !== '-'
+            ? network
+            : 'Jaringan Lokal'
     );
 
 
@@ -1292,7 +2363,7 @@ function updateDashboardUI(data) {
 
     setText(
         'router-ip',
-        gateway !== '-' ? gateway : 'Tidak diketahui'
+        gateway
     );
 
 
@@ -1307,7 +2378,7 @@ function updateDashboardUI(data) {
 
 
     /*
-     * STATUS ROUTER
+     * ROUTER STATUS
      */
 
     updateRouterStatus(
@@ -1322,18 +2393,21 @@ function updateDashboardUI(data) {
 
     setText(
         'client-count',
-        clientsCount + ' Perangkat'
+        clientCount +
+        ' Perangkat'
     );
 
 
     setText(
         'scan-info',
-        'Diperbarui ' + getCurrentTime()
+        knownCount +
+        ' terdeteksi · ' +
+        getCurrentTime()
     );
 
 
     /*
-     * PUBLIC IP
+     * WAN
      */
 
     setText(
@@ -1344,68 +2418,108 @@ function updateDashboardUI(data) {
 
     setText(
         'local-ip',
-        'Local: ' + localIP
+        'Local: ' +
+        localIP
     );
 
 
     /*
-     * STATUS NETWORK
+     * NETWORK DETAILS
      */
 
-    const statusText =
-        routerOnline
-            ? (
-                ssid !== '-'
-                    ? 'Terhubung'
-                    : 'Online'
-            )
-            : 'Router Offline';
+    setText(
+        'network-cidr',
+        network
+    );
 
 
     setText(
-        'network-status',
-        statusText
+        'network-prefix',
+        prefix
+    );
+
+
+    setText(
+        'local-hostname',
+        local.hostname ||
+        '-'
+    );
+
+
+    setText(
+        'discovery-mode',
+        activeDiscovery
+            ? 'Active Discovery'
+            : 'ARP / Neighbour Table'
     );
 
 
     /*
-     * CHART
+     * ROUTER DETAIL
      */
 
-    updateTrafficChart(
-        download,
-        upload
+    setText(
+        'detail-gateway',
+        gateway
+    );
+
+
+    setText(
+        'detail-router-mac',
+        routerMAC
+    );
+
+
+    setText(
+        'detail-router-vendor',
+        routerVendor
+    );
+
+
+    setText(
+        'detail-router-hostname',
+        routerHostname
     );
 
 
     /*
-     * DEVICES
+     * DEVICE COUNT
      */
 
-    renderDevices(devices);
+    setText(
+        'topology-count',
+        devices.length +
+        ' perangkat'
+    );
+
+
+    setText(
+        'device-table-info',
+        (
+            'Aktif: ' +
+            clientCount +
+            ' · Dikenal: ' +
+            knownCount
+        )
+    );
 
 
     /*
-     * Tooltip header
+     * TRAFFIC
      */
 
-    updateRouterInfo({
+    updateTrafficData(
+        data
+    );
 
-        gateway: gateway,
 
-        local_ip: localIP,
+    /*
+     * TABLE + TOPOLOGY
+     */
 
-        public_ip: publicIP,
-
-        latency_ms: latency,
-
-        vendor: routerVendor,
-
-        hostname: routerHostname,
-
-        mac: routerMAC
-
-    });
+    renderDevices(
+        devices
+    );
 
 }
 
@@ -1424,10 +2538,12 @@ function updateRouterStatus(
             'router-status'
         );
 
+
     const icon =
         document.getElementById(
             'router-status-icon'
         );
+
 
     const latencyElement =
         document.getElementById(
@@ -1440,7 +2556,9 @@ function updateRouterStatus(
 
     if (online) {
 
-        status.innerText = 'Online';
+        status.innerText =
+            'Online';
+
 
         status.style.color =
             'var(--signal-excellent)';
@@ -1457,23 +2575,23 @@ function updateRouterStatus(
         }
 
 
-        if (latency !== null) {
+        latencyElement.innerText =
+            latency !== null
+                ? (
+                    'Latency: ' +
+                    formatNumber(
+                        latency
+                    ) +
+                    ' ms'
+                )
+                : 'Latency: Tidak tersedia';
 
-            latencyElement.innerText =
-                'Latency: ' +
-                formatNumber(latency) +
-                ' ms';
-
-        } else {
-
-            latencyElement.innerText =
-                'Latency: -';
-
-        }
 
     } else {
 
-        status.innerText = 'Offline';
+        status.innerText =
+            'Offline';
+
 
         status.style.color =
             'var(--signal-weak)';
@@ -1499,53 +2617,164 @@ function updateRouterStatus(
 
 
 /* =========================================================
-   TRAFFIC CHART
+   TRAFFIC
 ========================================================= */
 
-function updateTrafficChart(
-    download,
-    upload
+function updateTrafficData(
+    data
 ) {
 
     if (!trafficChart) return;
 
 
-    const dlData =
-        trafficChart.data.datasets[0].data;
+    const download =
+        Number(
+            data.download_mbps
+        );
 
-    const ulData =
-        trafficChart.data.datasets[1].data;
+
+    const upload =
+        Number(
+            data.upload_mbps
+        );
 
 
-    dlData.shift();
+    const validDownload =
+        Number.isFinite(
+            download
+        );
 
-    dlData.push(
-        download
+
+    const validUpload =
+        Number.isFinite(
+            upload
+        );
+
+
+    const hasRealTraffic =
+        validDownload ||
+        validUpload;
+
+
+    const downloadValue =
+        validDownload
+            ? download
+            : 0;
+
+
+    const uploadValue =
+        validUpload
+            ? upload
+            : 0;
+
+
+    trafficChart
+        .data
+        .datasets[0]
+        .data
+        .shift();
+
+
+    trafficChart
+        .data
+        .datasets[0]
+        .data
+        .push(
+            downloadValue
+        );
+
+
+    trafficChart
+        .data
+        .datasets[1]
+        .data
+        .shift();
+
+
+    trafficChart
+        .data
+        .datasets[1]
+        .data
+        .push(
+            uploadValue
+        );
+
+
+    trafficChart.update(
+        'none'
     );
 
 
-    ulData.shift();
+    const state =
+        document.getElementById(
+            'traffic-state'
+        );
 
-    ulData.push(
-        upload
-    );
+
+    const note =
+        document.getElementById(
+            'traffic-note'
+        );
 
 
-    trafficChart.update('none');
+    if (hasRealTraffic) {
+
+        if (state) {
+
+            state.innerText =
+                'Data tersedia';
+
+            state.style.color =
+                'var(--signal-excellent)';
+
+        }
+
+
+        if (note) {
+
+            note.innerText =
+                'Throughput berasal dari backend.';
+
+        }
+
+    } else {
+
+        if (state) {
+
+            state.innerText =
+                'Tidak tersedia';
+
+            state.style.color =
+                'var(--text-muted)';
+
+        }
+
+
+        if (note) {
+
+            note.innerText =
+                'Backend belum menyediakan data throughput. Grafik tidak dianggap sebagai speed test.';
+
+        }
+
+    }
 
 }
 
 
 /* =========================================================
-   DEVICE RENDER
+   DEVICE TABLE
 ========================================================= */
 
-function renderDevices(devices) {
+function renderDevices(
+    devices
+) {
 
     const tbody =
         document.getElementById(
             'device-table-body'
         );
+
 
     const radar =
         document.getElementById(
@@ -1556,28 +2785,29 @@ function renderDevices(devices) {
     if (!tbody || !radar) return;
 
 
-    /*
-     * Hapus node lama.
-     */
-
     radar
         .querySelectorAll(
             '.device-node'
         )
-        .forEach(function (node) {
+        .forEach(
+            function (node) {
 
-            node.remove();
+                node.remove();
 
-        });
+            }
+        );
 
 
     if (
-        !Array.isArray(devices) ||
+        !Array.isArray(
+            devices
+        )
+        ||
         devices.length === 0
     ) {
 
         renderEmptyDevices(
-            'Tidak ada perangkat aktif yang terdeteksi pada jaringan saat ini.'
+            'Tidak ada perangkat yang terdeteksi.'
         );
 
         return;
@@ -1585,77 +2815,100 @@ function renderDevices(devices) {
     }
 
 
-    tbody.innerHTML = '';
+    tbody.innerHTML =
+        '';
 
 
     devices.forEach(
-        function (device, index) {
-
-            const signal =
-                normalizeSignal(
-                    device.signal ??
-                    device.rssi ??
-                    device.signal_dbm
-                );
-
-
-            const signalInfo =
-                getSignalInfo(signal);
-
-
-            const rawHostname =
-                device.hostname ||
-                device.name ||
-                device.host ||
-                device.ip ||
-                'Unknown Device';
-
-
-            const rawOS =
-                device.os ||
-                device.vendor ||
-                device.type ||
-                'Unknown Device';
-
+        function (
+            device,
+            index
+        ) {
 
             const ip =
                 device.ip ||
-                device.ip_address ||
                 '-';
 
 
             const mac =
                 device.mac ||
-                device.mac_address ||
                 '-';
 
 
-            /*
-             * TABLE
-             */
+            const hostname =
+                device.hostname ||
+                (
+                    device.role === 'router'
+                        ? 'Router'
+                        : 'Unknown Device'
+                );
+
+
+            const vendor =
+                device.vendor ||
+                '-';
+
+
+            const role =
+                device.role ||
+                'device';
+
+
+            const state =
+                device.state ||
+                '-';
+
+
+            const source =
+                device.source ||
+                '-';
+
+
+            const online =
+                Boolean(
+                    device.online
+                );
+
+
+            const latency =
+                device.latency_ms !== undefined &&
+                device.latency_ms !== null
+                    ? Number(
+                        device.latency_ms
+                    )
+                    : null;
+
 
             const tr =
-                document.createElement('tr');
-
-
-            const hostname =
-                escapeHtml(
-                    rawHostname
+                document.createElement(
+                    'tr'
                 );
 
 
-            const os =
-                escapeHtml(
-                    rawOS
+            const statusClass =
+                online
+                    ? (
+                        role === 'router'
+                            ? 'bg-router'
+                            : 'bg-online'
+                    )
+                    : 'bg-offline';
+
+
+            const statusText =
+                online
+                    ? (
+                        role === 'router'
+                            ? 'Router Online'
+                            : 'Online'
+                    )
+                    : 'Offline';
+
+
+            const quality =
+                getDeviceQuality(
+                    device
                 );
-
-
-            const safeIP =
-                escapeHtml(ip);
-
-
-            const safeMAC =
-                escapeHtml(mac);
 
 
             tr.innerHTML = `
@@ -1663,36 +2916,59 @@ function renderDevices(devices) {
                 <td>
 
                     <strong>
-                        ${hostname}
+                        ${escapeHtml(hostname)}
                     </strong>
 
                     <br>
 
                     <span
                         style="
-                            color: var(--text-muted);
-                            font-size: 0.8rem;
+                            color:
+                                var(--text-muted);
+                            font-size:
+                                0.78rem;
                         "
                     >
-                        ${os}
+                        ${escapeHtml(role)}
                     </span>
 
                 </td>
 
 
                 <td>
+                    ${escapeHtml(ip)}
+                </td>
 
-                    ${safeIP}
+
+                <td>
+                    ${escapeHtml(mac)}
+                </td>
+
+
+                <td>
+                    ${escapeHtml(vendor)}
+                </td>
+
+
+                <td>
+
+                    <span
+                        class="badge ${statusClass}"
+                    >
+                        ${statusText}
+                    </span>
 
                     <br>
 
                     <span
                         style="
-                            color: var(--text-muted);
-                            font-size: 0.8rem;
+                            color:
+                                var(--text-muted);
+                            font-size:
+                                0.72rem;
                         "
                     >
-                        ${safeMAC}
+                        ${escapeHtml(state)}
                     </span>
 
                 </td>
@@ -1700,30 +2976,32 @@ function renderDevices(devices) {
 
                 <td>
 
-                    <div
-                        style="font-weight: bold;"
+                    ${
+                        latency !== null
+                            ? (
+                                '<strong>' +
+                                formatNumber(
+                                    latency
+                                ) +
+                                ' ms</strong>'
+                            )
+                            : (
+                                '<span style="color:var(--text-muted)">N/A</span>'
+                            )
+                    }
+
+                    <br>
+
+                    <span
+                        style="
+                            color:
+                                var(--text-muted);
+                            font-size:
+                                0.72rem;
+                        "
                     >
-                        ${
-                            signal !== null
-                                ? signal + ' dBm'
-                                : 'N/A'
-                        }
-                    </div>
-
-
-                    <div
-                        class="signal-bar-container"
-                    >
-
-                        <div
-                            class="signal-bar ${signalInfo.signalClass}"
-                            style="
-                                width:
-                                ${signalInfo.barWidth}%;
-                            "
-                        ></div>
-
-                    </div>
+                        ${quality}
+                    </span>
 
                 </td>
 
@@ -1731,9 +3009,14 @@ function renderDevices(devices) {
                 <td>
 
                     <span
-                        class="badge ${signalInfo.signalClass}"
+                        style="
+                            color:
+                                var(--text-muted);
+                            font-size:
+                                0.78rem;
+                        "
                     >
-                        ${signalInfo.badgeText}
+                        ${escapeHtml(source)}
                     </span>
 
                 </td>
@@ -1765,24 +3048,9 @@ function renderDevices(devices) {
                     'click',
                     function () {
 
-                        showDeviceInfo({
-
-                            hostname:
-                                rawHostname,
-
-                            ip:
-                                ip,
-
-                            mac:
-                                mac,
-
-                            signal:
-                                signal,
-
-                            os:
-                                rawOS
-
-                        });
+                        showDeviceInfo(
+                            device
+                        );
 
                     }
                 );
@@ -1790,23 +3058,79 @@ function renderDevices(devices) {
             }
 
 
-            tbody.appendChild(tr);
+            tbody.appendChild(
+                tr
+            );
 
-
-            /*
-             * RADAR
-             */
 
             createRadarNode(
                 radar,
                 device,
-                signal,
-                signalInfo,
                 index
             );
 
         }
     );
+
+}
+
+
+/* =========================================================
+   DEVICE QUALITY
+========================================================= */
+
+function getDeviceQuality(
+    device
+) {
+
+    const latency =
+        Number(
+            device.latency_ms
+        );
+
+
+    if (
+        Number.isFinite(
+            latency
+        )
+    ) {
+
+        if (latency <= 20) {
+
+            return 'Respons sangat baik';
+
+        }
+
+
+        if (latency <= 60) {
+
+            return 'Respons normal';
+
+        }
+
+
+        if (latency <= 120) {
+
+            return 'Respons lambat';
+
+        }
+
+
+        return 'Respons sangat lambat';
+
+    }
+
+
+    if (
+        device.online
+    ) {
+
+        return 'Aktif, latency tidak diukur';
+
+    }
+
+
+    return 'Tidak aktif';
 
 }
 
@@ -1818,10 +3142,29 @@ function renderDevices(devices) {
 function createRadarNode(
     radar,
     device,
-    signal,
-    signalInfo,
     index
 ) {
+
+    const role =
+        device.role ||
+        'device';
+
+
+    const online =
+        Boolean(
+            device.online
+        );
+
+
+    const latency =
+        Number(
+            device.latency_ms
+        );
+
+
+    /*
+     * Posisi visual hanya representasi.
+     */
 
     const angle =
         getStableAngle(
@@ -1830,102 +3173,74 @@ function createRadarNode(
         );
 
 
-    /*
-     * Semakin kecil nilai dBm negatif,
-     * semakin dekat ke router.
-     */
-
-    const radius =
-        signal === null
-            ? 38
-            : Math.max(
-                12,
-                Math.min(
-                    44,
-                    (Math.abs(signal) - 30) * 0.8
-                )
-            );
-
-
-    const topPos =
-        50 +
-        radius *
-        Math.sin(angle);
-
-
-    const leftPos =
-        50 +
-        radius *
-        Math.cos(angle);
-
-
-    /*
-     * ICON DEVICE
-     */
-
-    let deviceIcon =
-        'fa-mobile-alt';
-
-
-    const deviceText =
-        (
-            (device.os || '') +
-            ' ' +
-            (device.vendor || '') +
-            ' ' +
-            (device.type || '') +
-            ' ' +
-            (device.hostname || '') +
-            ' ' +
-            (device.name || '')
-        ).toLowerCase();
+    let radius = 34;
 
 
     if (
-        deviceText.includes('windows') ||
-        deviceText.includes('desktop') ||
-        deviceText.includes('pc')
+        Number.isFinite(
+            latency
+        )
     ) {
 
-        deviceIcon =
-            'fa-desktop';
+        if (latency <= 20) {
 
-    } else if (
-        deviceText.includes('mac') ||
-        deviceText.includes('laptop')
-    ) {
+            radius = 16;
 
-        deviceIcon =
-            'fa-laptop';
+        } else if (latency <= 60) {
 
-    } else if (
-        deviceText.includes('router') ||
-        deviceText.includes('gateway')
-    ) {
+            radius = 27;
 
-        deviceIcon =
-            'fa-network-wired';
+        } else if (latency <= 120) {
 
-    } else if (
-        deviceText.includes('tv') ||
-        deviceText.includes('television')
-    ) {
+            radius = 38;
 
-        deviceIcon =
-            'fa-tv';
+        } else {
 
-    } else if (
-        deviceText.includes('printer')
-    ) {
+            radius = 44;
 
-        deviceIcon =
-            'fa-print';
+        }
+
+    } else {
+
+        radius =
+            25 +
+            (
+                index % 3
+            ) *
+            8;
 
     }
 
 
+    if (
+        role === 'router'
+    ) {
+
+        return;
+
+    }
+
+
+    const top =
+        50 +
+        radius *
+        Math.sin(
+            angle
+        );
+
+
+    const left =
+        50 +
+        radius *
+        Math.cos(
+            angle
+        );
+
+
     const node =
-        document.createElement('div');
+        document.createElement(
+            'div'
+        );
 
 
     node.className =
@@ -1937,7 +3252,7 @@ function createRadarNode(
             5,
             Math.min(
                 95,
-                topPos
+                top
             )
         ) + '%';
 
@@ -1947,57 +3262,105 @@ function createRadarNode(
             5,
             Math.min(
                 95,
-                leftPos
+                left
             )
         ) + '%';
 
 
-    const hostname =
+    let nodeClass =
+        'node-offline';
+
+
+    if (online) {
+
+        if (
+            Number.isFinite(
+                latency
+            )
+            &&
+            latency <= 60
+        ) {
+
+            nodeClass =
+                'node-online';
+
+        } else {
+
+            nodeClass =
+                'node-latency';
+
+        }
+
+    }
+
+
+    const icon =
+        getDeviceIcon(
+            device
+        );
+
+
+    const name =
         device.hostname ||
-        device.name ||
         device.ip ||
         'Device';
 
 
     const label =
-        escapeHtml(
-            hostname +
-            (
-                signal !== null
-                    ? ` (${signal}dBm)`
-                    : ''
+        Number.isFinite(
+            latency
+        )
+            ? (
+                name +
+                ' · ' +
+                latency +
+                'ms'
             )
-        );
+            : name;
 
 
     node.innerHTML = `
 
         <div
-            class="node-icon ${signalInfo.iconClass}"
+            class="node-icon ${nodeClass}"
         >
+
             <i
-                class="fas ${deviceIcon}"
+                class="fas ${icon}"
             ></i>
+
         </div>
 
 
         <div class="node-label">
-            ${label}
+
+            ${escapeHtml(label)}
+
         </div>
 
     `;
 
 
     node.title =
-        (
-            (device.ip || '-') +
-            ' | ' +
-            (device.mac || '-') +
-            (
-                signal !== null
-                    ? ' | ' + signal + ' dBm'
-                    : ''
-            )
+        [
+            'IP: ' +
+                (device.ip || '-'),
+
+            'MAC: ' +
+                (device.mac || '-'),
+
+            'Vendor: ' +
+                (device.vendor || '-'),
+
+            'Status: ' +
+                (
+                    online
+                        ? 'Online'
+                        : 'Offline'
+                )
+
+        ].join(
+            ' | '
         );
 
 
@@ -2005,43 +3368,122 @@ function createRadarNode(
         'click',
         function () {
 
-            showDeviceInfo({
-
-                hostname:
-                    device.hostname ||
-                    device.name ||
-                    'Unknown Device',
-
-                ip:
-                    device.ip ||
-                    '-',
-
-                mac:
-                    device.mac ||
-                    '-',
-
-                signal:
-                    signal,
-
-                os:
-                    device.os ||
-                    device.vendor ||
-                    device.type ||
-                    '-'
-
-            });
+            showDeviceInfo(
+                device
+            );
 
         }
     );
 
 
-    radar.appendChild(node);
+    radar.appendChild(
+        node
+    );
 
 }
 
 
 /* =========================================================
-   STABLE RADAR POSITION
+   ICON
+========================================================= */
+
+function getDeviceIcon(
+    device
+) {
+
+    const text =
+        (
+            (device.vendor || '') +
+            ' ' +
+            (device.hostname || '') +
+            ' ' +
+            (device.role || '')
+        ).toLowerCase();
+
+
+    if (
+        device.role ===
+        'router'
+    ) {
+
+        return 'fa-router';
+
+    }
+
+
+    if (
+        text.includes(
+            'apple'
+        )
+    ) {
+
+        return 'fa-mobile-alt';
+
+    }
+
+
+    if (
+        text.includes(
+            'android'
+        )
+    ) {
+
+        return 'fa-mobile-alt';
+
+    }
+
+
+    if (
+        text.includes(
+            'windows'
+        )
+    ) {
+
+        return 'fa-desktop';
+
+    }
+
+
+    if (
+        text.includes(
+            'tv'
+        )
+    ) {
+
+        return 'fa-tv';
+
+    }
+
+
+    if (
+        text.includes(
+            'printer'
+        )
+    ) {
+
+        return 'fa-print';
+
+    }
+
+
+    if (
+        text.includes(
+            'laptop'
+        )
+    ) {
+
+        return 'fa-laptop';
+
+    }
+
+
+    return 'fa-device-mobile';
+
+}
+
+
+/* =========================================================
+   STABLE ANGLE
 ========================================================= */
 
 function getStableAngle(
@@ -2063,7 +3505,8 @@ function getStableAngle(
         index;
 
 
-    let hash = 0;
+    let hash =
+        0;
 
 
     for (
@@ -2074,12 +3517,15 @@ function getStableAngle(
 
         hash =
             (
-                (hash << 5) -
+                (hash << 5)
+                -
                 hash
             ) +
             key.charCodeAt(i);
 
-        hash |= 0;
+
+        hash |=
+            0;
 
     }
 
@@ -2096,150 +3542,87 @@ function getStableAngle(
 
 
 /* =========================================================
-   SIGNAL
+   DEVICE DETAIL
 ========================================================= */
 
-function normalizeSignal(value) {
+function showDeviceInfo(
+    device
+) {
 
-    if (
-        value === undefined ||
-        value === null ||
-        value === ''
-    ) {
+    const text =
+        [
 
-        return null;
+            'Hostname : ' +
+                (
+                    device.hostname ||
+                    '-'
+                ),
 
-    }
+            'Role     : ' +
+                (
+                    device.role ||
+                    '-'
+                ),
+
+            'IP       : ' +
+                (
+                    device.ip ||
+                    '-'
+                ),
+
+            'MAC      : ' +
+                (
+                    device.mac ||
+                    '-'
+                ),
+
+            'Vendor   : ' +
+                (
+                    device.vendor ||
+                    '-'
+                ),
+
+            'State    : ' +
+                (
+                    device.state ||
+                    '-'
+                ),
+
+            'Source   : ' +
+                (
+                    device.source ||
+                    '-'
+                ),
+
+            'Status   : ' +
+                (
+                    device.online
+                        ? 'Online'
+                        : 'Offline'
+                ),
+
+            'Latency  : ' +
+                (
+                    device.latency_ms !== null &&
+                    device.latency_ms !== undefined
+                        ? device.latency_ms + ' ms'
+                        : 'N/A'
+                )
+
+        ].join(
+            '\n'
+        );
 
 
-    const number =
-        Number(value);
-
-
-    if (
-        !Number.isFinite(number)
-    ) {
-
-        return null;
-
-    }
-
-
-    return number > 0
-        ? -number
-        : number;
-
-}
-
-
-function parseSignal(value) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ''
-    ) {
-
-        return null;
-
-    }
-
-
-    return normalizeSignal(value);
+    window.alert(
+        text
+    );
 
 }
 
 
 /* =========================================================
-   SIGNAL INFO
-========================================================= */
-
-function getSignalInfo(signal) {
-
-    if (signal === null) {
-
-        return {
-
-            signalClass:
-                'bg-offline',
-
-            iconClass:
-                'node-weak',
-
-            badgeText:
-                'N/A',
-
-            barWidth:
-                0
-
-        };
-
-    }
-
-
-    if (signal > -60) {
-
-        return {
-
-            signalClass:
-                'bg-excellent',
-
-            iconClass:
-                'node-excellent',
-
-            badgeText:
-                'Sangat Kuat',
-
-            barWidth:
-                95
-
-        };
-
-    }
-
-
-    if (signal > -80) {
-
-        return {
-
-            signalClass:
-                'bg-good',
-
-            iconClass:
-                'node-good',
-
-            badgeText:
-                'Sedang',
-
-            barWidth:
-                60
-
-        };
-
-    }
-
-
-    return {
-
-        signalClass:
-            'bg-weak',
-
-        iconClass:
-            'node-weak',
-
-        badgeText:
-            'Lemah',
-
-        barWidth:
-            20
-
-    };
-
-}
-
-
-/* =========================================================
-   EMPTY DEVICES
+   EMPTY
 ========================================================= */
 
 function renderEmptyDevices(
@@ -2252,33 +3635,37 @@ function renderEmptyDevices(
         );
 
 
-    if (!tbody) return;
+    if (tbody) {
 
+        tbody.innerHTML = `
 
-    tbody.innerHTML = `
+            <tr>
 
-        <tr>
+                <td
+                    colspan="8"
+                    style="
+                        text-align:
+                            center;
+                        color:
+                            var(--text-muted);
+                        padding:
+                            30px;
+                    "
+                >
 
-            <td
-                colspan="5"
-                style="
-                    text-align: center;
-                    color: var(--text-muted);
-                    padding: 30px;
-                "
-            >
+                    <i
+                        class="fas fa-info-circle"
+                    ></i>
 
-                <i
-                    class="fas fa-info-circle"
-                ></i>
+                    ${escapeHtml(message)}
 
-                ${escapeHtml(message)}
+                </td>
 
-            </td>
+            </tr>
 
-        </tr>
+        `;
 
-    `;
+    }
 
 
     const radar =
@@ -2294,10 +3681,26 @@ function renderEmptyDevices(
                 '.device-node'
             )
             .forEach(
-                node => node.remove()
+                function (node) {
+
+                    node.remove();
+
+                }
             );
 
     }
+
+
+    setText(
+        'topology-count',
+        '0 perangkat'
+    );
+
+
+    setText(
+        'device-table-info',
+        'Tidak ada data'
+    );
 
 }
 
@@ -2308,7 +3711,7 @@ function renderEmptyDevices(
 
 function showConnectionState(
     online,
-    message = ''
+    message
 ) {
 
     const status =
@@ -2320,174 +3723,48 @@ function showConnectionState(
     if (!status) return;
 
 
-    if (online) {
-
-        status.innerText =
-            message || 'Terhubung';
-
-        status.style.color =
-            'var(--signal-excellent)';
-
-    } else {
-
-        status.innerText =
-            message || 'Tidak terhubung';
-
-        status.style.color =
-            'var(--signal-weak)';
-
-    }
-
-}
-
-
-/* =========================================================
-   ROUTER TOOLTIP
-========================================================= */
-
-function updateRouterInfo(
-    router
-) {
-
-    const header =
-        document.querySelector(
-            '#netmon-wrapper .header h1'
-        );
-
-
-    if (!header) return;
-
-
-    const parts = [];
-
-
-    if (router.gateway) {
-
-        parts.push(
-            'Gateway: ' +
-            router.gateway
-        );
-
-    }
-
-
-    if (router.local_ip) {
-
-        parts.push(
-            'Local IP: ' +
-            router.local_ip
-        );
-
-    }
-
-
-    if (router.public_ip) {
-
-        parts.push(
-            'WAN: ' +
-            router.public_ip
-        );
-
-    }
-
-
-    if (
-        router.vendor &&
-        router.vendor !== '-'
-    ) {
-
-        parts.push(
-            'Vendor: ' +
-            router.vendor
-        );
-
-    }
-
-
-    if (
-        router.hostname &&
-        router.hostname !== '-'
-    ) {
-
-        parts.push(
-            'Hostname: ' +
-            router.hostname
-        );
-
-    }
-
-
-    if (
-        router.mac &&
-        router.mac !== '-'
-    ) {
-
-        parts.push(
-            'MAC: ' +
-            router.mac
-        );
-
-    }
-
-
-    if (
-        router.latency_ms !== null &&
-        router.latency_ms !== undefined
-    ) {
-
-        parts.push(
-            'Ping: ' +
-            router.latency_ms +
-            ' ms'
-        );
-
-    }
-
-
-    if (parts.length) {
-
-        header.title =
-            parts.join(' | ');
-
-    }
-
-}
-
-
-/* =========================================================
-   DEVICE DETAIL
-========================================================= */
-
-function showDeviceInfo(
-    device
-) {
-
-    const details = [
-
-        'Hostname : ' +
-        (device.hostname || '-'),
-
-        'IP       : ' +
-        (device.ip || '-'),
-
-        'MAC      : ' +
-        (device.mac || '-'),
-
-        'Signal   : ' +
+    status.innerText =
+        message ||
         (
-            device.signal !== null &&
-            device.signal !== undefined
-                ? device.signal + ' dBm'
-                : 'N/A'
-        ),
-
-        'Device   : ' +
-        (device.os || '-')
-
-    ].join('\n');
+            online
+                ? 'Terhubung'
+                : 'Tidak terhubung'
+        );
 
 
-    window.alert(details);
+    status.style.color =
+        online
+            ? 'var(--signal-excellent)'
+            : 'var(--signal-weak)';
+
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+function scrollToSection(
+    id
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (!element) return;
+
+
+    element.scrollIntoView(
+        {
+            behavior:
+                'smooth',
+            block:
+                'start'
+        }
+    );
 
 }
 
@@ -2502,7 +3779,8 @@ function buildRouterDescription(
     mac
 ) {
 
-    let result = '';
+    const parts =
+        [];
 
 
     if (
@@ -2510,22 +3788,21 @@ function buildRouterDescription(
         vendor !== '-'
     ) {
 
-        result += vendor;
+        parts.push(
+            vendor
+        );
 
     }
 
 
     if (
         hostname &&
-        hostname !== '-' &&
-        hostname !== vendor
+        hostname !== '-'
     ) {
 
-        if (result) {
-            result += ' · ';
-        }
-
-        result += hostname;
+        parts.push(
+            hostname
+        );
 
     }
 
@@ -2535,16 +3812,20 @@ function buildRouterDescription(
         mac !== '-'
     ) {
 
-        if (result) {
-            result += ' · ';
-        }
-
-        result += mac;
+        parts.push(
+            mac
+        );
 
     }
 
 
-    return result || '-';
+    return (
+        parts.length
+            ? parts.join(
+                ' · '
+            )
+            : '-'
+    );
 
 }
 
@@ -2559,49 +3840,40 @@ function setText(
 ) {
 
     const element =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
 
     if (!element) return;
 
 
     element.innerText =
-        value !== undefined &&
-        value !== null
+        (
+            value !== undefined &&
+            value !== null &&
+            value !== ''
+        )
             ? value
             : '-';
 
 }
 
 
-function parseNumber(value) {
+function formatNumber(
+    value
+) {
 
     const number =
-        Number(value);
+        Number(
+            value
+        );
 
 
     if (
-        !Number.isFinite(number)
-    ) {
-
-        return 0;
-
-    }
-
-
-    return number;
-
-}
-
-
-function formatNumber(value) {
-
-    const number =
-        Number(value);
-
-
-    if (
-        !Number.isFinite(number)
+        !Number.isFinite(
+            number
+        )
     ) {
 
         return '0';
@@ -2609,9 +3881,11 @@ function formatNumber(value) {
     }
 
 
-    return Number.isInteger(number)
+    return Number.isInteger(
+        number
+    )
         ? String(number)
-        : number.toFixed(2);
+        : number.toFixed(1);
 
 }
 
@@ -2622,16 +3896,25 @@ function getCurrentTime() {
         .toLocaleTimeString(
             'id-ID',
             {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
+
+                hour:
+                    '2-digit',
+
+                minute:
+                    '2-digit',
+
+                second:
+                    '2-digit'
+
             }
         );
 
 }
 
 
-function escapeHtml(value) {
+function escapeHtml(
+    value
+) {
 
     return String(
         value ?? ''
