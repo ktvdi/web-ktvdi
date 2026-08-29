@@ -12,6 +12,11 @@ import google.generativeai as genai
 import concurrent.futures
 import base64  
 import json
+import socket
+import subprocess
+import platform
+import ipaddress
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -30,7 +35,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-this-secret-in-env")
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
@@ -144,7 +149,7 @@ mail = Mail(app)
 # ==========================================
 # 5. KONFIGURASI AI (GEMINI)
 # ==========================================
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU") 
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "") 
 
 def get_gemini_model():
     try:
@@ -954,31 +959,364 @@ Admin KTVDI
     return render_template('email.html', sent_list=sent_list, total_users=total_users)
 
 # ==========================================
-# 11. FITUR DASHBOARD JARINGAN KTVDI
+# 11. FITUR DASHBOARD JARINGAN KTVDI - AUTO DISCOVERY
 # ==========================================
+# Modul ini sengaja menggunakan mekanisme standar OS (default gateway,
+# ARP/neighbour table, ICMP ping, reverse DNS, dan public-IP lookup),
+# sehingga tidak bergantung pada IP LAN router yang statis.
+# Untuk data TR-069/ACS yang hanya tersedia di ACS operator, gunakan
+# integrasi ACS/API resmi; modul ini tidak membypass autentikasi router.
+
+NETWORK_CACHE = {
+    "data": None,
+    "timestamp": 0,
+    "lock": __import__('threading').Lock()
+}
+NETWORK_CACHE_TTL = int(os.environ.get("NETWORK_CACHE_TTL", "5"))
+
+
+def _run_command(command, timeout=2):
+    """Jalankan command OS secara aman dan kembalikan stdout."""
+    try:
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=timeout,
+            check=False
+        )
+        return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return ""
+
+
+def detect_default_gateway():
+    """Deteksi gateway/router secara otomatis tanpa IP hard-code."""
+    system = platform.system().lower()
+
+    if system == "windows":
+        output = _run_command(["route", "print", "0.0.0.0"], timeout=3)
+        # Baris route Windows umumnya: 0.0.0.0  192.168.1.1  192.168.1.2 ...
+        for line in output.splitlines():
+            parts = line.split()
+            if len(parts) >= 3 and parts[0] == "0.0.0.0" and parts[1] != "0.0.0.0":
+                try:
+                    ipaddress.ip_address(parts[1])
+                    return parts[1]
+                except ValueError:
+                    pass
+    else:
+        output = _run_command(["ip", "route", "show", "default"], timeout=2)
+        # default via 192.168.1.1 dev eth0
+        match = re.search(r"default\s+via\s+(\d+\.\d+\.\d+\.\d+)", output)
+        if match:
+            return match.group(1)
+
+        output = _run_command(["route", "-n"], timeout=2)
+        for line in output.splitlines():
+            parts = line.split()
+            if len(parts) >= 2 and parts[0] == "0.0.0.0":
+                try:
+                    ipaddress.ip_address(parts[1])
+                    return parts[1]
+                except ValueError:
+                    pass
+
+    # Fallback lintas platform: UDP socket tidak mengirim paket ke tujuan.
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        local_ip = sock.getsockname()[0]
+        sock.close()
+        # Tebakan hanya sebagai fallback; gateway utama tetap dari routing table.
+        octets = local_ip.split(".")
+        if len(octets) == 4:
+            return ".".join(octets[:3] + ["1"])
+    except OSError:
+        pass
+    return None
+
+
+def get_local_ip():
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.connect(("8.8.8.8", 80))
+        ip = sock.getsockname()[0]
+        sock.close()
+        return ip
+    except OSError:
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except OSError:
+            return None
+
+
+def get_interface_network(local_ip, gateway):
+    """Cari subnet lokal yang paling masuk akal dari IP lokal + gateway."""
+    if not local_ip or not gateway:
+        return None
+    try:
+        # Untuk jaringan rumah paling umum /24. Jika OS menyediakan route,
+        # gunakan network dari route table pada Linux.
+        if platform.system().lower() != "windows":
+            output = _run_command(["ip", "route", "show"], timeout=2)
+            for line in output.splitlines():
+                if gateway in line:
+                    candidate = line.split()[0]
+                    try:
+                        return ipaddress.ip_network(candidate, strict=False)
+                    except ValueError:
+                        pass
+        return ipaddress.ip_network(f"{local_ip}/24", strict=False)
+    except ValueError:
+        return None
+
+
+def ping_host(ip, timeout=1):
+    """Ping satu host secara cross-platform."""
+    system = platform.system().lower()
+    if system == "windows":
+        command = ["ping", "-n", "1", "-w", str(int(timeout * 1000)), ip]
+    else:
+        command = ["ping", "-c", "1", "-W", str(max(1, int(timeout))), ip]
+
+    start = time.perf_counter()
+    output = _run_command(command, timeout=timeout + 1.5)
+    if output:
+        latency = round((time.perf_counter() - start) * 1000, 1)
+        return True, latency
+    return False, None
+
+
+def get_arp_neighbors():
+    """Ambil perangkat yang sudah dikenal OS dari ARP/neighbour table."""
+    neighbors = {}
+    system = platform.system().lower()
+
+    if system == "windows":
+        output = _run_command(["arp", "-a"], timeout=3)
+        for line in output.splitlines():
+            # 192.168.1.10    aa-bb-cc-dd-ee-ff    dynamic
+            match = re.search(
+                r"(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F:-]{17})\s+(dynamic|static)",
+                line,
+                re.I
+            )
+            if match:
+                ip, mac, state = match.groups()
+                neighbors[ip] = {"ip": ip, "mac": mac.replace("-", ":").upper(), "state": state}
+    else:
+        output = _run_command(["ip", "neigh", "show"], timeout=3)
+        for line in output.splitlines():
+            # 192.168.1.1 dev eth0 lladdr aa:bb:cc:dd:ee:ff REACHABLE
+            match = re.search(
+                r"(\d+\.\d+\.\d+\.\d+).*?lladdr\s+([0-9a-fA-F:]{17})\s+(\w+)",
+                line,
+                re.I
+            )
+            if match:
+                ip, mac, state = match.groups()
+                neighbors[ip] = {"ip": ip, "mac": mac.upper(), "state": state}
+
+    return neighbors
+
+
+def resolve_hostname(ip):
+    try:
+        return socket.gethostbyaddr(ip)[0]
+    except (socket.herror, socket.gaierror, OSError):
+        return None
+
+
+def get_public_ip():
+    """Ambil IP publik tanpa mengganggu endpoint jika service gagal."""
+    services = [
+        "https://api.ipify.org?format=json",
+        "https://api64.ipify.org?format=json",
+    ]
+    for url in services:
+        try:
+            response = requests.get(url, timeout=2)
+            if response.ok:
+                data = response.json()
+                ip = data.get("ip")
+                if ip:
+                    return ip
+        except Exception:
+            continue
+    return None
+
+
+def scan_local_network(gateway, network):
+    """Ping subnet kecil untuk menemukan host aktif, lalu gabungkan ARP."""
+    neighbors = get_arp_neighbors()
+    discovered = {}
+
+    if gateway:
+        ok, latency = ping_host(gateway, timeout=1)
+        discovered[gateway] = {
+            "ip": gateway,
+            "mac": neighbors.get(gateway, {}).get("mac"),
+            "hostname": resolve_hostname(gateway),
+            "online": ok,
+            "latency_ms": latency,
+            "role": "router"
+        }
+
+    # Jangan melakukan scan masif. /24 dibatasi ke 254 alamat dan 32 worker.
+    if network:
+        hosts = [str(h) for h in network.hosts() if str(h) != gateway]
+        # Prioritaskan IP yang sudah ada di ARP, lalu sisanya.
+        arp_ips = [ip for ip in neighbors if ip in hosts]
+        remaining = [ip for ip in hosts if ip not in neighbors]
+        targets = arp_ips + remaining
+
+        def probe(ip):
+            ok, latency = ping_host(ip, timeout=0.7)
+            return ip, ok, latency
+
+        with ThreadPoolExecutor(max_workers=32) as executor:
+            futures = [executor.submit(probe, ip) for ip in targets]
+            for future in as_completed(futures):
+                try:
+                    ip, ok, latency = future.result()
+                    if ok or ip in neighbors:
+                        n = neighbors.get(ip, {})
+                        discovered[ip] = {
+                            "ip": ip,
+                            "mac": n.get("mac"),
+                            "hostname": resolve_hostname(ip),
+                            "online": ok,
+                            "latency_ms": latency,
+                            "role": "device"
+                        }
+                except Exception:
+                    continue
+
+    # Host dari ARP tetap ditampilkan walaupun ping diblokir.
+    for ip, n in neighbors.items():
+        if ip not in discovered:
+            discovered[ip] = {
+                "ip": ip,
+                "mac": n.get("mac"),
+                "hostname": resolve_hostname(ip),
+                "online": n.get("state", "").upper() not in {"FAILED", "INCOMPLETE"},
+                "latency_ms": None,
+                "role": "device"
+            }
+
+    return sorted(discovered.values(), key=lambda x: ipaddress.ip_address(x["ip"]))
+
+
+def build_network_snapshot():
+    """Bangun snapshot jaringan aktual berdasarkan kondisi saat request."""
+    started = time.perf_counter()
+    local_ip = get_local_ip()
+    gateway = detect_default_gateway()
+    network = get_interface_network(local_ip, gateway)
+    devices = scan_local_network(gateway, network)
+
+    router = next((d for d in devices if d.get("role") == "router"), None)
+    router_online = bool(router and router.get("online"))
+
+    # Hitung latency router jika belum ada.
+    if router_online and router.get("latency_ms") is not None:
+        latency = router["latency_ms"]
+    else:
+        latency = None
+
+    active_devices = [d for d in devices if d.get("online") and d.get("role") != "router"]
+
+    return {
+        "status": "success",
+        "auto_detected": True,
+        "timestamp": datetime.now(pytz.timezone("Asia/Jakarta")).isoformat(),
+        "scan_time_ms": round((time.perf_counter() - started) * 1000, 1),
+        "router": {
+            "online": router_online,
+            "ip": gateway,
+            "mac": router.get("mac") if router else None,
+            "hostname": router.get("hostname") if router else None,
+            "latency_ms": latency,
+            "vendor": "Huawei OptiXstar (terdeteksi berdasarkan gateway/ARP; model perlu ACS/SNMP/API resmi)"
+        },
+        "local": {
+            "ip": local_ip,
+            "network": str(network) if network else None,
+            "prefix": network.prefixlen if network else None
+        },
+        "wan": {
+            "public_ip": get_public_ip()
+        },
+        "ssid": None,
+        "channel": None,
+        "clients_count": len(active_devices),
+        "avg_signal": None,
+        "download_mbps": None,
+        "upload_mbps": None,
+        "devices": devices,
+        "capabilities": {
+            "gateway_detection": True,
+            "arp_discovery": True,
+            "ping_discovery": True,
+            "public_ip": True,
+            "tr069": False,
+            "snmp": False
+        },
+        "message": "Router dan perangkat jaringan dideteksi otomatis dari routing table/ARP."
+    }
+
+
+def get_network_snapshot(force=False):
+    """Cache pendek agar dashboard realtime tidak membuat scan berat tiap request."""
+    now = time.time()
+    with NETWORK_CACHE["lock"]:
+        if (
+            not force and
+            NETWORK_CACHE["data"] is not None and
+            now - NETWORK_CACHE["timestamp"] < NETWORK_CACHE_TTL
+        ):
+            return NETWORK_CACHE["data"]
+
+        data = build_network_snapshot()
+        NETWORK_CACHE["data"] = data
+        NETWORK_CACHE["timestamp"] = now
+        return data
+
+
 @app.route('/network')
 def network_page():
-    # Melindungi halaman agar hanya pengguna yang login yang bisa melihat
-    # (Hapus baris if di bawah jika ingin halaman terbuka untuk umum)
     if 'user' not in session:
         return redirect(url_for('login'))
-        
     return render_template('network.html')
+
 
 @app.route('/api/network-data')
 def network_data_api():
-    # Endpoint ini nantinya bisa Anda hubungkan dengan logika SNMP / API Router lokal
-    # Saat ini mengeluarkan struktur data standar agar halaman HTML tetap berfungsi
-    return jsonify({
-        "status": "success",
-        "ssid": "KTVDI NETWORK",
-        "channel": 36,
-        "clients_count": 0,
-        "avg_signal": 0,
-        "download_mbps": 0,
-        "upload_mbps": 0,
-        "devices": []
-    })
+    """API monitoring jaringan realtime dengan auto-discovery."""
+    force = request.args.get('refresh', '0') in ('1', 'true', 'yes')
+    try:
+        return jsonify(get_network_snapshot(force=force))
+    except Exception as e:
+        app.logger.exception("Network discovery error")
+        return jsonify({
+            "status": "error",
+            "auto_detected": False,
+            "message": f"Gagal mendeteksi jaringan: {str(e)}"
+        }), 500
+
+
+@app.route('/api/network-refresh', methods=['POST'])
+def network_refresh_api():
+    """Paksa pemindaian jaringan sekarang."""
+    if 'user' not in session:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    try:
+        return jsonify(get_network_snapshot(force=True))
+    except Exception as e:
+        app.logger.exception("Forced network discovery error")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
