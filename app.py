@@ -1,13 +1,11 @@
 import os
 import hashlib
 import random
-import re
 import time
 import socket
 import platform
 import ipaddress
 import json
-import base64
 import urllib3
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
@@ -40,7 +38,7 @@ app.config["SESSION_PERMANENT"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = 86400
 
 # ==========================================
-# 2. SISTEM AUTO-MAINTENANCE & TRACKER
+# 2. SISTEM AUTO-MAINTENANCE & TRACKER (OPTIMIZED FOR VERCEL)
 # ==========================================
 MAINTENANCE_END_DATE = datetime(2026, 2, 3, 7, 0, 0)
 TRACKER_DATA = {
@@ -65,7 +63,8 @@ def fetch_and_store_location_sync(ip):
         if ip_obj.is_private or ip_obj.is_loopback:
             TRACKER_DATA["ip_locations"][ip] = "Jaringan Lokal"
             return
-        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=1.5)
+        # TIMEOUT SANGAT SINGKAT (0.5s) agar Vercel tidak Error 500 jika API lemot
+        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=0.5)
         if r.status_code == 200:
             res = r.json()
             if res.get("status") == "success":
@@ -130,10 +129,10 @@ try:
         print("INFO: Koneksi Basis Data KTVDI berhasil ditetapkan.")
     else:
         ref = None
-        print("WARNING: Kredensial Firebase tidak ditemukan. Sistem berjalan tanpa basis data.")
+        print("WARNING: Kredensial Firebase tidak ditemukan.")
 except Exception as e:
     ref = None
-    print(f"ERROR: Kegagalan koneksi basis data. Mode luring diaktifkan. Rincian: {e}")
+    print(f"ERROR: Kegagalan koneksi basis data. Rincian: {e}")
 
 # ==========================================
 # 4. KONFIGURASI EMAIL SMTP GMAIL
@@ -164,7 +163,7 @@ def get_gemini_model():
         ]
         return genai.GenerativeModel("gemini-1.5-flash", safety_settings=safety_settings)
     except Exception as e:
-        print(f"ERROR: Konfigurasi model Gemini mengalami kegagalan. Rincian: {e}")
+        print(f"ERROR: Konfigurasi model Gemini mengalami kegagalan.")
         return None
 
 MODI_PROMPT = """
@@ -173,11 +172,10 @@ Karakteristik Komunikasi: Sangat profesional, informatif, objektif, dan mengguna
 Tugas Utama:
 1. Memberikan respons akurat terkait TV Digital, STB, topologi antena, dan siaran.
 2. Menyampaikan data cuaca dan EWS faktual.
-INSTRUKSI KRITIKAL: Jika data EWS mengindikasikan bendungan berstatus 'Siaga' atau 'Awas', wajib mengeluarkan peringatan resmi.
 """
 
 # ==========================================
-# 6. FUNGSI BANTUAN
+# 6. FUNGSI BANTUAN UMUM
 # ==========================================
 def hash_password(pw):
     return hashlib.sha256((pw or "").encode()).hexdigest()
@@ -196,31 +194,25 @@ def format_indo_date(time_struct):
 
 def get_email_template(action_type, nama_user, otp_code):
     waktu = datetime.now().strftime("%d %B %Y, Pukul %H:%M WIB")
+    title = "Notifikasi Sistem"
     if action_type == "REGISTER":
         subject = f"🔐 Verifikasi Keamanan: Pendaftaran Akun KTVDI [{otp_code}]"
         title = "Verifikasi Pendaftaran Akun Baru"
         desc = "Sistem kami mendeteksi permintaan pendaftaran akun baru di portal KTVDI."
         warning = "Apabila Anda tidak merasa menginisiasi pendaftaran ini, harap abaikan pesan ini."
-    elif action_type == "RESET":
-        subject = f"⚠️ Peringatan Keamanan: Permintaan Atur Ulang Kata Sandi [{otp_code}]"
-        title = "Permintaan Atur Ulang Kata Sandi"
-        desc = "Sistem kami menerima instruksi untuk mengatur ulang kata sandi."
-        warning = "JANGAN MEMBERIKAN kode ini kepada pihak mana pun."
     else:
         subject = "Pemberitahuan Sistem KTVDI"
-        title = "Notifikasi Sistem"
         desc = "Terdapat pembaruan informasi terkait akun Anda."
         warning = ""
 
     body = f"""========================================================
 SISTEM KEAMANAN RESMI KTVDI
 ========================================================
-
 Yth. {nama_user},
 
 {desc}
 
-Sebagai langkah otorisasi untuk memproses {title}, mohon gunakan Kode Verifikasi (OTP) berikut:
+Sebagai langkah otorisasi, mohon gunakan Kode Verifikasi (OTP) berikut:
 [ {otp_code} ]
 *Catatan: Berlaku selama 60 detik.
 
@@ -232,8 +224,11 @@ Divisi Teknologi & Keamanan Informasi, KTVDI
 ========================================================"""
     return subject, body
 
+def get_smart_fallback_response(text):
+    return "Mohon maaf, server kecerdasan buatan kami saat ini sedang sibuk. Silakan coba kembali."
+
 # ==========================================
-# 7. CACHE BERITA & CUACA
+# 7. CACHE BERITA & CUACA (OPTIMIZED)
 # ==========================================
 NEWS_CACHE, NEWS_LAST_FETCH = [], 0
 
@@ -245,8 +240,9 @@ def get_news_entries():
     all_news = []
     headers = {"User-Agent": "Mozilla/5.0"}
 
+    # BMKG Data
     try:
-        r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=3)
+        r_bmkg = requests.get("https://data.bmkg.go.id/DataMKG/TEWS/autogempa.xml", timeout=2)
         if r_bmkg.status_code == 200:
             gempa = ET.fromstring(r_bmkg.content).find("gempa")
             if gempa is not None:
@@ -260,54 +256,58 @@ def get_news_entries():
     except Exception:
         pass
 
+    # RSS Feeds (Short Timeout to prevent Vercel 500)
     try:
         sources = [
-            "https://www.kompas.tv/rss", "https://www.setneg.go.id/rss", "https://www.liputan6.com/rss",
-            "https://www.tribunnews.com/rss", "https://www.cnnindonesia.com/nasional/rss"
+            "https://www.kompas.tv/rss", 
+            "https://www.setneg.go.id/rss", 
+            "https://www.liputan6.com/rss",
+            "https://www.tribunnews.com/rss"
         ]
 
         def fetch_feed(url):
             try:
-                # Batasi timeout jadi sangat singkat agar Vercel tidak timeout
-                res = requests.get(url, headers=headers, timeout=2.5) 
+                res = requests.get(url, headers=headers, timeout=2)
                 if res.status_code == 200:
                     return url, feedparser.parse(res.content)
             except Exception:
                 pass
             return url, None
 
-        with ThreadPoolExecutor(max_workers=5) as pool:
+        with ThreadPoolExecutor(max_workers=4) as pool:
             futures = [pool.submit(fetch_feed, url) for url in sources]
             for future in as_completed(futures):
                 url, feed = future.result()
                 if not feed or not feed.entries: continue
-                for entry in feed.entries[:10]:
+                for entry in feed.entries[:8]:
                     source_name = url.split(".")[1].capitalize()
                     entry["source_name"] = source_name
                     img_url = None
-                    if "media_content" in entry and entry.media_content: img_url = entry.media_content[0]["url"]
+                    if "media_content" in entry and entry.media_content: 
+                        img_url = entry.media_content[0]["url"]
                     if not img_url and "links" in entry:
                         for link in entry.links:
                             if link.get("type", "").startswith("image"): img_url = link.get("href"); break
                     entry["image"] = img_url
                     all_news.append(entry)
+                    
         all_news.sort(key=lambda x: x.published_parsed if x.get("published_parsed") else time.gmtime(0), reverse=True)
     except Exception:
         pass
 
-    NEWS_CACHE = all_news[:100] or [{"title": "Pusat Informasi KTVDI Beroperasi Normal", "link": "#", "published_parsed": datetime.now().timetuple(), "source_name": "Sistem Internal", "image": None}]
+    NEWS_CACHE = all_news[:50] or [{"title": "Sistem Informasi KTVDI Normal", "link": "#", "published_parsed": datetime.now().timetuple(), "source_name": "Internal", "image": None}]
     NEWS_LAST_FETCH = time.time()
     return NEWS_CACHE
 
 def time_since_published(published_time):
     try:
         diff = datetime.now() - datetime(*published_time[:6])
-        if diff.days > 0: return f"{diff.days} hari yang lalu"
-        if diff.seconds > 3600: return f"{diff.seconds // 3600} jam yang lalu"
-        if diff.seconds > 60: return f"{diff.seconds // 60} menit yang lalu"
-        return "Terbaru"
+        if diff.days > 0: return f"{diff.days} hari lalu"
+        if diff.seconds > 3600: return f"{diff.seconds // 3600} jam lalu"
+        if diff.seconds > 60: return f"{diff.seconds // 60} menit lalu"
+        return "Terkini"
     except Exception:
-        return "Waktu tidak dapat dipastikan"
+        return ""
 
 def get_cuaca_10_kota():
     cities = [{"name": "Semarang", "lat": -6.9667, "lon": 110.4167}, {"name": "Surakarta", "lat": -7.5761, "lon": 110.8294}]
@@ -327,10 +327,50 @@ def get_cuaca_10_kota():
                 results.append({"kota": cities[i]["name"], "suhu": round(temp), "cuaca": status, "icon": icon, "anim": anim})
     except Exception:
         pass
-    return results or [{"kota": c["name"], "suhu": "-", "cuaca": "Tidak Tersedia", "icon": "fa-cloud", "anim": ""} for c in cities]
+    return results or [{"kota": c["name"], "suhu": "-", "cuaca": "Loading", "icon": "fa-cloud", "anim": ""} for c in cities]
+
+def smart_convert_cm(value):
+    try:
+        val_float = float(value)
+        return f"{val_float * 100:.0f}" if val_float != 0 and val_float < 50 else f"{val_float:.0f}"
+    except Exception:
+        return "0"
+
+def normalize_dam_data(raw_data):
+    clean_data = []
+    for item in raw_data:
+        try:
+            latest = item.get("latest_debit_report", {}) or {}
+            name = item.get("dam_name") or item.get("nama") or "Infrastruktur Bendungan"
+            siaga_cm, awas_cm = smart_convert_cm(item.get("siaga", 0)), smart_convert_cm(item.get("awas", 0))
+            if float(siaga_cm) == 0: siaga_cm = "200"
+            if float(awas_cm) == 0: awas_cm = "300"
+            raw_tma = latest.get("limpas") if latest else (item.get("tma") or item.get("siap") or 0)
+            tma_cm = smart_convert_cm(raw_tma)
+            status = latest.get("status") or item.get("status_alert") or "Operasional Normal"
+
+            clean_data.append({
+                "name": name, "tma": tma_cm, "siaga": siaga_cm, "awas": awas_cm,
+                "inflow": latest.get("debit", 0), "outflow": latest.get("debit_ke_saluran_induk", 0),
+                "status": status, "cuaca": latest.get("cuaca", "Berawan"), "petugas": f"ID: {latest.get('pob_id', 'Unit')}",
+                "updated_at": "Pembaruan Terakhir WIB", "lokasi": item.get("river_name", "Jawa Tengah")
+            })
+        except Exception:
+            continue
+    return clean_data
+
+def fetch_ews_data():
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+    try:
+        r = requests.get(f"https://siagakranji.my.id/data/latest_dams.json?t={int(time.time())}", headers=headers, timeout=4, verify=False)
+        if r.status_code == 200:
+            raw_list = r.json().get("data") or r.json().get("result") or (r.json() if isinstance(r.json(), list) else [])
+            if raw_list: return normalize_dam_data(raw_list)
+    except Exception: pass
+    return []
 
 # ==========================================
-# 8. ROUTES UTAMA (Auth, Web, Berita, EWS)
+# 8. ROUTES WEB & AUTH
 # ==========================================
 @app.route("/", methods=["GET"])
 def home():
@@ -357,7 +397,7 @@ def login():
     if request.method == "POST":
         clean_input = normalize_input(request.form.get("username"))
         hashed_pw = hash_password(request.form.get("password"))
-        if not ref: return render_template("login.html", error="Sistem gagal terhubung ke pangkalan data utama.")
+        if not ref: return render_template("login.html", error="Database tidak terhubung.")
         
         users = ref.child("users").get() or {}
         target_user, target_uid = None, None
@@ -372,7 +412,7 @@ def login():
             session["user"] = target_uid
             session["nama"] = target_user.get("nama", "Pengguna Terdaftar")
             return redirect(url_for("dashboard"))
-        return render_template("login.html", error="Kredensial identitas atau kata sandi yang Anda masukkan tidak valid.")
+        return render_template("login.html", error="Kredensial tidak valid.")
     return render_template("login.html")
 
 @app.route("/logout")
@@ -380,6 +420,61 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        u = normalize_input(request.form.get("username"))
+        e = normalize_input(request.form.get("email"))
+        n, p = request.form.get("nama"), request.form.get("password")
+        
+        if not ref: return "Terjadi galat pada koneksi basis data.", 500
+        users = ref.child("users").get() or {}
+        if u in users:
+            flash("Nama pengguna telah terdaftar.", "error")
+            return render_template("register.html")
+
+        otp = str(random.randint(100000, 999999))
+        ref.child(f"pending_users/{u}").set({"nama": n, "email": e, "password": hash_password(p), "otp": otp, "expiry": time.time() + 60})
+        
+        try:
+            subject, body = get_email_template("REGISTER", n, otp)
+            mail.send(Message(subject, recipients=[e], body=body))
+            session["pending_username"] = u
+            return redirect(url_for("verify_register"))
+        except Exception:
+            flash("Kegagalan transmisi surel.", "error")
+    return render_template("register.html")
+
+@app.route("/verify-register", methods=["GET", "POST"])
+def verify_register():
+    u = session.get("pending_username")
+    if not u: return redirect(url_for("register"))
+    if request.method == "POST":
+        p = ref.child(f"pending_users/{u}").get()
+        if not p: return redirect(url_for("register"))
+        if time.time() > p.get("expiry", 0):
+            flash("Sesi kode verifikasi telah berakhir.", "error")
+            ref.child(f"pending_users/{u}").delete()
+            return redirect(url_for("register"))
+        
+        if str(p.get("otp")).strip() == (request.form.get("otp") or "").strip():
+            ref.child(f"users/{u}").set({"nama": p["nama"], "email": p["email"], "password": p["password"]})
+            ref.child(f"pending_users/{u}").delete()
+            session.pop("pending_username", None)
+            flash("Registrasi berhasil.", "success")
+            return redirect(url_for("login"))
+        flash("Kode otorisasi tidak tepat.", "error")
+    return render_template("verify-register.html", username=u)
+
+@app.route("/dashboard")
+def dashboard():
+    if "user" not in session: return redirect(url_for("login"))
+    data = ref.child("provinsi").get() if ref else {}
+    return render_template("dashboard.html", name=session.get("nama"), provinsi_list=list((data or {}).values()))
+
+# ==========================================================
+# 9. INTEGRASI API, BERITA, & EWS
+# ==========================================================
 @app.route("/berita")
 def berita_page():
     entries = get_news_entries()
@@ -391,33 +486,32 @@ def berita_page():
             article["formatted_date"] = format_indo_date(article["published_parsed"])
             article["time_since_published"] = time_since_published(article["published_parsed"])
         else:
-            article["formatted_date"], article["time_since_published"] = "Data Waktu Tidak Tersedia", "Terkini"
+            article["formatted_date"], article["time_since_published"] = "Waktu Tidak Tersedia", "Terkini"
     total_pages = max(1, (len(entries) + per_page - 1) // per_page)
     return render_template("berita.html", articles=current, page=page, total_pages=total_pages)
 
-@app.route("/dashboard")
-def dashboard():
-    if "user" not in session: return redirect(url_for("login"))
-    data = ref.child("provinsi").get() if ref else {}
-    return render_template("dashboard.html", name=session.get("nama"), provinsi_list=list((data or {}).values()))
-
-# ==========================================================
-# 9. INTEGRASI API SISTEM & EWS LAINNYA
-# ==========================================================
 @app.route("/api/news-ticker")
 def news_ticker():
     return jsonify([n["title"] for n in get_news_entries()])
 
 @app.route("/ews-jateng")
 def ews_jateng_page():
-    return render_template("ews-jateng.html", dams=[], cuaca_list=get_cuaca_10_kota())
+    return render_template("ews-jateng.html", dams=fetch_ews_data(), cuaca_list=get_cuaca_10_kota())
+
+@app.route("/api/chat", methods=["POST"])
+def chatbot_api():
+    user_msg = (request.get_json() or {}).get("prompt", "")
+    full_prompt = f"{MODI_PROMPT}\nPengguna: {user_msg}\nModi:"
+    model = get_gemini_model()
+    if not model: return jsonify({"response": get_smart_fallback_response(user_msg)})
+    try:
+        return jsonify({"response": model.generate_content(full_prompt).text})
+    except Exception:
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
 
 # ==========================================================
-# 10. NETWORK MONITORING (VERSI RINGAN - CLIENT CENTRIC)
+# 10. NETWORK MONITORING (CLIENT-CENTRIC & SERVERLESS SAFE)
 # ==========================================================
-# Menghindari pemrosesan OS / Speedtest berat di sisi Serverless (Vercel)
-# Semua beban ditangani secara efisien oleh browser (klien) melalui network.html
-
 @app.route("/network")
 def network_page():
     if "user" not in session: return redirect(url_for("login"))
@@ -425,17 +519,12 @@ def network_page():
 
 @app.route("/api/network-client-merge", methods=["POST"])
 def network_client_merge():
-    """
-    Endpoint ini menerima data yang dikirim oleh Javascript browser.
-    Server hanya akan meneruskan (echo) data tersebut tanpa melakukan
-    pemrosesan berat (Anti-Vercel Crash / Error 500).
-    """
+    """ Endpoint untuk menerima dan meneruskan data JSON dari Frontend Network """
     try:
         client_data = request.get_json() or {}
-        # Membalas ke Frontend (Mengabungkan hasil Client-side)
         return jsonify({
             "status": "success",
-            "message": "Data Klien Diterima",
+            "message": "Data Diterima KTVDI",
             "client": client_data
         })
     except Exception as e:
@@ -444,52 +533,48 @@ def network_client_merge():
 @app.route("/api/network-data")
 def network_data_api():
     """
-    Vercel/Serverless TIDAK BISA menjalankan arp, netsh, iwconfig, atau speedtest.
-    API ini dipangkas ekstrem. Mengembalikan identitas klien sederhana.
-    Sisa logika grafik, speedtest, dll, sudah ditangani Frontend (JS).
+    Serverless Vercel Node Dummy Scanner:
+    Mengembalikan data instan karena scanning sebenarnya dilakukan di browser (HTML).
     """
     try:
-        # Dapatkan IP Klien dari Headers Proxy Vercel
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         if client_ip:
             client_ip = client_ip.split(",")[0].strip()
 
-        # Dummy data balasan instan (< 0.1 detik eksekusi)
         result = {
             "status": "success",
-            "local_ip": "Lingkungan Cloud Serverless",
+            "local_ip": "Vercel / Cloud Function Node",
             "gateway": "-",
             "platform": platform.system(),
             "clients_count": 1,
             "online_count": 1,
             "devices": [
                 {
-                    "ip": client_ip or "IP Disembunyikan", 
-                    "mac": "Di-masking (Privasi)", 
+                    "ip": client_ip or "Tersembunyi", 
+                    "mac": "Network Masked", 
                     "status": "Online", 
-                    "device": "Perangkat Klien Web", 
+                    "device": "Web Client Node", 
                     "role": "client",
-                    "latency_ms": random.randint(15, 60)
+                    "latency_ms": random.randint(15, 40)
                 }
             ],
             "scan_time": datetime.now().strftime("%d-%m-%Y %H:%M:%S"),
-            "isp": "Deteksi via Browser Aktif",
+            "isp": "Deteksi Browser Klien",
             "download_mbps": None,
             "upload_mbps": None,
-            "ssid": "Mode Serverless Aktif",
+            "ssid": "Cloud Mode",
             "signal": "-",
             "tx_rate": "-",
             "rx_rate": "-"
         }
         return jsonify(result)
     except Exception as e:
-        return jsonify({"status": "error", "message": "Gagal sinkronisasi data cloud", "devices": []})
+        return jsonify({"status": "error", "message": str(e), "devices": []})
 
 @app.route("/api/network-rescan")
 def network_rescan():
-    # Karena backend tidak menyimpan state scan berat lagi,
-    # rescan cukup memanggil ulang API network-data.
     return network_data_api()
+
 
 # ==========================================
 # 11. RUN SERVER
