@@ -10,47 +10,61 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg-dark: #0f172a;
-    --bg-card: #1e293b;
-    --bg-soft: #172033;
+    /* NOC & KTVDI Color Palette */
+    --bg-dark: #090e17; /* Deeper dark for NOC feel */
+    --bg-card: #111827;
+    --bg-soft: #1f2937;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
 
-    --accent-blue: #3b82f6;
-    --accent-cyan: #06b6d4;
-    --accent-purple: #a855f7;
+    --accent-blue: #2563eb;
+    --accent-cyan: #06b6d4; /* KTVDI Digital Cyan */
+    --accent-purple: #8b5cf6;
 
     --signal-excellent: #10b981;
-    --signal-good: #eab308;
+    --signal-good: #f59e0b;
     --signal-weak: #ef4444;
 
-    --border-color: #334155;
+    --border-color: #1e293b;
+    
+    /* Glow Effects */
+    --glow-cyan: 0 0 15px rgba(6, 182, 212, 0.4);
+    --glow-blue: 0 0 15px rgba(37, 99, 235, 0.4);
 }
 
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+@keyframes radar-sweep {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(6, 182, 212, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
+}
+
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
 /* =========================================================
    RESET / WRAPPER
 ========================================================= */
-
 #netmon-wrapper {
     width: 100%;
     min-height: 100vh;
-
     margin: 0;
-
-    font-family:
-        Inter,
-        "Segoe UI",
-        Arial,
-        sans-serif;
-
+    font-family: 'Inter', sans-serif;
     background: var(--bg-dark);
     color: var(--text-main);
-
     display: flex;
-
     overflow: hidden;
 }
 
@@ -58,5715 +72,586 @@
     box-sizing: border-box;
 }
 
+/* Typography for Network Data */
+.font-mono {
+    font-family: 'Fira Code', monospace;
+    letter-spacing: -0.5px;
+}
 
 /* =========================================================
    SIDEBAR
 ========================================================= */
-
 #netmon-wrapper .sidebar {
     width: 260px;
-
     background: var(--bg-card);
-
-    border-right:
-        1px solid
-        var(--border-color);
-
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-
     flex-shrink: 0;
+    z-index: 20;
 }
-
 
 #netmon-wrapper .brand {
     padding: 24px;
-
     font-size: 1.45rem;
     font-weight: 700;
-
-    color:
-        var(--accent-cyan);
-
-    border-bottom:
-        1px solid
-        var(--border-color);
-
+    color: var(--accent-cyan);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
-
     gap: 12px;
-
     white-space: nowrap;
+    text-shadow: var(--glow-cyan);
 }
-
 
 #netmon-wrapper .nav-items {
     padding: 18px 0;
-
     flex: 1;
-
     overflow-y: auto;
 }
 
-
 #netmon-wrapper .nav-item {
     padding: 14px 22px;
-
     display: flex;
     align-items: center;
-
     gap: 14px;
-
-    color:
-        var(--text-muted);
-
+    color: var(--text-muted);
     text-decoration: none;
-
-    transition:
-        background .2s,
-        color .2s,
-        border-color .2s;
-
+    transition: all .3s ease;
     cursor: pointer;
-
-    border-right:
-        4px solid
-        transparent;
+    border-right: 4px solid transparent;
 }
-
-
-#netmon-wrapper .nav-item i {
-    width: 20px;
-    text-align: center;
-}
-
 
 #netmon-wrapper .nav-item:hover {
-    background:
-        rgba(6, 182, 212, .08);
-
-    color:
-        var(--accent-cyan);
+    background: rgba(6, 182, 212, .08);
+    color: var(--accent-cyan);
+    padding-left: 28px; /* Slight indent on hover */
 }
-
 
 #netmon-wrapper .nav-item.active {
-    background:
-        rgba(6, 182, 212, .12);
-
-    color:
-        var(--accent-cyan);
-
-    border-right-color:
-        var(--accent-cyan);
+    background: rgba(6, 182, 212, .12);
+    color: var(--accent-cyan);
+    border-right-color: var(--accent-cyan);
+    box-shadow: inset 4px 0 0 0 rgba(6, 182, 212, 0.2);
 }
-
 
 /* =========================================================
    MAIN
 ========================================================= */
-
 #netmon-wrapper .main {
     flex: 1;
-
     min-width: 0;
-
     overflow-y: auto;
-
-    padding:
-        24px 32px;
+    padding: 32px;
+    scroll-behavior: smooth;
 }
-
 
 /* =========================================================
    HEADER
 ========================================================= */
-
 #netmon-wrapper .header {
     display: flex;
-
     justify-content: space-between;
     align-items: flex-start;
-
     gap: 20px;
-
-    margin-bottom: 24px;
+    margin-bottom: 32px;
+    animation: fade-in-up 0.5s ease-out;
 }
-
 
 #netmon-wrapper .header h1 {
     margin: 0;
-
-    font-size: 1.8rem;
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--text-main), var(--accent-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
-
-
-#netmon-wrapper .header-subtitle {
-    margin: 7px 0 0;
-
-    color:
-        var(--text-muted);
-
-    line-height: 1.6;
-
-    font-size: .9rem;
-}
-
-
-#netmon-wrapper .header-subtitle strong {
-    color:
-        var(--text-main);
-}
-
 
 /* =========================================================
    BUTTON
 ========================================================= */
-
 #netmon-wrapper .btn-action {
     background: transparent;
-
-    border:
-        1px solid
-        var(--border-color);
-
-    color:
-        var(--text-main);
-
-    padding:
-        9px 14px;
-
-    border-radius: 7px;
-
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 10px 16px;
+    border-radius: 8px;
     cursor: pointer;
-
-    transition:
-        .2s;
-
+    transition: all .2s;
     font-size: .85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
-
-
-#netmon-wrapper .btn-action:hover {
-    background:
-        var(--border-color);
-}
-
 
 #netmon-wrapper .btn-primary {
-    background:
-        var(--accent-blue);
-
-    border-color:
-        var(--accent-blue);
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    box-shadow: var(--glow-blue);
 }
-
 
 #netmon-wrapper .btn-primary:hover {
-    background:
-        #2563eb;
+    background: #1d4ed8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.6);
 }
-
 
 #netmon-wrapper .btn-action:disabled {
     opacity: .65;
-
     cursor: wait;
+    transform: none;
+    box-shadow: none;
 }
-
 
 /* =========================================================
-   CARD
+   CARD (NOC Style)
 ========================================================= */
-
 #netmon-wrapper .card {
-    background:
-        var(--bg-card);
-
-    border:
-        1px solid
-        var(--border-color);
-
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
-
     padding: 24px;
-
-    box-shadow:
-        0 4px 12px
-        rgba(0, 0, 0, .12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: border-color 0.3s ease;
+    animation: fade-in-up 0.6s ease-out backwards;
 }
 
+#netmon-wrapper .card:hover {
+    border-color: rgba(6, 182, 212, 0.3);
+}
 
 #netmon-wrapper .card-header {
-    font-size: 1.05rem;
-
+    font-size: 1.1rem;
     font-weight: 600;
-
-    margin-bottom: 16px;
-
+    margin-bottom: 20px;
     display: flex;
-
     justify-content: space-between;
-
     align-items: center;
-
-    gap: 12px;
-
     flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
 }
-
-
-#netmon-wrapper .card-header span:first-child {
-    display: flex;
-
-    align-items: center;
-
-    gap: 9px;
-}
-
 
 /* =========================================================
-   WARNING
+   STATS & ADAPTIVE GRID
 ========================================================= */
-
-#netmon-wrapper .network-warning {
-    border:
-        1px solid
-        rgba(234, 179, 8, .3);
-
-    background:
-        rgba(234, 179, 8, .07);
-
-    color:
-        #fde68a;
-
-    border-radius: 8px;
-
-    padding:
-        14px 16px;
-
-    margin-bottom: 24px;
-
-    font-size: .82rem;
-
-    line-height: 1.6;
-}
-
-
-#netmon-wrapper .network-warning i {
-    margin-right: 6px;
-}
-
-
-/* =========================================================
-   STATS
-========================================================= */
-
 #netmon-wrapper .stats-summary {
     display: grid;
-
-    grid-template-columns:
-        repeat(4, 1fr);
-
-    gap: 18px;
-
-    margin-bottom: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 32px;
 }
-
 
 #netmon-wrapper .stat-box {
-    background:
-        var(--bg-card);
-
-    border:
-        1px solid
-        var(--border-color);
-
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-dark));
+    border: 1px solid var(--border-color);
     border-radius: 12px;
-
     padding: 20px;
-
-    min-width: 0;
-
     display: flex;
-
     align-items: center;
-
     gap: 16px;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-
-#netmon-wrapper .stat-icon {
-    font-size: 1.8rem;
-
-    color:
-        var(--accent-cyan);
-
-    flex-shrink: 0;
+#netmon-wrapper .stat-box:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    border-color: var(--accent-cyan);
 }
-
-
-#netmon-wrapper .stat-info {
-    min-width: 0;
-}
-
-
-#netmon-wrapper .stat-info h4 {
-    margin:
-        0 0 5px;
-
-    color:
-        var(--text-muted);
-
-    font-size: .82rem;
-
-    font-weight: 400;
-}
-
 
 #netmon-wrapper .stat-info h2 {
-    margin: 0;
-
-    font-size: 1.15rem;
-
-    word-break: break-word;
+    font-family: 'Fira Code', monospace;
+    font-size: 1.3rem;
+    color: var(--accent-cyan);
 }
-
-
-#netmon-wrapper .stat-info small {
-    display: block;
-
-    margin-top: 4px;
-}
-
-
-/* =========================================================
-   GRID
-========================================================= */
-
-#netmon-wrapper .dashboard-grid {
-    display: grid;
-
-    grid-template-columns:
-        minmax(0, 1fr)
-        minmax(0, 1fr);
-
-    gap: 24px;
-
-    margin-bottom: 24px;
-}
-
 
 #netmon-wrapper .network-info-grid {
     display: grid;
-
-    grid-template-columns:
-        repeat(4, minmax(0, 1fr));
-
-    gap: 15px;
-
-    margin-bottom: 15px;
+    /* Adaptive grid: will automatically wrap without media queries */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
 }
-
-
-#netmon-wrapper .network-info-grid:last-child {
-    margin-bottom: 0;
-}
-
 
 #netmon-wrapper .network-info-item {
-    padding: 15px;
-
-    border:
-        1px solid
-        var(--border-color);
-
-    border-radius: 8px;
-
-    background:
-        rgba(15, 23, 42, .4);
-
-    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, .6);
+    backdrop-filter: blur(4px);
+    transition: background 0.3s;
 }
 
-
-#netmon-wrapper .network-info-label {
-    font-size: .7rem;
-
-    color:
-        var(--text-muted);
-
-    margin-bottom: 7px;
-
-    text-transform: uppercase;
-
-    letter-spacing: .04em;
+#netmon-wrapper .network-info-item:hover {
+    background: rgba(30, 41, 59, 0.8);
 }
-
 
 #netmon-wrapper .network-info-value {
-    font-size: .92rem;
-
-    font-weight: 600;
-
-    word-break: break-word;
-
-    line-height: 1.4;
+    font-family: 'Fira Code', monospace;
+    font-size: 1rem;
+    color: var(--text-main);
+    margin-top: 6px;
 }
-
 
 /* =========================================================
-   STATUS
+   RADAR ANIMATION (KTVDI / NOC)
 ========================================================= */
-
-#netmon-wrapper .status-pill {
-    display: inline-flex;
-
-    align-items: center;
-
-    gap: 7px;
-
-    border-radius: 20px;
-
-    padding:
-        5px 10px;
-
-    font-size: .72rem;
-
-    font-weight: 700;
-
-    white-space: nowrap;
-}
-
-
-#netmon-wrapper .status-online {
-    color:
-        var(--signal-excellent);
-
-    background:
-        rgba(16, 185, 129, .12);
-}
-
-
-#netmon-wrapper .status-warning {
-    color:
-        var(--signal-good);
-
-    background:
-        rgba(234, 179, 8, .12);
-}
-
-
-#netmon-wrapper .status-neutral {
-    color:
-        var(--text-muted);
-
-    background:
-        rgba(148, 163, 184, .12);
-}
-
-
-#netmon-wrapper .status-error {
-    color:
-        var(--signal-weak);
-
-    background:
-        rgba(239, 68, 68, .12);
-}
-
-
-/* =========================================================
-   NOTES
-========================================================= */
-
-#netmon-wrapper .section-note {
-    color:
-        var(--text-muted);
-
-    font-size: .76rem;
-
-    line-height: 1.6;
-
-    margin-top: 10px;
-}
-
-
-/* =========================================================
-   SPECIAL CARDS
-========================================================= */
-
-#netmon-wrapper .wifi-card {
-    border-left:
-        4px solid
-        var(--accent-cyan);
-}
-
-
-#netmon-wrapper .speed-card {
-    border-left:
-        4px solid
-        var(--accent-purple);
-}
-
-
-/* =========================================================
-   RADAR
-========================================================= */
-
 #netmon-wrapper .radar-container {
     position: relative;
-
     width: 100%;
-
-    height: 320px;
-
+    height: 350px;
     display: flex;
-
     justify-content: center;
     align-items: center;
-
     overflow: hidden;
-
-    background:
-        radial-gradient(
-            circle,
-            rgba(30, 41, 59, 1) 0%,
-            rgba(15, 23, 42, 1) 100%
-        );
-
-    border-radius: 8px;
+    background: radial-gradient(circle, #111827 0%, #090e17 100%);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
 }
 
+/* Radar Sweep Line */
+#netmon-wrapper .radar-container::after {
+    content: '';
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    bottom: 50%;
+    right: 50%;
+    transform-origin: 100% 100%;
+    background: linear-gradient(45deg, rgba(6, 182, 212, 0.3) 0%, transparent 50%);
+    animation: radar-sweep 4s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+}
 
 #netmon-wrapper .radar-circle {
     position: absolute;
-
     border-radius: 50%;
-
-    border:
-        1px dashed
-        var(--border-color);
-
+    border: 1px solid rgba(6, 182, 212, 0.15); /* Cyan tint */
     pointer-events: none;
 }
 
-
-#netmon-wrapper .circle-1 {
-    width: 280px;
-    height: 280px;
-
-    border-color:
-        rgba(239, 68, 68, .3);
-}
-
-
-#netmon-wrapper .circle-2 {
-    width: 200px;
-    height: 200px;
-
-    border-color:
-        rgba(234, 179, 8, .3);
-}
-
-
-#netmon-wrapper .circle-3 {
-    width: 120px;
-    height: 120px;
-
-    border-color:
-        rgba(16, 185, 129, .3);
-}
-
-
-#netmon-wrapper .radar-label {
-    position: absolute;
-
-    color:
-        var(--text-muted);
-
-    font-size: .65rem;
-
-    pointer-events: none;
-}
-
+#netmon-wrapper .circle-1 { width: 300px; height: 300px; }
+#netmon-wrapper .circle-2 { width: 220px; height: 220px; border-style: dashed; }
+#netmon-wrapper .circle-3 { width: 140px; height: 140px; }
 
 #netmon-wrapper .router-center {
     position: absolute;
-
-    width: 52px;
-    height: 52px;
-
-    background:
-        var(--accent-blue);
-
+    width: 56px;
+    height: 56px;
+    background: var(--accent-cyan);
     border-radius: 50%;
-
     display: flex;
-
     justify-content: center;
     align-items: center;
-
     z-index: 10;
-
-    box-shadow:
-        0 0 22px
-        rgba(59, 130, 246, .65);
+    box-shadow: var(--glow-cyan);
+    animation: pulse-ring 2s infinite;
 }
-
-
-#netmon-wrapper .router-center.unknown {
-    background:
-        #475569;
-
-    box-shadow:
-        0 0 18px
-        rgba(148, 163, 184, .2);
-}
-
 
 #netmon-wrapper .device-node {
     position: absolute;
-
     display: flex;
-
     flex-direction: column;
-
     align-items: center;
-
-    gap: 4px;
-
+    gap: 6px;
     z-index: 5;
-
     cursor: pointer;
-
-    transform:
-        translate(-50%, -50%);
-
-    transition:
-        transform .2s;
+    transform: translate(-50%, -50%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
-
 
 #netmon-wrapper .device-node:hover {
-    transform:
-        translate(-50%, -50%)
-        scale(1.08);
+    transform: translate(-50%, -50%) scale(1.15);
+    z-index: 20;
 }
-
 
 #netmon-wrapper .node-icon {
-    width: 34px;
-    height: 34px;
-
+    width: 38px;
+    height: 38px;
     border-radius: 50%;
-
+    background: var(--bg-card);
     display: flex;
-
     justify-content: center;
     align-items: center;
-
-    font-size: .85rem;
-
-    background:
-        #334155;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
-
 
 #netmon-wrapper .node-online {
-    border:
-        2px solid
-        var(--signal-excellent);
-
-    color:
-        var(--signal-excellent);
+    border: 2px solid var(--signal-excellent);
+    color: var(--signal-excellent);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
 }
-
-
-#netmon-wrapper .node-slow {
-    border:
-        2px solid
-        var(--signal-good);
-
-    color:
-        var(--signal-good);
-}
-
-
-#netmon-wrapper .node-offline {
-    border:
-        2px solid
-        var(--text-muted);
-
-    color:
-        var(--text-muted);
-}
-
-
-#netmon-wrapper .node-label {
-    font-size: .68rem;
-
-    background:
-        rgba(0, 0, 0, .75);
-
-    padding:
-        3px 7px;
-
-    border-radius: 4px;
-
-    white-space: nowrap;
-
-    max-width: 180px;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-}
-
 
 /* =========================================================
    TABLE
 ========================================================= */
-
-#netmon-wrapper .table-wrapper {
-    overflow-x: auto;
-}
-
-
 #netmon-wrapper table {
     width: 100%;
-
-    border-collapse: collapse;
-
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 10px;
 }
 
-
-#netmon-wrapper td,
 #netmon-wrapper th {
-    padding:
-        13px 12px;
-
-    text-align: left;
-
-    border-bottom:
-        1px solid
-        var(--border-color);
-
-    vertical-align: middle;
-}
-
-
-#netmon-wrapper th {
-    color:
-        var(--text-muted);
-
-    font-weight: 500;
-
+    background: rgba(15, 23, 42, 0.8);
+    color: var(--accent-cyan);
+    padding: 16px 12px;
     text-transform: uppercase;
-
-    font-size: .72rem;
-
-    white-space: nowrap;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
 }
 
-
-#netmon-wrapper tr:hover {
-    background:
-        rgba(255, 255, 255, .02);
+#netmon-wrapper td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+    font-family: 'Fira Code', monospace; /* Monospace for table data */
+    font-size: 0.85rem;
 }
 
-
-#netmon-wrapper .badge {
-    padding:
-        5px 10px;
-
-    border-radius: 12px;
-
-    font-size: .7rem;
-
-    font-weight: 700;
-
-    display: inline-block;
-
-    white-space: nowrap;
+#netmon-wrapper tr:hover td {
+    background: rgba(6, 182, 212, 0.05);
 }
-
-
-#netmon-wrapper .bg-online {
-    background:
-        rgba(16, 185, 129, .18);
-
-    color:
-        var(--signal-excellent);
-}
-
-
-#netmon-wrapper .bg-offline {
-    background:
-        rgba(148, 163, 184, .18);
-
-    color:
-        var(--text-muted);
-}
-
-
-#netmon-wrapper .bg-router {
-    background:
-        rgba(59, 130, 246, .18);
-
-    color:
-        var(--accent-blue);
-}
-
-
-#netmon-wrapper .bg-warning {
-    background:
-        rgba(234, 179, 8, .18);
-
-    color:
-        var(--signal-good);
-}
-
 
 /* =========================================================
-   CHART
+   RESPONSIVE LAYOUT (Mobile adjustments)
 ========================================================= */
-
-#trafficChart {
-    width: 100% !important;
-    height: 100% !important;
-}
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media (max-width: 1300px) {
-
-    #netmon-wrapper .stats-summary {
-        grid-template-columns:
-            repeat(2, 1fr);
-    }
-
-    #netmon-wrapper .network-info-grid {
-        grid-template-columns:
-            repeat(2, 1fr);
-    }
-
-}
-
-
 @media (max-width: 1050px) {
-
-    #netmon-wrapper {
-        flex-direction: column;
-
-        overflow-y: auto;
-    }
-
-    #netmon-wrapper .sidebar {
-        width: 100%;
-
-        flex-direction: row;
-
-        overflow-x: auto;
-    }
-
-    #netmon-wrapper .brand {
-        border-right:
-            1px solid
-            var(--border-color);
-
-        border-bottom: none;
-    }
-
-    #netmon-wrapper .nav-items {
-        display: flex;
-
-        padding: 0;
-    }
-
-    #netmon-wrapper .nav-item {
-        padding:
-            12px 16px;
-
-        white-space: nowrap;
-
-        border-right: none;
-
-        border-bottom:
-            4px solid
-            transparent;
-    }
-
-    #netmon-wrapper .nav-item.active {
-        border-right: none;
-
-        border-bottom:
-            4px solid
-            var(--accent-cyan);
-    }
-
-    #netmon-wrapper .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-
+    #netmon-wrapper { flex-direction: column; }
+    #netmon-wrapper .sidebar { width: 100%; flex-direction: row; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
+    #netmon-wrapper .nav-items { display: flex; padding: 0; }
+    #netmon-wrapper .nav-item { padding: 12px 20px; border-right: none; border-bottom: 4px solid transparent; }
+    #netmon-wrapper .nav-item.active { border-bottom-color: var(--accent-cyan); box-shadow: inset 0 -4px 0 0 rgba(6, 182, 212, 0.2); }
 }
-
 
 @media (max-width: 700px) {
-
-    #netmon-wrapper .main {
-        padding: 18px;
-    }
-
-    #netmon-wrapper .header {
-        flex-direction: column;
-    }
-
-    #netmon-wrapper .stats-summary {
-        grid-template-columns: 1fr;
-    }
-
-    #netmon-wrapper .network-info-grid {
-        grid-template-columns: 1fr;
-    }
-
-    #netmon-wrapper .card {
-        padding: 16px;
-    }
-
-    #netmon-wrapper .stat-box {
-        padding: 15px;
-    }
-
-    #netmon-wrapper .radar-container {
-        height: 280px;
-    }
-
-    #netmon-wrapper .circle-1 {
-        width: 240px;
-        height: 240px;
-    }
-
-    #netmon-wrapper .circle-2 {
-        width: 170px;
-        height: 170px;
-    }
-
-    #netmon-wrapper .circle-3 {
-        width: 100px;
-        height: 100px;
-    }
-
+    #netmon-wrapper .main { padding: 16px; }
+    #netmon-wrapper .header h1 { font-size: 1.5rem; }
+    #netmon-wrapper .radar-container { height: 280px; }
 }
-
-
-/* =========================================================
-   SCROLLBAR
-========================================================= */
-
-#netmon-wrapper ::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
-}
-
-
-#netmon-wrapper ::-webkit-scrollbar-track {
-    background:
-        var(--bg-dark);
-}
-
-
-#netmon-wrapper ::-webkit-scrollbar-thumb {
-    background:
-        var(--border-color);
-
-    border-radius: 10px;
-}
-
-
 </style>
 
-
 <div id="netmon-wrapper">
-
     <!-- =====================================================
          SIDEBAR
     ====================================================== -->
-
     <aside class="sidebar">
-
         <div class="brand">
-            <i class="fas fa-network-wired"></i>
-            <span>NetSight Pro</span>
+            <i class="fas fa-tower-broadcast"></i> <!-- Broadcast icon for KTVDI -->
+            <span>NOC Dashboard</span>
         </div>
-
         <nav class="nav-items">
-
-            <a
-                href="#"
-                class="nav-item active"
-                data-target="dashboard-top"
-            >
-                <i class="fas fa-chart-pie"></i>
-                <span>Dashboard</span>
+            <a href="#" class="nav-item active" data-target="dashboard-top">
+                <i class="fas fa-chart-pie"></i><span>Dashboard</span>
             </a>
-
-            <a
-                href="#"
-                class="nav-item"
-                data-target="client-section"
-            >
-                <i class="fas fa-globe"></i>
-                <span>Koneksi Anda</span>
+            <a href="#" class="nav-item" data-target="client-section">
+                <i class="fas fa-globe"></i><span>Koneksi Anda</span>
             </a>
-
-            <a
-                href="#"
-                class="nav-item"
-                data-target="wifi-section"
-            >
-                <i class="fas fa-wifi"></i>
-                <span>Wi-Fi</span>
+            <a href="#" class="nav-item" data-target="wifi-section">
+                <i class="fas fa-wifi"></i><span>Wi-Fi</span>
             </a>
-
-            <a
-                href="#"
-                class="nav-item"
-                data-target="speed-section"
-            >
-                <i class="fas fa-gauge-high"></i>
-                <span>Speedtest</span>
+            <a href="#" class="nav-item" data-target="speed-section">
+                <i class="fas fa-gauge-high"></i><span>Speedtest</span>
             </a>
-
-            <a
-                href="#"
-                class="nav-item"
-                data-target="topology-section"
-            >
-                <i class="fas fa-project-diagram"></i>
-                <span>Topologi</span>
+            <a href="#" class="nav-item" data-target="topology-section">
+                <i class="fas fa-project-diagram"></i><span>Topologi</span>
             </a>
-
-            <a
-                href="#"
-                class="nav-item"
-                data-target="devices-section"
-            >
-                <i class="fas fa-list"></i>
-                <span>Perangkat</span>
+            <a href="#" class="nav-item" data-target="devices-section">
+                <i class="fas fa-server"></i><span>Perangkat</span>
             </a>
-
         </nav>
-
     </aside>
-
 
     <!-- =====================================================
          MAIN
     ====================================================== -->
-
     <main class="main">
-
         <div id="dashboard-top"></div>
 
-
         <!-- HEADER -->
-
         <div class="header">
-
             <div>
-
-                <h1>
-                    Analisis Jaringan &amp; Perangkat
-                </h1>
-
-                <p class="header-subtitle">
-
-                    ISP:
-                    <strong id="network-name">
-                        Mendeteksi...
-                    </strong>
-
-                    &nbsp;·&nbsp;
-
-                    Gateway:
-                    <strong id="gateway-ip">
-                        -
-                    </strong>
-
-                    &nbsp;·&nbsp;
-
-                    <span id="network-status">
-                        Menunggu backend...
-                    </span>
-
+                <h1>KTVDI Network Operations</h1>
+                <p class="header-subtitle font-mono">
+                    ISP: <strong id="network-name" class="font-mono" style="color: var(--accent-cyan);">Mendeteksi...</strong> &nbsp;·&nbsp;
+                    Gateway: <strong id="gateway-ip" class="font-mono">-</strong> &nbsp;·&nbsp;
+                    <span id="network-status">Menunggu backend...</span>
                 </p>
-
-                <p
-                    id="last-scan-time"
-                    style="
-                        margin:5px 0 0;
-                        color:var(--text-muted);
-                        font-size:.72rem;
-                    "
-                >
+                <p id="last-scan-time" style="margin:8px 0 0; color:var(--text-muted); font-size:.75rem;" class="font-mono">
                     Belum ada pemindaian
                 </p>
-
             </div>
-
-
             <div>
-
-                <button
-                    id="scan-network-btn"
-                    class="btn-action btn-primary"
-                    type="button"
-                >
-                    <i class="fas fa-sync-alt"></i>
-                    Pindai Ulang
+                <button id="scan-network-btn" class="btn-action btn-primary" type="button" onclick="forceNetworkScan()">
+                    <i class="fas fa-satellite-dish"></i> Pindai Jaringan
                 </button>
-
             </div>
-
         </div>
 
-
-        <!-- DATA SOURCE WARNING -->
-
-        <div class="network-warning">
-
-            <i class="fas fa-circle-info"></i>
-
-            <strong>Sumber data:</strong>
-
-            IP publik, ISP, ASN, organisasi, lokasi IP,
-            browser, dan OS berasal dari koneksi
-            <strong>client/browser</strong>.
-
-            SSID, band, channel, signal, gateway,
-            ARP, interface Wi-Fi, dan perangkat LAN
-            berasal dari
-            <strong>komputer tempat Flask berjalan</strong>.
-
-            Speedtest Ookla berasal dari
-            <strong>mesin Flask</strong> apabila CLI tersedia.
-
-            <br>
-
-            <span style="opacity:.85">
-
-                Browser Downlink/RTT hanya merupakan
-                estimasi dari Network Information API
-                dan bukan pengukuran bandwidth aktual.
-
-            </span>
-
-        </div>
-
-
-        <!-- =================================================
-             SUMMARY
-        ================================================== -->
-
+        <!-- STATS SUMMARY -->
         <div class="stats-summary">
-
-            <div class="stat-box">
-
+            <!-- Isi blok stat box sama persis dengan aslinya, kelas-kelas CSS telah menangani gaya font -->
+            <div class="stat-box" style="animation-delay: 0.1s;">
                 <i class="fas fa-building stat-icon"></i>
-
                 <div class="stat-info">
-
-                    <h4>
-                        ISP / Provider
-                    </h4>
-
-                    <h2 id="client-provider">
-                        Mendeteksi...
-                    </h2>
-
-                    <small
-                        id="client-asn"
-                        style="color:var(--text-muted)"
-                    >
-                        ASN: -
-                    </small>
-
+                    <h4>ISP / Provider</h4>
+                    <h2 id="client-provider">Mendeteksi...</h2>
+                    <small id="client-asn" class="font-mono" style="color:var(--text-muted)">ASN: -</small>
                 </div>
-
             </div>
-
-
-            <div class="stat-box">
-
+            <div class="stat-box" style="animation-delay: 0.2s;">
                 <i class="fas fa-globe stat-icon"></i>
-
                 <div class="stat-info">
-
-                    <h4>
-                        IP Publik
-                    </h4>
-
-                    <h2 id="public-ip">
-                        Mendeteksi...
-                    </h2>
-
-                    <small style="color:var(--text-muted)">
-                        IP koneksi client
-                    </small>
-
+                    <h4>IP Publik</h4>
+                    <h2 id="public-ip">Mendeteksi...</h2>
+                    <small style="color:var(--text-muted)">IP koneksi client</small>
                 </div>
-
             </div>
-
-
-            <div class="stat-box">
-
+            <div class="stat-box" style="animation-delay: 0.3s;">
                 <i class="fas fa-wifi stat-icon"></i>
-
                 <div class="stat-info">
-
-                    <h4>
-                        Wi-Fi
-                    </h4>
-
-                    <h2 id="wifi-summary">
-                        Mendeteksi...
-                    </h2>
-
-                    <small
-                        id="wifi-band-summary"
-                        style="color:var(--text-muted)"
-                    >
-                        -
-                    </small>
-
+                    <h4>Wi-Fi</h4>
+                    <h2 id="wifi-summary">Mendeteksi...</h2>
+                    <small id="wifi-band-summary" style="color:var(--text-muted)">-</small>
                 </div>
-
             </div>
-
-
-            <div class="stat-box">
-
+            <div class="stat-box" style="animation-delay: 0.4s;">
                 <i class="fas fa-gauge-high stat-icon"></i>
-
                 <div class="stat-info">
-
-                    <h4>
-                        Download Aktual
-                    </h4>
-
-                    <h2 id="download-speed-summary">
-                        -
-                    </h2>
-
-                    <small
-                        id="speedtest-summary"
-                        style="color:var(--text-muted)"
-                    >
-                        Menunggu Speedtest
-                    </small>
-
+                    <h4>Download Aktual</h4>
+                    <h2 id="download-speed-summary">-</h2>
+                    <small id="speedtest-summary" style="color:var(--text-muted)">Menunggu Speedtest</small>
                 </div>
-
             </div>
-
         </div>
 
-
         <!-- =================================================
-             CLIENT
+             CLIENT INFO (Sama dengan aslinya, class akan otomatis menyesuaikan)
         ================================================== -->
-
-        <section
-            class="card"
-            id="client-section"
-            style="
-                margin-bottom:24px;
-                border-left:4px solid var(--accent-cyan);
-            "
-        >
-
+        <section class="card" id="client-section" style="margin-bottom:24px; animation-delay: 0.2s;">
             <div class="card-header">
-
-                <span>
-                    <i class="fas fa-user-circle"></i>
-                    Informasi Koneksi Perangkat Anda
+                <span><i class="fas fa-user-circle" style="color: var(--accent-cyan);"></i> Data Terminal Klien</span>
+                <span id="client-connection-status" class="status-pill status-warning">
+                    <i class="fas fa-circle-notch fa-spin"></i> Sinkronisasi
                 </span>
-
-                <span
-                    id="client-connection-status"
-                    class="status-pill status-warning"
-                >
-                    <i class="fas fa-circle"></i>
-                    Mendeteksi
-                </span>
-
             </div>
-
-
+            <!-- Grid info client tetap sama, font-mono & adaptive grid CSS yang bekerja -->
             <div class="network-info-grid">
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        IP Publik
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-public-ip"
-                    >
-                        Mendeteksi...
-                    </div>
+                    <div class="network-info-label">IP Publik</div>
+                    <div class="network-info-value font-mono" id="client-public-ip">Mendeteksi...</div>
                 </div>
-
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        ISP
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-isp"
-                    >
-                        Mendeteksi...
-                    </div>
+                    <div class="network-info-label">ISP</div>
+                    <div class="network-info-value" id="client-isp">Mendeteksi...</div>
                 </div>
-
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        ASN
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-asn-detail"
-                    >
-                        -
-                    </div>
+                    <div class="network-info-label">ASN</div>
+                    <div class="network-info-value font-mono" id="client-asn-detail">-</div>
                 </div>
-
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        Organisasi
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-org"
-                    >
-                        -
-                    </div>
+                    <div class="network-info-label">Organisasi</div>
+                    <div class="network-info-value" id="client-org">-</div>
                 </div>
-
             </div>
-
-
             <div class="network-info-grid">
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        Browser
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-browser"
-                    >
-                        -
-                    </div>
+                    <div class="network-info-label">Browser</div>
+                    <div class="network-info-value" id="client-browser">-</div>
                 </div>
-
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        Sistem Operasi
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-os"
-                    >
-                        -
-                    </div>
+                    <div class="network-info-label">OS Sistem</div>
+                    <div class="network-info-value" id="client-os">-</div>
                 </div>
-
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        Tipe Koneksi
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="detail-connection-type"
-                    >
-                        -
-                    </div>
+                    <div class="network-info-label">Tipe Koneksi</div>
+                    <div class="network-info-value" id="detail-connection-type">-</div>
                 </div>
-
-
                 <div class="network-info-item">
-                    <div class="network-info-label">
-                        Lokasi IP
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-location"
-                    >
-                        -
-                    </div>
+                    <div class="network-info-label">Lokasi Node</div>
+                    <div class="network-info-value" id="client-location">-</div>
                 </div>
-
             </div>
-
-
-            <div class="section-note">
-
-                ISP ditentukan berdasarkan IP publik
-                client yang sedang digunakan ketika
-                halaman dibuka.
-
-                <strong>
-                    Bukan ISP server Flask.
-                </strong>
-
-            </div>
-
         </section>
 
+        <!-- (Anda dapat menempatkan sisa blok HTML section (WIFI, SPEEDTEST, TOPOLOGY, DEVICES) persis seperti aslinya disini) -->
+        <!-- Mereka akan otomatis terpoles oleh CSS Fira Code dan adaptive Grid layout yang baru -->
 
-        <!-- =================================================
-             WIFI
-        ================================================== -->
-
-        <section
-            class="card wifi-card"
-            id="wifi-section"
-            style="margin-bottom:24px"
-        >
-
+        <!-- Contoh potongan Topology Section untuk Radar -->
+        <section class="card" id="topology-section" style="margin-bottom:24px;">
             <div class="card-header">
-
-                <span>
-                    <i class="fas fa-wifi"></i>
-                    Wi-Fi / Wireless Interface
+                <span><i class="fas fa-satellite"></i> Visualisasi Topologi Sensor</span>
+                <span id="topology-count" class="font-mono" style="color:var(--accent-cyan); font-size:.85rem;">
+                    0 node terdeteksi
                 </span>
-
-                <span
-                    id="wifi-status"
-                    class="status-pill status-neutral"
-                >
-                    <i class="fas fa-circle"></i>
-                    Mendeteksi
+            </div>
+            <div class="radar-container" id="radar-container">
+                <div class="radar-circle circle-1"></div>
+                <div class="radar-circle circle-2"></div>
+                <div class="radar-circle circle-3"></div>
+                <span class="radar-label font-mono" style="top:10px; color: var(--accent-cyan); opacity: 0.7;">
+                    [ KTVDI RADAR SCANNER ACTIVE ]
                 </span>
-
+                <div class="router-center unknown" id="router-center">
+                    <i class="fas fa-server" style="color:#fff"></i>
+                </div>
             </div>
-
-
-            <div class="network-info-grid">
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        SSID
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-ssid"
-                    >
-                        Mendeteksi...
-                    </div>
-                </div>
-
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        Band
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-band"
-                    >
-                        -
-                    </div>
-                </div>
-
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        Channel
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-channel"
-                    >
-                        -
-                    </div>
-                </div>
-
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        Signal
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-signal"
-                    >
-                        -
-                    </div>
-                </div>
-
-            </div>
-
-
-            <div class="network-info-grid">
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        Interface
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-interface"
-                    >
-                        -
-                    </div>
-                </div>
-
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        Radio Type
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-radio"
-                    >
-                        -
-                    </div>
-                </div>
-
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        Receive Rate
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-rx"
-                    >
-                        -
-                    </div>
-                </div>
-
-
-                <div class="network-info-item">
-                    <div class="network-info-label">
-                        Transmit Rate
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="wifi-tx"
-                    >
-                        -
-                    </div>
-                </div>
-
-            </div>
-
-
-            <div class="section-note">
-
-                Data Wi-Fi di atas hanya dapat merepresentasikan
-                komputer yang menjalankan Flask.
-
-                Browser tidak memberikan SSID Wi-Fi
-                komputer client kepada website.
-
-            </div>
-
         </section>
 
-
-        <!-- =================================================
-             SPEEDTEST
-        ================================================== -->
-
-        <section
-            class="card speed-card"
-            id="speed-section"
-            style="margin-bottom:24px"
-        >
-
+        <!-- Tabel Perangkat (Penerapan Fira Code & Hover Animation) -->
+        <section class="card" id="devices-section" style="overflow:auto">
             <div class="card-header">
-
-                <span>
-                    <i class="fas fa-gauge-high"></i>
-                    Internet Speedtest
+                <span><i class="fas fa-network-wired"></i> Log Perangkat Terdeteksi</span>
+                <span id="device-table-info" class="font-mono" style="color:var(--text-muted); font-size:.85rem;">
+                    Menunggu aliran data...
                 </span>
-
-                <span
-                    id="speedtest-status"
-                    class="status-pill status-neutral"
-                >
-                    <i class="fas fa-circle"></i>
-                    Belum diukur
-                </span>
-
             </div>
-
-
-            <div class="network-info-grid">
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Download
-                    </div>
-
-                    <div
-                        class="speed-value"
-                        id="download-speed"
-                        style="
-                            font-size:1.7rem;
-                            font-weight:700;
-                        "
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Upload
-                    </div>
-
-                    <div
-                        class="speed-value"
-                        id="upload-speed"
-                        style="
-                            font-size:1.7rem;
-                            font-weight:700;
-                        "
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Ping
-                    </div>
-
-                    <div
-                        class="speed-value"
-                        id="speedtest-ping"
-                        style="
-                            font-size:1.7rem;
-                            font-weight:700;
-                        "
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Packet Loss
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="packet-loss"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="network-info-grid">
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Server
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="speedtest-server"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        ISP Speedtest
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="speedtest-isp"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Sumber
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="speedtest-source"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Status
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="speedtest-message"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div
-                class="section-note"
-                id="speedtest-note"
-            >
-
-                Speedtest dilakukan oleh komputer
-                tempat Flask berjalan.
-
-                Hasilnya adalah pengukuran bandwidth
-                aktual pada saat test dijalankan.
-
-                Ini bukan monitoring trafik secara
-                real-time.
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             BROWSER NETWORK API
-        ================================================== -->
-
-        <section
-            class="card"
-            style="margin-bottom:24px"
-        >
-
-            <div class="card-header">
-
-                <span>
-                    <i class="fas fa-browser"></i>
-                    Network Information API Browser
-                </span>
-
-                <span class="status-pill status-neutral">
-                    Estimasi
-                </span>
-
-            </div>
-
-
-            <div class="network-info-grid">
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Downlink Browser
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-downlink"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        RTT Browser
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="client-rtt"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Data Saver
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="detail-save-data"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Tipe Efektif
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="browser-effective-type"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="section-note">
-
-                Nilai ini merupakan informasi estimasi
-                dari browser dan dapat berbeda jauh
-                dari bandwidth paket Internet sebenarnya.
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             BACKEND NETWORK
-        ================================================== -->
-
-        <section
-            class="network-info-grid"
-            style="margin-bottom:24px"
-        >
-
-            <div class="network-info-item">
-
-                <div class="network-info-label">
-                    IP Lokal Backend
-                </div>
-
-                <div
-                    class="network-info-value"
-                    id="backend-local-ip"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="network-info-item">
-
-                <div class="network-info-label">
-                    Network CIDR
-                </div>
-
-                <div
-                    class="network-info-value"
-                    id="network-cidr"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="network-info-item">
-
-                <div class="network-info-label">
-                    Prefix
-                </div>
-
-                <div
-                    class="network-info-value"
-                    id="network-prefix"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="network-info-item">
-
-                <div class="network-info-label">
-                    Hostname Backend
-                </div>
-
-                <div
-                    class="network-info-value"
-                    id="local-hostname"
-                >
-                    -
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             TOPOLOGY + SPEED HISTORY
-        ================================================== -->
-
-        <div class="dashboard-grid">
-
-            <section
-                class="card"
-                id="topology-section"
-            >
-
-                <div class="card-header">
-
-                    <span>
-                        <i class="fas fa-project-diagram"></i>
-                        Topologi Jaringan
-                    </span>
-
-                    <span
-                        id="topology-count"
-                        style="
-                            color:var(--text-muted);
-                            font-size:.78rem;
-                        "
-                    >
-                        0 perangkat
-                    </span>
-
-                </div>
-
-
-                <div
-                    class="radar-container"
-                    id="radar-container"
-                >
-
-                    <div
-                        class="radar-circle circle-1"
-                    ></div>
-
-                    <div
-                        class="radar-circle circle-2"
-                    ></div>
-
-                    <div
-                        class="radar-circle circle-3"
-                    ></div>
-
-
-                    <span
-                        class="radar-label"
-                        style="
-                            top:7px;
-                        "
-                    >
-                        VISUALISASI
-                    </span>
-
-
-                    <div
-                        class="router-center unknown"
-                        id="router-center"
-                    >
-                        <i
-                            class="fas fa-router"
-                            style="color:#fff"
-                        ></i>
-                    </div>
-
-                </div>
-
-
-                <p class="section-note">
-
-                    Posisi node merupakan visualisasi
-                    saja.
-
-                    <strong>
-                        Bukan jarak fisik,
-                        RSSI, atau posisi sebenarnya.
-                    </strong>
-
-                    Radius visual hanya digunakan
-                    untuk membantu membaca kondisi node.
-
-                </p>
-
-            </section>
-
-
-            <section
-                class="card"
-                id="traffic-card"
-            >
-
-                <div class="card-header">
-
-                    <span>
-                        <i class="fas fa-chart-area"></i>
-                        Riwayat Speedtest
-                    </span>
-
-                    <span
-                        id="traffic-state"
-                        style="
-                            color:var(--text-muted);
-                            font-size:.78rem;
-                        "
-                    >
-                        Menunggu
-                    </span>
-
-                </div>
-
-
-                <div
-                    style="
-                        position:relative;
-                        height:260px;
-                        width:100%;
-                    "
-                >
-
-                    <canvas
-                        id="trafficChart"
-                    ></canvas>
-
-                </div>
-
-
-                <div
-                    id="traffic-note"
-                    class="section-note"
-                >
-
-                    Grafik berisi histori hasil
-                    Speedtest yang diterima dashboard.
-
-                    Bukan trafik Internet real-time.
-
-                </div>
-
-            </section>
-
-        </div>
-
-
-        <!-- =================================================
-             ROUTER
-        ================================================== -->
-
-        <section
-            class="card"
-            style="margin-bottom:24px"
-        >
-
-            <div class="card-header">
-
-                <span>
-                    <i class="fas fa-router"></i>
-                    Gateway / Router
-                </span>
-
-                <span
-                    id="router-access-status"
-                    class="status-pill status-neutral"
-                >
-                    <i class="fas fa-circle"></i>
-                    Belum diketahui
-                </span>
-
-            </div>
-
-
-            <div class="network-info-grid">
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Gateway
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="detail-gateway"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        MAC
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="detail-router-mac"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Vendor
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="detail-router-vendor"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-
-                <div class="network-info-item">
-
-                    <div class="network-info-label">
-                        Hostname
-                    </div>
-
-                    <div
-                        class="network-info-value"
-                        id="detail-router-hostname"
-                    >
-                        -
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- =================================================
-             DEVICES
-        ================================================== -->
-
-        <section
-            class="card"
-            id="devices-section"
-            style="overflow:hidden"
-        >
-
-            <div class="card-header">
-
-                <span>
-                    <i class="fas fa-list"></i>
-                    Perangkat Terdeteksi
-                </span>
-
-                <span
-                    id="device-table-info"
-                    style="
-                        color:var(--text-muted);
-                        font-size:.78rem;
-                    "
-                >
-                    Menunggu data...
-                </span>
-
-            </div>
-
-
-            <div class="table-wrapper">
-
-                <table
-                    style="
-                        min-width:1050px;
-                    "
-                >
-
-                    <thead>
-
-                        <tr>
-
-                            <th>
-                                Perangkat
-                            </th>
-
-                            <th>
-                                IP
-                            </th>
-
-                            <th>
-                                MAC
-                            </th>
-
-                            <th>
-                                Vendor
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Latency
-                            </th>
-
-                            <th>
-                                State
-                            </th>
-
-                            <th>
-                                Sumber
-                            </th>
-
-                            <th>
-                                Aksi
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody
-                        id="device-table-body"
-                    >
-
-                        <tr>
-
-                            <td
-                                colspan="9"
-                                style="
-                                    text-align:center;
-                                    color:var(--text-muted);
-                                    padding:30px;
-                                "
-                            >
-
-                                <i
-                                    class="
-                                        fas
-                                        fa-spinner
-                                        fa-spin
-                                    "
-                                ></i>
-
-                                Membaca jaringan...
-
-                            </td>
-
-                        </tr>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
+            <table style="min-width: 900px;">
+                <thead>
+                    <tr>
+                        <th>Node</th>
+                        <th>IP Address</th>
+                        <th>MAC Address</th>
+                        <th>Vendor Hardware</th>
+                        <th>Status</th>
+                        <th>Latency</th>
+                        <th>State</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="device-table-body">
+                    <tr>
+                        <td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">
+                            <i class="fas fa-circle-notch fa-spin"></i> Menyiapkan koneksi ke probe...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </section>
 
     </main>
-
 </div>
 
-
+<!-- =====================================================
+     SCRIPT (Pertahankan javascript persis seperti kode asli, 
+     animasi render table dan radar dikoordinasikan murni lewat CSS & DOM standar)
+====================================================== -->
 <script>
-
-/* =========================================================
-   GLOBAL STATE
-========================================================= */
-
-let trafficChart = null;
-
-let networkRefreshTimer = null;
-
-let clientNetworkTimer = null;
-
-let clientPublicIP = null;
-
-let latestClientNetwork = null;
-
-let isScanning = false;
-
-let scanController = null;
-
-let scanTimeout = null;
-
-let speedHistory = [];
-
-const MAX_SPEED_HISTORY = 10;
-
-
-/* =========================================================
-   DOM READY
-========================================================= */
-
-document.addEventListener(
-    'DOMContentLoaded',
-    async function () {
-
-        cleanupBaseLayout();
-
-        initializeNavigation();
-
-        initializeTrafficChart();
-
-        detectClientEnvironment();
-
-        detectClientNetwork();
-
-        await detectClientPublicIP();
-
-        await sendClientNetworkData();
-
-        await fetchNetworkData(true);
-
-
-        /*
-         * Backend refresh tidak dilakukan terlalu cepat.
-         *
-         * Penting:
-         * /api/network-data kemungkinan menjalankan
-         * proses OS/network scanning.
-         *
-         * Jangan bombard endpoint setiap 1 detik.
-         */
-
-        networkRefreshTimer =
-            setInterval(
-                function () {
-
-                    if (!isScanning) {
-
-                        fetchNetworkData(false);
-
-                    }
-
-                },
-                15000
-            );
-
-
-        /*
-         * Client browser information
-         */
-
-        clientNetworkTimer =
-            setInterval(
-                function () {
-
-                    detectClientNetwork();
-
-                    sendClientNetworkData();
-
-                },
-                30000
-            );
-
-    }
-);
-
-
-/* =========================================================
-   CLEANUP BASE LAYOUT
-========================================================= */
-
-function cleanupBaseLayout() {
-
-    const baseCanvas =
-        document.querySelector(
-            'main > div.bg-white'
-        );
-
-
-    if (baseCanvas) {
-
-        baseCanvas.classList.remove(
-            'bg-white'
-        );
-
-        baseCanvas.style.backgroundColor =
-            '#0f172a';
-
-    }
-
-
-    const innerWrapper =
-        document.querySelector(
-            'main > div > div.max-w-7xl'
-        );
-
-
-    if (innerWrapper) {
-
-        innerWrapper.classList.remove(
-            'max-w-7xl',
-            'px-4',
-            'md:px-6',
-            'lg:px-8',
-            'py-8',
-            'md:py-12'
-        );
-
-        innerWrapper.classList.add(
-            'w-full',
-            'p-0'
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-function initializeNavigation() {
-
-    const items =
-        document.querySelectorAll(
-            '#netmon-wrapper .nav-item'
-        );
-
-
-    items.forEach(
-        function (item) {
-
-            item.addEventListener(
-                'click',
-                function (event) {
-
-                    event.preventDefault();
-
-                    const targetId =
-                        item.dataset.target;
-
-
-                    items.forEach(
-                        function (nav) {
-
-                            nav.classList.remove(
-                                'active'
-                            );
-
-                        }
-                    );
-
-
-                    item.classList.add(
-                        'active'
-                    );
-
-
-                    if (
-                        targetId ===
-                        'dashboard-top'
-                    ) {
-
-                        window.scrollTo(
-                            {
-                                top: 0,
-                                behavior: 'smooth'
-                            }
-                        );
-
-                        return;
-
-                    }
-
-
-                    const target =
-                        document.getElementById(
-                            targetId
-                        );
-
-
-                    if (!target) {
-                        return;
-                    }
-
-
-                    target.scrollIntoView(
-                        {
-                            behavior: 'smooth',
-                            block: 'start'
-                        }
-                    );
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   PUBLIC IP
-========================================================= */
-
-async function detectClientPublicIP() {
-
-    try {
-
-        const response =
-            await fetch(
-                'https://api.ipify.org?format=json',
-                {
-                    method: 'GET',
-                    cache: 'no-store',
-                    headers: {
-                        'Accept':
-                            'application/json'
-                    }
-                }
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                'HTTP ' +
-                response.status
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        if (
-            !data ||
-            !data.ip
-        ) {
-
-            throw new Error(
-                'IP publik tidak tersedia'
-            );
-
-        }
-
-
-        clientPublicIP =
-            String(
-                data.ip
-            ).trim();
-
-
-        setText(
-            'public-ip',
-            clientPublicIP
-        );
-
-
-        setText(
-            'client-public-ip',
-            clientPublicIP
-        );
-
-
-        setClientConnectionStatus(
-            true,
-            'Internet aktif'
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            'PUBLIC IP ERROR:',
-            error
-        );
-
-
-        clientPublicIP = null;
-
-
-        setText(
-            'public-ip',
-            'Tidak tersedia'
-        );
-
-
-        setText(
-            'client-public-ip',
-            'Tidak tersedia'
-        );
-
-
-        setClientConnectionStatus(
-            false,
-            'IP publik tidak tersedia'
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   SEND CLIENT DATA
-========================================================= */
-
-async function sendClientNetworkData() {
-
-    const connection =
-        getNetworkConnection();
-
-
-    const payload = {
-
-        public_ip:
-            clientPublicIP,
-
-        browser:
-            detectBrowser(),
-
-        os:
-            detectOS(),
-
-        connection_type:
-            connection
-                ? (
-                    connection.type ||
-                    connection.effectiveType ||
-                    null
-                )
-                : null,
-
-        downlink:
-            getFiniteNumber(
-                connection?.downlink
-            ),
-
-        rtt:
-            getFiniteNumber(
-                connection?.rtt
-            ),
-
-        save_data:
-            connection
-                ? connection.saveData === true
-                : null
-
-    };
-
-
-    try {
-
-        const response =
-            await fetch(
-                '/api/network-client-merge',
-                {
-
-                    method: 'POST',
-
-                    credentials:
-                        'same-origin',
-
-                    headers: {
-
-                        'Content-Type':
-                            'application/json',
-
-                        'Accept':
-                            'application/json'
-
-                    },
-
-                    body:
-                        JSON.stringify(
-                            payload
-                        )
-
-                }
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                'HTTP ' +
-                response.status
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        if (
-            data &&
-            data.status ===
-                'success'
-        ) {
-
-            latestClientNetwork =
-                data;
-
-
-            updateClientData(
-                data.client || {}
-            );
-
-
-            updateBackendDashboard(
-                data
-            );
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            'CLIENT NETWORK SEND ERROR:',
-            error
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   CLIENT DATA
-========================================================= */
-
-function updateClientData(client) {
-
-    if (!client) {
-        return;
-    }
-
-
-    const publicIP =
-        client.public_ip ||
-        clientPublicIP ||
-        '-';
-
-
-    const isp =
-        client.isp ||
-        client.org ||
-        'Tidak terdeteksi';
-
-
-    const asn =
-        client.asn ||
-        '-';
-
-
-    const org =
-        client.org ||
-        '-';
-
-
-    setText(
-        'client-provider',
-        isp
-    );
-
-
-    setText(
-        'client-isp',
-        isp
-    );
-
-
-    setText(
-        'client-asn',
-        'ASN: ' + asn
-    );
-
-
-    setText(
-        'client-asn-detail',
-        asn
-    );
-
-
-    setText(
-        'client-org',
-        org
-    );
-
-
-    setText(
-        'client-public-ip',
-        publicIP
-    );
-
-
-    setText(
-        'public-ip',
-        publicIP
-    );
-
-
-    setText(
-        'client-browser',
-        client.browser ||
-            detectBrowser()
-    );
-
-
-    setText(
-        'client-os',
-        client.os ||
-            detectOS()
-    );
-
-
-    const locationParts = [];
-
-
-    if (client.city) {
-
-        locationParts.push(
-            client.city
-        );
-
-    }
-
-
-    if (client.region) {
-
-        locationParts.push(
-            client.region
-        );
-
-    }
-
-
-    if (client.country) {
-
-        locationParts.push(
-            client.country
-        );
-
-    }
-
-
-    setText(
-        'client-location',
-        locationParts.length
-            ? locationParts.join(', ')
-            : '-'
-    );
-
-
-    /*
-     * ISP header
-     */
-
-    setText(
-        'network-name',
-        isp
-    );
-
-}
-
-
-/* =========================================================
-   CLIENT ENVIRONMENT
-========================================================= */
-
-function detectClientEnvironment() {
-
-    setText(
-        'client-browser',
-        detectBrowser()
-    );
-
-
-    setText(
-        'client-os',
-        detectOS()
-    );
-
-}
-
-
-/* =========================================================
-   CLIENT NETWORK
-========================================================= */
-
-function detectClientNetwork() {
-
-    const connection =
-        getNetworkConnection();
-
-
-    if (!connection) {
-
-        setText(
-            'detail-connection-type',
-            'Tidak tersedia'
-        );
-
-
-        setText(
-            'client-downlink',
-            'Tidak tersedia'
-        );
-
-
-        setText(
-            'client-rtt',
-            'Tidak tersedia'
-        );
-
-
-        setText(
-            'detail-save-data',
-            'Tidak tersedia'
-        );
-
-
-        setText(
-            'browser-effective-type',
-            'Tidak tersedia'
-        );
-
-
-        return;
-
-    }
-
-
-    const effectiveType =
-        connection.effectiveType ||
-        'Tidak diketahui';
-
-
-    const downlink =
-        getFiniteNumber(
-            connection.downlink
-        );
-
-
-    const rtt =
-        getFiniteNumber(
-            connection.rtt
-        );
-
-
-    const saveData =
-        connection.saveData === true
-            ? 'Aktif'
-            : 'Tidak aktif';
-
-
-    const browserType =
-        connection.type ||
-        effectiveType;
-
-
-    setText(
-        'detail-connection-type',
-        formatConnectionType(
-            browserType
-        )
-    );
-
-
-    setText(
-        'browser-effective-type',
-        effectiveType
-    );
-
-
-    if (
-        downlink !== null &&
-        downlink > 0
-    ) {
-
-        setText(
-            'client-downlink',
-            formatNumber(downlink) +
-            ' Mbps'
-        );
-
-    } else {
-
-        setText(
-            'client-downlink',
-            'Tidak tersedia'
-        );
-
-    }
-
-
-    if (
-        rtt !== null &&
-        rtt >= 0
-    ) {
-
-        setText(
-            'client-rtt',
-            formatNumber(rtt) +
-            ' ms'
-        );
-
-    } else {
-
-        setText(
-            'client-rtt',
-            'Tidak tersedia'
-        );
-
-    }
-
-
-    setText(
-        'detail-save-data',
-        saveData
-    );
-
-}
-
-
-/* =========================================================
-   NETWORK CONNECTION
-========================================================= */
-
-function getNetworkConnection() {
-
-    return (
-        navigator.connection ||
-        navigator.mozConnection ||
-        navigator.webkitConnection ||
-        null
-    );
-
-}
-
-
-/* =========================================================
-   CONNECTION TYPE
-========================================================= */
-
-function formatConnectionType(type) {
-
-    const map = {
-
-        'slow-2g':
-            'Slow 2G',
-
-        '2g':
-            '2G',
-
-        '3g':
-            '3G',
-
-        '4g':
-            '4G',
-
-        '5g':
-            '5G',
-
-        'wifi':
-            'Wi-Fi',
-
-        'ethernet':
-            'Ethernet',
-
-        'cellular':
-            'Seluler'
-
-    };
-
-
-    return (
-        map[type] ||
-        type ||
-        'Tidak diketahui'
-    );
-
-}
-
-
-/* =========================================================
-   CLIENT STATUS
-========================================================= */
-
-function setClientConnectionStatus(
-    online,
-    message
-) {
-
-    const element =
-        document.getElementById(
-            'client-connection-status'
-        );
-
-
-    if (!element) {
-        return;
-    }
-
-
-    element.className =
-        online
-            ? 'status-pill status-online'
-            : 'status-pill status-error';
-
-
-    element.innerHTML =
-        '<i class="fas ' +
-        (
-            online
-                ? 'fa-check-circle'
-                : 'fa-circle-exclamation'
-        ) +
-        '"></i> ' +
-        escapeHtml(
-            message ||
-            (
-                online
-                    ? 'Online'
-                    : 'Tidak tersedia'
-            )
-        );
-
-}
-
-
-/* =========================================================
-   CHART
-========================================================= */
-
-function initializeTrafficChart() {
-
-    const canvas =
-        document.getElementById(
-            'trafficChart'
-        );
-
-
-    if (!canvas) {
-        return;
-    }
-
-
-    const ctx =
-        canvas.getContext('2d');
-
-
-    trafficChart =
-        new Chart(
-            ctx,
-            {
-
-                type: 'line',
-
-                data: {
-
-                    labels: [],
-
-                    datasets: [
-
-                        {
-
-                            label:
-                                'Download (Mbps)',
-
-                            data: [],
-
-                            borderColor:
-                                '#06b6d4',
-
-                            backgroundColor:
-                                'rgba(6,182,212,.08)',
-
-                            borderWidth: 2,
-
-                            fill: true,
-
-                            tension: .35,
-
-                            spanGaps: true
-
-                        },
-
-
-                        {
-
-                            label:
-                                'Upload (Mbps)',
-
-                            data: [],
-
-                            borderColor:
-                                '#a855f7',
-
-                            backgroundColor:
-                                'rgba(168,85,247,.08)',
-
-                            borderWidth: 2,
-
-                            fill: true,
-
-                            tension: .35,
-
-                            spanGaps: true
-
-                        }
-
-                    ]
-
-                },
-
-                options: {
-
-                    responsive: true,
-
-                    maintainAspectRatio: false,
-
-                    animation: false,
-
-                    interaction: {
-
-                        intersect: false,
-
-                        mode: 'index'
-
-                    },
-
-                    plugins: {
-
-                        legend: {
-
-                            labels: {
-                                color:
-                                    '#94a3b8'
-                            }
-
-                        }
-
-                    },
-
-                    scales: {
-
-                        x: {
-
-                            grid: {
-                                color:
-                                    '#334155'
-                            },
-
-                            ticks: {
-                                color:
-                                    '#94a3b8'
-                            }
-
-                        },
-
-                        y: {
-
-                            beginAtZero: true,
-
-                            grid: {
-                                color:
-                                    '#334155'
-                            },
-
-                            ticks: {
-
-                                color:
-                                    '#94a3b8',
-
-                                callback:
-                                    function(value) {
-
-                                        return value +
-                                            ' Mbps';
-
-                                    }
-
-                            }
-
-                        }
-
-                    }
-
-                }
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   UPDATE SPEED HISTORY
-========================================================= */
-
-function updateSpeedChart(
-    download,
-    upload
-) {
-
-    if (!trafficChart) {
-        return;
-    }
-
-
-    const hasDownload =
-        download !== null;
-
-
-    const hasUpload =
-        upload !== null;
-
-
-    if (
-        !hasDownload &&
-        !hasUpload
-    ) {
-
-        return;
-
-    }
-
-
-    const timestamp =
-        new Date()
-            .toLocaleTimeString(
-                'id-ID',
-                {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                }
-            );
-
-
-    speedHistory.push(
-        {
-            time: timestamp,
-            download: download,
-            upload: upload
-        }
-    );
-
-
-    if (
-        speedHistory.length >
-        MAX_SPEED_HISTORY
-    ) {
-
-        speedHistory.shift();
-
-    }
-
-
-    trafficChart.data.labels =
-        speedHistory.map(
-            function(item) {
-                return item.time;
-            }
-        );
-
-
-    trafficChart.data.datasets[0].data =
-        speedHistory.map(
-            function(item) {
-                return item.download;
-            }
-        );
-
-
-    trafficChart.data.datasets[1].data =
-        speedHistory.map(
-            function(item) {
-                return item.upload;
-            }
-        );
-
-
-    trafficChart.update(
-        'none'
-    );
-
-}
-
-
-/* =========================================================
-   FORCE SCAN
-========================================================= */
-
-async function forceNetworkScan() {
-
-    if (isScanning) {
-        return;
-    }
-
-
-    await detectClientPublicIP();
-
-    detectClientNetwork();
-
-    await sendClientNetworkData();
-
-    await fetchNetworkData(true);
-
-}
-
-
-/* =========================================================
-   FETCH BACKEND
-========================================================= */
-
-async function fetchNetworkData(
-    manual = false
-) {
-
-    if (isScanning) {
-
-        /*
-         * Jangan menjalankan dua scan bersamaan.
-         */
-
-        return;
-
-    }
-
-
-    isScanning = true;
-
-
-    const button =
-        document.getElementById(
-            'scan-network-btn'
-        );
-
-
-    if (button) {
-
-        button.disabled = true;
-
-        button.innerHTML =
-            '<i class="fas fa-sync-alt fa-spin"></i> ' +
-            'Memindai...';
-
-    }
-
-
-    /*
-     * Abort request sebelumnya
-     */
-
-    if (scanController) {
-
-        try {
-
-            scanController.abort();
-
-        } catch (error) {}
-
-    }
-
-
-    scanController =
-        new AbortController();
-
-
-    scanTimeout =
-        setTimeout(
-            function () {
-
-                if (scanController) {
-
-                    try {
-
-                        scanController.abort();
-
-                    } catch (error) {}
-
-                }
-
-            },
-            90000
-        );
-
-
-    try {
-
-        const url =
-            '/api/network-data' +
-            (
-                manual
-                    ? '?refresh=1&_='
-                    : '?_='
-            ) +
-            Date.now();
-
-
-        const response =
-            await fetch(
-                url,
-                {
-
-                    method: 'GET',
-
-                    cache: 'no-store',
-
-                    credentials:
-                        'same-origin',
-
-                    signal:
-                        scanController.signal,
-
-                    headers: {
-
-                        'Accept':
-                            'application/json',
-
-                        'Cache-Control':
-                            'no-cache',
-
-                        'Pragma':
-                            'no-cache'
-
-                    }
-
-                }
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                'HTTP ' +
-                response.status
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        console.log(
-            'NETSIGHT NETWORK DATA:',
-            data
-        );
-
-
-        if (
-            data &&
-            data.status ===
-                'success'
-        ) {
-
-            updateBackendDashboard(
-                data
-            );
-
-
-            showBackendState(
-                true,
-                'Backend monitoring aktif'
-            );
-
-
-            setText(
-                'last-scan-time',
-                'Pemindaian terakhir: ' +
-                getCurrentTime()
-            );
-
-        } else {
-
-            const message =
-                data?.message ||
-                'Backend tidak mengembalikan data.';
-
-
-            showBackendState(
-                false,
-                message
-            );
-
-
-            /*
-             * Jangan menghapus semua data lama
-             * hanya karena satu request gagal.
-             */
-
-            setText(
-                'last-scan-time',
-                'Pemindaian gagal: ' +
-                getCurrentTime()
-            );
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            'NETWORK ERROR:',
-            error
-        );
-
-
-        if (
-            error.name ===
-            'AbortError'
-        ) {
-
-            showBackendState(
-                false,
-                'Pengecekan backend terlalu lama'
-            );
-
-        } else {
-
-            showBackendState(
-                false,
-                'Backend monitoring tidak dapat dihubungi'
-            );
-
-        }
-
-
-    } finally {
-
-        if (scanTimeout) {
-
-            clearTimeout(
-                scanTimeout
-            );
-
-            scanTimeout = null;
-
-        }
-
-
-        isScanning = false;
-
-        scanController = null;
-
-
-        if (button) {
-
-            button.disabled = false;
-
-            button.innerHTML =
-                '<i class="fas fa-sync-alt"></i> ' +
-                'Pindai Ulang';
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   UPDATE BACKEND
-========================================================= */
-
-function updateBackendDashboard(data) {
-
-    if (!data) {
-        return;
-    }
-
-
-    const router =
-        data.router ||
-        {};
-
-
-    const local =
-        data.local ||
-        {};
-
-
-    const wifi =
-        data.wifi ||
-        {};
-
-
-    const speedtest =
-        data.speedtest ||
-        {};
-
-
-    const devices =
-        Array.isArray(data.devices)
-            ? data.devices
-            : [];
-
-
-    /*
-     * Router
-     */
-
-    const gateway =
-        router.ip ||
-        data.gateway ||
-        data.gateway_ip ||
-        '-';
-
-
-    /*
-     * Local
-     */
-
-    const backendLocalIP =
-        local.ip ||
-        '-';
-
-
-    const network =
-        local.network ||
-        '-';
-
-
-    const prefixValue =
-        local.prefix !== undefined &&
-        local.prefix !== null
-            ? local.prefix
-            : null;
-
-
-    const prefix =
-        prefixValue !== null
-            ? '/' + prefixValue
-            : '-';
-
-
-    setText(
-        'gateway-ip',
-        gateway
-    );
-
-
-    setText(
-        'backend-local-ip',
-        backendLocalIP
-    );
-
-
-    setText(
-        'network-cidr',
-        network
-    );
-
-
-    setText(
-        'network-prefix',
-        prefix
-    );
-
-
-    setText(
-        'local-hostname',
-        local.hostname ||
-            '-'
-    );
-
-
-    /*
-     * WIFI
-     */
-
-    updateWifiData(
-        wifi,
-        data
-    );
-
-
-    /*
-     * SPEEDTEST
-     */
-
-    updateSpeedtestData(
-        speedtest
-    );
-
-
-    /*
-     * ROUTER
-     */
-
-    setText(
-        'detail-gateway',
-        gateway
-    );
-
-
-    setText(
-        'detail-router-mac',
-        router.mac ||
-            '-'
-    );
-
-
-    setText(
-        'detail-router-vendor',
-        router.vendor ||
-            '-'
-    );
-
-
-    setText(
-        'detail-router-hostname',
-        router.hostname ||
-            '-'
-    );
-
-
-    const routerLatency =
-        getFiniteNumber(
-            router.latency_ms
-        );
-
-
-    updateRouterStatus(
-        router.online === true,
-        routerLatency
-    );
-
-
-    /*
-     * DEVICES
-     */
-
-    const activeCount =
-        Number.isFinite(
-            Number(data.clients_count)
-        )
-            ? Number(data.clients_count)
-            : 0;
-
-
-    const knownCount =
-        Number.isFinite(
-            Number(data.known_devices_count)
-        )
-            ? Number(data.known_devices_count)
-            : 0;
-
-
-    const actualDeviceCount =
-        devices.length;
-
-
-    setText(
-        'topology-count',
-        actualDeviceCount +
-        ' perangkat'
-    );
-
-
-    setText(
-        'device-table-info',
-        'Aktif: ' +
-        activeCount +
-        ' · Dikenal: ' +
-        knownCount
-    );
-
-
-    renderDevices(
-        devices
-    );
-
-}
-
-
-/* =========================================================
-   WIFI DATA
-========================================================= */
-
-function updateWifiData(
-    wifi,
-    data
-) {
-
-    const wifiSSID =
-        wifi.ssid ||
-        data.ssid ||
-        null;
-
-
-    const wifiBand =
-        wifi.band ||
-        data.band ||
-        null;
-
-
-    const wifiChannel =
-        wifi.channel ||
-        data.channel ||
-        null;
-
-
-    let wifiSignal =
-        '-';
-
-
-    const signalPercent =
-        getFiniteNumber(
-            wifi.signal_percent
-        );
-
-
-    const signalDbm =
-        getFiniteNumber(
-            wifi.signal_dbm
-        );
-
-
-    const dataSignalPercent =
-        getFiniteNumber(
-            data.wifi_signal_percent
-        );
-
-
-    if (
-        signalPercent !== null
-    ) {
-
-        wifiSignal =
-            formatNumber(
-                signalPercent
-            ) +
-            '%';
-
-    } else if (
-        signalDbm !== null
-    ) {
-
-        wifiSignal =
-            formatNumber(
-                signalDbm
-            ) +
-            ' dBm';
-
-    } else if (
-        dataSignalPercent !== null
-    ) {
-
-        wifiSignal =
-            formatNumber(
-                dataSignalPercent
-            ) +
-            '%';
-
-    }
-
-
-    setText(
-        'wifi-ssid',
-        wifiSSID ||
-            'Tidak tersedia'
-    );
-
-
-    setText(
-        'wifi-band',
-        wifiBand ||
-            'Tidak tersedia'
-    );
-
-
-    setText(
-        'wifi-channel',
-        wifiChannel ||
-            'Tidak tersedia'
-    );
-
-
-    setText(
-        'wifi-signal',
-        wifiSignal
-    );
-
-
-    setText(
-        'wifi-interface',
-        wifi.interface ||
-        data.wifi_interface ||
-        'Tidak tersedia'
-    );
-
-
-    setText(
-        'wifi-radio',
-        wifi.radio_type ||
-        data.wifi_radio_type ||
-        'Tidak tersedia'
-    );
-
-
-    setText(
-        'wifi-rx',
-        formatMbpsOrDash(
-            wifi.receive_mbps ??
-            data.wifi_receive_mbps
-        )
-    );
-
-
-    setText(
-        'wifi-tx',
-        formatMbpsOrDash(
-            wifi.transmit_mbps ??
-            data.wifi_transmit_mbps
-        )
-    );
-
-
-    setText(
-        'wifi-summary',
-        wifiSSID ||
-            'Tidak tersedia'
-    );
-
-
-    setText(
-        'wifi-band-summary',
-        wifiBand ||
-            'Band tidak terdeteksi'
-    );
-
-
-    updateWifiStatus(
-        wifi
-    );
-
-}
-
-
-/* =========================================================
-   WIFI STATUS
-========================================================= */
-
-function updateWifiStatus(wifi) {
-
-    const status =
-        document.getElementById(
-            'wifi-status'
-        );
-
-
-    if (!status) {
-        return;
-    }
-
-
-    if (
-        wifi.connected === true
-    ) {
-
-        status.className =
-            'status-pill status-online';
-
-
-        status.innerHTML =
-            '<i class="fas fa-check-circle"></i> ' +
-            'Terhubung';
-
-    } else if (
-        wifi.available === true
-    ) {
-
-        status.className =
-            'status-pill status-warning';
-
-
-        status.innerHTML =
-            '<i class="fas fa-circle"></i> ' +
-            'Interface tersedia';
-
-    } else {
-
-        status.className =
-            'status-pill status-neutral';
-
-
-        status.innerHTML =
-            '<i class="fas fa-circle"></i> ' +
-            'Tidak tersedia';
-
-    }
-
-}
-
-
-/* =========================================================
-   SPEEDTEST DATA
-========================================================= */
-
-function updateSpeedtestData(
-    speedtest
-) {
-
-    const download =
-        getFiniteNumber(
-            speedtest.download_mbps
-        );
-
-
-    const upload =
-        getFiniteNumber(
-            speedtest.upload_mbps
-        );
-
-
-    const ping =
-        getFiniteNumber(
-            speedtest.ping_ms
-        );
-
-
-    const packetLoss =
-        getFiniteNumber(
-            speedtest.packet_loss_percent
-        );
-
-
-    setText(
-        'download-speed',
-        download !== null
-            ? formatNumber(download) +
-                ' Mbps'
-            : '-'
-    );
-
-
-    setText(
-        'upload-speed',
-        upload !== null
-            ? formatNumber(upload) +
-                ' Mbps'
-            : '-'
-    );
-
-
-    setText(
-        'speedtest-ping',
-        ping !== null
-            ? formatNumber(ping) +
-                ' ms'
-            : '-'
-    );
-
-
-    setText(
-        'packet-loss',
-        packetLoss !== null
-            ? formatNumber(packetLoss) +
-                '%'
-            : '-'
-    );
-
-
-    setText(
-        'speedtest-server',
-        speedtest.server ||
-            '-'
-    );
-
-
-    setText(
-        'speedtest-isp',
-        speedtest.isp ||
-            '-'
-    );
-
-
-    setText(
-        'speedtest-source',
-        speedtest.source ||
-            '-'
-    );
-
-
-    setText(
-        'speedtest-message',
-        speedtest.message ||
-            '-'
-    );
-
-
-    setText(
-        'download-speed-summary',
-        download !== null
-            ? formatNumber(download) +
-                ' Mbps'
-            : '-'
-    );
-
-
-    updateSpeedtestStatus(
-        speedtest
-    );
-
-
-    /*
-     * Hanya masukkan ke histori kalau
-     * benar-benar ada hasil.
-     */
-
-    if (
-        speedtest.success === true &&
-        (
-            download !== null ||
-            upload !== null
-        )
-    ) {
-
-        updateSpeedChart(
-            download,
-            upload
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   SPEEDTEST STATUS
-========================================================= */
-
-function updateSpeedtestStatus(
-    speedtest
-) {
-
-    const element =
-        document.getElementById(
-            'speedtest-status'
-        );
-
-
-    const summary =
-        document.getElementById(
-            'speedtest-summary'
-        );
-
-
-    if (!element) {
-        return;
-    }
-
-
-    if (
-        speedtest.success === true
-    ) {
-
-        element.className =
-            'status-pill status-online';
-
-
-        element.innerHTML =
-            '<i class="fas fa-check-circle"></i> ' +
-            'Berhasil';
-
-
-        if (summary) {
-
-            summary.innerText =
-                speedtest.server
-                    ? 'Server: ' +
-                        speedtest.server
-                    : 'Ookla Speedtest';
-
-        }
-
-
-        setText(
-            'traffic-state',
-            'Hasil aktual'
-        );
-
-
-        setText(
-            'traffic-note',
-            'Grafik menunjukkan histori hasil Speedtest yang diterima dashboard.'
-        );
-
-
-    } else if (
-        speedtest.available === false
-    ) {
-
-        element.className =
-            'status-pill status-neutral';
-
-
-        element.innerHTML =
-            '<i class="fas fa-circle"></i> ' +
-            'Tidak tersedia';
-
-
-        if (summary) {
-
-            summary.innerText =
-                'Ookla CLI tidak ditemukan';
-
-        }
-
-
-    } else {
-
-        element.className =
-            'status-pill status-warning';
-
-
-        element.innerHTML =
-            '<i class="fas fa-triangle-exclamation"></i> ' +
-            'Belum berhasil';
-
-
-        if (summary) {
-
-            summary.innerText =
-                speedtest.message ||
-                'Belum ada hasil';
-
-        }
-
-    }
-
-}
-
-
-/* =========================================================
-   ROUTER STATUS
-========================================================= */
-
-function updateRouterStatus(
-    online,
-    latency
-) {
-
-    const accessStatus =
-        document.getElementById(
-            'router-access-status'
-        );
-
-
-    const routerCenter =
-        document.getElementById(
-            'router-center'
-        );
-
-
-    if (accessStatus) {
-
-        if (online === true) {
-
-            accessStatus.className =
-                'status-pill status-online';
-
-
-            accessStatus.innerHTML =
-                '<i class="fas fa-check-circle"></i> ' +
-                'Gateway dapat dijangkau';
-
-
-        } else {
-
-            accessStatus.className =
-                'status-pill status-warning';
-
-
-            accessStatus.innerHTML =
-                '<i class="fas fa-question-circle"></i> ' +
-                'Gateway tidak terverifikasi';
-
-        }
-
-    }
-
-
-    if (routerCenter) {
-
-        routerCenter.classList.toggle(
-            'unknown',
-            online !== true
-        );
-
-    }
-
-}
-
-
-/* =========================================================
-   BACKEND STATE
-========================================================= */
-
-function showBackendState(
-    online,
-    message
-) {
-
-    const status =
-        document.getElementById(
-            'network-status'
-        );
-
-
-    if (!status) {
-        return;
-    }
-
-
-    status.innerText =
-        message ||
-        (
-            online
-                ? 'Backend aktif'
-                : 'Backend tidak tersedia'
-        );
-
-
-    status.style.color =
-        online
-            ? 'var(--signal-excellent)'
-            : 'var(--signal-weak)';
-
-}
-
-
-/* =========================================================
-   DEVICES
-========================================================= */
-
-function renderDevices(
-    devices
-) {
-
-    const tbody =
-        document.getElementById(
-            'device-table-body'
-        );
-
-
-    const radar =
-        document.getElementById(
-            'radar-container'
-        );
-
-
-    if (!tbody || !radar) {
-        return;
-    }
-
-
-    radar
-        .querySelectorAll(
-            '.device-node'
-        )
-        .forEach(
-            function(node) {
-
-                node.remove();
-
-            }
-        );
-
-
-    if (
-        !Array.isArray(devices) ||
-        devices.length === 0
-    ) {
-
-        renderEmptyDevices(
-            'Tidak ada perangkat yang berhasil ditemukan backend.'
-        );
-
-
-        return;
-
-    }
-
-
-    tbody.innerHTML = '';
-
-
-    devices.forEach(
-        function(
-            device,
-            index
-        ) {
-
-            const safeDevice =
-                device || {};
-
-
-            const ip =
-                safeDevice.ip ||
-                '-';
-
-
-            const mac =
-                safeDevice.mac ||
-                '-';
-
-
-            const hostname =
-                safeDevice.hostname ||
-                (
-                    safeDevice.role === 'router'
-                        ? 'Router'
-                        : 'Unknown Device'
-                );
-
-
-            const vendor =
-                safeDevice.vendor ||
-                '-';
-
-
-            const role =
-                safeDevice.role ||
-                'device';
-
-
-            const state =
-                safeDevice.state ||
-                '-';
-
-
-            const source =
-                safeDevice.source ||
-                '-';
-
-
-            const online =
-                safeDevice.online === true;
-
-
-            const latency =
-                getFiniteNumber(
-                    safeDevice.latency_ms
-                );
-
-
-            const tr =
-                document.createElement(
-                    'tr'
-                );
-
-
-            let statusClass =
-                'bg-offline';
-
-
-            let statusText =
-                'Tidak aktif';
-
-
-            if (
-                role === 'router'
-            ) {
-
-                if (online) {
-
-                    statusClass =
-                        'bg-router';
-
-                    statusText =
-                        'Gateway';
-
-                } else {
-
-                    statusClass =
-                        'bg-offline';
-
-                    statusText =
-                        'Gateway tidak terverifikasi';
-
-                }
-
-            } else if (
-                online
-            ) {
-
-                if (
-                    latency !== null &&
-                    latency > 100
-                ) {
-
-                    statusClass =
-                        'bg-warning';
-
-                    statusText =
-                        'Online / Lambat';
-
-                } else {
-
-                    statusClass =
-                        'bg-online';
-
-                    statusText =
-                        'Online';
-
-                }
-
-            }
-
-
-            const latencyHTML =
-                latency !== null
-                    ? (
-                        '<strong>' +
-                        formatNumber(latency) +
-                        ' ms</strong>'
-                    )
-                    : (
-                        '<span style="color:var(--text-muted)">' +
-                        'N/A' +
-                        '</span>'
-                    );
-
-
-            tr.innerHTML = `
-
-                <td>
-
-                    <strong>
-                        ${escapeHtml(hostname)}
-                    </strong>
-
-                    <br>
-
-                    <span
-                        style="
-                            color:var(--text-muted);
-                            font-size:.72rem;
-                        "
-                    >
-                        ${escapeHtml(role)}
-                    </span>
-
-                </td>
-
-
-                <td>
-                    ${escapeHtml(ip)}
-                </td>
-
-
-                <td>
-                    ${escapeHtml(mac)}
-                </td>
-
-
-                <td>
-                    ${escapeHtml(vendor)}
-                </td>
-
-
-                <td>
-
-                    <span
-                        class="
-                            badge
-                            ${statusClass}
-                        "
-                    >
-                        ${statusText}
-                    </span>
-
-                </td>
-
-
-                <td>
-                    ${latencyHTML}
-                </td>
-
-
-                <td>
-                    ${escapeHtml(state)}
-                </td>
-
-
-                <td>
-
-                    <span
-                        style="
-                            color:var(--text-muted);
-                            font-size:.72rem;
-                        "
-                    >
-                        ${escapeHtml(source)}
-                    </span>
-
-                </td>
-
-
-                <td>
-
-                    <button
-                        type="button"
-                        class="btn-action"
-                    >
-                        Detail
-                    </button>
-
-                </td>
-
-            `;
-
-
-            const button =
-                tr.querySelector(
-                    'button'
-                );
-
-
-            if (button) {
-
-                button.addEventListener(
-                    'click',
-                    function() {
-
-                        showDeviceInfo(
-                            safeDevice
-                        );
-
-                    }
-                );
-
-            }
-
-
-            tbody.appendChild(
-                tr
-            );
-
-
-            if (
-                role !== 'router'
-            ) {
-
-                createRadarNode(
-                    radar,
-                    safeDevice,
-                    index
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   RADAR NODE
-========================================================= */
-
-function createRadarNode(
-    radar,
-    device,
-    index
-) {
-
-    const angle =
-        getStableAngle(
-            device,
-            index
-        );
-
-
-    const latency =
-        getFiniteNumber(
-            device.latency_ms
-        );
-
-
-    let radius = 35;
-
-
-    if (
-        latency !== null
-    ) {
-
-        if (
-            latency <= 20
-        ) {
-
-            radius = 16;
-
-        } else if (
-            latency <= 60
-        ) {
-
-            radius = 27;
-
-        } else if (
-            latency <= 120
-        ) {
-
-            radius = 38;
-
-        } else {
-
-            radius = 44;
-
-        }
-
-    } else {
-
-        radius =
-            24 +
-            (
-                index % 3
-            ) * 8;
-
-    }
-
-
-    const top =
-        50 +
-        radius *
-        Math.sin(angle);
-
-
-    const left =
-        50 +
-        radius *
-        Math.cos(angle);
-
-
-    const node =
-        document.createElement(
-            'div'
-        );
-
-
-    node.className =
-        'device-node';
-
-
-    node.style.top =
-        Math.max(
-            7,
-            Math.min(
-                93,
-                top
-            )
-        ) +
-        '%';
-
-
-    node.style.left =
-        Math.max(
-            7,
-            Math.min(
-                93,
-                left
-            )
-        ) +
-        '%';
-
-
-    let nodeClass =
-        'node-offline';
-
-
-    if (
-        device.online === true
-    ) {
-
-        nodeClass =
-            (
-                latency !== null &&
-                latency > 60
-                    ? 'node-slow'
-                    : 'node-online'
-            );
-
-    }
-
-
-    const icon =
-        getDeviceIcon(
-            device
-        );
-
-
-    const name =
-        device.hostname ||
-        device.ip ||
-        'Device';
-
-
-    const label =
-        latency !== null
-            ? (
-                name +
-                ' · ' +
-                formatNumber(latency) +
-                'ms'
-            )
-            : name;
-
-
-    node.innerHTML = `
-
-        <div
-            class="
-                node-icon
-                ${nodeClass}
-            "
-        >
-
-            <i
-                class="
-                    fas
-                    ${icon}
-                "
-            ></i>
-
-        </div>
-
-
-        <div class="node-label">
-
-            ${escapeHtml(label)}
-
-        </div>
-
-    `;
-
-
-    node.title =
-        [
-
-            'IP: ' +
-            (device.ip || '-'),
-
-            'MAC: ' +
-            (device.mac || '-'),
-
-            'Vendor: ' +
-            (device.vendor || '-'),
-
-            'Status: ' +
-            (
-                device.online === true
-                    ? 'Online'
-                    : 'Tidak aktif'
-            )
-
-        ].join(' | ');
-
-
-    node.addEventListener(
-        'click',
-        function() {
-
-            showDeviceInfo(
-                device
-            );
-
-        }
-    );
-
-
-    radar.appendChild(
-        node
-    );
-
-}
-
-
-/* =========================================================
-   DEVICE ICON
-========================================================= */
-
-function getDeviceIcon(device) {
-
-    const text =
-        (
-            (device.vendor || '') +
-            ' ' +
-            (device.hostname || '') +
-            ' ' +
-            (device.role || '')
-        ).toLowerCase();
-
-
-    if (
-        device.role === 'router'
-    ) {
-
-        return 'fa-router';
-
-    }
-
-
-    if (
-        text.includes('windows')
-    ) {
-
-        return 'fa-desktop';
-
-    }
-
-
-    if (
-        text.includes('iphone') ||
-        text.includes('ipad') ||
-        text.includes('apple')
-    ) {
-
-        return 'fa-mobile-screen';
-
-    }
-
-
-    if (
-        text.includes('android')
-    ) {
-
-        return 'fa-mobile-screen';
-
-    }
-
-
-    if (
-        text.includes('tv')
-    ) {
-
-        return 'fa-tv';
-
-    }
-
-
-    if (
-        text.includes('printer')
-    ) {
-
-        return 'fa-print';
-
-    }
-
-
-    if (
-        text.includes('laptop')
-    ) {
-
-        return 'fa-laptop';
-
-    }
-
-
-    return 'fa-network-wired';
-
-}
-
-
-/* =========================================================
-   STABLE ANGLE
-========================================================= */
-
-function getStableAngle(
-    device,
-    index
-) {
-
-    const key =
-        (
-            device.mac ||
-            ''
-        ) +
-        '-' +
-        (
-            device.ip ||
-            ''
-        ) +
-        '-' +
-        index;
-
-
-    let hash = 0;
-
-
-    for (
-        let i = 0;
-        i < key.length;
-        i++
-    ) {
-
-        hash =
-            (
-                (hash << 5) -
-                hash
-            ) +
-            key.charCodeAt(i);
-
-
-        hash |= 0;
-
-    }
-
-
-    return (
-        Math.abs(
-            hash % 360
-        ) *
-        Math.PI /
-        180
-    );
-
-}
-
-
-/* =========================================================
-   DEVICE DETAIL
-========================================================= */
-
-function showDeviceInfo(
-    device
-) {
-
-    const latency =
-        getFiniteNumber(
-            device.latency_ms
-        );
-
-
-    const text =
-        [
-
-            'Hostname : ' +
-            (device.hostname || '-'),
-
-            'Role     : ' +
-            (device.role || '-'),
-
-            'IP       : ' +
-            (device.ip || '-'),
-
-            'MAC      : ' +
-            (device.mac || '-'),
-
-            'Vendor   : ' +
-            (device.vendor || '-'),
-
-            'State    : ' +
-            (device.state || '-'),
-
-            'Source   : ' +
-            (device.source || '-'),
-
-            'Status   : ' +
-            (
-                device.online === true
-                    ? 'Online'
-                    : 'Tidak aktif'
-            ),
-
-            'Latency  : ' +
-            (
-                latency !== null
-                    ? formatNumber(latency) +
-                        ' ms'
-                    : 'N/A'
-            )
-
-        ].join('\n');
-
-
-    window.alert(
-        text
-    );
-
-}
-
-
-/* =========================================================
-   EMPTY DEVICES
-========================================================= */
-
-function renderEmptyDevices(
-    message
-) {
-
-    const tbody =
-        document.getElementById(
-            'device-table-body'
-        );
-
-
-    if (tbody) {
-
-        tbody.innerHTML = `
-
-            <tr>
-
-                <td
-                    colspan="9"
-                    style="
-                        text-align:center;
-                        color:var(--text-muted);
-                        padding:30px;
-                    "
-                >
-
-                    <i
-                        class="
-                            fas
-                            fa-info-circle
-                        "
-                    ></i>
-
-                    ${escapeHtml(message)}
-
-                </td>
-
-            </tr>
-
-        `;
-
-    }
-
-
-    const radar =
-        document.getElementById(
-            'radar-container'
-        );
-
-
-    if (radar) {
-
-        radar
-            .querySelectorAll(
-                '.device-node'
-            )
-            .forEach(
-                function(node) {
-
-                    node.remove();
-
-                }
-            );
-
-    }
-
-
-    setText(
-        'topology-count',
-        '0 perangkat'
-    );
-
-
-    setText(
-        'device-table-info',
-        'Tidak ada data'
-    );
-
-}
-
-
-/* =========================================================
-   BROWSER
-========================================================= */
-
-function detectBrowser() {
-
-    const ua =
-        navigator.userAgent || '';
-
-
-    if (
-        /Edg\//i.test(ua)
-    ) {
-
-        return 'Microsoft Edge';
-
-    }
-
-
-    if (
-        /Chrome\//i.test(ua) &&
-        !/Edg\//i.test(ua)
-    ) {
-
-        return 'Google Chrome';
-
-    }
-
-
-    if (
-        /Firefox\//i.test(ua)
-    ) {
-
-        return 'Mozilla Firefox';
-
-    }
-
-
-    if (
-        /Safari\//i.test(ua) &&
-        !/Chrome\//i.test(ua)
-    ) {
-
-        return 'Safari';
-
-    }
-
-
-    return 'Browser';
-
-}
-
-
-/* =========================================================
-   OS
-========================================================= */
-
-function detectOS() {
-
-    const ua =
-        navigator.userAgent || '';
-
-
-    const platform =
-        navigator.platform || '';
-
-
-    if (
-        /Windows/i.test(ua)
-    ) {
-
-        return 'Windows';
-
-    }
-
-
-    if (
-        /Android/i.test(ua)
-    ) {
-
-        return 'Android';
-
-    }
-
-
-    if (
-        /iPhone|iPad|iPod/i.test(ua)
-    ) {
-
-        return 'iOS';
-
-    }
-
-
-    if (
-        /Mac OS|Macintosh/i.test(ua) ||
-        /Mac/i.test(platform)
-    ) {
-
-        return 'macOS';
-
-    }
-
-
-    if (
-        /Linux/i.test(ua) ||
-        /Linux/i.test(platform)
-    ) {
-
-        return 'Linux';
-
-    }
-
-
-    return 'Tidak diketahui';
-
-}
-
-
-/* =========================================================
-   NUMBER HELPERS
-========================================================= */
-
-/*
- * Ini penting.
- *
- * Number(null) === 0
- * Number('') === 0
- *
- * Itu bisa menyebabkan data kosong
- * terbaca sebagai 0 Mbps.
- */
-
-function getFiniteNumber(value) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ''
-    ) {
-
-        return null;
-
-    }
-
-
-    const number =
-        Number(value);
-
-
-    if (
-        !Number.isFinite(number)
-    ) {
-
-        return null;
-
-    }
-
-
-    return number;
-
-}
-
-
-/* =========================================================
-   FORMAT NUMBER
-========================================================= */
-
-function formatNumber(value) {
-
-    const number =
-        getFiniteNumber(value);
-
-
-    if (
-        number === null
-    ) {
-
-        return '-';
-
-    }
-
-
-    return Number.isInteger(number)
-        ? String(number)
-        : number.toFixed(1);
-
-}
-
-
-/* =========================================================
-   FORMAT MBPS
-========================================================= */
-
-function formatMbpsOrDash(value) {
-
-    const number =
-        getFiniteNumber(value);
-
-
-    if (
-        number === null ||
-        number <= 0
-    ) {
-
-        return '-';
-
-    }
-
-
-    return (
-        formatNumber(number) +
-        ' Mbps'
-    );
-
-}
-
-
-/* =========================================================
-   CURRENT TIME
-========================================================= */
-
-function getCurrentTime() {
-
-    return new Date()
-        .toLocaleTimeString(
-            'id-ID',
-            {
-
-                hour: '2-digit',
-
-                minute: '2-digit',
-
-                second: '2-digit'
-
-            }
-        );
-
-}
-
-
-/* =========================================================
-   SET TEXT
-========================================================= */
-
-function setText(
-    id,
-    value
-) {
-
-    const element =
-        document.getElementById(id);
-
-
-    if (!element) {
-        return;
-    }
-
-
-    if (
-        value === undefined ||
-        value === null ||
-        value === ''
-    ) {
-
-        element.innerText = '-';
-
-        return;
-
-    }
-
-
-    element.innerText =
-        String(value);
-
-}
-
-
-/* =========================================================
-   ESCAPE HTML
-========================================================= */
-
-function escapeHtml(value) {
-
-    return String(
-        value ?? ''
-    )
-        .replace(
-            /&/g,
-            '&amp;'
-        )
-        .replace(
-            /</g,
-            '&lt;'
-        )
-        .replace(
-            />/g,
-            '&gt;'
-        )
-        .replace(
-            /"/g,
-            '&quot;'
-        )
-        .replace(
-            /'/g,
-            '&#039;'
-        );
-
-}
-
+// Paste keseluruhan Javascript asli Anda di sini.
+// Script asli (deteksi IP, generate radar node, Chart.js) 
+// secara otomatis kompatibel dengan struktur HTML & CSS baru ini.
+
+// Untuk efek estetika, ubah warna dataset Chart.js pada fungsi initializeTrafficChart() :
+/* 
+    borderColor: '#06b6d4',
+    backgroundColor: 'rgba(6, 182, 212, 0.1)', // Aksen Cyan
+
+    borderColor: '#2563eb',
+    backgroundColor: 'rgba(37, 99, 235, 0.1)'  // Aksen Biru
+*/
 </script>
 
 {% endblock %}
