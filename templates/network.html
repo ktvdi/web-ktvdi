@@ -2,656 +2,4552 @@
 
 {% block content %}
 
+<!-- =========================================================
+     KTVDI NETWORK OPERATIONS DASHBOARD
+     Compatible with:
+       - GET  /network
+       - GET  /api/network-data
+       - GET  /api/network-rescan
+       - POST /api/network-client-merge
+     
+     IMPORTANT:
+     Browser menjadi sumber utama informasi client.
+     Flask/Vercel tidak melakukan LAN scanning.
+========================================================= -->
+
 <link
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
 >
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+/* =========================================================
+   ROOT
+========================================================= */
 
 :root {
-    /* NOC & KTVDI Color Palette */
-    --bg-dark: #090e17; /* Deeper dark for NOC feel */
-    --bg-card: #111827;
-    --bg-soft: #1f2937;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
+    --net-bg: #090e17;
+    --net-card: #111827;
+    --net-card-soft: #172033;
+    --net-soft: #1f2937;
 
-    --accent-blue: #2563eb;
-    --accent-cyan: #06b6d4; /* KTVDI Digital Cyan */
-    --accent-purple: #8b5cf6;
+    --net-text: #f8fafc;
+    --net-muted: #94a3b8;
 
-    --signal-excellent: #10b981;
-    --signal-good: #f59e0b;
-    --signal-weak: #ef4444;
+    --net-blue: #2563eb;
+    --net-cyan: #06b6d4;
+    --net-purple: #8b5cf6;
 
-    --border-color: #1e293b;
-    
-    /* Glow Effects */
-    --glow-cyan: 0 0 15px rgba(6, 182, 212, 0.4);
-    --glow-blue: 0 0 15px rgba(37, 99, 235, 0.4);
+    --net-green: #10b981;
+    --net-yellow: #f59e0b;
+    --net-red: #ef4444;
+
+    --net-border: #1e293b;
+
+    --net-radius: 12px;
+
+    --net-glow-cyan:
+        0 0 18px rgba(6, 182, 212, .35);
+
+    --net-glow-blue:
+        0 0 18px rgba(37, 99, 235, .35);
 }
+
 
 /* =========================================================
-   ANIMATIONS
+   RESET
 ========================================================= */
-@keyframes radar-sweep {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
 
-@keyframes pulse-ring {
-    0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7); }
-    70% { box-shadow: 0 0 0 15px rgba(6, 182, 212, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); }
-}
-
-@keyframes fade-in-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* =========================================================
-   RESET / WRAPPER
-========================================================= */
-#netmon-wrapper {
-    width: 100%;
-    min-height: 100vh;
-    margin: 0;
-    font-family: 'Inter', sans-serif;
-    background: var(--bg-dark);
-    color: var(--text-main);
-    display: flex;
-    overflow: hidden;
-}
-
+#netmon-wrapper,
 #netmon-wrapper * {
     box-sizing: border-box;
 }
 
-/* Typography for Network Data */
-.font-mono {
-    font-family: 'Fira Code', monospace;
-    letter-spacing: -0.5px;
+#netmon-wrapper {
+    width: 100%;
+    min-height: 100vh;
+
+    display: flex;
+
+    background:
+        radial-gradient(
+            circle at top right,
+            rgba(6, 182, 212, .05),
+            transparent 30%
+        ),
+        var(--net-bg);
+
+    color: var(--net-text);
+
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    overflow: hidden;
 }
+
+#netmon-wrapper .font-mono {
+    font-family:
+        "Fira Code",
+        Consolas,
+        monospace;
+}
+
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes netFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes netPulse {
+    0% {
+        box-shadow:
+            0 0 0 0 rgba(6, 182, 212, .55);
+    }
+
+    70% {
+        box-shadow:
+            0 0 0 15px rgba(6, 182, 212, 0);
+    }
+
+    100% {
+        box-shadow:
+            0 0 0 0 rgba(6, 182, 212, 0);
+    }
+}
+
+@keyframes radarSweep {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes spinSlow {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes blinkStatus {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .4;
+    }
+}
+
 
 /* =========================================================
    SIDEBAR
 ========================================================= */
+
 #netmon-wrapper .sidebar {
     width: 260px;
-    background: var(--bg-card);
-    border-right: 1px solid var(--border-color);
+    min-width: 260px;
+
+    background: rgba(17, 24, 39, .96);
+
+    border-right:
+        1px solid var(--net-border);
+
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
+
     z-index: 20;
 }
 
 #netmon-wrapper .brand {
-    padding: 24px;
-    font-size: 1.45rem;
-    font-weight: 700;
-    color: var(--accent-cyan);
-    border-bottom: 1px solid var(--border-color);
+    min-height: 76px;
+
+    padding:
+        20px 22px;
+
     display: flex;
     align-items: center;
+
     gap: 12px;
+
+    border-bottom:
+        1px solid var(--net-border);
+
+    color: var(--net-cyan);
+
+    font-size: 1.25rem;
+    font-weight: 700;
+
     white-space: nowrap;
-    text-shadow: var(--glow-cyan);
+
+    text-shadow:
+        0 0 12px rgba(6, 182, 212, .4);
+}
+
+#netmon-wrapper .brand i {
+    font-size: 1.4rem;
 }
 
 #netmon-wrapper .nav-items {
-    padding: 18px 0;
     flex: 1;
+
+    padding:
+        16px 0;
+
     overflow-y: auto;
 }
 
 #netmon-wrapper .nav-item {
-    padding: 14px 22px;
+    min-height: 52px;
+
+    padding:
+        13px 20px;
+
     display: flex;
     align-items: center;
-    gap: 14px;
-    color: var(--text-muted);
+
+    gap: 13px;
+
+    color: var(--net-muted);
+
     text-decoration: none;
-    transition: all .3s ease;
-    cursor: pointer;
-    border-right: 4px solid transparent;
+
+    border-right:
+        3px solid transparent;
+
+    transition:
+        .2s ease;
+}
+
+#netmon-wrapper .nav-item i {
+    width: 20px;
+    text-align: center;
 }
 
 #netmon-wrapper .nav-item:hover {
-    background: rgba(6, 182, 212, .08);
-    color: var(--accent-cyan);
-    padding-left: 28px; /* Slight indent on hover */
+    color: var(--net-cyan);
+
+    background:
+        rgba(6, 182, 212, .07);
+
+    padding-left: 25px;
 }
 
 #netmon-wrapper .nav-item.active {
-    background: rgba(6, 182, 212, .12);
-    color: var(--accent-cyan);
-    border-right-color: var(--accent-cyan);
-    box-shadow: inset 4px 0 0 0 rgba(6, 182, 212, 0.2);
+    color: var(--net-cyan);
+
+    background:
+        rgba(6, 182, 212, .10);
+
+    border-right-color:
+        var(--net-cyan);
+
+    box-shadow:
+        inset 4px 0 0
+        rgba(6, 182, 212, .12);
 }
+
 
 /* =========================================================
    MAIN
 ========================================================= */
+
 #netmon-wrapper .main {
     flex: 1;
     min-width: 0;
+
+    height: 100vh;
+
+    padding: 30px;
+
     overflow-y: auto;
-    padding: 32px;
+
     scroll-behavior: smooth;
 }
+
 
 /* =========================================================
    HEADER
 ========================================================= */
+
 #netmon-wrapper .header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+
     gap: 20px;
-    margin-bottom: 32px;
-    animation: fade-in-up 0.5s ease-out;
+
+    margin-bottom: 28px;
+
+    animation:
+        netFadeUp .5s ease;
 }
 
 #netmon-wrapper .header h1 {
     margin: 0;
+
     font-size: 2rem;
-    font-weight: 700;
-    background: linear-gradient(90deg, var(--text-main), var(--accent-cyan));
+    line-height: 1.2;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--net-text),
+            var(--net-cyan)
+        );
+
     -webkit-background-clip: text;
+    background-clip: text;
+
     -webkit-text-fill-color: transparent;
 }
+
+#netmon-wrapper .header-subtitle {
+    margin:
+        10px 0 0;
+
+    color:
+        var(--net-muted);
+
+    font-size:
+        .86rem;
+}
+
+#netmon-wrapper #network-status {
+    color:
+        var(--net-yellow);
+}
+
+#netmon-wrapper #last-scan-time {
+    margin:
+        7px 0 0;
+
+    color:
+        var(--net-muted);
+
+    font-size:
+        .72rem;
+}
+
 
 /* =========================================================
    BUTTON
 ========================================================= */
+
 #netmon-wrapper .btn-action {
-    background: transparent;
-    border: 1px solid var(--border-color);
-    color: var(--text-main);
-    padding: 10px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all .2s;
-    font-size: .85rem;
-    font-weight: 500;
+    min-height: 42px;
+
+    padding:
+        10px 16px;
+
     display: inline-flex;
     align-items: center;
+
     gap: 8px;
+
+    border:
+        1px solid var(--net-border);
+
+    border-radius:
+        8px;
+
+    background:
+        transparent;
+
+    color:
+        var(--net-text);
+
+    font-size:
+        .84rem;
+
+    font-weight:
+        600;
+
+    cursor:
+        pointer;
+
+    transition:
+        .2s ease;
+}
+
+#netmon-wrapper .btn-action:hover {
+    transform:
+        translateY(-1px);
+
+    border-color:
+        var(--net-cyan);
 }
 
 #netmon-wrapper .btn-primary {
-    background: var(--accent-blue);
-    border-color: var(--accent-blue);
-    box-shadow: var(--glow-blue);
+    background:
+        var(--net-blue);
+
+    border-color:
+        var(--net-blue);
+
+    box-shadow:
+        var(--net-glow-blue);
 }
 
 #netmon-wrapper .btn-primary:hover {
-    background: #1d4ed8;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.6);
+    background:
+        #1d4ed8;
+
+    border-color:
+        #1d4ed8;
+
+    box-shadow:
+        0 5px 20px
+        rgba(37, 99, 235, .45);
 }
 
 #netmon-wrapper .btn-action:disabled {
-    opacity: .65;
-    cursor: wait;
-    transform: none;
-    box-shadow: none;
+    opacity:
+        .65;
+
+    cursor:
+        wait;
+
+    transform:
+        none;
 }
 
+
 /* =========================================================
-   CARD (NOC Style)
+   CARDS
 ========================================================= */
+
 #netmon-wrapper .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    transition: border-color 0.3s ease;
-    animation: fade-in-up 0.6s ease-out backwards;
+    background:
+        rgba(17, 24, 39, .94);
+
+    border:
+        1px solid var(--net-border);
+
+    border-radius:
+        var(--net-radius);
+
+    padding:
+        22px;
+
+    margin-bottom:
+        24px;
+
+    box-shadow:
+        0 8px 30px
+        rgba(0, 0, 0, .20);
+
+    animation:
+        netFadeUp .55s ease both;
+
+    transition:
+        border-color .2s ease;
 }
 
 #netmon-wrapper .card:hover {
-    border-color: rgba(6, 182, 212, 0.3);
+    border-color:
+        rgba(6, 182, 212, .25);
 }
 
 #netmon-wrapper .card-header {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
+
     gap: 12px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 12px;
+
+    padding-bottom:
+        13px;
+
+    margin-bottom:
+        18px;
+
+    border-bottom:
+        1px solid var(--net-border);
+
+    font-size:
+        1rem;
+
+    font-weight:
+        600;
 }
 
+
 /* =========================================================
-   STATS & ADAPTIVE GRID
+   STATUS PILL
 ========================================================= */
+
+#netmon-wrapper .status-pill {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    padding:
+        6px 10px;
+
+    border-radius:
+        999px;
+
+    font-size:
+        .72rem;
+
+    font-weight:
+        600;
+}
+
+#netmon-wrapper .status-success {
+    color:
+        var(--net-green);
+
+    background:
+        rgba(16, 185, 129, .10);
+
+    border:
+        1px solid
+        rgba(16, 185, 129, .25);
+}
+
+#netmon-wrapper .status-warning {
+    color:
+        var(--net-yellow);
+
+    background:
+        rgba(245, 158, 11, .10);
+
+    border:
+        1px solid
+        rgba(245, 158, 11, .25);
+}
+
+#netmon-wrapper .status-error {
+    color:
+        var(--net-red);
+
+    background:
+        rgba(239, 68, 68, .10);
+
+    border:
+        1px solid
+        rgba(239, 68, 68, .25);
+}
+
+
+/* =========================================================
+   STATS
+========================================================= */
+
 #netmon-wrapper .stats-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 20px;
-    margin-bottom: 32px;
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(220px, 1fr)
+        );
+
+    gap:
+        18px;
+
+    margin-bottom:
+        24px;
 }
 
 #netmon-wrapper .stat-box {
-    background: linear-gradient(145deg, var(--bg-card), var(--bg-dark));
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
+    min-width: 0;
+
     display: flex;
     align-items: center;
-    gap: 16px;
-    transition: transform 0.2s, box-shadow 0.2s;
+
+    gap: 15px;
+
+    padding:
+        19px;
+
+    border:
+        1px solid var(--net-border);
+
+    border-radius:
+        var(--net-radius);
+
+    background:
+        linear-gradient(
+            145deg,
+            var(--net-card),
+            #0d1420
+        );
+
+    transition:
+        .2s ease;
 }
 
 #netmon-wrapper .stat-box:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    border-color: var(--accent-cyan);
+    transform:
+        translateY(-2px);
+
+    border-color:
+        rgba(6, 182, 212, .35);
+}
+
+#netmon-wrapper .stat-icon {
+    width:
+        45px;
+
+    height:
+        45px;
+
+    min-width:
+        45px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        10px;
+
+    color:
+        var(--net-cyan);
+
+    background:
+        rgba(6, 182, 212, .09);
+
+    font-size:
+        1.15rem;
+}
+
+#netmon-wrapper .stat-info {
+    min-width:
+        0;
+}
+
+#netmon-wrapper .stat-info h4 {
+    margin:
+        0 0 5px;
+
+    color:
+        var(--net-muted);
+
+    font-size:
+        .72rem;
+
+    font-weight:
+        500;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        .7px;
 }
 
 #netmon-wrapper .stat-info h2 {
-    font-family: 'Fira Code', monospace;
-    font-size: 1.3rem;
-    color: var(--accent-cyan);
+    margin:
+        0;
+
+    color:
+        var(--net-cyan);
+
+    font-family:
+        "Fira Code",
+        monospace;
+
+    font-size:
+        1.05rem;
+
+    word-break:
+        break-word;
 }
 
+#netmon-wrapper .stat-info small {
+    display:
+        block;
+
+    margin-top:
+        5px;
+
+    font-size:
+        .68rem;
+}
+
+
+/* =========================================================
+   INFO GRID
+========================================================= */
+
 #netmon-wrapper .network-info-grid {
-    display: grid;
-    /* Adaptive grid: will automatically wrap without media queries */
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-    margin-bottom: 16px;
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(190px, 1fr)
+        );
+
+    gap:
+        14px;
+
+    margin-bottom:
+        14px;
+}
+
+#netmon-wrapper .network-info-grid:last-child {
+    margin-bottom:
+        0;
 }
 
 #netmon-wrapper .network-info-item {
-    padding: 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background: rgba(15, 23, 42, .6);
-    backdrop-filter: blur(4px);
-    transition: background 0.3s;
+    min-width:
+        0;
+
+    padding:
+        15px;
+
+    border:
+        1px solid var(--net-border);
+
+    border-radius:
+        10px;
+
+    background:
+        rgba(15, 23, 42, .55);
 }
 
-#netmon-wrapper .network-info-item:hover {
-    background: rgba(30, 41, 59, 0.8);
+#netmon-wrapper .network-info-label {
+    color:
+        var(--net-muted);
+
+    font-size:
+        .68rem;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        .7px;
 }
 
 #netmon-wrapper .network-info-value {
-    font-family: 'Fira Code', monospace;
-    font-size: 1rem;
-    color: var(--text-main);
-    margin-top: 6px;
+    margin-top:
+        7px;
+
+    color:
+        var(--net-text);
+
+    font-size:
+        .9rem;
+
+    word-break:
+        break-word;
 }
+
 
 /* =========================================================
-   RADAR ANIMATION (KTVDI / NOC)
+   RADAR
 ========================================================= */
+
 #netmon-wrapper .radar-container {
-    position: relative;
-    width: 100%;
-    height: 350px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    background: radial-gradient(circle, #111827 0%, #090e17 100%);
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
+    position:
+        relative;
+
+    width:
+        100%;
+
+    height:
+        360px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    overflow:
+        hidden;
+
+    border:
+        1px solid var(--net-border);
+
+    border-radius:
+        12px;
+
+    background:
+        radial-gradient(
+            circle,
+            #142033 0%,
+            #090e17 72%
+        );
 }
 
-/* Radar Sweep Line */
 #netmon-wrapper .radar-container::after {
-    content: '';
-    position: absolute;
-    width: 50%;
-    height: 50%;
-    bottom: 50%;
-    right: 50%;
-    transform-origin: 100% 100%;
-    background: linear-gradient(45deg, rgba(6, 182, 212, 0.3) 0%, transparent 50%);
-    animation: radar-sweep 4s linear infinite;
-    pointer-events: none;
-    z-index: 1;
+    content:
+        "";
+
+    position:
+        absolute;
+
+    width:
+        50%;
+
+    height:
+        50%;
+
+    right:
+        50%;
+
+    bottom:
+        50%;
+
+    transform-origin:
+        100% 100%;
+
+    background:
+        linear-gradient(
+            45deg,
+            rgba(6, 182, 212, .22),
+            transparent 55%
+        );
+
+    animation:
+        radarSweep 4s linear infinite;
+
+    pointer-events:
+        none;
 }
 
 #netmon-wrapper .radar-circle {
-    position: absolute;
-    border-radius: 50%;
-    border: 1px solid rgba(6, 182, 212, 0.15); /* Cyan tint */
-    pointer-events: none;
+    position:
+        absolute;
+
+    border:
+        1px solid
+        rgba(6, 182, 212, .16);
+
+    border-radius:
+        50%;
+
+    pointer-events:
+        none;
 }
 
-#netmon-wrapper .circle-1 { width: 300px; height: 300px; }
-#netmon-wrapper .circle-2 { width: 220px; height: 220px; border-style: dashed; }
-#netmon-wrapper .circle-3 { width: 140px; height: 140px; }
+#netmon-wrapper .circle-1 {
+    width:
+        300px;
+
+    height:
+        300px;
+}
+
+#netmon-wrapper .circle-2 {
+    width:
+        220px;
+
+    height:
+        220px;
+
+    border-style:
+        dashed;
+}
+
+#netmon-wrapper .circle-3 {
+    width:
+        140px;
+
+    height:
+        140px;
+}
+
+#netmon-wrapper .radar-label {
+    position:
+        absolute;
+
+    left:
+        14px;
+
+    top:
+        12px;
+
+    font-size:
+        .68rem;
+
+    z-index:
+        3;
+}
 
 #netmon-wrapper .router-center {
-    position: absolute;
-    width: 56px;
-    height: 56px;
-    background: var(--accent-cyan);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-    box-shadow: var(--glow-cyan);
-    animation: pulse-ring 2s infinite;
+    position:
+        absolute;
+
+    width:
+        58px;
+
+    height:
+        58px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        50%;
+
+    background:
+        var(--net-cyan);
+
+    color:
+        white;
+
+    box-shadow:
+        var(--net-glow-cyan);
+
+    animation:
+        netPulse 2s infinite;
+
+    z-index:
+        10;
 }
+
+
+/* =========================================================
+   DEVICE NODE
+========================================================= */
 
 #netmon-wrapper .device-node {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    z-index: 5;
-    cursor: pointer;
-    transform: translate(-50%, -50%);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
+    position:
+        absolute;
 
-#netmon-wrapper .device-node:hover {
-    transform: translate(-50%, -50%) scale(1.15);
-    z-index: 20;
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    align-items:
+        center;
+
+    gap:
+        5px;
+
+    z-index:
+        5;
+
+    transform:
+        translate(-50%, -50%);
+
+    cursor:
+        default;
 }
 
 #netmon-wrapper .node-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: var(--bg-card);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    width:
+        40px;
+
+    height:
+        40px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border:
+        2px solid var(--net-green);
+
+    border-radius:
+        50%;
+
+    background:
+        var(--net-card);
+
+    color:
+        var(--net-green);
+
+    box-shadow:
+        0 0 12px
+        rgba(16, 185, 129, .30);
 }
 
-#netmon-wrapper .node-online {
-    border: 2px solid var(--signal-excellent);
-    color: var(--signal-excellent);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+#netmon-wrapper .node-label {
+    max-width:
+        110px;
+
+    padding:
+        3px 6px;
+
+    border-radius:
+        5px;
+
+    background:
+        rgba(9, 14, 23, .85);
+
+    color:
+        var(--net-text);
+
+    font-size:
+        .62rem;
+
+    text-align:
+        center;
+
+    white-space:
+        nowrap;
+
+    overflow:
+        hidden;
+
+    text-overflow:
+        ellipsis;
 }
+
 
 /* =========================================================
    TABLE
 ========================================================= */
+
+#netmon-wrapper .table-wrapper {
+    width:
+        100%;
+
+    overflow-x:
+        auto;
+}
+
 #netmon-wrapper table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 10px;
+    width:
+        100%;
+
+    min-width:
+        850px;
+
+    border-collapse:
+        collapse;
 }
 
 #netmon-wrapper th {
-    background: rgba(15, 23, 42, 0.8);
-    color: var(--accent-cyan);
-    padding: 16px 12px;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 1px;
+    padding:
+        13px 12px;
+
+    background:
+        rgba(15, 23, 42, .85);
+
+    color:
+        var(--net-cyan);
+
+    font-size:
+        .68rem;
+
+    font-weight:
+        600;
+
+    text-align:
+        left;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        .7px;
+
+    white-space:
+        nowrap;
 }
 
 #netmon-wrapper td {
-    padding: 14px 12px;
-    border-bottom: 1px solid var(--border-color);
-    vertical-align: middle;
-    font-family: 'Fira Code', monospace; /* Monospace for table data */
-    font-size: 0.85rem;
+    padding:
+        13px 12px;
+
+    border-bottom:
+        1px solid var(--net-border);
+
+    color:
+        var(--net-text);
+
+    font-family:
+        "Fira Code",
+        monospace;
+
+    font-size:
+        .75rem;
+
+    vertical-align:
+        middle;
 }
 
-#netmon-wrapper tr:hover td {
-    background: rgba(6, 182, 212, 0.05);
+#netmon-wrapper tbody tr:hover td {
+    background:
+        rgba(6, 182, 212, .045);
 }
+
+#netmon-wrapper .device-status {
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        6px;
+
+    color:
+        var(--net-green);
+
+    font-family:
+        Inter,
+        sans-serif;
+
+    font-size:
+        .72rem;
+}
+
+#netmon-wrapper .device-status.offline {
+    color:
+        var(--net-red);
+}
+
 
 /* =========================================================
-   RESPONSIVE LAYOUT (Mobile adjustments)
+   SPEEDTEST
 ========================================================= */
+
+#netmon-wrapper .speed-grid {
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(180px, 1fr)
+        );
+
+    gap:
+        14px;
+}
+
+#netmon-wrapper .speed-box {
+    padding:
+        18px;
+
+    border:
+        1px solid var(--net-border);
+
+    border-radius:
+        10px;
+
+    background:
+        rgba(15, 23, 42, .55);
+}
+
+#netmon-wrapper .speed-label {
+    color:
+        var(--net-muted);
+
+    font-size:
+        .72rem;
+}
+
+#netmon-wrapper .speed-value {
+    margin-top:
+        8px;
+
+    color:
+        var(--net-cyan);
+
+    font-family:
+        "Fira Code",
+        monospace;
+
+    font-size:
+        1.45rem;
+
+    font-weight:
+        600;
+}
+
+
+/* =========================================================
+   TRAFFIC CHART
+========================================================= */
+
+#netmon-wrapper .chart-container {
+    position:
+        relative;
+
+    width:
+        100%;
+
+    height:
+        260px;
+}
+
+
+/* =========================================================
+   EMPTY / NOTICE
+========================================================= */
+
+#netmon-wrapper .notice {
+    padding:
+        18px;
+
+    border:
+        1px solid var(--net-border);
+
+    border-radius:
+        10px;
+
+    background:
+        rgba(15, 23, 42, .6);
+
+    color:
+        var(--net-muted);
+
+    font-size:
+        .82rem;
+
+    line-height:
+        1.6;
+}
+
+#netmon-wrapper .notice i {
+    color:
+        var(--net-cyan);
+
+    margin-right:
+        7px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
 @media (max-width: 1050px) {
-    #netmon-wrapper { flex-direction: column; }
-    #netmon-wrapper .sidebar { width: 100%; flex-direction: row; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
-    #netmon-wrapper .nav-items { display: flex; padding: 0; }
-    #netmon-wrapper .nav-item { padding: 12px 20px; border-right: none; border-bottom: 4px solid transparent; }
-    #netmon-wrapper .nav-item.active { border-bottom-color: var(--accent-cyan); box-shadow: inset 0 -4px 0 0 rgba(6, 182, 212, 0.2); }
+
+    #netmon-wrapper {
+        flex-direction:
+            column;
+
+        overflow:
+            visible;
+    }
+
+    #netmon-wrapper .sidebar {
+        width:
+            100%;
+
+        min-width:
+            0;
+
+        flex-direction:
+            row;
+
+        border-right:
+            none;
+
+        border-bottom:
+            1px solid var(--net-border);
+    }
+
+    #netmon-wrapper .brand {
+        display:
+            none;
+    }
+
+    #netmon-wrapper .nav-items {
+        display:
+            flex;
+
+        width:
+            100%;
+
+        padding:
+            0;
+
+        overflow-x:
+            auto;
+
+        overflow-y:
+            hidden;
+    }
+
+    #netmon-wrapper .nav-item {
+        flex:
+            0 0 auto;
+
+        padding:
+            13px 17px;
+
+        border-right:
+            none;
+
+        border-bottom:
+            3px solid transparent;
+    }
+
+    #netmon-wrapper .nav-item:hover {
+        padding-left:
+            17px;
+    }
+
+    #netmon-wrapper .nav-item.active {
+        border-bottom-color:
+            var(--net-cyan);
+
+        box-shadow:
+            inset 0 -3px 0
+            rgba(6, 182, 212, .15);
+    }
+
+    #netmon-wrapper .main {
+        height:
+            auto;
+
+        min-height:
+            calc(100vh - 55px);
+
+        overflow:
+            visible;
+    }
 }
 
 @media (max-width: 700px) {
-    #netmon-wrapper .main { padding: 16px; }
-    #netmon-wrapper .header h1 { font-size: 1.5rem; }
-    #netmon-wrapper .radar-container { height: 280px; }
+
+    #netmon-wrapper .main {
+        padding:
+            16px;
+    }
+
+    #netmon-wrapper .header {
+        flex-direction:
+            column;
+    }
+
+    #netmon-wrapper .header h1 {
+        font-size:
+            1.45rem;
+    }
+
+    #netmon-wrapper .header > div:last-child {
+        width:
+            100%;
+    }
+
+    #netmon-wrapper .btn-action {
+        width:
+            100%;
+
+        justify-content:
+            center;
+    }
+
+    #netmon-wrapper .stats-summary {
+        grid-template-columns:
+            1fr;
+    }
+
+    #netmon-wrapper .radar-container {
+        height:
+            290px;
+    }
+
+    #netmon-wrapper .circle-1 {
+        width:
+            240px;
+
+        height:
+            240px;
+    }
+
+    #netmon-wrapper .circle-2 {
+        width:
+            175px;
+
+        height:
+            175px;
+    }
+
+    #netmon-wrapper .circle-3 {
+        width:
+            110px;
+
+        height:
+            110px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    #netmon-wrapper *,
+    #netmon-wrapper *::before,
+    #netmon-wrapper *::after {
+        animation-duration:
+            .01ms !important;
+
+        animation-iteration-count:
+            1 !important;
+
+        scroll-behavior:
+            auto !important;
+
+        transition-duration:
+            .01ms !important;
+    }
 }
 </style>
 
 <div id="netmon-wrapper">
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
-    <aside class="sidebar">
-        <div class="brand">
-            <i class="fas fa-tower-broadcast"></i> <!-- Broadcast icon for KTVDI -->
-            <span>NOC Dashboard</span>
-        </div>
-        <nav class="nav-items">
-            <a href="#" class="nav-item active" data-target="dashboard-top">
-                <i class="fas fa-chart-pie"></i><span>Dashboard</span>
-            </a>
-            <a href="#" class="nav-item" data-target="client-section">
-                <i class="fas fa-globe"></i><span>Koneksi Anda</span>
-            </a>
-            <a href="#" class="nav-item" data-target="wifi-section">
-                <i class="fas fa-wifi"></i><span>Wi-Fi</span>
-            </a>
-            <a href="#" class="nav-item" data-target="speed-section">
-                <i class="fas fa-gauge-high"></i><span>Speedtest</span>
-            </a>
-            <a href="#" class="nav-item" data-target="topology-section">
-                <i class="fas fa-project-diagram"></i><span>Topologi</span>
-            </a>
-            <a href="#" class="nav-item" data-target="devices-section">
-                <i class="fas fa-server"></i><span>Perangkat</span>
-            </a>
-        </nav>
-    </aside>
 
-    <!-- =====================================================
-         MAIN
-    ====================================================== -->
-    <main class="main">
-        <div id="dashboard-top"></div>
+```
+<!-- =====================================================
+     SIDEBAR
+====================================================== -->
 
-        <!-- HEADER -->
-        <div class="header">
-            <div>
-                <h1>KTVDI Network Operations</h1>
-                <p class="header-subtitle font-mono">
-                    ISP: <strong id="network-name" class="font-mono" style="color: var(--accent-cyan);">Mendeteksi...</strong> &nbsp;·&nbsp;
-                    Gateway: <strong id="gateway-ip" class="font-mono">-</strong> &nbsp;·&nbsp;
-                    <span id="network-status">Menunggu backend...</span>
-                </p>
-                <p id="last-scan-time" style="margin:8px 0 0; color:var(--text-muted); font-size:.75rem;" class="font-mono">
-                    Belum ada pemindaian
-                </p>
-            </div>
-            <div>
-                <button id="scan-network-btn" class="btn-action btn-primary" type="button" onclick="forceNetworkScan()">
-                    <i class="fas fa-satellite-dish"></i> Pindai Jaringan
-                </button>
-            </div>
-        </div>
+<aside class="sidebar">
 
-        <!-- STATS SUMMARY -->
-        <div class="stats-summary">
-            <!-- Isi blok stat box sama persis dengan aslinya, kelas-kelas CSS telah menangani gaya font -->
-            <div class="stat-box" style="animation-delay: 0.1s;">
-                <i class="fas fa-building stat-icon"></i>
-                <div class="stat-info">
-                    <h4>ISP / Provider</h4>
-                    <h2 id="client-provider">Mendeteksi...</h2>
-                    <small id="client-asn" class="font-mono" style="color:var(--text-muted)">ASN: -</small>
-                </div>
-            </div>
-            <div class="stat-box" style="animation-delay: 0.2s;">
-                <i class="fas fa-globe stat-icon"></i>
-                <div class="stat-info">
-                    <h4>IP Publik</h4>
-                    <h2 id="public-ip">Mendeteksi...</h2>
-                    <small style="color:var(--text-muted)">IP koneksi client</small>
-                </div>
-            </div>
-            <div class="stat-box" style="animation-delay: 0.3s;">
-                <i class="fas fa-wifi stat-icon"></i>
-                <div class="stat-info">
-                    <h4>Wi-Fi</h4>
-                    <h2 id="wifi-summary">Mendeteksi...</h2>
-                    <small id="wifi-band-summary" style="color:var(--text-muted)">-</small>
-                </div>
-            </div>
-            <div class="stat-box" style="animation-delay: 0.4s;">
-                <i class="fas fa-gauge-high stat-icon"></i>
-                <div class="stat-info">
-                    <h4>Download Aktual</h4>
-                    <h2 id="download-speed-summary">-</h2>
-                    <small id="speedtest-summary" style="color:var(--text-muted)">Menunggu Speedtest</small>
-                </div>
-            </div>
-        </div>
+    <div class="brand">
+        <i class="fas fa-tower-broadcast"></i>
+        <span>NOC Dashboard</span>
+    </div>
 
-        <!-- =================================================
-             CLIENT INFO (Sama dengan aslinya, class akan otomatis menyesuaikan)
-        ================================================== -->
-        <section class="card" id="client-section" style="margin-bottom:24px; animation-delay: 0.2s;">
-            <div class="card-header">
-                <span><i class="fas fa-user-circle" style="color: var(--accent-cyan);"></i> Data Terminal Klien</span>
-                <span id="client-connection-status" class="status-pill status-warning">
-                    <i class="fas fa-circle-notch fa-spin"></i> Sinkronisasi
-                </span>
-            </div>
-            <!-- Grid info client tetap sama, font-mono & adaptive grid CSS yang bekerja -->
-            <div class="network-info-grid">
-                <div class="network-info-item">
-                    <div class="network-info-label">IP Publik</div>
-                    <div class="network-info-value font-mono" id="client-public-ip">Mendeteksi...</div>
-                </div>
-                <div class="network-info-item">
-                    <div class="network-info-label">ISP</div>
-                    <div class="network-info-value" id="client-isp">Mendeteksi...</div>
-                </div>
-                <div class="network-info-item">
-                    <div class="network-info-label">ASN</div>
-                    <div class="network-info-value font-mono" id="client-asn-detail">-</div>
-                </div>
-                <div class="network-info-item">
-                    <div class="network-info-label">Organisasi</div>
-                    <div class="network-info-value" id="client-org">-</div>
-                </div>
-            </div>
-            <div class="network-info-grid">
-                <div class="network-info-item">
-                    <div class="network-info-label">Browser</div>
-                    <div class="network-info-value" id="client-browser">-</div>
-                </div>
-                <div class="network-info-item">
-                    <div class="network-info-label">OS Sistem</div>
-                    <div class="network-info-value" id="client-os">-</div>
-                </div>
-                <div class="network-info-item">
-                    <div class="network-info-label">Tipe Koneksi</div>
-                    <div class="network-info-value" id="detail-connection-type">-</div>
-                </div>
-                <div class="network-info-item">
-                    <div class="network-info-label">Lokasi Node</div>
-                    <div class="network-info-value" id="client-location">-</div>
-                </div>
-            </div>
-        </section>
+    <nav class="nav-items">
 
-        <!-- (Anda dapat menempatkan sisa blok HTML section (WIFI, SPEEDTEST, TOPOLOGY, DEVICES) persis seperti aslinya disini) -->
-        <!-- Mereka akan otomatis terpoles oleh CSS Fira Code dan adaptive Grid layout yang baru -->
+        <a
+            href="#dashboard-top"
+            class="nav-item active"
+            data-target="dashboard-top"
+        >
+            <i class="fas fa-chart-pie"></i>
+            <span>Dashboard</span>
+        </a>
 
-        <!-- Contoh potongan Topology Section untuk Radar -->
-        <section class="card" id="topology-section" style="margin-bottom:24px;">
-            <div class="card-header">
-                <span><i class="fas fa-satellite"></i> Visualisasi Topologi Sensor</span>
-                <span id="topology-count" class="font-mono" style="color:var(--accent-cyan); font-size:.85rem;">
-                    0 node terdeteksi
-                </span>
-            </div>
-            <div class="radar-container" id="radar-container">
-                <div class="radar-circle circle-1"></div>
-                <div class="radar-circle circle-2"></div>
-                <div class="radar-circle circle-3"></div>
-                <span class="radar-label font-mono" style="top:10px; color: var(--accent-cyan); opacity: 0.7;">
-                    [ KTVDI RADAR SCANNER ACTIVE ]
-                </span>
-                <div class="router-center unknown" id="router-center">
-                    <i class="fas fa-server" style="color:#fff"></i>
-                </div>
-            </div>
-        </section>
+        <a
+            href="#client-section"
+            class="nav-item"
+            data-target="client-section"
+        >
+            <i class="fas fa-globe"></i>
+            <span>Koneksi Anda</span>
+        </a>
 
-        <!-- Tabel Perangkat (Penerapan Fira Code & Hover Animation) -->
-        <section class="card" id="devices-section" style="overflow:auto">
-            <div class="card-header">
-                <span><i class="fas fa-network-wired"></i> Log Perangkat Terdeteksi</span>
-                <span id="device-table-info" class="font-mono" style="color:var(--text-muted); font-size:.85rem;">
-                    Menunggu aliran data...
-                </span>
-            </div>
-            <table style="min-width: 900px;">
-                <thead>
-                    <tr>
-                        <th>Node</th>
-                        <th>IP Address</th>
-                        <th>MAC Address</th>
-                        <th>Vendor Hardware</th>
-                        <th>Status</th>
-                        <th>Latency</th>
-                        <th>State</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="device-table-body">
-                    <tr>
-                        <td colspan="8" style="text-align:center; color:var(--text-muted); padding:30px;">
-                            <i class="fas fa-circle-notch fa-spin"></i> Menyiapkan koneksi ke probe...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+        <a
+            href="#wifi-section"
+            class="nav-item"
+            data-target="wifi-section"
+        >
+            <i class="fas fa-wifi"></i>
+            <span>Wi-Fi</span>
+        </a>
 
-    </main>
-</div>
+        <a
+            href="#speed-section"
+            class="nav-item"
+            data-target="speed-section"
+        >
+            <i class="fas fa-gauge-high"></i>
+            <span>Speedtest</span>
+        </a>
+
+        <a
+            href="#topology-section"
+            class="nav-item"
+            data-target="topology-section"
+        >
+            <i class="fas fa-project-diagram"></i>
+            <span>Topologi</span>
+        </a>
+
+        <a
+            href="#devices-section"
+            class="nav-item"
+            data-target="devices-section"
+        >
+            <i class="fas fa-server"></i>
+            <span>Perangkat</span>
+        </a>
+
+    </nav>
+
+</aside>
+
 
 <!-- =====================================================
-     SCRIPT (Pertahankan javascript persis seperti kode asli, 
-     animasi render table dan radar dikoordinasikan murni lewat CSS & DOM standar)
+     MAIN
 ====================================================== -->
+
+<main class="main">
+
+    <div id="dashboard-top"></div>
+
+
+    <!-- =================================================
+         HEADER
+    ================================================== -->
+
+    <header class="header">
+
+        <div>
+
+            <h1>
+                KTVDI Network Operations
+            </h1>
+
+            <p class="header-subtitle font-mono">
+
+                ISP:
+                <strong
+                    id="network-name"
+                    style="color:var(--net-cyan);"
+                >
+                    Mendeteksi...
+                </strong>
+
+                &nbsp;·&nbsp;
+
+                Gateway:
+                <strong id="gateway-ip">
+                    -
+                </strong>
+
+                &nbsp;·&nbsp;
+
+                <span id="network-status">
+                    Menunggu koneksi...
+                </span>
+
+            </p>
+
+            <p
+                id="last-scan-time"
+                class="font-mono"
+            >
+                Belum ada pemindaian
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <button
+                id="scan-network-btn"
+                class="btn-action btn-primary"
+                type="button"
+            >
+
+                <i class="fas fa-satellite-dish"></i>
+
+                <span>
+                    Pindai Jaringan
+                </span>
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =================================================
+         SUMMARY
+    ================================================== -->
+
+    <section class="stats-summary">
+
+        <!-- ISP -->
+
+        <div
+            class="stat-box"
+            style="animation-delay:.05s;"
+        >
+
+            <div class="stat-icon">
+                <i class="fas fa-building"></i>
+            </div>
+
+            <div class="stat-info">
+
+                <h4>
+                    ISP / Provider
+                </h4>
+
+                <h2 id="client-provider">
+                    Mendeteksi...
+                </h2>
+
+                <small
+                    id="client-asn"
+                    class="font-mono"
+                >
+                    ASN: -
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <!-- PUBLIC IP -->
+
+        <div
+            class="stat-box"
+            style="animation-delay:.10s;"
+        >
+
+            <div class="stat-icon">
+                <i class="fas fa-globe"></i>
+            </div>
+
+            <div class="stat-info">
+
+                <h4>
+                    IP Publik
+                </h4>
+
+                <h2
+                    id="public-ip"
+                    class="font-mono"
+                >
+                    Mendeteksi...
+                </h2>
+
+                <small>
+                    IP koneksi client
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <!-- WIFI -->
+
+        <div
+            class="stat-box"
+            style="animation-delay:.15s;"
+        >
+
+            <div class="stat-icon">
+                <i class="fas fa-wifi"></i>
+            </div>
+
+            <div class="stat-info">
+
+                <h4>
+                    Wi-Fi
+                </h4>
+
+                <h2 id="wifi-summary">
+                    Tidak tersedia
+                </h2>
+
+                <small id="wifi-band-summary">
+                    Browser membatasi akses Wi-Fi
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <!-- SPEED -->
+
+        <div
+            class="stat-box"
+            style="animation-delay:.20s;"
+        >
+
+            <div class="stat-icon">
+                <i class="fas fa-gauge-high"></i>
+            </div>
+
+            <div class="stat-info">
+
+                <h4>
+                    Download Aktual
+                </h4>
+
+                <h2
+                    id="download-speed-summary"
+                    class="font-mono"
+                >
+                    -
+                </h2>
+
+                <small id="speedtest-summary">
+                    Belum dilakukan
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         CLIENT INFORMATION
+    ================================================== -->
+
+    <section
+        class="card"
+        id="client-section"
+    >
+
+        <div class="card-header">
+
+            <span>
+                <i
+                    class="fas fa-user-circle"
+                    style="color:var(--net-cyan);"
+                ></i>
+
+                Data Terminal Klien
+            </span>
+
+            <span
+                id="client-connection-status"
+                class="status-pill status-warning"
+            >
+
+                <i class="fas fa-circle-notch fa-spin"></i>
+
+                Sinkronisasi
+
+            </span>
+
+        </div>
+
+
+        <div class="network-info-grid">
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    IP Publik
+                </div>
+
+                <div
+                    id="client-public-ip"
+                    class="network-info-value font-mono"
+                >
+                    Mendeteksi...
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    ISP
+                </div>
+
+                <div
+                    id="client-isp"
+                    class="network-info-value"
+                >
+                    Mendeteksi...
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    ASN
+                </div>
+
+                <div
+                    id="client-asn-detail"
+                    class="network-info-value font-mono"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Organisasi
+                </div>
+
+                <div
+                    id="client-org"
+                    class="network-info-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="network-info-grid">
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Browser
+                </div>
+
+                <div
+                    id="client-browser"
+                    class="network-info-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    OS Sistem
+                </div>
+
+                <div
+                    id="client-os"
+                    class="network-info-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Tipe Koneksi
+                </div>
+
+                <div
+                    id="detail-connection-type"
+                    class="network-info-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Lokasi Node
+                </div>
+
+                <div
+                    id="client-location"
+                    class="network-info-value"
+                >
+                    Browser Client
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         WIFI
+    ================================================== -->
+
+    <section
+        class="card"
+        id="wifi-section"
+    >
+
+        <div class="card-header">
+
+            <span>
+                <i
+                    class="fas fa-wifi"
+                    style="color:var(--net-cyan);"
+                ></i>
+
+                Informasi Wi-Fi / Network Link
+            </span>
+
+            <span
+                id="wifi-status"
+                class="status-pill status-warning"
+            >
+                Browser API
+            </span>
+
+        </div>
+
+
+        <div class="network-info-grid">
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Tipe Koneksi
+                </div>
+
+                <div
+                    id="wifi-connection-type"
+                    class="network-info-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Downlink
+                </div>
+
+                <div
+                    id="wifi-downlink"
+                    class="network-info-value font-mono"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    RTT
+                </div>
+
+                <div
+                    id="wifi-rtt"
+                    class="network-info-value font-mono"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="network-info-item">
+
+                <div class="network-info-label">
+                    Data Saver
+                </div>
+
+                <div
+                    id="wifi-save-data"
+                    class="network-info-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="notice">
+
+            <i class="fas fa-circle-info"></i>
+
+            Informasi SSID, password Wi-Fi, channel, BSSID,
+            kekuatan sinyal RSSI, serta daftar perangkat LAN
+            tidak dapat dibaca secara bebas oleh JavaScript
+            browser modern. Data tersebut membutuhkan akses
+            router atau agen lokal.
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         SPEEDTEST
+    ================================================== -->
+
+    <section
+        class="card"
+        id="speed-section"
+    >
+
+        <div class="card-header">
+
+            <span>
+                <i
+                    class="fas fa-gauge-high"
+                    style="color:var(--net-cyan);"
+                ></i>
+
+                Speedtest Client
+            </span>
+
+            <button
+                id="speedtest-btn"
+                type="button"
+                class="btn-action"
+            >
+
+                <i class="fas fa-play"></i>
+
+                Mulai Speedtest
+
+            </button>
+
+        </div>
+
+
+        <div class="speed-grid">
+
+            <div class="speed-box">
+
+                <div class="speed-label">
+                    Download
+                </div>
+
+                <div
+                    id="speed-download"
+                    class="speed-value"
+                >
+                    -
+                </div>
+
+                <small style="color:var(--net-muted);">
+                    Mbps
+                </small>
+
+            </div>
+
+
+            <div class="speed-box">
+
+                <div class="speed-label">
+                    Upload
+                </div>
+
+                <div
+                    id="speed-upload"
+                    class="speed-value"
+                >
+                    -
+                </div>
+
+                <small style="color:var(--net-muted);">
+                    Mbps
+                </small>
+
+            </div>
+
+
+            <div class="speed-box">
+
+                <div class="speed-label">
+                    Latency
+                </div>
+
+                <div
+                    id="speed-latency"
+                    class="speed-value"
+                >
+                    -
+                </div>
+
+                <small style="color:var(--net-muted);">
+                    ms
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="speedtest-message"
+            class="notice"
+            style="margin-top:15px;"
+        >
+
+            <i class="fas fa-circle-info"></i>
+
+            Speedtest belum dijalankan.
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         TRAFFIC
+    ================================================== -->
+
+    <section class="card">
+
+        <div class="card-header">
+
+            <span>
+                <i
+                    class="fas fa-chart-line"
+                    style="color:var(--net-cyan);"
+                ></i>
+
+                Network Activity
+            </span>
+
+            <span
+                class="font-mono"
+                style="
+                    color:var(--net-muted);
+                    font-size:.72rem;
+                "
+            >
+                Browser Telemetry
+            </span>
+
+        </div>
+
+
+        <div class="chart-container">
+
+            <canvas
+                id="traffic-chart"
+            ></canvas>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         TOPOLOGY
+    ================================================== -->
+
+    <section
+        class="card"
+        id="topology-section"
+    >
+
+        <div class="card-header">
+
+            <span>
+                <i
+                    class="fas fa-project-diagram"
+                    style="color:var(--net-cyan);"
+                ></i>
+
+                Visualisasi Topologi Client
+            </span>
+
+            <span
+                id="topology-count"
+                class="font-mono"
+                style="
+                    color:var(--net-cyan);
+                    font-size:.75rem;
+                "
+            >
+                0 node
+            </span>
+
+        </div>
+
+
+        <div
+            class="radar-container"
+            id="radar-container"
+        >
+
+            <div
+                class="radar-circle circle-1"
+            ></div>
+
+            <div
+                class="radar-circle circle-2"
+            ></div>
+
+            <div
+                class="radar-circle circle-3"
+            ></div>
+
+
+            <span
+                class="radar-label font-mono"
+                style="
+                    color:var(--net-cyan);
+                    opacity:.7;
+                "
+            >
+                [ KTVDI CLIENT RADAR ]
+            </span>
+
+
+            <div
+                class="router-center"
+                id="router-center"
+            >
+
+                <i class="fas fa-server"></i>
+
+            </div>
+
+        </div>
+
+
+        <div
+            class="notice"
+            style="margin-top:14px;"
+        >
+
+            <i class="fas fa-shield-halved"></i>
+
+            Topologi di sini merepresentasikan terminal
+            browser yang terhubung ke server KTVDI.
+            Bukan hasil pemindaian seluruh perangkat router.
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         DEVICES
+    ================================================== -->
+
+    <section
+        class="card"
+        id="devices-section"
+    >
+
+        <div class="card-header">
+
+            <span>
+                <i
+                    class="fas fa-network-wired"
+                    style="color:var(--net-cyan);"
+                ></i>
+
+                Log Perangkat Terdeteksi
+            </span>
+
+            <span
+                id="device-table-info"
+                class="font-mono"
+                style="
+                    color:var(--net-muted);
+                    font-size:.72rem;
+                "
+            >
+                1 client node
+            </span>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Node
+                        </th>
+
+                        <th>
+                            IP Address
+                        </th>
+
+                        <th>
+                            MAC Address
+                        </th>
+
+                        <th>
+                            Vendor / Device
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Latency
+                        </th>
+
+                        <th>
+                            State
+                        </th>
+
+                        <th>
+                            Aksi
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="device-table-body">
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            style="
+                                text-align:center;
+                                padding:30px;
+                                color:var(--net-muted);
+                            "
+                        >
+
+                            <i class="fas fa-circle-notch fa-spin"></i>
+
+                            Menyiapkan client node...
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+</main>
+```
+
+</div>
+
 <script>
-// Paste keseluruhan Javascript asli Anda di sini.
-// Script asli (deteksi IP, generate radar node, Chart.js) 
-// secara otomatis kompatibel dengan struktur HTML & CSS baru ini.
+/* =========================================================
+   KTVDI NETWORK CLIENT
+   ---------------------------------------------------------
+   Filosofi:
+   1. Browser mendeteksi informasi yang memang tersedia.
+   2. Flask hanya menjadi API ringan.
+   3. Tidak melakukan LAN scan.
+   4. Tidak melakukan polling terus-menerus.
+   5. Semua request memiliki timeout.
+   6. Error tidak menyebabkan halaman 500.
+========================================================= */
 
-// Untuk efek estetika, ubah warna dataset Chart.js pada fungsi initializeTrafficChart() :
-/* 
-    borderColor: '#06b6d4',
-    backgroundColor: 'rgba(6, 182, 212, 0.1)', // Aksen Cyan
+(function () {
 
-    borderColor: '#2563eb',
-    backgroundColor: 'rgba(37, 99, 235, 0.1)'  // Aksen Biru
-*/
+    "use strict";
+
+
+    /* =====================================================
+       STATE
+    ====================================================== */
+
+    const state = {
+
+        client: {},
+
+        server: {},
+
+        lastScan: null,
+
+        chart: null,
+
+        scanning: false,
+
+        speedtesting: false
+
+    };
+
+
+    /* =====================================================
+       HELPER DOM
+    ====================================================== */
+
+    function $(id) {
+
+        return document.getElementById(id);
+
+    }
+
+
+    function setText(id, value) {
+
+        const el = $(id);
+
+        if (!el) {
+            return;
+        }
+
+        el.textContent =
+            value === null ||
+            value === undefined ||
+            value === ""
+                ? "-"
+                : String(value);
+
+    }
+
+
+    function setStatus(
+        id,
+        type,
+        text,
+        icon
+    ) {
+
+        const el = $(id);
+
+        if (!el) {
+            return;
+        }
+
+        el.className =
+            "status-pill " +
+            (
+                type === "success"
+                    ? "status-success"
+                    : type === "error"
+                        ? "status-error"
+                        : "status-warning"
+            );
+
+        el.innerHTML =
+            `<i class="fas ${icon || "fa-circle"}"></i> ${text}`;
+
+    }
+
+
+    /* =====================================================
+       SAFE FETCH
+    ====================================================== */
+
+    async function safeFetch(
+        url,
+        options = {},
+        timeout = 5000
+    ) {
+
+        const controller =
+            new AbortController();
+
+        const timer =
+            setTimeout(
+                () => controller.abort(),
+                timeout
+            );
+
+        try {
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        ...options,
+                        signal:
+                            controller.signal,
+                        cache:
+                            "no-store"
+                    }
+                );
+
+            if (!response.ok) {
+
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
+
+            }
+
+            return await response.json();
+
+        } finally {
+
+            clearTimeout(timer);
+
+        }
+
+    }
+
+
+    /* =====================================================
+       BROWSER INFORMATION
+    ====================================================== */
+
+    function detectBrowser() {
+
+        const ua =
+            navigator.userAgent || "";
+
+        if (/Edg/i.test(ua)) {
+            return "Microsoft Edge";
+        }
+
+        if (/Chrome/i.test(ua)) {
+            return "Google Chrome";
+        }
+
+        if (/Firefox/i.test(ua)) {
+            return "Mozilla Firefox";
+        }
+
+        if (/Safari/i.test(ua)) {
+            return "Safari";
+        }
+
+        if (/Opera|OPR/i.test(ua)) {
+            return "Opera";
+        }
+
+        return "Browser Tidak Dikenal";
+
+    }
+
+
+    function detectOS() {
+
+        const ua =
+            navigator.userAgent || "";
+
+        if (/Windows NT/i.test(ua)) {
+            return "Windows";
+        }
+
+        if (/Android/i.test(ua)) {
+            return "Android";
+        }
+
+        if (/iPhone|iPad|iPod/i.test(ua)) {
+            return "iOS";
+        }
+
+        if (/Mac OS X/i.test(ua)) {
+            return "macOS";
+        }
+
+        if (/Linux/i.test(ua)) {
+            return "Linux";
+        }
+
+        return "Tidak Diketahui";
+
+    }
+
+
+    /* =====================================================
+       CONNECTION API
+    ====================================================== */
+
+    function detectConnection() {
+
+        const connection =
+            navigator.connection ||
+            navigator.mozConnection ||
+            navigator.webkitConnection;
+
+        if (!connection) {
+
+            return {
+
+                type: "Tidak tersedia",
+
+                effectiveType:
+                    "Tidak tersedia",
+
+                downlink:
+                    null,
+
+                rtt:
+                    null,
+
+                saveData:
+                    false
+
+            };
+
+        }
+
+        return {
+
+            type:
+                connection.type ||
+                connection.effectiveType ||
+                "Tidak diketahui",
+
+            effectiveType:
+                connection.effectiveType ||
+                "-",
+
+            downlink:
+                connection.downlink,
+
+            rtt:
+                connection.rtt,
+
+            saveData:
+                connection.saveData
+
+        };
+
+    }
+
+
+    /* =====================================================
+       PUBLIC IP
+       
+       External IP API hanya dipanggil sekali ketika scan.
+       Tidak dilakukan polling.
+    ====================================================== */
+
+    async function detectPublicIP() {
+
+        const endpoints = [
+
+            "https://api.ipify.org?format=json",
+
+            "https://api64.ipify.org?format=json"
+
+        ];
+
+        for (
+            const endpoint of endpoints
+        ) {
+
+            try {
+
+                const data =
+                    await safeFetch(
+                        endpoint,
+                        {},
+                        2500
+                    );
+
+                if (data && data.ip) {
+
+                    return data.ip;
+
+                }
+
+            } catch (error) {
+
+                console.warn(
+                    "IP detection failed:",
+                    error
+                );
+
+            }
+
+        }
+
+        return null;
+
+    }
+
+
+    /* =====================================================
+       PUBLIC IP INFORMATION
+       
+       Dipanggil maksimal satu kali per scan.
+    ====================================================== */
+
+    async function detectIPInfo(ip) {
+
+        if (!ip) {
+            return {};
+        }
+
+        try {
+
+            const data =
+                await safeFetch(
+                    `https://ipwho.is/${encodeURIComponent(ip)}`,
+                    {},
+                    3000
+                );
+
+            if (
+                !data ||
+                data.success === false
+            ) {
+
+                return {};
+
+            }
+
+            return {
+
+                ip:
+                    data.ip || ip,
+
+                city:
+                    data.city || "-",
+
+                region:
+                    data.region || "-",
+
+                country:
+                    data.country || "-",
+
+                isp:
+                    data.connection?.isp ||
+                    "-",
+
+                org:
+                    data.connection?.org ||
+                    "-",
+
+                asn:
+                    data.connection?.asn
+                        ? `AS${data.connection.asn}`
+                        : "-"
+
+            };
+
+        } catch (error) {
+
+            console.warn(
+                "IP information failed:",
+                error
+            );
+
+            return {
+
+                ip: ip
+
+            };
+
+        }
+
+    }
+
+
+    /* =====================================================
+       BUILD CLIENT DATA
+    ====================================================== */
+
+    function buildClientData() {
+
+        const connection =
+            detectConnection();
+
+        return {
+
+            browser:
+                detectBrowser(),
+
+            os:
+                detectOS(),
+
+            connection:
+                connection,
+
+            language:
+                navigator.language || "-",
+
+            platform:
+                navigator.platform || "-",
+
+            screen:
+                `${window.screen.width}x${window.screen.height}`,
+
+            timezone:
+                Intl.DateTimeFormat()
+                    .resolvedOptions()
+                    .timeZone || "-"
+
+        };
+
+    }
+
+
+    /* =====================================================
+       UPDATE CLIENT UI
+    ====================================================== */
+
+    function updateClientUI() {
+
+        const client =
+            state.client || {};
+
+        const ipInfo =
+            client.ipInfo || {};
+
+        const connection =
+            client.connection || {};
+
+
+        /* IP */
+
+        setText(
+            "public-ip",
+            ipInfo.ip || "Tidak tersedia"
+        );
+
+        setText(
+            "client-public-ip",
+            ipInfo.ip || "Tidak tersedia"
+        );
+
+
+        /* ISP */
+
+        setText(
+            "client-provider",
+            ipInfo.isp || "Tidak terdeteksi"
+        );
+
+        setText(
+            "client-isp",
+            ipInfo.isp || "Tidak terdeteksi"
+        );
+
+        setText(
+            "network-name",
+            ipInfo.isp || "Tidak terdeteksi"
+        );
+
+
+        /* ASN */
+
+        setText(
+            "client-asn",
+            `ASN: ${ipInfo.asn || "-"}`
+        );
+
+        setText(
+            "client-asn-detail",
+            ipInfo.asn || "-"
+        );
+
+
+        /* ORGANIZATION */
+
+        setText(
+            "client-org",
+            ipInfo.org || "-"
+        );
+
+
+        /* BROWSER */
+
+        setText(
+            "client-browser",
+            client.browser || "-"
+        );
+
+
+        /* OS */
+
+        setText(
+            "client-os",
+            client.os || "-"
+        );
+
+
+        /* CONNECTION */
+
+        const connectionType =
+            connection.effectiveType ||
+            connection.type ||
+            "Tidak tersedia";
+
+        setText(
+            "detail-connection-type",
+            connectionType
+        );
+
+        setText(
+            "wifi-connection-type",
+            connectionType
+        );
+
+        setText(
+            "wifi-summary",
+            connectionType
+        );
+
+
+        /* DOWNLINK */
+
+        if (
+            typeof connection.downlink ===
+            "number"
+        ) {
+
+            setText(
+                "wifi-downlink",
+                `${connection.downlink} Mbps`
+            );
+
+            setText(
+                "wifi-band-summary",
+                `Estimasi browser: ${connection.downlink} Mbps`
+            );
+
+        } else {
+
+            setText(
+                "wifi-downlink",
+                "-"
+            );
+
+            setText(
+                "wifi-band-summary",
+                "Data downlink tidak tersedia"
+            );
+
+        }
+
+
+        /* RTT */
+
+        if (
+            typeof connection.rtt ===
+            "number"
+        ) {
+
+            setText(
+                "wifi-rtt",
+                `${connection.rtt} ms`
+            );
+
+        } else {
+
+            setText(
+                "wifi-rtt",
+                "-"
+            );
+
+        }
+
+
+        /* SAVE DATA */
+
+        setText(
+            "wifi-save-data",
+            connection.saveData
+                ? "Aktif"
+                : "Tidak aktif"
+        );
+
+
+        /* LOCATION */
+
+        if (
+            ipInfo.city &&
+            ipInfo.country
+        ) {
+
+            setText(
+                "client-location",
+                `${ipInfo.city}, ${ipInfo.country}`
+            );
+
+        } else {
+
+            setText(
+                "client-location",
+                "Browser Client"
+            );
+
+        }
+
+
+        /* GATEWAY */
+
+        setText(
+            "gateway-ip",
+            "Tidak tersedia"
+        );
+
+
+        /* STATUS */
+
+        setStatus(
+            "client-connection-status",
+            "success",
+            "Terhubung",
+            "fa-circle-check"
+        );
+
+        setText(
+            "network-status",
+            "Client aktif"
+        );
+
+        $("network-status").style.color =
+            "var(--net-green)";
+
+    }
+
+
+    /* =====================================================
+       SERVER DATA
+    ====================================================== */
+
+    function updateServerUI(data) {
+
+        state.server =
+            data || {};
+
+
+        if (!data) {
+            return;
+        }
+
+
+        /*
+         * Endpoint Flask saat ini mengembalikan:
+         *
+         * local_ip
+         * gateway
+         * platform
+         * clients_count
+         * online_count
+         * devices
+         * scan_time
+         * isp
+         */
+
+        if (
+            data.gateway &&
+            data.gateway !== "-"
+        ) {
+
+            setText(
+                "gateway-ip",
+                data.gateway
+            );
+
+        }
+
+
+        if (
+            data.scan_time
+        ) {
+
+            setText(
+                "last-scan-time",
+                `Pemindaian terakhir: ${data.scan_time} WIB`
+            );
+
+        }
+
+
+        const devices =
+            Array.isArray(data.devices)
+                ? data.devices
+                : [];
+
+
+        renderDevices(
+            devices
+        );
+
+        renderTopology(
+            devices
+        );
+
+    }
+
+
+    /* =====================================================
+       DEVICE TABLE
+       
+       Hanya menampilkan data yang benar-benar diberikan
+       Flask. Tidak mengarang MAC/vendor.
+    ====================================================== */
+
+    function renderDevices(
+        devices
+    ) {
+
+        const tbody =
+            $("device-table-body");
+
+        if (!tbody) {
+            return;
+        }
+
+
+        if (!devices.length) {
+
+            tbody.innerHTML = `
+
+                <tr>
+
+                    <td
+                        colspan="8"
+                        style="
+                            text-align:center;
+                            padding:30px;
+                            color:var(--net-muted);
+                        "
+                    >
+
+                        Tidak ada node yang dilaporkan server.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            setText(
+                "device-table-info",
+                "0 node"
+            );
+
+            return;
+
+        }
+
+
+        tbody.innerHTML =
+            devices
+                .map(
+                    (device, index) => {
+
+                        const online =
+                            String(
+                                device.status ||
+                                ""
+                            ).toLowerCase()
+                            === "online";
+
+                        const statusClass =
+                            online
+                                ? ""
+                                : "offline";
+
+                        const statusText =
+                            online
+                                ? "Online"
+                                : (
+                                    device.status ||
+                                    "Unknown"
+                                );
+
+                        const latency =
+                            typeof device.latency_ms
+                            === "number"
+                                ? `${device.latency_ms} ms`
+                                : "-";
+
+                        const ip =
+                            device.ip ||
+                            "-";
+
+                        const mac =
+                            device.mac ||
+                            "Tidak tersedia";
+
+                        const vendor =
+                            device.device ||
+                            "Client Node";
+
+                        const role =
+                            device.role ||
+                            "client";
+
+                        return `
+
+                            <tr>
+
+                                <td>
+                                    NODE-${String(
+                                        index + 1
+                                    ).padStart(2, "0")}
+                                </td>
+
+                                <td>
+                                    ${escapeHTML(ip)}
+                                </td>
+
+                                <td>
+                                    ${escapeHTML(mac)}
+                                </td>
+
+                                <td>
+                                    ${escapeHTML(vendor)}
+                                </td>
+
+                                <td>
+
+                                    <span
+                                        class="device-status ${statusClass}"
+                                    >
+
+                                        <i
+                                            class="fas fa-circle"
+                                        ></i>
+
+                                        ${escapeHTML(
+                                            statusText
+                                        )}
+
+                                    </span>
+
+                                </td>
+
+                                <td>
+                                    ${escapeHTML(
+                                        latency
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${escapeHTML(role)}
+                                </td>
+
+                                <td>
+
+                                    <button
+                                        type="button"
+                                        class="btn-action"
+                                        style="
+                                            padding:6px 9px;
+                                            font-size:.68rem;
+                                        "
+                                        onclick="showDeviceInfo(
+                                            '${escapeJS(ip)}',
+                                            '${escapeJS(vendor)}'
+                                        )"
+                                    >
+
+                                        <i class="fas fa-eye"></i>
+
+                                        Detail
+
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+                        `;
+
+                    }
+                )
+                .join("");
+
+
+        setText(
+            "device-table-info",
+            `${devices.length} node`
+        );
+
+    }
+
+
+    /* =====================================================
+       HTML ESCAPE
+    ====================================================== */
+
+    function escapeHTML(
+        value
+    ) {
+
+        return String(
+            value ?? ""
+        )
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+
+    function escapeJS(
+        value
+    ) {
+
+        return String(
+            value ?? ""
+        )
+            .replace(
+                /\\/g,
+                "\\\\"
+            )
+            .replace(
+                /'/g,
+                "\\'"
+            );
+
+    }
+
+
+    /* =====================================================
+       TOPOLOGY
+    ====================================================== */
+
+    function renderTopology(
+        devices
+    ) {
+
+        const radar =
+            $("radar-container");
+
+        if (!radar) {
+            return;
+        }
+
+
+        radar
+            .querySelectorAll(
+                ".device-node"
+            )
+            .forEach(
+                node => node.remove()
+            );
+
+
+        const count =
+            devices.length;
+
+
+        setText(
+            "topology-count",
+            `${count} node`
+        );
+
+
+        if (!count) {
+            return;
+        }
+
+
+        /*
+         * Posisi node dibuat melingkar.
+         * Ini hanya visualisasi data client,
+         * bukan peta fisik jaringan.
+         */
+
+        const radius =
+            Math.min(
+                radar.clientWidth,
+                radar.clientHeight
+            ) * .34;
+
+
+        const centerX =
+            radar.clientWidth / 2;
+
+        const centerY =
+            radar.clientHeight / 2;
+
+
+        devices.forEach(
+            (device, index) => {
+
+                const angle =
+                    (
+                        Math.PI * 2 * index
+                    ) / count
+                    - Math.PI / 2;
+
+                const x =
+                    centerX +
+                    Math.cos(angle) *
+                    radius;
+
+                const y =
+                    centerY +
+                    Math.sin(angle) *
+                    radius;
+
+
+                const node =
+                    document.createElement(
+                        "div"
+                    );
+
+                node.className =
+                    "device-node";
+
+
+                node.style.left =
+                    `${x}px`;
+
+                node.style.top =
+                    `${y}px`;
+
+
+                const icon =
+                    document.createElement(
+                        "div"
+                    );
+
+                icon.className =
+                    "node-icon";
+
+                icon.innerHTML =
+                    '<i class="fas fa-laptop"></i>';
+
+
+                const label =
+                    document.createElement(
+                        "div"
+                    );
+
+                label.className =
+                    "node-label";
+
+
+                label.textContent =
+                    device.device ||
+                    device.ip ||
+                    "Client";
+
+
+                node.appendChild(
+                    icon
+                );
+
+                node.appendChild(
+                    label
+                );
+
+
+                radar.appendChild(
+                    node
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       SERVER NETWORK SCAN
+       
+       Endpoint:
+       GET /api/network-data
+       
+       Backend ringan dan tidak melakukan scan LAN.
+    ====================================================== */
+
+    async function scanServerNetwork() {
+
+        try {
+
+            const data =
+                await safeFetch(
+                    "/api/network-data",
+                    {
+                        method:
+                            "GET"
+                    },
+                    5000
+                );
+
+            if (
+                data &&
+                data.status === "success"
+            ) {
+
+                updateServerUI(
+                    data
+                );
+
+                return data;
+
+            }
+
+            throw new Error(
+                "Server mengembalikan status tidak valid."
+            );
+
+        } catch (error) {
+
+            console.warn(
+                "Server network API:",
+                error
+            );
+
+            setStatus(
+                "client-connection-status",
+                "warning",
+                "Client lokal aktif",
+                "fa-triangle-exclamation"
+            );
+
+            setText(
+                "network-status",
+                "Backend jaringan terbatas"
+            );
+
+            $("network-status").style.color =
+                "var(--net-yellow)";
+
+            return null;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       MERGE DATA KE FLASK
+       
+       Endpoint:
+       POST /api/network-client-merge
+       
+       Tidak wajib. Jika gagal, dashboard tetap berjalan.
+    ====================================================== */
+
+    async function sendClientDataToServer() {
+
+        try {
+
+            const payload = {
+
+                ...state.client,
+
+                sent_at:
+                    new Date().toISOString()
+
+            };
+
+
+            await safeFetch(
+                "/api/network-client-merge",
+                {
+                    method:
+                        "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            payload
+                        )
+
+                },
+                4000
+            );
+
+        } catch (error) {
+
+            /*
+             * Sengaja tidak menampilkan error besar
+             * karena endpoint merge bersifat tambahan.
+             */
+
+            console.warn(
+                "Client merge skipped:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       MAIN NETWORK SCAN
+    ====================================================== */
+
+    async function forceNetworkScan() {
+
+        if (
+            state.scanning
+        ) {
+
+            return;
+
+        }
+
+
+        state.scanning =
+            true;
+
+
+        const button =
+            $("scan-network-btn");
+
+
+        if (button) {
+
+            button.disabled =
+                true;
+
+            button.innerHTML = `
+
+                <i
+                    class="fas fa-circle-notch fa-spin"
+                ></i>
+
+                Memindai...
+
+            `;
+
+        }
+
+
+        setStatus(
+            "client-connection-status",
+            "warning",
+            "Sinkronisasi",
+            "fa-circle-notch fa-spin"
+        );
+
+
+        setText(
+            "network-status",
+            "Mendeteksi client..."
+        );
+
+
+        try {
+
+            /*
+             * Browser data.
+             */
+
+            state.client =
+                buildClientData();
+
+
+            /*
+             * Public IP.
+             */
+
+            const ip =
+                await detectPublicIP();
+
+
+            state.client.ipInfo =
+                await detectIPInfo(
+                    ip
+                );
+
+
+            /*
+             * Update UI secepat mungkin.
+             */
+
+            updateClientUI();
+
+
+            /*
+             * Server API.
+             */
+
+            const serverData =
+                await scanServerNetwork();
+
+
+            /*
+             * Optional merge.
+             * Dijalankan setelah data utama tampil.
+             */
+
+            sendClientDataToServer();
+
+
+            state.lastScan =
+                Date.now();
+
+
+            setText(
+                "last-scan-time",
+                `Pemindaian terakhir: ${formatTime(
+                    new Date()
+                )}`
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Network scan:",
+                error
+            );
+
+
+            setStatus(
+                "client-connection-status",
+                "error",
+                "Sebagian data gagal",
+                "fa-triangle-exclamation"
+            );
+
+
+            setText(
+                "network-status",
+                "Deteksi sebagian gagal"
+            );
+
+            $("network-status").style.color =
+                "var(--net-yellow)";
+
+        } finally {
+
+            state.scanning =
+                false;
+
+
+            if (button) {
+
+                button.disabled =
+                    false;
+
+                button.innerHTML = `
+
+                    <i
+                        class="fas fa-satellite-dish"
+                    ></i>
+
+                    Pindai Jaringan
+
+                `;
+
+            }
+
+        }
+
+    }
+
+
+    /* =====================================================
+       SPEEDTEST RINGAN
+       
+       Catatan:
+       Browser tidak dapat melakukan speedtest ISP
+       yang presisi tanpa server pengukuran khusus.
+       
+       Fungsi ini menggunakan Network Information API
+       sebagai estimasi downlink browser.
+    ====================================================== */
+
+    async function runSpeedtest() {
+
+        if (
+            state.speedtesting
+        ) {
+
+            return;
+
+        }
+
+
+        state.speedtesting =
+            true;
+
+
+        const button =
+            $("speedtest-btn");
+
+
+        if (button) {
+
+            button.disabled =
+                true;
+
+            button.innerHTML = `
+
+                <i
+                    class="fas fa-circle-notch fa-spin"
+                ></i>
+
+                Mengukur...
+
+            `;
+
+        }
+
+
+        setText(
+            "speedtest-message",
+            "Mengukur informasi koneksi browser..."
+        );
+
+
+        try {
+
+            const connection =
+                detectConnection();
+
+
+            /*
+             * RTT.
+             */
+
+            let latency =
+                connection.rtt;
+
+
+            /*
+             * Jika RTT browser tidak tersedia,
+             * gunakan ping sederhana ke backend.
+             */
+
+            if (
+                typeof latency !==
+                "number"
+            ) {
+
+                const start =
+                    performance.now();
+
+
+                try {
+
+                    await fetch(
+                        "/api/network-data",
+                        {
+                            method:
+                                "HEAD",
+                            cache:
+                                "no-store"
+                        }
+                    );
+
+                    latency =
+                        Math.round(
+                            performance.now() -
+                            start
+                        );
+
+                } catch (error) {
+
+                    latency =
+                        null;
+
+                }
+
+            }
+
+
+            /*
+             * Downlink.
+             */
+
+            const downlink =
+                typeof connection.downlink ===
+                "number"
+                    ? connection.downlink
+                    : null;
+
+
+            setText(
+                "speed-download",
+                downlink !== null
+                    ? downlink.toFixed(1)
+                    : "-"
+            );
+
+
+            setText(
+                "speed-upload",
+                "-"
+            );
+
+
+            setText(
+                "speed-latency",
+                latency !== null
+                    ? Math.round(latency)
+                    : "-"
+            );
+
+
+            setText(
+                "download-speed-summary",
+                downlink !== null
+                    ? `${downlink.toFixed(1)} Mbps`
+                    : "-"
+            );
+
+
+            setText(
+                "speedtest-summary",
+                downlink !== null
+                    ? "Estimasi browser"
+                    : "Data tidak tersedia"
+            );
+
+
+            setText(
+                "speedtest-message",
+                downlink !== null
+                    ? "Hasil merupakan estimasi Network Information API browser."
+                    : "Browser tidak menyediakan data downlink."
+            );
+
+
+            addTrafficPoint(
+                downlink
+            );
+
+
+        } catch (error) {
+
+            console.warn(
+                "Speedtest:",
+                error
+            );
+
+
+            setText(
+                "speedtest-message",
+                "Speedtest tidak dapat dijalankan."
+            );
+
+        } finally {
+
+            state.speedtesting =
+                false;
+
+
+            if (button) {
+
+                button.disabled =
+                    false;
+
+                button.innerHTML = `
+
+                    <i class="fas fa-play"></i>
+
+                    Mulai Speedtest
+
+                `;
+
+            }
+
+        }
+
+    }
+
+
+    /* =====================================================
+       CHART
+    ====================================================== */
+
+    function initializeTrafficChart() {
+
+        const canvas =
+            $("traffic-chart");
+
+        if (!canvas) {
+            return;
+        }
+
+
+        if (
+            typeof Chart ===
+            "undefined"
+        ) {
+
+            console.warn(
+                "Chart.js tidak tersedia."
+            );
+
+            return;
+
+        }
+
+
+        const ctx =
+            canvas.getContext(
+                "2d"
+            );
+
+
+        state.chart =
+            new Chart(
+                ctx,
+                {
+
+                    type:
+                        "line",
+
+                    data: {
+
+                        labels:
+                            [],
+
+                        datasets: [
+
+                            {
+
+                                label:
+                                    "Downlink (Mbps)",
+
+                                data:
+                                    [],
+
+                                borderColor:
+                                    "#06b6d4",
+
+                                backgroundColor:
+                                    "rgba(6,182,212,.08)",
+
+                                borderWidth:
+                                    2,
+
+                                fill:
+                                    true,
+
+                                tension:
+                                    .35,
+
+                                pointRadius:
+                                    2
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive:
+                            true,
+
+                        maintainAspectRatio:
+                            false,
+
+                        animation:
+                            false,
+
+                        plugins: {
+
+                            legend: {
+
+                                labels: {
+
+                                    color:
+                                        "#94a3b8",
+
+                                    font: {
+
+                                        size:
+                                            11
+
+                                    }
+
+                                }
+
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+
+                                ticks: {
+
+                                    color:
+                                        "#94a3b8",
+
+                                    maxTicksLimit:
+                                        8
+
+                                },
+
+                                grid: {
+
+                                    color:
+                                        "rgba(148,163,184,.08)"
+
+                                }
+
+                            },
+
+                            y: {
+
+                                beginAtZero:
+                                    true,
+
+                                ticks: {
+
+                                    color:
+                                        "#94a3b8"
+
+                                },
+
+                                grid: {
+
+                                    color:
+                                        "rgba(148,163,184,.08)"
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    function addTrafficPoint(
+        value
+    ) {
+
+        if (
+            !state.chart
+        ) {
+
+            return;
+
+        }
+
+
+        if (
+            typeof value !==
+            "number"
+        ) {
+
+            return;
+
+        }
+
+
+        const now =
+            new Date();
+
+
+        const label =
+            now.toLocaleTimeString(
+                "id-ID",
+                {
+                    hour:
+                        "2-digit",
+
+                    minute:
+                        "2-digit",
+
+                    second:
+                        "2-digit"
+                }
+            );
+
+
+        state.chart.data.labels.push(
+            label
+        );
+
+        state.chart.data.datasets[0].data.push(
+            value
+        );
+
+
+        /*
+         * Simpan maksimal 20 titik.
+         * Tidak ada polling otomatis.
+         */
+
+        while (
+            state.chart.data.labels.length >
+            20
+        ) {
+
+            state.chart.data.labels.shift();
+
+            state.chart.data.datasets[0].data.shift();
+
+        }
+
+
+        state.chart.update(
+            "none"
+        );
+
+    }
+
+
+    /* =====================================================
+       NAVIGATION
+    ====================================================== */
+
+    function initializeNavigation() {
+
+        document
+            .querySelectorAll(
+                "#netmon-wrapper .nav-item"
+            )
+            .forEach(
+                item => {
+
+                    item.addEventListener(
+                        "click",
+                        function (event) {
+
+                            event.preventDefault();
+
+
+                            const targetId =
+                                this.dataset.target;
+
+
+                            const target =
+                                $(targetId);
+
+
+                            if (!target) {
+                                return;
+                            }
+
+
+                            document
+                                .querySelectorAll(
+                                    "#netmon-wrapper .nav-item"
+                                )
+                                .forEach(
+                                    nav => {
+
+                                        nav.classList.remove(
+                                            "active"
+                                        );
+
+                                    }
+                                );
+
+
+                            this.classList.add(
+                                "active"
+                            );
+
+
+                            target.scrollIntoView(
+                                {
+                                    behavior:
+                                        "smooth",
+
+                                    block:
+                                        "start"
+                                }
+                            );
+
+                        }
+                    );
+
+                }
+            );
+
+    }
+
+
+    /* =====================================================
+       ACTIVE NAVIGATION ON SCROLL
+    ====================================================== */
+
+    function initializeScrollSpy() {
+
+        const sections =
+            [
+                "dashboard-top",
+                "client-section",
+                "wifi-section",
+                "speed-section",
+                "topology-section",
+                "devices-section"
+            ];
+
+
+        const navItems =
+            document.querySelectorAll(
+                "#netmon-wrapper .nav-item"
+            );
+
+
+        const observer =
+            new IntersectionObserver(
+                entries => {
+
+                    entries.forEach(
+                        entry => {
+
+                            if (
+                                !entry.isIntersecting
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            const id =
+                                entry.target.id;
+
+
+                            navItems.forEach(
+                                item => {
+
+                                    item.classList.toggle(
+                                        "active",
+                                        item.dataset.target === id
+                                    );
+
+                                }
+                            );
+
+                        }
+                    );
+
+                },
+                {
+                    root:
+                        $("netmon-wrapper")
+                            ?.querySelector(".main"),
+
+                    threshold:
+                        .35
+                }
+            );
+
+
+        sections.forEach(
+            id => {
+
+                const element =
+                    $(id);
+
+                if (element) {
+
+                    observer.observe(
+                        element
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       DEVICE DETAIL
+    ====================================================== */
+
+    window.showDeviceInfo =
+        function (
+            ip,
+            device
+        ) {
+
+            const message =
+                `Device: ${device}\nIP: ${ip}\n\n` +
+                `Data MAC/vendor tidak tersedia ` +
+                `karena browser tidak memiliki akses ` +
+                `langsung ke tabel ARP/router.`;
+
+            alert(
+                message
+            );
+
+        };
+
+
+    /* =====================================================
+       TIME FORMAT
+    ====================================================== */
+
+    function formatTime(
+        date
+    ) {
+
+        return date.toLocaleString(
+            "id-ID",
+            {
+                dateStyle:
+                    "medium",
+
+                timeStyle:
+                    "medium"
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       INITIALIZATION
+    ====================================================== */
+
+    async function initialize() {
+
+        initializeNavigation();
+
+        initializeScrollSpy();
+
+        initializeTrafficChart();
+
+
+        /*
+         * Tampilkan data browser secepat mungkin.
+         */
+
+        state.client =
+            buildClientData();
+
+        updateClientUI();
+
+
+        /*
+         * Jalankan satu scan awal.
+         *
+         * Tidak menggunakan setInterval.
+         * Ini penting untuk mengurangi load Vercel.
+         */
+
+        await forceNetworkScan();
+
+    }
+
+
+    /* =====================================================
+       EVENT LISTENERS
+    ====================================================== */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initialize
+    );
+
+
+    const scanButton =
+        $("scan-network-btn");
+
+    if (scanButton) {
+
+        scanButton.addEventListener(
+            "click",
+            forceNetworkScan
+        );
+
+    }
+
+
+    const speedButton =
+        $("speedtest-btn");
+
+    if (speedButton) {
+
+        speedButton.addEventListener(
+            "click",
+            runSpeedtest
+        );
+
+    }
+
+
+    /*
+     * Update Network Information API apabila browser
+     * memberitahu adanya perubahan koneksi.
+     *
+     * Tidak melakukan polling.
+     */
+
+    const connection =
+        navigator.connection ||
+        navigator.mozConnection ||
+        navigator.webkitConnection;
+
+
+    if (
+        connection &&
+        typeof connection.addEventListener ===
+        "function"
+    ) {
+
+        connection.addEventListener(
+            "change",
+            function () {
+
+                state.client.connection =
+                    detectConnection();
+
+                updateClientUI();
+
+            }
+        );
+
+    }
+
+})();
 </script>
 
 {% endblock %}
