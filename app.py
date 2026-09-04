@@ -953,32 +953,6 @@ Admin KTVDI
         
     return render_template('email.html', sent_list=sent_list, total_users=total_users)
 
-# ==========================================
-# 11. FITUR DASHBOARD JARINGAN KTVDI
-# ==========================================
-@app.route('/network')
-def network_page():
-    # Melindungi halaman agar hanya pengguna yang login yang bisa melihat
-    # (Hapus baris if di bawah jika ingin halaman terbuka untuk umum)
-    if 'user' not in session:
-        return redirect(url_for('login'))
-        
-    return render_template('network.html')
-
-@app.route('/api/network-data')
-def network_data_api():
-    # Endpoint ini nantinya bisa Anda hubungkan dengan logika SNMP / API Router lokal
-    # Saat ini mengeluarkan struktur data standar agar halaman HTML tetap berfungsi
-    return jsonify({
-        "status": "success",
-        "ssid": "KTVDI NETWORK",
-        "channel": 36,
-        "clients_count": 0,
-        "avg_signal": 0,
-        "download_mbps": 0,
-        "upload_mbps": 0,
-        "devices": []
-    })
 
 if __name__ == '__main__':
     app.run(debug=True)
