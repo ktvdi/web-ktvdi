@@ -49,50 +49,6 @@ def maintenance_interceptor():
     return None
 
 # ==========================================
-# 2.5. SISTEM TRACKER PENGUNJUNG & LOKASI
-# ==========================================
-TRACKER_DATA = {
-    "date": datetime.now(pytz.timezone('Asia/Jakarta')).date(),
-    "daily_ips": set(),
-    "online_ips": {},
-    "ip_locations": {}
-}
-
-def fetch_and_store_location_sync(ip):
-    """Pengambilan lokasi disinkronkan dengan batas waktu ketat agar Vercel tidak Crash"""
-    try:
-        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=1.5)
-        if r.status_code == 200:
-            res = r.json()
-            if res.get("status") == "success":
-                TRACKER_DATA["ip_locations"][ip] = f"{res.get('city', 'Unknown City')}, {res.get('country', 'Unknown Country')}"
-            else:
-                TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
-    except Exception:
-        TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
-
-@app.before_request
-def visitor_tracker():
-    if request.endpoint and 'static' not in request.endpoint:
-        tz = pytz.timezone('Asia/Jakarta')
-        today = datetime.now(tz).date()
-        
-        if TRACKER_DATA["date"] != today:
-            TRACKER_DATA["date"] = today
-            TRACKER_DATA["daily_ips"].clear()
-            TRACKER_DATA["ip_locations"].clear()
-            
-        user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        if user_ip:
-            user_ip = user_ip.split(',')[0].strip()
-            TRACKER_DATA["daily_ips"].add(user_ip)
-            TRACKER_DATA["online_ips"][user_ip] = time.time()
-            
-            if user_ip not in TRACKER_DATA["ip_locations"] and not user_ip.startswith(('127.', '192.168.', '10.')):
-                TRACKER_DATA["ip_locations"][user_ip] = "Mendeteksi Lokasi..."
-                fetch_and_store_location_sync(user_ip)
-
-# ==========================================
 # 3. KONEKSI DATABASE (FIREBASE)
 # ==========================================
 try:
@@ -226,31 +182,6 @@ Komunitas TV Digital Indonesia (KTVDI)
 ========================================================"""
     return subject, body
 
-def get_hijri_date_string():
-    HIJRI_OFFSET = -1 
-    try:
-        tz_jakarta = pytz.timezone('Asia/Jakarta')
-        now_wib = datetime.now(tz_jakarta) + timedelta(days=HIJRI_OFFSET)
-        
-        url = f"https://api.aladhan.com/v1/gToH?date={now_wib.strftime('%d-%m-%Y')}"
-        r = requests.get(url, timeout=3)
-        if r.status_code == 200:
-            data = r.json()['data']['hijri']
-            indo_months = {
-                "Muharram": "Muharam", "Safar": "Safar", "Rabi' al-awwal": "Rabiul Awal", 
-                "Rabi' al-thani": "Rabiul Akhir", "Jumada al-awwal": "Jumadil Awal", 
-                "Jumada al-thani": "Jumadil Akhir", "Rajab": "Rajab", "Sha'ban": "Syakban", 
-                "Ramadan": "Ramadan", "Shawwal": "Syawal", "Dhu al-Qi'dah": "Zulkaidah", 
-                "Dhu al-Hijjah": "Zulhijah"
-            }
-            d = data['day'].lstrip('0')
-            m = indo_months.get(data['month']['en'], data['month']['en'])
-            y = data['year']
-            return f"{d} {m} {y} H"
-    except Exception as e:
-        pass
-    return f"Tanggal Hijriah Tidak Tersedia"
-
 # --- CACHE UNTUK BERITA ---
 NEWS_CACHE = []
 NEWS_LAST_FETCH = 0
@@ -368,42 +299,8 @@ def time_since_published(published_time):
         return "Terbaru"
     except: return "Waktu tidak dapat dipastikan"
 
-def get_quote_religi():
-    return {
-        "muslim": ["Maka dirikanlah shalat... (QS. An-Nisa: 103)", "Hindari perbuatan curang dalam bentuk apa pun.", "Manusia terbaik adalah yang memberikan manfaat bagi sesamanya."],
-        "universal": ["Integritas adalah landasan dari setiap tindakan yang benar.", "Kedamaian global bermula dari kedamaian personal.", "Kejujuran adalah nilai tukar universal yang diakui secara global."]
-    }
-
 def get_smart_fallback_response(text):
     return "Mohon maaf, server kecerdasan buatan kami saat ini sedang memproses volume antrean yang tinggi. Kami memohon kesediaan Anda untuk mencoba kembali dalam beberapa saat."
-
-KEMENAG_KOTA_CACHE = []
-KEMENAG_LAST_FETCH = 0
-
-def fetch_kemenag_kota():
-    global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
-    if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400):
-        return KEMENAG_KOTA_CACHE
-
-    try:
-        r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=8)
-        if r.status_code == 200:
-            data = r.json()
-            if data.get('status') and 'data' in data:
-                all_cities = [{"id": item['id'], "nama": item['lokasi'].title()} for item in data['data']]
-                KEMENAG_KOTA_CACHE = sorted(all_cities, key=lambda x: x['nama'])
-                KEMENAG_LAST_FETCH = time.time()
-                return KEMENAG_KOTA_CACHE
-    except Exception as e:
-        pass
-
-    return [
-        {"id": "1301", "nama": "Kota Jakarta"},
-        {"id": "1604", "nama": "Kota Semarang"},
-        {"id": "1638", "nama": "Kota Surabaya"},
-        {"id": "0418", "nama": "Kota Medan"},
-        {"id": "1205", "nama": "Kota Bandung"}
-    ]
 
 # ==========================================
 # 7. LOGIKA EWS & CUACA
