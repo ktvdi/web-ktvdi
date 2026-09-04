@@ -12,6 +12,11 @@ import google.generativeai as genai
 import concurrent.futures
 import base64  
 import json
+import socket
+import subprocess
+import platform
+import ipaddress
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from firebase_admin import credentials, db
 from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
 from flask_cors import CORS
@@ -30,7 +35,7 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-app.secret_key = "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "change-this-secret-in-env")
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 
@@ -47,6 +52,50 @@ def maintenance_interceptor():
     if now_wib < MAINTENANCE_END_DATE:
         return render_template('maintenance.html'), 503
     return None
+
+# ==========================================
+# 2.5. SISTEM TRACKER PENGUNJUNG & LOKASI
+# ==========================================
+TRACKER_DATA = {
+    "date": datetime.now(pytz.timezone('Asia/Jakarta')).date(),
+    "daily_ips": set(),
+    "online_ips": {},
+    "ip_locations": {}
+}
+
+def fetch_and_store_location_sync(ip):
+    """Pengambilan lokasi disinkronkan dengan batas waktu ketat agar Vercel tidak Crash"""
+    try:
+        r = requests.get(f"http://ip-api.com/json/{ip}?fields=city,country,status", timeout=1.5)
+        if r.status_code == 200:
+            res = r.json()
+            if res.get("status") == "success":
+                TRACKER_DATA["ip_locations"][ip] = f"{res.get('city', 'Unknown City')}, {res.get('country', 'Unknown Country')}"
+            else:
+                TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
+    except Exception:
+        TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
+
+@app.before_request
+def visitor_tracker():
+    if request.endpoint and 'static' not in request.endpoint:
+        tz = pytz.timezone('Asia/Jakarta')
+        today = datetime.now(tz).date()
+        
+        if TRACKER_DATA["date"] != today:
+            TRACKER_DATA["date"] = today
+            TRACKER_DATA["daily_ips"].clear()
+            TRACKER_DATA["ip_locations"].clear()
+            
+        user_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if user_ip:
+            user_ip = user_ip.split(',')[0].strip()
+            TRACKER_DATA["daily_ips"].add(user_ip)
+            TRACKER_DATA["online_ips"][user_ip] = time.time()
+            
+            if user_ip not in TRACKER_DATA["ip_locations"] and not user_ip.startswith(('127.', '192.168.', '10.')):
+                TRACKER_DATA["ip_locations"][user_ip] = "Mendeteksi Lokasi..."
+                fetch_and_store_location_sync(user_ip)
 
 # ==========================================
 # 3. KONEKSI DATABASE (FIREBASE)
@@ -100,7 +149,7 @@ mail = Mail(app)
 # ==========================================
 # 5. KONFIGURASI AI (GEMINI)
 # ==========================================
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCqEFdnO3N0JBUBuaceTQLejepyDlK_eGU") 
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "") 
 
 def get_gemini_model():
     try:
@@ -182,6 +231,31 @@ Komunitas TV Digital Indonesia (KTVDI)
 ========================================================"""
     return subject, body
 
+def get_hijri_date_string():
+    HIJRI_OFFSET = -1 
+    try:
+        tz_jakarta = pytz.timezone('Asia/Jakarta')
+        now_wib = datetime.now(tz_jakarta) + timedelta(days=HIJRI_OFFSET)
+        
+        url = f"https://api.aladhan.com/v1/gToH?date={now_wib.strftime('%d-%m-%Y')}"
+        r = requests.get(url, timeout=3)
+        if r.status_code == 200:
+            data = r.json()['data']['hijri']
+            indo_months = {
+                "Muharram": "Muharam", "Safar": "Safar", "Rabi' al-awwal": "Rabiul Awal", 
+                "Rabi' al-thani": "Rabiul Akhir", "Jumada al-awwal": "Jumadil Awal", 
+                "Jumada al-thani": "Jumadil Akhir", "Rajab": "Rajab", "Sha'ban": "Syakban", 
+                "Ramadan": "Ramadan", "Shawwal": "Syawal", "Dhu al-Qi'dah": "Zulkaidah", 
+                "Dhu al-Hijjah": "Zulhijah"
+            }
+            d = data['day'].lstrip('0')
+            m = indo_months.get(data['month']['en'], data['month']['en'])
+            y = data['year']
+            return f"{d} {m} {y} H"
+    except Exception as e:
+        pass
+    return f"Tanggal Hijriah Tidak Tersedia"
+
 # --- CACHE UNTUK BERITA ---
 NEWS_CACHE = []
 NEWS_LAST_FETCH = 0
@@ -244,6 +318,7 @@ def get_news_entries():
                 url, feed = future.result()
                 if feed and feed.entries:
                     for entry in feed.entries[:20]: 
+                        # Penamaan sumber baru
                         if 'kompas.tv' in url: source_name = 'Kompas TV'
                         elif 'setneg' in url: source_name = 'Sekretariat Negara'
                         elif 'liputan6' in url: source_name = 'Liputan 6'
@@ -299,8 +374,42 @@ def time_since_published(published_time):
         return "Terbaru"
     except: return "Waktu tidak dapat dipastikan"
 
+def get_quote_religi():
+    return {
+        "muslim": ["Maka dirikanlah shalat... (QS. An-Nisa: 103)", "Hindari perbuatan curang dalam bentuk apa pun.", "Manusia terbaik adalah yang memberikan manfaat bagi sesamanya."],
+        "universal": ["Integritas adalah landasan dari setiap tindakan yang benar.", "Kedamaian global bermula dari kedamaian personal.", "Kejujuran adalah nilai tukar universal yang diakui secara global."]
+    }
+
 def get_smart_fallback_response(text):
     return "Mohon maaf, server kecerdasan buatan kami saat ini sedang memproses volume antrean yang tinggi. Kami memohon kesediaan Anda untuk mencoba kembali dalam beberapa saat."
+
+KEMENAG_KOTA_CACHE = []
+KEMENAG_LAST_FETCH = 0
+
+def fetch_kemenag_kota():
+    global KEMENAG_KOTA_CACHE, KEMENAG_LAST_FETCH
+    if len(KEMENAG_KOTA_CACHE) > 50 and (time.time() - KEMENAG_LAST_FETCH < 86400):
+        return KEMENAG_KOTA_CACHE
+
+    try:
+        r = requests.get("https://api.myquran.com/v2/sholat/kota/semua", timeout=8)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get('status') and 'data' in data:
+                all_cities = [{"id": item['id'], "nama": item['lokasi'].title()} for item in data['data']]
+                KEMENAG_KOTA_CACHE = sorted(all_cities, key=lambda x: x['nama'])
+                KEMENAG_LAST_FETCH = time.time()
+                return KEMENAG_KOTA_CACHE
+    except Exception as e:
+        pass
+
+    return [
+        {"id": "1301", "nama": "Kota Jakarta"},
+        {"id": "1604", "nama": "Kota Semarang"},
+        {"id": "1638", "nama": "Kota Surabaya"},
+        {"id": "0418", "nama": "Kota Medan"},
+        {"id": "1205", "nama": "Kota Bandung"}
+    ]
 
 # ==========================================
 # 7. LOGIKA EWS & CUACA
@@ -558,9 +667,7 @@ def reset_password():
     return render_template("reset-password.html")
 
 @app.route('/logout')
-def logout(): 
-    session.clear() 
-    return redirect(url_for('login'))
+def logout(): session.clear(); return redirect(url_for('login'))
 
 @app.route('/berita')
 def berita_page():
@@ -598,55 +705,1522 @@ def add_data():
     if 'user' not in session: return redirect(url_for('login'))
     prov_data = ref.child("provinsi").get() or {}
     provinsi_list = list(prov_data.values()) if prov_data else ["DKI Jakarta", "Jawa Barat", "Jawa Tengah", "Jawa Timur"]
-    
     if request.method == "POST":
-        provinsi = request.form.get("provinsi")
-        wilayah = request.form.get("wilayah")
-        mux = request.form.get("mux")
-        nama_siaran = request.form.get("nama_siaran")
-        
-        if not all([provinsi, wilayah, mux, nama_siaran]):
-            flash("Informasi tidak lengkap. Seluruh kolom wajib diisi.", "error")
-            return redirect(url_for("add_data"))
-            
-        try:
-            channel_data = {
-                "nama": nama_siaran,
-                "ditambahkan_oleh": session.get('nama'),
-                "waktu_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        p, w, m, s = request.form.get("provinsi"), request.form.get("wilayah"), request.form.get("mux"), request.form.get("siaran")
+        if p and w and m and s:
+            data_new = {
+                "siaran": [ch.strip() for ch in s.split(',')],
+                "last_updated_by_name": session.get('nama'),
+                "last_updated_by_username": session.get('user'),
+                "last_updated_date": datetime.now().strftime("%d-%m-%Y"),
+                "last_updated_time": datetime.now().strftime("%H:%M:%S WIB")
             }
-            ref.child(f"siaran/{provinsi}/{wilayah}/{mux}/siaran").push(channel_data)
-            flash("Data siaran berhasil ditambahkan ke dalam sistem KTVDI.", "success")
-            return redirect(url_for("dashboard"))
-        except Exception as e:
-            flash(f"Terjadi kesalahan saat menyimpan data: {str(e)}", "error")
-            return redirect(url_for("add_data"))
-            
-    return render_template("add-data.html", provinsi_list=provinsi_list)
+            ref.child(f"siaran/{p}/{w}/{m}").set(data_new)
+            ref.child(f"provinsi/{p}").set(p)
+            flash("Data berhasil ditambahkan ke dalam sistem.", "success"); return redirect(url_for('dashboard'))
+    return render_template("add_data_form.html", provinsi_list=sorted(provinsi_list))
 
-@app.route('/ews')
-def ews_page():
-    dams_data = fetch_ews_data()
-    cuaca_data = get_cuaca_10_kota()
-    return render_template('ews.html', dams=dams_data, cuaca=cuaca_data)
+@app.route("/edit_data/<provinsi>/<wilayah>/<mux>", methods=["GET", "POST"])
+def edit_data(provinsi, wilayah, mux):
+    if 'user' not in session: return redirect(url_for('login'))
+    curr_data = ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").get()
+    if request.method == "POST":
+        s = request.form.get("siaran")
+        ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").update({
+            "siaran": [ch.strip() for ch in s.split(',')],
+            "last_updated_by_name": session.get('nama'),
+            "last_updated_date": datetime.now().strftime("%d-%m-%Y")
+        })
+        flash("Pembaruan data berhasil disimpan.", "success"); return redirect(url_for('dashboard'))
+    siaran_str = ", ".join(curr_data.get('siaran', [])) if curr_data else ""
+    return render_template("add_data_form.html", edit_mode=True, curr_siaran=siaran_str, provinsi_list=[provinsi], curr_provinsi=provinsi, curr_wilayah=wilayah, curr_mux=mux)
+
+@app.route("/delete_data/<provinsi>/<wilayah>/<mux>", methods=["POST"])
+def delete_data(provinsi, wilayah, mux):
+    if 'user' in session: 
+        try: ref.child(f"siaran/{provinsi}/{wilayah}/{mux}").delete(); return jsonify({"status": "success"})
+        except: return jsonify({"status": "error"})
+    return jsonify({"status": "unauthorized"})
+
+@app.route("/get_wilayah")
+def get_wilayah(): return jsonify({"wilayah": list((ref.child(f"siaran/{request.args.get('provinsi')}").get() or {}).keys())})
+@app.route("/get_mux")
+def get_mux(): return jsonify({"mux": list((ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}").get() or {}).keys())})
+@app.route("/get_siaran")
+def get_siaran(): return jsonify(ref.child(f"siaran/{request.args.get('provinsi')}/{request.args.get('wilayah')}/{request.args.get('mux')}").get() or {})
+
+@app.route('/ews-jateng')
+def ews_jateng_page():
+    dams = fetch_ews_data()
+    cuaca_list = get_cuaca_10_kota()
+    return render_template('ews-jateng.html', dams=dams, cuaca_list=cuaca_list)
+
+@app.route('/lokasi')
+def lokasi_page():
+    return render_template('lokasi.html')
 
 @app.route('/api/chat', methods=['POST'])
-def api_chat():
-    user_message = request.json.get('message', '')
-    if not user_message:
-        return jsonify({'response': "Pesan tidak dapat diproses karena kosong."})
+def chatbot_api():
+    data = request.get_json()
+    user_msg = data.get('prompt', '')
+    
+    if "bendungan" in user_msg.lower() or "banjir" in user_msg.lower():
+        dams = fetch_ews_data()
+        bahaya = [f"{d['name']} ({d['status']})" for d in dams if 'awas' in d['status'].lower() or 'siaga' in d['status'].lower()]
         
-    model = get_gemini_model()
-    if not model:
-        return jsonify({'response': get_smart_fallback_response(user_message)})
-        
-    try:
-        full_prompt = f"{MODI_PROMPT}\n\nPertanyaan Pengguna: {user_message}\nJawaban MODI:"
-        response = model.generate_content(full_prompt)
-        return jsonify({'response': response.text})
-    except Exception as e:
-        return jsonify({'response': get_smart_fallback_response(user_message)})
+        if bahaya: context = f"INSTRUKSI PRIORITAS: Terdeteksi infrastruktur bendungan dalam status kewaspadaan tingkat tinggi: {', '.join(bahaya)}. "
+        else: context = f"INFORMASI: Hasil pemantauan menunjukkan {len(dams)} fasilitas bendungan berada dalam parameter operasional normal. "
+            
+        full_prompt = f"{MODI_PROMPT}\n{context}\nPengguna: {user_msg}\nModi:"
+    else: full_prompt = f"{MODI_PROMPT}\nPengguna: {user_msg}\nModi:"
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    model = get_gemini_model()
+    if not model: 
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
+    
+    try: 
+        response = model.generate_content(full_prompt)
+        try:
+            teks_balasan = response.text
+        except ValueError:
+            teks_balasan = "Sistem keamanan otomatis AI memblokir transmisi ini karena terindikasi mengandung konten yang tidak sesuai dengan protokol keamanan standar. Proses dihentikan."
+            
+        return jsonify({"response": teks_balasan})
+    except Exception as e: 
+        print(f"INFO GALAT: Anomali pada API Gemini: {e}")
+        return jsonify({"response": get_smart_fallback_response(user_msg)})
+
+@app.route("/jadwal-sholat")
+def jadwal_sholat_page():
+    daftar_kota = fetch_kemenag_kota()
+    hijri_today = get_hijri_date_string()
+    return render_template("jadwal-sholat.html", daftar_kota=daftar_kota, quotes=get_quote_religi(), hijri_date=hijri_today)
+
+@app.route("/api/jadwal-imsakiyah")
+def get_jadwal_kemenag():
+    id_kota = request.args.get("id_kota")
+    bulan = request.args.get("bulan", datetime.now().month)
+    tahun = request.args.get("tahun", datetime.now().year)
+
+    if not id_kota:
+        return jsonify({"status": False, "message": "Atribut id_kota bersifat esensial dan wajib dilampirkan."})
+
+    try:
+        url = f"https://api.myquran.com/v2/sholat/jadwal/{id_kota}/{tahun}/{bulan}"
+        r = requests.get(url, timeout=10)
+        
+        if r.status_code == 200:
+            return jsonify(r.json())
+    except Exception as e:
+        return jsonify({"status": False, "message": str(e)})
+
+    return jsonify({"status": False, "message": "Terjadi kegagalan komunikasi dengan server penjadwalan pusat."})
+
+@app.route("/api/news-ticker")
+def news_ticker():
+    return jsonify([n['title'] for n in get_news_entries()])
+
+@app.route('/api/visitor-stats')
+def visitor_stats():
+    current_time = time.time()
+    active_ips = {ip: ts for ip, ts in TRACKER_DATA["online_ips"].items() if current_time - ts <= 300}
+    TRACKER_DATA["online_ips"] = active_ips
+    
+    active_locations = [TRACKER_DATA["ip_locations"].get(ip, "Tidak Terdeteksi") for ip in active_ips.keys()]
+    
+    return jsonify({
+        "daily": len(TRACKER_DATA["daily_ips"]),
+        "online": max(1, len(active_ips)),
+        "active_locations": list(set(active_locations))
+    })
+
+# ==========================================
+# 9. API DETEKSI PELANGGARAN (SIMULASI DUMMY)
+# ==========================================
+@app.route('/api/detect_violation', methods=['POST'])
+def api_detect_violation():
+    try:
+        data = request.get_json()
+        frame_base64 = data.get('frame', '')
+        
+        chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        plat = f"H {random.randint(1000, 9999)} {random.choice(chars)}{random.choice(chars)}"
+        pelanggaran = random.choice([
+            "Pelanggaran Marka Jalan", 
+            "Ketidakpatuhan Penggunaan Sabuk Pengaman",
+            "Pengendara Tidak Menggunakan Helm Standar"
+        ])
+
+        return jsonify({
+            "status": "success",
+            "plate": plat,
+            "violation": pelanggaran
+        })
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Terjadi kesalahan pada modul pemrosesan citra: {str(e)}"}), 500
+
+@app.route('/about')
+def about(): return render_template('about.html')
+@app.route('/cctv')
+def cctv_page(): return render_template("cctv.html")
+@app.route('/sitemap.xml')
+def sitemap(): return send_from_directory('static', 'sitemap.xml')
+
+# ==========================================
+# 10. FITUR PUSAT PESAN BLAST EWS KTVDI
+# ==========================================
+@app.route('/email', methods=['GET', 'POST'])
+def email_blast_page():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+        
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        body_text = request.form.get('message')
+        kategori = request.form.get('kategori', 'Informasi Umum')
+        prioritas = request.form.get('prioritas', 'Normal')
+        
+        if not subject or not body_text:
+            flash("Halo Admin, mohon pastikan subjek dan isi pesan sudah terisi ya.", "error")
+            return redirect(url_for('email_blast_page'))
+            
+        if not ref:
+            flash("Gagal memuat database anggota. Pastikan koneksi ke Firebase aman.", "error")
+            return redirect(url_for('email_blast_page'))
+            
+        users = ref.child('users').get() or {}
+        sent_details = [] 
+        tz_jakarta = pytz.timezone('Asia/Jakarta')
+        
+        with app.app_context():
+            for uid, user_data in users.items():
+                if not isinstance(user_data, dict): continue
+                
+                email_tujuan = user_data.get('email')
+                nama_user = user_data.get('nama', 'Anggota KTVDI')
+                
+                if not email_tujuan: continue
+                
+                # Format pesan Blast KTVDI yang lebih santai tapi profesional
+                formatted_body = f"""
+PESAN BLAST KTVDI (KOMUNITAS TV DIGITAL INDONESIA)
+Kategori  : {kategori}
+Prioritas : {prioritas}
+========================================================
+
+Halo Bapak/Ibu {nama_user},
+
+{body_text}
+
+Terima kasih atas perhatiannya. Mari tetap dukung pertelevisian di Indonesia bersama KTVDI.
+
+Salam hangat,
+Admin KTVDI
+========================================================"""
+                
+                waktu_kirim = datetime.now(tz_jakarta).strftime("%d %b %Y - %H:%M:%S WIB")
+                
+                try:
+                    msg = Message(subject, recipients=[email_tujuan])
+                    msg.body = formatted_body
+                    mail.send(msg)
+                    sent_details.append({
+                        "nama": nama_user,
+                        "email": email_tujuan,
+                        "waktu": waktu_kirim,
+                        "status": "Sukses"
+                    })
+                except Exception as e:
+                    print(f"Gagal mengirim ke {email_tujuan}: {e}")
+                    sent_details.append({
+                        "nama": nama_user,
+                        "email": email_tujuan,
+                        "waktu": waktu_kirim,
+                        "status": "Gagal"
+                    })
+        
+        if sent_details:
+            session['last_sent_details'] = sent_details
+            berhasil = sum(1 for x in sent_details if x['status'] == "Sukses")
+            flash(f"Mantap! Pesan blast berhasil terkirim ke {berhasil} dari {len(sent_details)} anggota.", "success")
+        else:
+            flash("Ups, proses dibatalkan atau tidak ada anggota di database.", "error")
+            
+        return redirect(url_for('email_blast_page'))
+        
+    sent_list = session.pop('last_sent_details', None)
+    
+    total_users = 0
+    if ref:
+        try: total_users = len(ref.child('users').get() or {})
+        except: pass
+        
+    return render_template('email.html', sent_list=sent_list, total_users=total_users)
+
+# ==========================================
+# 11. FITUR DASHBOARD JARINGAN KTVDI
+#     LOCAL DEVICE NETWORK DISCOVERY
+# ==========================================
+#
+# Modul ini membaca jaringan dari PERANGKAT YANG MENJALANKAN FLASK.
+#
+# Yang dideteksi:
+# - IP lokal perangkat
+# - Default gateway/router
+# - Subnet/prefix jaringan
+# - MAC gateway jika tersedia dari ARP
+# - Perangkat yang sudah tercatat pada ARP/neighbour table
+# - Hostname lokal jika dapat di-resolve
+# - IP publik
+# - Status koneksi gateway
+# - Latency gateway
+#
+# TIDAK:
+# - Membutuhkan IP router statis
+# - Membutuhkan TR-069
+# - Membutuhkan login router
+# - Mengakses ACS operator
+# - Melakukan scan 254 IP setiap request
+#
+# CATATAN:
+# Jika Flask dijalankan di laptop Windows yang tersambung
+# ke Wi-Fi rumah, maka data yang tampil adalah jaringan Wi-Fi
+# laptop tersebut.
+#
+# Jika Flask dijalankan di Vercel/cloud, data yang terlihat
+# adalah jaringan server cloud, BUKAN Wi-Fi pengguna.
+# ==========================================
+
+NETWORK_CACHE = {
+    "data": None,
+    "timestamp": 0,
+    "lock": __import__('threading').Lock()
+}
+
+# Cache 5 detik agar dashboard tidak menjalankan command OS
+# terus-menerus.
+NETWORK_CACHE_TTL = int(os.environ.get("NETWORK_CACHE_TTL", "5"))
+
+
+def _run_command(command, timeout=3):
+    """
+    Menjalankan command OS secara aman.
+
+    Return:
+        stdout string
+        atau string kosong jika gagal.
+    """
+    try:
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            timeout=timeout,
+            check=False
+        )
+
+        return result.stdout.strip()
+
+    except (
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+        PermissionError,
+        OSError
+    ):
+        return ""
+
+
+# ==========================================
+# DETEKSI IP LOKAL
+# ==========================================
+
+def get_local_ip():
+    """
+    Mendapatkan IP LAN dari interface yang sedang digunakan.
+
+    UDP socket hanya digunakan untuk menentukan interface/IP.
+    Tidak mengirim data aplikasi ke 8.8.8.8.
+    """
+
+    sock = None
+
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(1)
+
+        # Tidak melakukan koneksi TCP.
+        # Sistem hanya menentukan route/interface yang digunakan.
+        sock.connect(("8.8.8.8", 80))
+
+        local_ip = sock.getsockname()[0]
+
+        if local_ip and local_ip != "0.0.0.0":
+            return local_ip
+
+    except (OSError, socket.error):
+        pass
+
+    finally:
+        if sock:
+            try:
+                sock.close()
+            except:
+                pass
+
+    # Fallback
+    try:
+        hostname = socket.gethostname()
+        addresses = socket.gethostbyname_ex(hostname)[2]
+
+        for ip in addresses:
+            try:
+                parsed = ipaddress.ip_address(ip)
+
+                if parsed.version == 4 and not parsed.is_loopback:
+                    return ip
+
+            except ValueError:
+                continue
+
+    except Exception:
+        pass
+
+    return None
+
+
+# ==========================================
+# DETEKSI DEFAULT GATEWAY
+# ==========================================
+
+def detect_default_gateway():
+    """
+    Mendeteksi default gateway dari routing table.
+
+    Tidak menggunakan IP router hard-code.
+    """
+
+    system = platform.system().lower()
+
+    # --------------------------------------
+    # WINDOWS
+    # --------------------------------------
+    if system == "windows":
+
+        output = _run_command(
+            ["route", "print", "-4", "0.0.0.0"],
+            timeout=3
+        )
+
+        for line in output.splitlines():
+
+            line = line.strip()
+
+            if not line:
+                continue
+
+            parts = line.split()
+
+            # Contoh:
+            #
+            # 0.0.0.0          0.0.0.0     192.168.1.1    192.168.1.10
+            #
+            if len(parts) >= 3:
+
+                if parts[0] == "0.0.0.0":
+
+                    gateway = parts[2]
+
+                    try:
+                        ipaddress.ip_address(gateway)
+
+                        if gateway != "0.0.0.0":
+                            return gateway
+
+                    except ValueError:
+                        continue
+
+        # Fallback menggunakan PowerShell
+        ps_output = _run_command(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "(Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' | Sort-Object RouteMetric | Select-Object -First 1 -ExpandProperty NextHop)"
+            ],
+            timeout=4
+        )
+
+        try:
+            ipaddress.ip_address(ps_output)
+
+            if ps_output != "0.0.0.0":
+                return ps_output
+
+        except ValueError:
+            pass
+
+    # --------------------------------------
+    # LINUX
+    # --------------------------------------
+    elif system == "linux":
+
+        output = _run_command(
+            ["ip", "-4", "route", "show", "default"],
+            timeout=3
+        )
+
+        # Contoh:
+        # default via 192.168.1.1 dev eth0
+        match = re.search(
+            r"default\s+via\s+(\d+\.\d+\.\d+\.\d+)",
+            output
+        )
+
+        if match:
+            return match.group(1)
+
+        # Fallback
+        output = _run_command(
+            ["route", "-n"],
+            timeout=3
+        )
+
+        for line in output.splitlines():
+
+            parts = line.split()
+
+            if len(parts) >= 2 and parts[0] == "0.0.0.0":
+
+                try:
+                    gateway = parts[1]
+                    ipaddress.ip_address(gateway)
+
+                    if gateway != "0.0.0.0":
+                        return gateway
+
+                except ValueError:
+                    continue
+
+    # --------------------------------------
+    # MACOS
+    # --------------------------------------
+    elif system == "darwin":
+
+        output = _run_command(
+            ["route", "-n", "get", "default"],
+            timeout=3
+        )
+
+        match = re.search(
+            r"gateway:\s+(\d+\.\d+\.\d+\.\d+)",
+            output
+        )
+
+        if match:
+            return match.group(1)
+
+    return None
+
+
+# ==========================================
+# DETEKSI SUBNET
+# ==========================================
+
+def get_interface_network(local_ip, gateway):
+    """
+    Menentukan network/prefix berdasarkan routing table.
+
+    Tidak langsung mengasumsikan /24 jika OS memberikan
+    informasi subnet yang lebih akurat.
+    """
+
+    if not local_ip:
+        return None
+
+    system = platform.system().lower()
+
+    # --------------------------------------
+    # WINDOWS
+    # --------------------------------------
+    if system == "windows":
+
+        output = _run_command(
+            ["ipconfig"],
+            timeout=4
+        )
+
+        current_adapter = False
+        subnet_mask = None
+
+        for line in output.splitlines():
+
+            stripped = line.strip()
+
+            # Cari IPv4 Address
+            if "IPv4 Address" in stripped:
+
+                match = re.search(
+                    r"(\d+\.\d+\.\d+\.\d+)",
+                    stripped
+                )
+
+                if match and match.group(1) == local_ip:
+                    current_adapter = True
+                    continue
+
+            if current_adapter and "Subnet Mask" in stripped:
+
+                match = re.search(
+                    r"(\d+\.\d+\.\d+\.\d+)",
+                    stripped
+                )
+
+                if match:
+                    subnet_mask = match.group(1)
+                    break
+
+        if subnet_mask:
+
+            try:
+                network = ipaddress.ip_network(
+                    f"{local_ip}/{subnet_mask}",
+                    strict=False
+                )
+
+                return network
+
+            except ValueError:
+                pass
+
+    # --------------------------------------
+    # LINUX
+    # --------------------------------------
+    elif system == "linux":
+
+        output = _run_command(
+            ["ip", "-4", "addr", "show"],
+            timeout=3
+        )
+
+        for line in output.splitlines():
+
+            match = re.search(
+                r"inet\s+(\d+\.\d+\.\d+\.\d+/\d+)",
+                line
+            )
+
+            if match:
+
+                try:
+                    candidate = ipaddress.ip_interface(
+                        match.group(1)
+                    )
+
+                    if str(candidate.ip) == local_ip:
+                        return candidate.network
+
+                except ValueError:
+                    continue
+
+    # --------------------------------------
+    # FALLBACK
+    # --------------------------------------
+    try:
+
+        # /24 hanya fallback.
+        # Tidak digunakan apabila OS memberikan
+        # subnet mask/prefix yang sebenarnya.
+        return ipaddress.ip_network(
+            f"{local_ip}/24",
+            strict=False
+        )
+
+    except ValueError:
+        return None
+
+
+# ==========================================
+# ARP / NEIGHBOUR TABLE
+# ==========================================
+
+def get_arp_neighbors():
+    """
+    Mengambil perangkat yang diketahui oleh OS.
+
+    Ini jauh lebih ringan dibanding ping seluruh subnet.
+
+    Hasil dapat berisi perangkat yang:
+    - aktif
+    - baru berkomunikasi
+    - tersimpan di ARP cache
+
+    Tidak menjamin semua perangkat Wi-Fi terlihat.
+    """
+
+    neighbors = {}
+
+    system = platform.system().lower()
+
+    # ======================================
+    # WINDOWS
+    # ======================================
+
+    if system == "windows":
+
+        output = _run_command(
+            ["arp", "-a"],
+            timeout=4
+        )
+
+        current_interface = None
+
+        for line in output.splitlines():
+
+            line = line.strip()
+
+            # Interface:
+            # 192.168.1.10 --- 0x7
+            interface_match = re.search(
+                r"Interface:\s+(\d+\.\d+\.\d+\.\d+)",
+                line,
+                re.I
+            )
+
+            if interface_match:
+                current_interface = interface_match.group(1)
+                continue
+
+            # Contoh:
+            # 192.168.1.1    aa-bb-cc-dd-ee-ff    dynamic
+            match = re.search(
+                r"(\d+\.\d+\.\d+\.\d+)\s+([0-9a-fA-F:-]{17})\s+(\w+)",
+                line
+            )
+
+            if match:
+
+                ip_addr = match.group(1)
+                mac_addr = match.group(2)
+                state = match.group(3)
+
+                try:
+                    ipaddress.ip_address(ip_addr)
+                except ValueError:
+                    continue
+
+                neighbors[ip_addr] = {
+                    "ip": ip_addr,
+                    "mac": mac_addr.replace("-", ":").upper(),
+                    "state": state.upper(),
+                    "interface": current_interface
+                }
+
+        # ==================================
+        # Tambahan PowerShell
+        # ==================================
+        #
+        # Get-NetNeighbor terkadang memberikan
+        # data yang lebih lengkap dibanding arp -a.
+
+        ps_output = _run_command(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "Get-NetNeighbor -AddressFamily IPv4 | Where-Object {$_.IPAddress -and $_.LinkLayerAddress} | Select-Object IPAddress,LinkLayerAddress,State | ConvertTo-Csv -NoTypeInformation"
+            ],
+            timeout=5
+        )
+
+        lines = ps_output.splitlines()
+
+        for line in lines[1:]:
+
+            try:
+
+                # CSV sederhana
+                parts = [
+                    x.strip().strip('"')
+                    for x in line.split(",")
+                ]
+
+                if len(parts) < 3:
+                    continue
+
+                ip_addr = parts[0]
+                mac_addr = parts[1]
+                state = parts[2]
+
+                ipaddress.ip_address(ip_addr)
+
+                if re.match(
+                    r"^[0-9A-Fa-f:-]{17}$",
+                    mac_addr
+                ):
+
+                    neighbors[ip_addr] = {
+                        "ip": ip_addr,
+                        "mac": mac_addr.replace("-", ":").upper(),
+                        "state": state.upper(),
+                        "interface": None
+                    }
+
+            except Exception:
+                continue
+
+    # ======================================
+    # LINUX
+    # ======================================
+
+    elif system == "linux":
+
+        output = _run_command(
+            ["ip", "-4", "neigh", "show"],
+            timeout=4
+        )
+
+        for line in output.splitlines():
+
+            match = re.search(
+                r"(\d+\.\d+\.\d+\.\d+)"
+                r".*?"
+                r"lladdr\s+([0-9a-fA-F:]{17})"
+                r"(?:\s+(\w+))?",
+                line,
+                re.I
+            )
+
+            if match:
+
+                ip_addr = match.group(1)
+                mac_addr = match.group(2)
+                state = match.group(3) or "UNKNOWN"
+
+                neighbors[ip_addr] = {
+                    "ip": ip_addr,
+                    "mac": mac_addr.upper(),
+                    "state": state.upper(),
+                    "interface": None
+                }
+
+    # ======================================
+    # MACOS
+    # ======================================
+
+    elif system == "darwin":
+
+        output = _run_command(
+            ["arp", "-an"],
+            timeout=4
+        )
+
+        for line in output.splitlines():
+
+            match = re.search(
+                r"\((\d+\.\d+\.\d+\.\d+)\)"
+                r"\s+at\s+([0-9a-fA-F:]{17})",
+                line,
+                re.I
+            )
+
+            if match:
+
+                ip_addr = match.group(1)
+                mac_addr = match.group(2)
+
+                neighbors[ip_addr] = {
+                    "ip": ip_addr,
+                    "mac": mac_addr.upper(),
+                    "state": "KNOWN",
+                    "interface": None
+                }
+
+    return neighbors
+
+
+# ==========================================
+# HOSTNAME
+# ==========================================
+
+def resolve_hostname(ip):
+    """
+    Reverse DNS / hostname.
+    Dibatasi timeout supaya dashboard tidak macet.
+    """
+
+    try:
+
+        old_timeout = socket.getdefaulttimeout()
+
+        socket.setdefaulttimeout(0.4)
+
+        hostname = socket.gethostbyaddr(ip)[0]
+
+        socket.setdefaulttimeout(old_timeout)
+
+        return hostname
+
+    except (
+        socket.herror,
+        socket.gaierror,
+        socket.timeout,
+        OSError
+    ):
+
+        try:
+            socket.setdefaulttimeout(old_timeout)
+        except:
+            pass
+
+        return None
+
+
+# ==========================================
+# GATEWAY LATENCY
+# ==========================================
+
+def ping_host(ip, timeout=1):
+    """
+    Ping satu host.
+
+    Hanya digunakan untuk gateway atau host tertentu,
+    bukan melakukan ping seluruh subnet.
+    """
+
+    if not ip:
+        return False, None
+
+    system = platform.system().lower()
+
+    if system == "windows":
+
+        command = [
+            "ping",
+            "-n",
+            "1",
+            "-w",
+            str(int(timeout * 1000)),
+            ip
+        ]
+
+    else:
+
+        command = [
+            "ping",
+            "-c",
+            "1",
+            "-W",
+            str(max(1, int(timeout))),
+            ip
+        ]
+
+    start = time.perf_counter()
+
+    output = _run_command(
+        command,
+        timeout=timeout + 1.5
+    )
+
+    elapsed = round(
+        (time.perf_counter() - start) * 1000,
+        1
+    )
+
+    if output:
+
+        # Jangan menganggap semua output ping valid.
+        # Cari indikator sukses.
+        output_lower = output.lower()
+
+        if (
+            "ttl=" in output_lower
+            or "time=" in output_lower
+            or "time<" in output_lower
+        ):
+            return True, elapsed
+
+    return False, None
+
+
+# ==========================================
+# PUBLIC IP
+# ==========================================
+
+def get_public_ip():
+    """
+    Mendapatkan IP publik.
+    """
+
+    services = [
+        "https://api.ipify.org?format=json",
+        "https://api64.ipify.org?format=json"
+    ]
+
+    for service in services:
+
+        try:
+
+            response = requests.get(
+                service,
+                timeout=2
+            )
+
+            if not response.ok:
+                continue
+
+            data = response.json()
+
+            public_ip = data.get("ip")
+
+            if public_ip:
+
+                try:
+                    ipaddress.ip_address(public_ip)
+                    return public_ip
+                except ValueError:
+                    continue
+
+        except Exception:
+            continue
+
+    return None
+
+
+# ==========================================
+# IDENTIFIKASI VENDOR MAC
+# ==========================================
+
+def normalize_mac(mac):
+    if not mac:
+        return None
+
+    return mac.replace("-", ":").upper()
+
+
+def get_mac_vendor(mac):
+    """
+    Vendor tidak dipaksa dari hostname.
+    Untuk saat ini hanya memberikan informasi
+    dasar berdasarkan OUI yang umum.
+    """
+
+    mac = normalize_mac(mac)
+
+    if not mac:
+        return None
+
+    oui = mac[:8]
+
+    common_oui = {
+        # Huawei
+        "00:46:4B": "Huawei",
+        "00:18:82": "Huawei",
+        "00:25:68": "Huawei",
+        "48:46:FB": "Huawei",
+
+        # TP-Link
+        "50:C7:BF": "TP-Link",
+        "54:A7:03": "TP-Link",
+        "C0:4A:00": "TP-Link",
+
+        # Xiaomi
+        "28:6C:07": "Xiaomi",
+        "34:CE:00": "Xiaomi",
+        "64:09:80": "Xiaomi",
+
+        # Apple
+        "00:1C:B3": "Apple",
+        "3C:06:30": "Apple",
+        "A4:83:E7": "Apple",
+
+        # Samsung
+        "00:07:AB": "Samsung",
+        "5C:49:7D": "Samsung",
+        "CC:07:AB": "Samsung"
+    }
+
+    return common_oui.get(oui)
+
+
+# ==========================================
+# BUILD DEVICE LIST
+# ==========================================
+
+def build_device_list(local_ip, gateway, network, neighbors):
+    """
+    Membentuk daftar perangkat berdasarkan:
+    - perangkat lokal
+    - gateway
+    - ARP/neighbour table
+    """
+
+    devices = {}
+
+    # --------------------------------------
+    # PERANGKAT LOKAL
+    # --------------------------------------
+
+    if local_ip:
+
+        devices[local_ip] = {
+            "ip": local_ip,
+            "mac": None,
+            "hostname": socket.gethostname(),
+            "online": True,
+            "latency_ms": 0,
+            "role": "local_device",
+            "vendor": None,
+            "state": "LOCAL"
+        }
+
+    # --------------------------------------
+    # PERANGKAT DARI ARP
+    # --------------------------------------
+
+    for ip_addr, item in neighbors.items():
+
+        mac = normalize_mac(item.get("mac"))
+
+        state = str(
+            item.get("state", "UNKNOWN")
+        ).upper()
+
+        online_states = {
+            "REACHABLE",
+            "STALE",
+            "DELAY",
+            "PROBE",
+            "PERMANENT",
+            "PUBLISHED",
+            "KNOWN",
+            "DYNAMIC",
+            "STATIC"
+        }
+
+        is_online = state in online_states
+
+        role = "device"
+
+        if gateway and ip_addr == gateway:
+            role = "router"
+            is_online = True
+
+        if local_ip and ip_addr == local_ip:
+            role = "local_device"
+            is_online = True
+
+        devices[ip_addr] = {
+            "ip": ip_addr,
+            "mac": mac,
+            "hostname": resolve_hostname(ip_addr),
+            "online": is_online,
+            "latency_ms": None,
+            "role": role,
+            "vendor": get_mac_vendor(mac),
+            "state": state
+        }
+
+    # --------------------------------------
+    # PASTIKAN GATEWAY MASUK
+    # --------------------------------------
+
+    if gateway:
+
+        if gateway not in devices:
+
+            devices[gateway] = {
+                "ip": gateway,
+                "mac": None,
+                "hostname": None,
+                "online": False,
+                "latency_ms": None,
+                "role": "router",
+                "vendor": None,
+                "state": "NOT_IN_ARP"
+            }
+
+    return list(devices.values())
+
+
+# ==========================================
+# NETWORK SNAPSHOT
+# ==========================================
+
+def build_network_snapshot():
+    """
+    Mengambil kondisi jaringan perangkat lokal.
+
+    Penting:
+    Fungsi ini TIDAK melakukan scan 254 IP.
+    """
+
+    started = time.perf_counter()
+
+    # --------------------------------------
+    # 1. IP LOKAL
+    # --------------------------------------
+
+    local_ip = get_local_ip()
+
+    # --------------------------------------
+    # 2. GATEWAY
+    # --------------------------------------
+
+    gateway = detect_default_gateway()
+
+    # --------------------------------------
+    # 3. NETWORK
+    # --------------------------------------
+
+    network = get_interface_network(
+        local_ip,
+        gateway
+    )
+
+    # --------------------------------------
+    # 4. ARP
+    # --------------------------------------
+
+    neighbors = get_arp_neighbors()
+
+    # --------------------------------------
+    # 5. DEVICE LIST
+    # --------------------------------------
+
+    devices = build_device_list(
+        local_ip,
+        gateway,
+        network,
+        neighbors
+    )
+
+    # --------------------------------------
+    # 6. PING GATEWAY SAJA
+    # --------------------------------------
+
+    router = next(
+        (
+            device
+            for device in devices
+            if device.get("role") == "router"
+        ),
+        None
+    )
+
+    gateway_online = False
+    gateway_latency = None
+
+    if gateway:
+
+        gateway_online, gateway_latency = ping_host(
+            gateway,
+            timeout=1
+        )
+
+        if router:
+
+            router["online"] = gateway_online
+            router["latency_ms"] = gateway_latency
+
+    # --------------------------------------
+    # 7. STATUS DEVICE
+    # --------------------------------------
+
+    active_devices = [
+        device
+        for device in devices
+        if (
+            device.get("online")
+            and device.get("role") != "router"
+            and device.get("role") != "local_device"
+        )
+    ]
+
+    # --------------------------------------
+    # 8. ROUTER DATA
+    # --------------------------------------
+
+    router_data = {
+        "online": gateway_online,
+        "ip": gateway,
+        "mac": (
+            router.get("mac")
+            if router
+            else None
+        ),
+        "hostname": (
+            router.get("hostname")
+            if router
+            else None
+        ),
+        "latency_ms": gateway_latency,
+        "vendor": (
+            router.get("vendor")
+            if router
+            else None
+        )
+    }
+
+    # --------------------------------------
+    # 9. FINAL RESPONSE
+    # --------------------------------------
+
+    return {
+        "status": "success",
+
+        "auto_detected": True,
+
+        "source": "local_device",
+
+        "timestamp": datetime.now(
+            pytz.timezone("Asia/Jakarta")
+        ).isoformat(),
+
+        "scan_time_ms": round(
+            (time.perf_counter() - started) * 1000,
+            1
+        ),
+
+        "router": router_data,
+
+        "local": {
+            "ip": local_ip,
+            "network": (
+                str(network)
+                if network
+                else None
+            ),
+            "prefix": (
+                network.prefixlen
+                if network
+                else None
+            ),
+            "hostname": socket.gethostname()
+        },
+
+        "wan": {
+            "public_ip": get_public_ip()
+        },
+
+        # Data berikut tidak bisa diperoleh
+        # secara universal hanya dari OS.
+        #
+        # Bisa ditambahkan nanti melalui API router
+        # jika router menyediakan API resmi.
+
+        "ssid": None,
+
+        "channel": None,
+
+        "clients_count": len(active_devices),
+
+        "avg_signal": None,
+
+        "download_mbps": None,
+
+        "upload_mbps": None,
+
+        "devices": sorted(
+            devices,
+            key=lambda x: (
+                0
+                if x.get("role") == "local_device"
+                else
+                1
+                if x.get("role") == "router"
+                else 2,
+                ipaddress.ip_address(
+                    x["ip"]
+                )
+            )
+        ),
+
+        "capabilities": {
+
+            "local_ip_detection": True,
+
+            "gateway_detection": True,
+
+            "subnet_detection": True,
+
+            "arp_discovery": True,
+
+            "ping_gateway": True,
+
+            "public_ip": True,
+
+            "tr069": False,
+
+            "snmp": False,
+
+            "full_subnet_scan": False
+        },
+
+        "message": (
+            "Jaringan perangkat lokal berhasil "
+            "dideteksi menggunakan routing table "
+            "dan ARP/neighbour table. "
+            "Pemindaian seluruh subnet tidak dilakukan "
+            "secara otomatis agar dashboard tidak "
+            "mengalami proses yang terlalu lama."
+        )
+    }
+
+
+# ==========================================
+# CACHE
+# ==========================================
+
+def get_network_snapshot(force=False):
+    """
+    Mengambil snapshot jaringan.
+
+    Cache digunakan agar API tidak menjalankan
+    semua command OS setiap kali browser melakukan
+    polling.
+    """
+
+    now = time.time()
+
+    with NETWORK_CACHE["lock"]:
+
+        cached_data = NETWORK_CACHE.get("data")
+
+        cached_timestamp = NETWORK_CACHE.get(
+            "timestamp",
+            0
+        )
+
+        cache_valid = (
+            cached_data is not None
+            and
+            now - cached_timestamp < NETWORK_CACHE_TTL
+        )
+
+        if not force and cache_valid:
+            return cached_data
+
+        data = build_network_snapshot()
+
+        NETWORK_CACHE["data"] = data
+
+        NETWORK_CACHE["timestamp"] = now
+
+        return data
+
+
+# ==========================================
+# NETWORK PAGE
+# ==========================================
+
+@app.route('/network')
+def network_page():
+
+    if 'user' not in session:
+        return redirect(
+            url_for('login')
+        )
+
+    return render_template(
+        'network.html'
+    )
+
+
+# ==========================================
+# NETWORK DATA API
+# ==========================================
+
+@app.route('/api/network-data')
+def network_data_api():
+    """
+    API monitoring jaringan.
+
+    GET:
+        /api/network-data
+
+    Force refresh:
+        /api/network-data?refresh=1
+    """
+
+    if 'user' not in session:
+
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized"
+        }), 401
+
+    force = request.args.get(
+        'refresh',
+        '0'
+    ).lower() in (
+        '1',
+        'true',
+        'yes'
+    )
+
+    try:
+
+        data = get_network_snapshot(
+            force=force
+        )
+
+        return jsonify(data)
+
+    except Exception as e:
+
+        app.logger.exception(
+            "Network discovery error"
+        )
+
+        return jsonify({
+            "status": "error",
+            "auto_detected": False,
+            "message": (
+                "Gagal mendeteksi jaringan lokal: "
+                + str(e)
+            )
+        }), 500
+
+
+# ==========================================
+# FORCE NETWORK REFRESH
+# ==========================================
+
+@app.route(
+    '/api/network-refresh',
+    methods=['POST']
+)
+def network_refresh_api():
+
+    if 'user' not in session:
+
+        return jsonify({
+            "status": "error",
+            "message": "Unauthorized"
+        }), 401
+
+    try:
+
+        data = get_network_snapshot(
+            force=True
+        )
+
+        return jsonify(data)
+
+    except Exception as e:
+
+        app.logger.exception(
+            "Forced network discovery error"
+        )
+
+        return jsonify({
+            "status": "error",
+            "message": (
+                "Gagal melakukan refresh "
+                "jaringan lokal: "
+                + str(e)
+            )
+        }), 500
