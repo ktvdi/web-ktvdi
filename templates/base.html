@@ -9,10 +9,9 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Oswald:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
-    <!-- Script Vidio Embed -->
     <script src="//static-web.prod.vidiocdn.com/assets/javascripts/vidio-embed.js"></script>
     
     <script>
@@ -22,7 +21,7 @@
             if (forbidden.some(x => ua.includes(x))) {
                 window.stop();
                 document.documentElement.innerHTML = `
-                    <div style="background:#7f1d1d; color:#ffffff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:system-ui, sans-serif; text-align:center; padding:20px;">
+                    <div style="background:#0f172a; color:#ffffff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:system-ui, sans-serif; text-align:center; padding:20px;">
                         <i class="fa-solid fa-ban" style="font-size:50px; margin-bottom:20px; color:#fca5a5;"></i>
                         <h1 style="font-size:24px; font-weight:800; margin-bottom:10px;">AKSES DITOLAK</h1>
                         <p style="color:#fecaca; font-size:14px;">Browser atau Alat ini dilarang karena alasan keamanan.</p>
@@ -51,7 +50,7 @@
                         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Plus Jakarta Sans"', 'sans-serif'] 
                     },
                     colors: { 
-                        brand: { navy: '#7f1d1d', blue: '#dc2626', sky: '#f87171', red: '#ed1c24' } 
+                        brand: { navy: '#0f172a', blue: '#3b82f6', sky: '#60a5fa', red: '#ed1c24' } 
                     },
                     padding: { 'safe': 'env(safe-area-inset-bottom)' },
                     animation: {
@@ -116,9 +115,8 @@
                 } else if (strikes === 5) {
                     showTrafficLightBanner();
                 } else if (strikes >= 6 && strikes <= 10) {
-                    showInspectWarning(); // 6-10 Aman (Hanya Peringatan)
+                    showInspectWarning();
                 } else if (strikes > 10) {
-                    // Lebh dari 10 -> BLOKIR 2x24 JAM
                     const blockUntil = Date.now() + PENALTY_DURATION;
                     localStorage.setItem('ktvdi_block_until', blockUntil);
                     activatePenalty(blockUntil);
@@ -185,7 +183,6 @@
             if(isBlocked) { e.preventDefault(); handleSecurityViolation(); return false; }
         }
 
-        // BLOCK PRTSCN & COPY KEYBOARD
         window.addEventListener('keyup', (e) => {
             if (e.key === 'PrintScreen' || e.keyCode === 44) {
                 try { navigator.clipboard.writeText(''); } catch(err) {}
@@ -254,7 +251,7 @@
         // === LOGIKA TRAFFIC LIGHT QUIZ ===
         const quizPool = {
             berita: [
-                { q: "Terkait dengan upacara Kemerdekaan RI ke-81 pada 17 Agustus 2026, dimanakah fokus utama pelaksanaan upacara kenegaraan dilakukan?", opt: ["A. Ibu Kota Nusantara (IKN)", "B. Istana Merdeka Jakarta", "C. Monumen Nasional (Monas)", "D. Garuda Wisnu Kencana (GWK)"], ans: 0 },
+                { q: "Siapakah Bapak Proklamator sekaligus Presiden Pertama Republik Indonesia?", opt: ["A. Soeharto", "B. B.J. Habibie", "C. Soekarno", "D. Mohammad Hatta"], ans: 2 },
                 { q: "Siapakah Presiden Republik Indonesia saat ini (Periode 2024-2029)?", opt: ["A. Joko Widodo", "B. Prabowo Subianto", "C. Susilo Bambang Yudhoyono", "D. Megawati Soekarnoputri"], ans: 1 },
                 { q: "Proyek kereta cepat pertama di Indonesia (Whoosh) menghubungkan antara kota?", opt: ["A. Jakarta - Surabaya", "B. Jakarta - Bandung", "C. Jakarta - Semarang", "D. Bandung - Surabaya"], ans: 1 }
             ],
@@ -292,7 +289,6 @@
             }
         }
 
-        // Fungsi efek cahaya Traffic Light
         function setLight(color) {
             document.getElementById('light-red').classList.remove('glow-red');
             document.getElementById('light-yellow').classList.remove('glow-yellow');
@@ -323,7 +319,6 @@
             document.getElementById('traffic-light-selection').classList.add('hidden');
             document.getElementById('traffic-light-quiz').classList.remove('hidden');
 
-            // Ambil soal secara acak berdasarkan tipe
             const categoryPool = quizPool[type];
             currentQuizData = categoryPool[Math.floor(Math.random() * categoryPool.length)];
 
@@ -346,7 +341,7 @@
                 startTLTimer();
             } else {
                 alert('Jawaban Salah! Akses Anda diblokir selama 2x24 Jam tanpa toleransi.');
-                const blockUntil = Date.now() + PENALTY_DURATION; // 48 Jam
+                const blockUntil = Date.now() + PENALTY_DURATION; 
                 localStorage.setItem('ktvdi_block_until', blockUntil);
                 localStorage.setItem('ktvdi_strikes', 11);
                 location.reload();
@@ -386,30 +381,25 @@
         a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(150, 150, 150, 0.2); } 
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
-        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay):not(.kemerdekaan-bg):not(#traffic-light-overlay) {
+        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay):not(#traffic-light-overlay) {
             filter: blur(30px) grayscale(100%); pointer-events: none; opacity: 0.1; transition: 0s; 
         }
 
-        /* CUSTOM LOADER KEMERDEKAAN THEME */
+        /* CUSTOM LOADER STANDARD THEME */
         #initial-loader {
             position: fixed; inset: 0; z-index: 9999;
-            background: #7f1d1d;
+            background: #0f172a;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 1.5s ease, visibility 1.5s ease; overflow: hidden; 
         }
         .loader-glow {
-            position: absolute; width: 150px; height: 150px; background: #ed1c24;
-            filter: blur(60px); opacity: 0.5; border-radius: 50%; animation: pulse-glow 2s infinite alternate;
+            position: absolute; width: 150px; height: 150px; background: #3b82f6;
+            filter: blur(60px); opacity: 0.4; border-radius: 50%; animation: pulse-glow 2s infinite alternate;
         }
-        @keyframes pulse-glow { from { transform: scale(0.8); opacity: 0.3; } to { transform: scale(1.2); opacity: 0.6; } }
-        
-        .kemerdekaan-bg {
-            background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%);
-        }
+        @keyframes pulse-glow { from { transform: scale(0.8); opacity: 0.2; } to { transform: scale(1.2); opacity: 0.5; } }
         
         .font-impact { font-family: 'Arial Black', Impact, sans-serif; }
         .text-shadow-hero { text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .merdeka-font { font-family: 'Oswald', sans-serif; } 
 
         /* Efek Glow Lampu Lalu Lintas Nyata */
         .glow-red { background-color: #ff2a2a !important; box-shadow: 0 0 35px #ff0000, inset 0 0 10px #ffffff !important; }
@@ -446,32 +436,32 @@
         }
 
         .ios-dock {
-            background: rgba(127, 29, 29, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5); border-radius: 36px; margin: 0;
             width: 100%; height: 76px; display: grid; grid-template-columns: repeat(5, 1fr);
             align-items: center; padding: 0 8px; position: relative;
         }
         .ios-dock-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 480px; z-index: 60; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fecaca; transition: all 0.3s; height: 100%; width: 100%; border-radius: 20px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #94a3b8; transition: all 0.3s; height: 100%; width: 100%; border-radius: 20px; }
         .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
         .nav-item span { font-size: 10px; font-weight: 600; line-height: 1; z-index: 2; }
         .nav-item.active { color: #ffffff; }
 
         .cctv-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; }
         .cctv-circle {
-            width: 48px; height: 48px; background: linear-gradient(135deg, #ed1c24, #991b1b);
+            width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #1e3a8a);
             border-radius: 50%; display: flex; align-items: center; justify-content: center;
             color: white; border: 2px solid rgba(255,255,255,0.2); transition: 0.2s; margin-bottom: 2px;
         }
-        .cctv-wrapper.active .cctv-circle { background: linear-gradient(135deg, #b91c1c, #7f1d1d); }
+        .cctv-wrapper.active .cctv-circle { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
 
         .glass-ticker-floating {
-            background: rgba(127, 29, 29, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); 
+            background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255, 255, 255, 0.2); 
             backdrop-filter: blur(10px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); border-radius: 18px; 
             width: calc(100% - 32px); max-width: 480px; height: 38px; display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 115px; left: 50%; transform: translateX(-50%); z-index: 50; 
         }
 
-        .desktop-bottom-bar { background: #7f1d1d; border-top: 1px solid rgba(255,255,255,0.1); height: 40px; width: 100%; position: fixed; bottom: 0; z-index: 40; display: none; }
+        .desktop-bottom-bar { background: #0f172a; border-top: 1px solid rgba(255,255,255,0.1); height: 40px; width: 100%; position: fixed; bottom: 0; z-index: 40; display: none; }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
@@ -489,7 +479,7 @@
         }
         .ticker-item-vert {
             height: 56px; display: flex; align-items: center;
-            padding: 0 1rem; color: #fbbf24; font-family: 'Oswald', sans-serif;
+            padding: 0 1rem; color: #fbbf24; font-family: 'Inter', sans-serif;
             font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
             width: 100%; flex-shrink: 0; 
             border-left: 3px solid #fbbf24; background: linear-gradient(90deg, rgba(251,191,36,0.15) 0%, transparent 100%);
@@ -509,14 +499,14 @@
 
         .clock-container { display: flex; align-items: center; justify-content: center; height: 100%; font-family: monospace; font-weight: bold; font-size: 11px; color: white; min-width: 85px; }
 
-        .desktop-link { color: #fecaca; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.85rem; }
+        .desktop-link { color: #cbd5e1; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.85rem; }
         .desktop-link:hover { color: #ffffff; }
         .desktop-link.active { color: #ffffff; font-weight: 800; }
 
-        .custom-scroll::-webkit-scrollbar { width: 4px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #fca5a5; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
         
         .pro-glass-panel {
-            background: linear-gradient(145deg, rgba(127, 29, 29, 0.8) 0%, rgba(220, 38, 38, 0.4) 100%);
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
             border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 30px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
             backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
@@ -535,62 +525,50 @@
         }
     </style>
 </head>
-<body class="bg-red-900 text-slate-900 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans z-0 selection:bg-red-200 selection:text-red-900">
-
-    <div class="fixed inset-0 z-[-2] kemerdekaan-bg"></div>
-    <div class="fixed inset-0 z-[-1] opacity-30 mix-blend-screen bg-[url('https://images.unsplash.com/photo-1518605368461-1e122b10287b?auto=format&fit=crop&q=80')] bg-cover bg-center bg-fixed bg-no-repeat"></div>
+<body class="bg-slate-900 text-slate-100 flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans z-0 selection:bg-blue-200 selection:text-blue-900">
 
     <audio id="security-audio" src="https://server.radioimeldafm.co.id:8040/gajahmadafm?_ic2=1776620223945" loop preload="none"></audio>
 
-    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-[#450a0a] text-white hidden flex-col items-center justify-start overflow-y-auto custom-scroll py-8 px-4" style="background-image: radial-gradient(circle at 50% 0%, #b91c1c 0%, #450a0a 70%);">
-        <div class="absolute inset-0 z-[-1] opacity-20 mix-blend-screen bg-[url('https://images.unsplash.com/photo-1518605368461-1e122b10287b?auto=format&fit=crop&q=80')] bg-cover bg-center bg-fixed bg-no-repeat"></div>
-        
+    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-slate-900 text-white hidden flex-col items-center justify-start overflow-y-auto custom-scroll py-8 px-4">
         <div class="w-full max-w-lg mx-auto flex flex-col items-center gap-5 mt-2 pb-12">
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-16 w-16 mb-2 filter invert brightness-0 opacity-90 drop-shadow-lg" alt="KTVDI Logo">
 
             <div class="flex items-center gap-4 animate-pulse">
-                <i class="fa-solid fa-flag text-4xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]"></i>
                 <i class="fa-solid fa-ban text-5xl md:text-6xl text-[#ed1c24] drop-shadow-[0_0_15px_rgba(237,28,36,0.5)]"></i>
-                <i class="fa-solid fa-flag text-4xl text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]"></i>
             </div>
             
             <div class="text-center space-y-2">
-                <h1 class="text-3xl md:text-5xl merdeka-font font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-200 via-white to-red-100 tracking-wide uppercase drop-shadow-md">Akses Diblokir</h1>
-                <p class="text-red-200 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran keamanan fatal. Anda diistirahatkan 2x24 Jam tanpa toleransi potong waktu.</p>
+                <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-600 tracking-wide uppercase drop-shadow-md">Akses Diblokir</h1>
+                <p class="text-slate-300 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran keamanan fatal. Anda diistirahatkan 2x24 Jam tanpa toleransi potong waktu.</p>
             </div>
             
             <div class="bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center w-full shadow-2xl relative overflow-hidden mt-1">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-white to-red-500"></div>
-                <p class="text-red-200 text-[10px] uppercase tracking-widest mb-2 font-bold">Waktu Penangguhan</p>
-                <p id="penalty-timer" class="text-5xl md:text-6xl merdeka-font font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">48:00:00</p>
+                <p class="text-slate-400 text-[10px] uppercase tracking-widest mb-2 font-bold">Waktu Penangguhan</p>
+                <p id="penalty-timer" class="text-5xl md:text-6xl font-bold text-white tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">48:00:00</p>
             </div>
 
-            <!-- Player Moji (Vidio) Pengganti Game / Potong Waktu -->
-            <div class="w-full relative mt-2 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border-2 border-red-500/50 bg-black group" style="padding-top: 56.25%;">
+            <div class="w-full relative mt-2 rounded-2xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-slate-700 bg-black group" style="padding-top: 56.25%;">
                 <div class="absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between items-center pointer-events-none">
                     <span class="text-xs font-bold text-red-500 bg-black/50 px-2 py-0.5 rounded border border-red-500/30 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> LIVE</span>
                     <span class="text-xs font-bold text-white/70">Moji TV</span>
                 </div>
                 <iframe class="vidio-embed absolute top-0 left-0 w-full h-full" src="https://www.vidio.com/live/206/embed?autoplay=true&player_only=true&mute=false" width="560" height="317" scrolling="no" frameborder="0" allowfullscreen allow="encrypted-media *;"></iframe>
             </div>
-            <p class="text-[10px] text-red-300/70 -mt-2">Sambil menunggu waktu blokir selesai, silakan menonton tayangan di atas.</p>
+            <p class="text-[10px] text-slate-400 -mt-2">Sambil menunggu waktu blokir selesai, silakan menonton tayangan di atas.</p>
             
-            <div class="text-center text-xs text-red-200 w-full mt-4">
-                IP Anda: <span id="penalty-ip" class="text-white font-mono">Memeriksa...</span>
+            <div class="text-center text-xs text-slate-500 w-full mt-4">
+                IP Anda: <span id="penalty-ip" class="text-slate-300 font-mono">Memeriksa...</span>
             </div>
         </div>
     </div>
 
-    <!-- MODAL TRAFFIC LIGHT QUIZ PADA TOLERANSI KE-5 -->
     <div id="traffic-light-overlay" class="fixed inset-0 z-[100006] bg-black/95 backdrop-blur-xl hidden flex-col items-center justify-center p-4">
         
-        <!-- Pemilihan Waktu Skip (Lampu Merah/Kuning/Hijau) -->
         <div id="traffic-light-selection" class="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden flex flex-col">
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"></div>
             
-            <!-- Real UI Traffic Light Box -->
             <div class="mx-auto w-24 h-64 bg-gray-900 rounded-[2rem] border-4 border-gray-700 shadow-[0_10px_30px_rgba(0,0,0,0.9)] flex flex-col items-center justify-evenly py-3 mb-6 relative">
-                <!-- Kanopi Topi Pelindung Lampu -->
                 <div class="absolute w-20 h-6 bg-black rounded-t-full top-3 opacity-60 shadow-md z-20"></div>
                 <div class="absolute w-20 h-6 bg-black rounded-t-full top-[5.2rem] opacity-60 shadow-md z-20"></div>
                 <div class="absolute w-20 h-6 bg-black rounded-t-full bottom-[4.8rem] opacity-60 shadow-md z-20"></div>
@@ -630,17 +608,14 @@
             </div>
         </div>
 
-        <!-- Render Kuis -->
         <div id="traffic-light-quiz" class="bg-slate-900 border border-slate-700 rounded-3xl p-6 md:p-8 max-w-lg w-full text-center shadow-2xl hidden relative overflow-hidden">
             <h3 id="quiz-title" class="text-lg font-black text-white mb-1 uppercase tracking-widest text-red-400">Pertanyaan</h3>
             <div class="w-16 h-1 bg-red-500 mx-auto mb-4 rounded-full"></div>
             <p id="quiz-question" class="text-white text-sm md:text-base mb-6 min-h-[4rem] flex items-center justify-center font-medium leading-relaxed"></p>
             <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <!-- Tombol dinamis -->
-            </div>
+                </div>
         </div>
 
-        <!-- Timer Skip -->
         <div id="traffic-light-timer" class="bg-slate-900 border border-green-700/50 rounded-3xl p-8 max-w-md w-full text-center shadow-[0_0_50px_rgba(34,197,94,0.1)] hidden relative">
             <i class="fa-solid fa-circle-check text-6xl text-green-500 mb-4 drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]"></i>
             <h3 class="text-2xl font-bold text-white mb-2">Jawaban Tepat!</h3>
@@ -651,21 +626,21 @@
         </div>
     </div>
 
-    <div id="inspect-warning-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[10005] bg-[#ed1c24]/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 transition-all duration-1000 hidden opacity-0 -translate-y-full w-[90vw] max-w-md border border-white/20">
-        <i class="fa-solid fa-shield-halved text-2xl animate-pulse shrink-0"></i>
+    <div id="inspect-warning-toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[10005] bg-slate-800/95 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 transition-all duration-1000 hidden opacity-0 -translate-y-full w-[90vw] max-w-md border border-slate-600">
+        <i class="fa-solid fa-shield-halved text-2xl text-blue-400 animate-pulse shrink-0"></i>
         <p class="text-[11px] md:text-xs font-bold leading-relaxed">TIM Security mendeteksi Anda ingin melakukan inspect. Untuk privasi, belum diizinkan. Terima kasih.</p>
     </div>
 
-    <div id="security-overlay" style="display: none; position: fixed; inset: 0; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; background: rgba(5, 10, 31, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+    <div id="security-overlay" style="display: none; position: fixed; inset: 0; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
         <div class="pro-glass-panel relative overflow-hidden">
-            <div class="absolute -top-10 -right-10 w-32 h-32 bg-white rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"></div>
-            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-red-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-2000"></div>
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"></div>
+            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-2000"></div>
             
             <div class="relative z-10 flex flex-col items-center">
                 <i class="fa-solid fa-shield-halved text-5xl text-white/90 mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"></i>
                 <h2 class="text-2xl font-bold mb-3 text-white tracking-wide">KONTEN DIAMANKAN</h2>
                 <div class="h-px w-16 bg-gradient-to-r from-transparent via-white/50 to-transparent mb-4"></div>
-                <p class="text-sm text-red-100/80 leading-relaxed font-light">Privasi sesi KTVDI Anda sedang kami lindungi secara otomatis akibat perpindahan layar.</p>
+                <p class="text-sm text-slate-300 leading-relaxed font-light">Privasi sesi KTVDI Anda sedang kami lindungi secara otomatis akibat perpindahan layar.</p>
             </div>
         </div>
     </div>
@@ -675,21 +650,21 @@
             <div class="loader-glow"></div>
             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-16 md:h-20 mb-8 relative z-10 animate-bounce filter invert brightness-0" alt="KTVDI Loading">
             <div class="flex gap-2 relative z-10">
-                <span class="w-2.5 h-2.5 bg-[#ed1c24] rounded-full animate-pulse"></span>
+                <span class="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse"></span>
                 <span class="w-2.5 h-2.5 bg-white rounded-full animate-pulse delay-75"></span>
-                <span class="w-2.5 h-2.5 bg-red-400 rounded-full animate-pulse delay-150"></span>
+                <span class="w-2.5 h-2.5 bg-blue-400 rounded-full animate-pulse delay-150"></span>
             </div>
-            <p class="text-red-200 mt-5 font-bold tracking-[0.2em] text-[10px] md:text-xs relative z-10">MEMUAT PENGALAMAN...</p>
+            <p class="text-slate-300 mt-5 font-bold tracking-[0.2em] text-[10px] md:text-xs relative z-10">MEMUAT PENGALAMAN...</p>
         </div>
     </div>
 
     <nav class="fixed top-4 left-0 right-0 w-full z-50 px-3 lg:px-6 transition-all duration-300">
-        <div class="max-w-[1400px] mx-auto bg-red-800/90 backdrop-blur-md shadow-2xl rounded-2xl lg:rounded-[2rem] border border-red-400/20">
+        <div class="max-w-[1400px] mx-auto bg-slate-900/90 backdrop-blur-md shadow-2xl rounded-2xl lg:rounded-[2rem] border border-slate-700/50">
             <div class="flex justify-between items-center h-16 md:h-20 px-4 md:px-8 w-full">
                 
-                <div class="flex items-center gap-3 md:gap-5 border-r border-white/10 pr-3 md:pr-5 mr-1 lg:mr-2 w-full lg:w-auto overflow-hidden">
+                <div class="flex items-center gap-3 md:gap-5 border-r border-slate-700 pr-3 md:pr-5 mr-1 lg:mr-2 w-full lg:w-auto overflow-hidden">
                     <a href="{{ url_for('home') }}" class="flex items-center group shrink-0">
-                        <img id="navbar-logo" src="https://iili.io/C4vsGPs.md.png" alt="HUT RI 81 Logo" class="h-7 md:h-10 object-contain drop-shadow-md">
+                        <img id="navbar-logo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-7 md:h-10 object-contain filter invert brightness-0 drop-shadow-md">
                     </a>
 
                     {% if session.get('user') %}
@@ -697,11 +672,11 @@
                         {% if not safe_nama %}{% set safe_nama = 'Member' %}{% endif %}
                         {% set first_nama = safe_nama.split(' ')[0] %}
                         
-                        <div class="xl:hidden h-8 w-px bg-white/20 mx-1 shrink-0"></div>
+                        <div class="xl:hidden h-8 w-px bg-slate-700 mx-1 shrink-0"></div>
                         
                         <div class="xl:hidden flex flex-col justify-center min-w-0 pr-1">
                             <div class="flex items-center gap-1 text-[11px] md:text-xs font-bold text-white leading-tight">
-                                <span id="mobile-greeting" class="font-medium text-red-200 shrink-0">Hai,</span>
+                                <span id="mobile-greeting" class="font-medium text-slate-300 shrink-0">Hai,</span>
                                 <span class="truncate max-w-[110px] sm:max-w-[150px]">{{ safe_nama }}</span>
                             </div>
                             <div class="flex items-center mt-0.5">
@@ -712,22 +687,10 @@
                         </div>
                     {% else %}
                         <div id="mobile-guest-schedule" class="xl:hidden relative flex-1 h-8 ml-1 overflow-hidden min-w-[120px]">
-                            </div>
+                        </div>
                     {% endif %}
 
                     <div id="desktop-header-dynamic" class="hidden lg:flex relative items-center justify-center text-white min-w-[280px] h-12 overflow-hidden">
-                        
-                        <div id="header-state-2" class="hidden absolute flex items-center justify-center transition-opacity duration-1000 opacity-0 w-full">
-                            <span class="text-xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-red-200 to-white drop-shadow-lg tracking-wide">#81ndonesiaJaya</span>
-                        </div>
-                        
-                        <div id="header-state-3" class="hidden absolute flex items-center justify-center transition-opacity duration-1000 opacity-0 w-full">
-                            <span class="text-xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-[#ffffff] to-red-200 drop-shadow-lg tracking-wide">DIRGAHAYU REPUBLIK INDONESIA</span>
-                        </div>
-
-                        <div id="header-state-4" class="hidden absolute flex items-center justify-center transition-opacity duration-1000 opacity-0 w-full">
-                            <span class="text-xs font-bold tracking-widest uppercase text-white drop-shadow-md whitespace-nowrap">Komunitas TV Digital Indonesia</span>
-                        </div>
                     </div>
                 </div>
 
@@ -745,7 +708,7 @@
                     </div>
 
                     <div class="relative group z-50 xl:hidden">
-                        <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition border border-white/10">
+                        <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition border border-slate-700">
                             <i class="fa-solid fa-bars text-sm md:text-base"></i>
                         </button>
                         
@@ -758,20 +721,20 @@
                                         <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
                                         <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama', 'Member') }}</p>
                                     </div>
-                                    <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-gauge w-5 text-center text-red-600"></i> Dashboard</a>
+                                    <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-gauge w-5 text-center text-blue-600"></i> Dashboard</a>
                                     <div class="h-px bg-slate-200 my-0.5 mx-4"></div>
                                 {% else %}
                                     <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col">
                                         <span class="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Lokasi Anda</span>
-                                        <div class="flex items-center gap-2 text-sm font-black text-red-600">
-                                            <i class="fa-solid fa-location-dot text-red-500"></i><span id="mobile-user-location" class="truncate">Mendeteksi...</span>
+                                        <div class="flex items-center gap-2 text-sm font-black text-blue-600">
+                                            <i class="fa-solid fa-location-dot text-blue-500"></i><span id="mobile-user-location" class="truncate">Mendeteksi...</span>
                                         </div>
                                     </div>
                                 {% endif %}
 
                                 <a href="{{ url_for('home') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-house w-5 text-center text-slate-500"></i> Beranda</a>
-                                <a href="{{ url_for('ews_jateng_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-water w-5 text-center text-red-500"></i> EWS Bendungan</a>
-                                <a href="/lokasi" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-map-location-dot w-5 text-center text-red-500"></i> Peta Lokasi</a>
+                                <a href="{{ url_for('ews_jateng_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-water w-5 text-center text-blue-500"></i> EWS Bendungan</a>
+                                <a href="/lokasi" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-map-location-dot w-5 text-center text-blue-500"></i> Peta Lokasi</a>
                                 <a href="{{ url_for('jadwal_sholat_page') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-mosque w-5 text-center text-emerald-500"></i> Jadwal Religi</a>
                                 <a href="{{ url_for('about') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-users w-5 text-center text-amber-500"></i> Tentang KTVDI</a>
 
@@ -785,8 +748,8 @@
 
                     {% if session.get('user') %}
                         <div class="relative group z-50 hidden xl:block">
-                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-[#ed1c24] hover:bg-red-700 transition border border-red-500 text-left shadow-lg">
-                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'Member') | urlencode }}&background=fff&color=ed1c24&bold=true" class="h-8 w-8 rounded-full shadow-sm">
+                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-slate-800 hover:bg-slate-700 transition border border-slate-700 text-left shadow-lg">
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'Member') | urlencode }}&background=fff&color=0f172a&bold=true" class="h-8 w-8 rounded-full shadow-sm">
                                 <div class="flex flex-col">
                                     <span class="text-xs font-bold text-white leading-tight">
                                         {{ session.get('nama', 'Member').split(' ')[0] if session.get('nama') else 'Member' }}
@@ -804,7 +767,7 @@
                                         <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
                                         <p class="text-sm font-bold text-slate-900 truncate">{{ session.get('nama', 'Member') }}</p>
                                     </div>
-                                    <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-gauge w-5 text-center text-red-600"></i> Dashboard KTVDI</a>
+                                    <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-sm text-slate-700 font-medium hover:bg-slate-100 transition"><i class="fa-solid fa-gauge w-5 text-center text-blue-600"></i> Dashboard KTVDI</a>
                                     <div class="h-px bg-slate-200 my-0.5 mx-4"></div>
                                     <a href="{{ url_for('logout') }}" class="block px-4 py-3 text-sm text-red-600 font-bold hover:bg-red-50 transition"><i class="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> Keluar</a>
                                 </div>
@@ -812,9 +775,9 @@
                         </div>
                     {% else %}
                         <div class="flex items-center">
-                            <a href="{{ url_for('login') }}" class="hidden md:block text-white text-sm font-bold hover:text-red-300 transition px-4 py-2">Masuk</a>
-                            <a href="{{ url_for('register') }}" class="bg-[#ffffff] hover:bg-gray-100 border border-white text-red-700 pl-4 pr-1 md:pl-5 md:pr-1.5 py-1.5 md:py-2 rounded-full font-bold text-[11px] md:text-sm transition shadow-lg flex items-center gap-2 active:scale-95 ml-1 md:ml-2">
-                                Daftar <div class="bg-red-600 text-white rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-[10px] md:text-xs shadow-sm"><i class="fa-solid fa-arrow-right"></i></div>
+                            <a href="{{ url_for('login') }}" class="hidden md:block text-slate-300 text-sm font-bold hover:text-white transition px-4 py-2">Masuk</a>
+                            <a href="{{ url_for('register') }}" class="bg-blue-600 hover:bg-blue-500 border border-blue-500 text-white pl-4 pr-1 md:pl-5 md:pr-1.5 py-1.5 md:py-2 rounded-full font-bold text-[11px] md:text-sm transition shadow-lg flex items-center gap-2 active:scale-95 ml-1 md:ml-2">
+                                Daftar <div class="bg-white text-blue-600 rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-[10px] md:text-xs shadow-sm"><i class="fa-solid fa-arrow-right"></i></div>
                             </a>
                         </div>
                     {% endif %}
@@ -840,29 +803,34 @@
     {% endwith %}
 
     <main class="flex-grow z-10 relative pt-[100px] md:pt-[130px]">
-        <div class="bg-white w-full min-h-screen rounded-t-[2.5rem] md:rounded-t-[4rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden border-t-4 border-red-600">
+        <div class="bg-white w-full min-h-screen rounded-t-[2.5rem] md:rounded-t-[4rem] shadow-[0_-20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden border-t-4 border-brand-red">
             <div class="absolute inset-0 z-0 opacity-[0.35]" style="background-image: radial-gradient(#94a3b8 1.5px, transparent 1.5px); background-size: 32px 32px;"></div>
 
             <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 relative z-10">
+                
+                <a href="#" class="block w-full max-w-5xl mx-auto mb-8 relative rounded-xl md:rounded-2xl overflow-hidden shadow-lg border border-slate-200 bg-black hover:opacity-95 transition-opacity">
+                    <img src="https://redaktur.tvrinews.com/storage/images/upload/76429b76-ff9d-40cb-a517-6a8eb3bd48f0.gif" alt="FIFA U17 World Cup Qatar 2026" class="w-full h-auto block">
+                </a>
+
                 {% block content %}{% endblock %}
             </div>
         </div>
     </main>
 
-    <footer class="bg-red-950 text-slate-300 pt-16 pb-48 lg:pb-16 font-sans border-t border-red-900">
+    <footer class="bg-slate-950 text-slate-300 pt-16 pb-48 lg:pb-16 font-sans border-t border-slate-800">
         <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
             <div class="space-y-4">
                 <div class="flex items-center gap-3">
                     <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="w-10 h-10 filter invert brightness-0">
                     <div>
                         <h4 class="text-lg font-bold text-white tracking-tight">KTVDI</h4>
-                        <p class="text-[10px] font-medium text-red-300">Komunitas TV Digital Indonesia</p>
+                        <p class="text-[10px] font-medium text-slate-400">Komunitas TV Digital Indonesia</p>
                     </div>
                 </div>
                 <p class="text-sm leading-relaxed">Pusat informasi independen teknologi penyiaran digital, frekuensi, & STB Indonesia.</p>
             </div>
             <div>
-                <h4 class="font-bold text-xs text-red-400 uppercase tracking-widest mb-4">Navigasi Utama</h4>
+                <h4 class="font-bold text-xs text-blue-400 uppercase tracking-widest mb-4">Navigasi Utama</h4>
                 <ul class="space-y-2 text-sm">
                     <li><a href="{{ url_for('home') }}" class="hover:text-white transition">Beranda</a></li>
                     <li><a href="{{ url_for('daftar_siaran') }}" class="hover:text-white transition">Database Frekuensi</a></li>
@@ -870,22 +838,22 @@
                 </ul>
             </div>
             <div>
-                <h4 class="font-bold text-xs text-red-400 uppercase tracking-widest mb-4">Layanan</h4>
+                <h4 class="font-bold text-xs text-blue-400 uppercase tracking-widest mb-4">Layanan</h4>
                 <ul class="space-y-2 text-sm">
                     <li><a href="{{ url_for('about') }}" class="hover:text-white transition">Tentang Kami</a></li>
                     <li><a href="#" class="hover:text-white transition">Hubungi Kami</a></li>
                 </ul>
             </div>
             <div>
-                <h4 class="font-bold text-xs text-red-400 uppercase tracking-widest mb-4">Kontak Resmi</h4>
-                <ul class="space-y-3 text-sm text-red-200">
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-user-tie text-red-500"></i> Pak Lukas (Admin)</li>
-                    <li class="flex items-center gap-3"><i class="fa-solid fa-envelope text-red-500"></i> kom.tvdigitalid@gmail.com</li>
+                <h4 class="font-bold text-xs text-blue-400 uppercase tracking-widest mb-4">Kontak Resmi</h4>
+                <ul class="space-y-3 text-sm text-slate-300">
+                    <li class="flex items-center gap-3"><i class="fa-solid fa-user-tie text-blue-500"></i> Pak Lukas (Admin)</li>
+                    <li class="flex items-center gap-3"><i class="fa-solid fa-envelope text-blue-500"></i> kom.tvdigitalid@gmail.com</li>
                     <li class="flex items-center gap-3"><i class="fa-brands fa-whatsapp text-green-500"></i> 0815-9131-735</li>
                 </ul>
             </div>
         </div>
-        <div class="border-t border-red-900/50 pt-8 text-center"><p class="text-xs text-red-400/60">&copy; 2026 KTVDI. Hak Cipta Dilindungi.</p></div>
+        <div class="border-t border-slate-800 pt-8 text-center"><p class="text-xs text-slate-500">&copy; 2026 KTVDI. Hak Cipta Dilindungi.</p></div>
     </footer>
 
     <div class="ios-dock-container lg:hidden">
@@ -899,20 +867,20 @@
     </div>
 
     <div class="glass-ticker-floating lg:hidden transition-all duration-300">
-        <div class="bg-[#ed1c24] h-full flex items-center px-3 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE</div>
+        <div class="bg-blue-600 h-full flex items-center px-3 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> UPDATE</div>
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-mobile" class="ticker-move"></div></div>
         <div class="bg-white/10 backdrop-blur-md h-full px-2 border-l border-slate-200/20 z-20 shrink-0 flex items-center"><div id="clock-mobile" class="clock-container text-[10px]">00:00:00 WIB</div></div>
     </div>
 
     <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto transition-all duration-300">
-        <div class="bg-[#ed1c24] h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> BERITA TERKINI</div>
+        <div class="bg-blue-600 h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white text-[10px] font-black uppercase tracking-widest gap-2 mr-4"><span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> BERITA TERKINI</div>
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-desktop" class="ticker-move"></div></div>
-        <div class="bg-white/5 backdrop-blur-md h-8 px-4 rounded-lg border border-white/10 z-20 shrink-0 flex items-center gap-2 ml-4 text-white text-[11px] font-bold"><i class="fa-solid fa-location-dot text-red-400 animate-bounce"></i><span id="desktop-user-location">Mendeteksi...</span></div>
+        <div class="bg-white/5 backdrop-blur-md h-8 px-4 rounded-lg border border-white/10 z-20 shrink-0 flex items-center gap-2 ml-4 text-white text-[11px] font-bold"><i class="fa-solid fa-location-dot text-blue-400 animate-bounce"></i><span id="desktop-user-location">Mendeteksi...</span></div>
         <div class="bg-white/10 backdrop-blur-md h-8 px-4 rounded-lg border border-white/20 z-20 shrink-0 flex items-center ml-2"><div id="clock-desktop" class="clock-container text-[11px]">00:00:00 WIB</div></div>
     </div>
 
     <div id="call-center-widget" class="hidden fixed bottom-[160px] lg:bottom-24 left-4 z-[60] group pb-safe">
-        <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-red-100 hover:scale-110 transition"><i class="fa-solid fa-phone-volume text-lg animate-pulse"></i></a>
+        <a href="tel:112" class="flex items-center justify-center w-12 h-12 bg-white/90 backdrop-blur-md rounded-full text-blue-600 shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-slate-200 hover:scale-110 transition"><i class="fa-solid fa-phone-volume text-lg animate-pulse"></i></a>
     </div>
 
     <script>
@@ -929,167 +897,23 @@
         updateMobileGreeting();
 
         function initHeaderRotator() {
-            let states = [];
-
-            // --- DATA JADWAL KEMERDEKAAN 17 AGUSTUS 2026 ---
-            const events = [
-                { title: "Upacara Detik-Detik Proklamasi", time: "2026-08-17T10:00:00+07:00", label: "17 Agt, 10.00 WIB" },
-                { title: "Upacara Penurunan Bendera", time: "2026-08-17T16:30:00+07:00", label: "17 Agt, 16.30 WIB" }
-            ];
-
-            const nowMs = new Date().getTime();
-            const activeEvents = events.filter(e => nowMs <= new Date(e.time).getTime() + (5 * 60 * 1000));
-
             const dynamicHeader = document.getElementById('desktop-header-dynamic');
             if (dynamicHeader) {
-                if (activeEvents.length > 0) {
-                    activeEvents.forEach((e, idx) => {
-                        const stateId = 'header-state-event-' + idx;
-                        const html = `
-                        <div id="${stateId}" class="hidden absolute flex flex-col items-center justify-center transition-opacity duration-1000 opacity-0 w-full">
-                            <span class="text-[9px] font-bold tracking-widest text-yellow-300 uppercase drop-shadow-md mb-0.5">${e.label}</span>
-                            <div class="flex items-center gap-2 text-[12px] font-black text-white drop-shadow-lg uppercase tracking-wide text-center">
-                                <span>${e.title}</span>
-                            </div>
-                        </div>`;
-                        dynamicHeader.insertAdjacentHTML('beforeend', html);
-                        states.push({ id: stateId, duration: 6000 });
-                    });
-                }
-                
-                states.push({ id: 'header-state-2', duration: 6000 }); // #81ndonesiaJaya
-                states.push({ id: 'header-state-3', duration: 5000 }); // DIRGAHAYU REPUBLIK INDONESIA
-                states.push({ id: 'header-state-4', duration: 10000 }); // Komunitas TV Digital Indonesia
+                dynamicHeader.innerHTML = `
+                    <div class="flex items-center justify-center w-full">
+                        <span class="text-xs font-bold tracking-widest uppercase text-white drop-shadow-md whitespace-nowrap">Komunitas TV Digital Indonesia</span>
+                    </div>`;
             }
 
             const mobileGuestHeader = document.getElementById('mobile-guest-schedule');
             if (mobileGuestHeader) {
-                let guestStates = [];
-
-                if (activeEvents.length > 0) {
-                    activeEvents.forEach((e, idx) => {
-                        const eventId = `mobile-guest-event-${idx}`;
-                        const html = `
-                        <div id="${eventId}" class="hidden absolute flex-col items-start justify-center transition-opacity duration-1000 opacity-0 w-full h-full left-0 top-0">
-                            <span class="text-[7px] font-bold tracking-widest text-yellow-300 uppercase drop-shadow-md leading-none mb-0.5">${e.label}</span>
-                            <div class="flex items-center text-[10px] font-black text-white drop-shadow-lg uppercase tracking-wide leading-none w-full">
-                                <div class="team-name-container" style="max-width: 140px;"><span class="team-name-inner">${e.title}</span></div>
-                            </div>
-                        </div>`;
-                        mobileGuestHeader.insertAdjacentHTML('beforeend', html);
-                        guestStates.push(eventId);
-                    });
-                } else {
-                    mobileGuestHeader.insertAdjacentHTML('beforeend', `
-                        <div id="mobile-guest-state-merdeka" class="absolute flex items-center justify-start transition-opacity duration-1000 opacity-0 w-full h-full left-0 top-0">
-                            <span class="text-[12px] font-black italic text-transparent bg-clip-text bg-gradient-to-r from-red-200 to-white drop-shadow-lg tracking-wide">#81ndonesiaJaya</span>
-                        </div>
-                    `);
-                    guestStates.push('mobile-guest-state-merdeka');
-                }
-
-                let guestIdx = 0;
-                function rotateGuest() {
-                    guestStates.forEach(id => {
-                        const el = document.getElementById(id);
-                        if(el) {
-                            el.style.opacity = '0';
-                            setTimeout(() => { el.classList.add('hidden'); el.classList.remove('flex'); }, 1000);
-                        }
-                    });
-                    
-                    const current = document.getElementById(guestStates[guestIdx]);
-                    if(current) {
-                        const inners = current.querySelectorAll('.team-name-inner');
-                        inners.forEach(inner => {
-                            inner.style.transition = 'none';
-                            inner.style.transform = 'translateX(0)';
-                        });
-
-                        setTimeout(() => {
-                            current.classList.remove('hidden');
-                            current.classList.add('flex');
-                            current.style.opacity = '1';
-
-                            setTimeout(() => {
-                                inners.forEach(inner => {
-                                    const parent = inner.parentElement;
-                                    if(inner.scrollWidth > parent.clientWidth) {
-                                        inner.style.transition = 'transform 2.5s ease-in-out';
-                                        const dist = inner.scrollWidth - parent.clientWidth;
-                                        inner.style.transform = `translateX(-${dist}px)`;
-                                    }
-                                });
-                            }, 1500); 
-                        }, 1050);
-                    }
-                    guestIdx = (guestIdx + 1) % guestStates.length;
-                    setTimeout(rotateGuest, 8000); 
-                }
-                rotateGuest();
+                mobileGuestHeader.innerHTML = `
+                    <div class="flex items-center justify-start w-full h-full">
+                        <span class="text-[11px] font-black text-white drop-shadow-lg tracking-wide uppercase">KTVDI Member Area</span>
+                    </div>`;
             }
-
-            let currentIndex = 0;
-            if(states.length === 0) return;
-
-            function showNextState() {
-                states.forEach(state => {
-                    const el = document.getElementById(state.id);
-                    if(el) {
-                        el.style.opacity = '0';
-                        setTimeout(() => { el.classList.add('hidden'); el.classList.remove('flex'); }, 1000);
-                    }
-                });
-
-                const currentEl = document.getElementById(states[currentIndex].id);
-                if(currentEl) {
-                    setTimeout(() => {
-                        currentEl.classList.remove('hidden');
-                        currentEl.classList.add('flex');
-                        void currentEl.offsetWidth; 
-                        currentEl.style.opacity = '1';
-                    }, 1050);
-                }
-
-                const delay = states[currentIndex].duration;
-                currentIndex = (currentIndex + 1) % states.length;
-                setTimeout(showNextState, delay);
-            }
-            showNextState();
         }
-        
-        if(window.innerWidth >= 1024) { initHeaderRotator(); } else { initHeaderRotator(); }
-
-        const tvriLogoUrl = "https://iili.io/C4vsGPs.md.png";
-        const ktvdiLogoUrl = "{{ url_for('static', filename='icons/icon-192.png') }}";
-        let isTvri = true;
-        const navbarLogo = document.getElementById('navbar-logo');
-
-        if (navbarLogo) {
-            navbarLogo.style.transition = "all 0.8s ease-in-out";
-            function swapLogo() {
-                navbarLogo.style.opacity = 0;
-                navbarLogo.style.filter = "drop-shadow(0 0 20px rgba(255,255,255,1)) brightness(1.5)";
-                
-                setTimeout(() => {
-                    isTvri = !isTvri;
-                    navbarLogo.src = isTvri ? tvriLogoUrl : ktvdiLogoUrl;
-                    
-                    if (!isTvri) {
-                        navbarLogo.className = "h-7 md:h-10 object-contain filter invert brightness-0 drop-shadow-md";
-                    } else {
-                        navbarLogo.className = "h-7 md:h-10 object-contain drop-shadow-md";
-                    }
-                    
-                    navbarLogo.style.opacity = 1;
-                    navbarLogo.style.filter = "";
-                    
-                    const nextDelay = isTvri ? 7000 : 20000;
-                    setTimeout(swapLogo, nextDelay);
-                }, 800); 
-            }
-            setTimeout(swapLogo, 7000);
-        }
+        initHeaderRotator();
 
         function forceHideLoader() {
             const loader = document.getElementById('initial-loader');
@@ -1148,7 +972,7 @@
                         if(mobTicker) mobTicker.className = 'ticker-move';
                         if(deskTicker) deskTicker.className = 'ticker-move';
                         
-                        const items = data.map(n => `<div class="ticker-item">${n}</div><span class="text-yellow-400 font-black flex items-center text-lg">//</span>`).join('');
+                        const items = data.map(n => `<div class="ticker-item">${n}</div><span class="text-blue-400 font-black flex items-center text-lg">//</span>`).join('');
                         if(mobTicker) mobTicker.innerHTML = items.repeat(3);
                         if(deskTicker) deskTicker.innerHTML = items.repeat(3);
                     }
