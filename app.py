@@ -16,8 +16,6 @@ import socket
 import subprocess
 import platform
 import ipaddress
-import shutil
-
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from firebase_admin import credentials, db
 from flask import (
@@ -42,38 +40,58 @@ import urllib3
 # 1. KONFIGURASI SYSTEM & SECURITY
 # ==========================================
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+urllib3.disable_warnings(
+    urllib3.exceptions.InsecureRequestWarning
+)
 
 load_dotenv()
 
 app = Flask(__name__)
+
 CORS(app)
 
 app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",
-    "KTVDI_OFFICIAL_SECRET_KEY_FINAL_PRO_2026_SUPER_SECURE"
+    "change-this-secret-in-env"
 )
 
-app.config["SESSION_PERMANENT"] = True
-app.config["PERMANENT_SESSION_LIFETIME"] = 86400
+app.config['SESSION_PERMANENT'] = True
+
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400
 
 
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
 # ==========================================
 
-MAINTENANCE_END_DATE = datetime(2026, 2, 3, 7, 0, 0)
+MAINTENANCE_END_DATE = datetime(
+    2026,
+    2,
+    3,
+    7,
+    0,
+    0
+)
 
 
 @app.before_request
 def maintenance_interceptor():
-    if request.endpoint == "static":
+
+    if request.endpoint == 'static':
+
         return None
 
-    now_wib = datetime.utcnow() + timedelta(hours=7)
+    now_wib = (
+        datetime.utcnow()
+        +
+        timedelta(hours=7)
+    )
 
     if now_wib < MAINTENANCE_END_DATE:
-        return render_template("maintenance.html"), 503
+
+        return render_template(
+            'maintenance.html'
+        ), 503
 
     return None
 
@@ -83,130 +101,262 @@ def maintenance_interceptor():
 # ==========================================
 
 TRACKER_DATA = {
-    "date": datetime.now(
-        pytz.timezone("Asia/Jakarta")
-    ).date(),
-    "daily_ips": set(),
-    "online_ips": {},
-    "ip_locations": {}
+
+    "date":
+        datetime.now(
+            pytz.timezone(
+                'Asia/Jakarta'
+            )
+        ).date(),
+
+    "daily_ips":
+        set(),
+
+    "online_ips":
+        {},
+
+    "ip_locations":
+        {}
 }
 
 
 def fetch_and_store_location_sync(ip):
+
     """
-    Mengambil perkiraan lokasi IP publik.
-    IP private tidak dikirim ke layanan geolokasi.
+    Pengambilan lokasi disinkronkan dengan batas
+    waktu ketat agar Vercel tidak Crash.
     """
 
     try:
-        ip_obj = ipaddress.ip_address(ip)
-
-        if ip_obj.is_private or ip_obj.is_loopback:
-            TRACKER_DATA["ip_locations"][ip] = "Jaringan Lokal"
-            return
 
         r = requests.get(
-            f"http://ip-api.com/json/{ip}?fields=city,country,status",
+
+            f"http://ip-api.com/json/{ip}"
+            "?fields=city,country,status",
+
             timeout=1.5
+
         )
 
         if r.status_code == 200:
+
             res = r.json()
 
-            if res.get("status") == "success":
-                TRACKER_DATA["ip_locations"][ip] = (
+            if res.get(
+                "status"
+            ) == "success":
+
+                TRACKER_DATA[
+                    "ip_locations"
+                ][ip] = (
+
                     f"{res.get('city', 'Unknown City')}, "
                     f"{res.get('country', 'Unknown Country')}"
+
                 )
+
             else:
-                TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
+
+                TRACKER_DATA[
+                    "ip_locations"
+                ][ip] = (
+                    "Tidak Terdeteksi"
+                )
 
     except Exception:
-        TRACKER_DATA["ip_locations"][ip] = "Tidak Terdeteksi"
+
+        TRACKER_DATA[
+            "ip_locations"
+        ][ip] = (
+            "Tidak Terdeteksi"
+        )
 
 
 @app.before_request
 def visitor_tracker():
-    if request.endpoint and "static" not in request.endpoint:
 
-        tz = pytz.timezone("Asia/Jakarta")
-        today = datetime.now(tz).date()
+    if (
+        request.endpoint
+        and
+        'static' not in request.endpoint
+    ):
 
-        if TRACKER_DATA["date"] != today:
+        tz = pytz.timezone(
+            'Asia/Jakarta'
+        )
+
+        today = datetime.now(
+            tz
+        ).date()
+
+        if (
+            TRACKER_DATA["date"]
+            !=
+            today
+        ):
+
             TRACKER_DATA["date"] = today
-            TRACKER_DATA["daily_ips"].clear()
-            TRACKER_DATA["ip_locations"].clear()
+
+            TRACKER_DATA[
+                "daily_ips"
+            ].clear()
+
+            TRACKER_DATA[
+                "ip_locations"
+            ].clear()
 
         user_ip = request.headers.get(
-            "X-Forwarded-For",
+            'X-Forwarded-For',
             request.remote_addr
         )
 
         if user_ip:
-            user_ip = user_ip.split(",")[0].strip()
 
-            TRACKER_DATA["daily_ips"].add(user_ip)
-            TRACKER_DATA["online_ips"][user_ip] = time.time()
+            user_ip = (
+                user_ip
+                .split(',')[0]
+                .strip()
+            )
 
-            try:
-                private_ip = ipaddress.ip_address(user_ip).is_private
-            except Exception:
-                private_ip = False
+            TRACKER_DATA[
+                "daily_ips"
+            ].add(
+                user_ip
+            )
+
+            TRACKER_DATA[
+                "online_ips"
+            ][user_ip] = (
+                time.time()
+            )
 
             if (
-                user_ip not in TRACKER_DATA["ip_locations"]
-                and not private_ip
+
+                user_ip
+                not in
+                TRACKER_DATA[
+                    "ip_locations"
+                ]
+
+                and
+
+                not user_ip.startswith(
+                    (
+                        '127.',
+                        '192.168.',
+                        '10.'
+                    )
+                )
+
             ):
-                TRACKER_DATA["ip_locations"][user_ip] = (
+
+                TRACKER_DATA[
+                    "ip_locations"
+                ][user_ip] = (
                     "Mendeteksi Lokasi..."
                 )
-                fetch_and_store_location_sync(user_ip)
+
+                fetch_and_store_location_sync(
+                    user_ip
+                )
 
 
 # ==========================================
-# 3. KONEKSI DATABASE FIREBASE
+# 3. KONEKSI DATABASE (FIREBASE)
 # ==========================================
 
 try:
 
-    if os.environ.get("FIREBASE_PRIVATE_KEY"):
+    if os.environ.get(
+        "FIREBASE_PRIVATE_KEY"
+    ):
 
         cred = credentials.Certificate({
-            "type": "service_account",
-            "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
-            "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-            "private_key": os.environ.get(
-                "FIREBASE_PRIVATE_KEY"
-            ).replace("\\n", "\n"),
-            "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
-            "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
+
+            "type":
+                "service_account",
+
+            "project_id":
+                os.environ.get(
+                    "FIREBASE_PROJECT_ID"
+                ),
+
+            "private_key_id":
+                os.environ.get(
+                    "FIREBASE_PRIVATE_KEY_ID"
+                ),
+
+            "private_key":
+                os.environ.get(
+                    "FIREBASE_PRIVATE_KEY"
+                ).replace(
+                    '\\n',
+                    '\n'
+                ),
+
+            "client_email":
+                os.environ.get(
+                    "FIREBASE_CLIENT_EMAIL"
+                ),
+
+            "client_id":
+                os.environ.get(
+                    "FIREBASE_CLIENT_ID"
+                ),
+
+            "auth_uri":
+                "https://accounts.google.com/o/oauth2/auth",
+
+            "token_uri":
+                "https://oauth2.googleapis.com/token",
+
             "auth_provider_x509_cert_url":
                 "https://www.googleapis.com/oauth2/v1/certs",
+
             "client_x509_cert_url":
-                os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
-            "universe_domain": "googleapis.com"
+                os.environ.get(
+                    "FIREBASE_CLIENT_X509_CERT_URL"
+                ),
+
+            "universe_domain":
+                "googleapis.com"
         })
 
     else:
 
-        if os.path.exists("credentials.json"):
-            cred = credentials.Certificate("credentials.json")
+        if os.path.exists(
+            "credentials.json"
+        ):
+
+            cred = credentials.Certificate(
+                "credentials.json"
+            )
+
         else:
+
             cred = None
 
-    if cred and not firebase_admin._apps:
+    if (
+        cred
+        and
+        not firebase_admin._apps
+    ):
+
         firebase_admin.initialize_app(
+
             cred,
+
             {
-                "databaseURL": os.environ.get("DATABASE_URL")
+                'databaseURL':
+                    os.environ.get(
+                        'DATABASE_URL'
+                    )
             }
         )
 
     if firebase_admin._apps:
 
-        ref = db.reference("/")
+        ref = db.reference('/')
 
         print(
             "INFO: Koneksi Basis Data KTVDI berhasil ditetapkan."
@@ -232,51 +382,90 @@ except Exception as e:
 
 
 # ==========================================
-# 4. KONFIGURASI EMAIL SMTP GMAIL
+# 4. KONFIGURASI EMAIL (SMTP GMAIL)
 # ==========================================
 
-app.config["MAIL_SERVER"] = "smtp.gmail.com"
-app.config["MAIL_PORT"] = 587
-app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
-app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
-app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_USERNAME")
+app.config['MAIL_SERVER'] = (
+    'smtp.gmail.com'
+)
 
-mail = Mail(app)
+app.config['MAIL_PORT'] = 587
+
+app.config['MAIL_USE_TLS'] = True
+
+app.config['MAIL_USERNAME'] = (
+    os.environ.get(
+        "MAIL_USERNAME"
+    )
+)
+
+app.config['MAIL_PASSWORD'] = (
+    os.environ.get(
+        "MAIL_PASSWORD"
+    )
+)
+
+app.config['MAIL_DEFAULT_SENDER'] = (
+    os.environ.get(
+        "MAIL_USERNAME"
+    )
+)
+
+mail = Mail(
+    app
+)
 
 
 # ==========================================
-# 5. KONFIGURASI AI GEMINI
+# 5. KONFIGURASI AI (GEMINI)
 # ==========================================
 
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_KEY = os.environ.get(
+    "GEMINI_API_KEY",
+    ""
+)
 
 
 def get_gemini_model():
 
     try:
 
-        if not GEMINI_KEY:
-            return None
-
-        genai.configure(api_key=GEMINI_KEY)
+        genai.configure(
+            api_key=GEMINI_KEY
+        )
 
         safety_settings = [
+
             {
-                "category": "HARM_CATEGORY_HARASSMENT",
-                "threshold": "BLOCK_NONE"
+                "category":
+                    "HARM_CATEGORY_HARASSMENT",
+
+                "threshold":
+                    "BLOCK_NONE"
             },
+
             {
-                "category": "HARM_CATEGORY_HATE_SPEECH",
-                "threshold": "BLOCK_NONE"
+                "category":
+                    "HARM_CATEGORY_HATE_SPEECH",
+
+                "threshold":
+                    "BLOCK_NONE"
             },
+
             {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_NONE"
+                "category":
+                    "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+
+                "threshold":
+                    "BLOCK_NONE"
             },
+
             {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_NONE"
+                "category":
+                    "HARM_CATEGORY_DANGEROUS_CONTENT",
+
+                "threshold":
+                    "BLOCK_NONE"
             }
         ]
 
@@ -288,8 +477,8 @@ def get_gemini_model():
     except Exception as e:
 
         print(
-            f"ERROR: Konfigurasi model Gemini mengalami kegagalan. "
-            f"Rincian: {e}"
+            "ERROR: Konfigurasi model Gemini mengalami "
+            f"kegagalan. Rincian: {e}"
         )
 
         return None
@@ -297,41 +486,41 @@ def get_gemini_model():
 
 MODI_PROMPT = """
 Anda adalah MODI, Asisten Virtual Resmi dari Komunitas TV Digital Indonesia (KTVDI).
-
-Karakteristik Komunikasi:
-Sangat profesional, informatif, objektif, dan menggunakan Bahasa Indonesia
-baku yang tepat sesuai Ejaan Yang Disempurnakan (EYD).
-
+Karakteristik Komunikasi: Sangat profesional, informatif, objektif, dan menggunakan Bahasa Indonesia baku yang tepat sesuai Ejaan Yang Disempurnakan (EYD).
 Tugas Utama:
-1. Memberikan respons yang akurat terkait teknologi Televisi Digital,
-   Set Top Box (STB), topologi antena, dan pemecahan masalah siaran.
-2. Menyampaikan data cuaca dan peringatan dini bencana secara faktual.
+1. Memberikan respons yang akurat terkait teknologi Televisi Digital, Set Top Box (STB), topologi antena, dan pemecahan masalah (troubleshooting) siaran.
+2. Menyampaikan data cuaca dan peringatan dini bencana secara faktual dan presisi.
 3. Menghindari penggunaan bahasa gaul, sapaan informal, atau opini pribadi.
 
-INSTRUKSI KRITIKAL:
-Apabila data Early Warning System (EWS) mengindikasikan bendungan
-berstatus 'Siaga' atau 'Awas', Anda wajib mengeluarkan peringatan resmi
-yang instruktif dan berorientasi pada mitigasi risiko.
+INSTRUKSI KRITIKAL: Apabila data Early Warning System (EWS) mengindikasikan bendungan berstatus 'Siaga' atau 'Awas', Anda wajib mengeluarkan peringatan resmi yang instruktif dan berorientasi pada mitigasi risiko.
 """
 
 
 # ==========================================
-# 6. FUNGSI BANTUAN
+# 6. FUNGSI BANTUAN (HELPERS)
 # ==========================================
 
 def hash_password(pw):
+
     return hashlib.sha256(
-        (pw or "").encode()
+        pw.encode()
     ).hexdigest()
 
 
 def normalize_input(text):
-    return text.strip().lower() if text else ""
+
+    return (
+        text.strip().lower()
+        if text
+        else
+        ""
+    )
 
 
 def format_indo_date(time_struct):
 
     if not time_struct:
+
         return datetime.now().strftime(
             "%A, %d %B %Y - %H:%M WIB"
         )
@@ -339,18 +528,27 @@ def format_indo_date(time_struct):
     try:
 
         dt = datetime.fromtimestamp(
-            time.mktime(time_struct)
+            time.mktime(
+                time_struct
+            )
         )
 
         return dt.strftime(
             "%A, %d %B %Y - %H:%M WIB"
         )
 
-    except Exception:
-        return "Informasi Waktu Tidak Tersedia"
+    except:
+
+        return (
+            "Informasi Waktu Tidak Tersedia"
+        )
 
 
-def get_email_template(action_type, nama_user, otp_code):
+def get_email_template(
+    action_type,
+    nama_user,
+    otp_code
+):
 
     waktu = datetime.now().strftime(
         "%d %B %Y, Pukul %H:%M WIB"
@@ -363,17 +561,20 @@ def get_email_template(action_type, nama_user, otp_code):
             f"[{otp_code}]"
         )
 
-        title = "Verifikasi Pendaftaran Akun Baru"
+        title = (
+            "Verifikasi Pendaftaran Akun Baru"
+        )
 
         desc = (
-            "Sistem kami mendeteksi permintaan pendaftaran akun baru "
-            "di portal Komunitas TV Digital Indonesia (KTVDI) "
-            "yang terafiliasi dengan alamat surel ini."
+            "Sistem kami mendeteksi permintaan pendaftaran "
+            "akun baru di portal Komunitas TV Digital Indonesia "
+            "(KTVDI) yang terafiliasi dengan alamat surel ini."
         )
 
         warning = (
-            "Apabila Anda tidak merasa menginisiasi pendaftaran ini, "
-            "harap abaikan pesan ini. Kode OTP ini bersifat sangat RAHASIA."
+            "Apabila Anda tidak merasa menginisiasi pendaftaran "
+            "ini, harap abaikan pesan ini. Kode OTP ini bersifat "
+            "sangat RAHASIA."
         )
 
     elif action_type == "RESET":
@@ -383,7 +584,9 @@ def get_email_template(action_type, nama_user, otp_code):
             f"Kata Sandi [{otp_code}]"
         )
 
-        title = "Permintaan Atur Ulang Kata Sandi"
+        title = (
+            "Permintaan Atur Ulang Kata Sandi"
+        )
 
         desc = (
             "Sistem kami menerima instruksi untuk mengatur ulang "
@@ -392,21 +595,28 @@ def get_email_template(action_type, nama_user, otp_code):
 
         warning = (
             "JANGAN MEMBERIKAN kode ini kepada pihak mana pun, "
-            "termasuk staf atau administrator KTVDI. Jika permintaan "
-            "ini bukan dari Anda, segera lakukan pengamanan akun."
+            "termasuk staf atau administrator KTVDI. Jika "
+            "permintaan ini bukan dari Anda, segera lakukan "
+            "pengamanan akun."
         )
 
     else:
 
-        subject = "Pemberitahuan Sistem KTVDI"
-        title = "Notifikasi Sistem"
+        subject = (
+            "Pemberitahuan Sistem KTVDI"
+        )
+
+        title = (
+            "Notifikasi Sistem"
+        )
+
         desc = (
             "Terdapat pembaruan informasi terkait akun Anda."
         )
+
         warning = ""
 
-    body = f"""
-========================================================
+    body = f"""========================================================
 SISTEM KEAMANAN RESMI KTVDI
 ========================================================
 
@@ -414,16 +624,13 @@ Yth. {nama_user},
 
 {desc}
 
-Sebagai langkah otorisasi untuk memproses {title}, mohon gunakan
-Kode Verifikasi (OTP) berikut:
+Sebagai langkah otorisasi untuk memproses {title}, mohon gunakan Kode Verifikasi (OTP) berikut:
 
 [ {otp_code} ]
 
-*Catatan: Kode verifikasi ini hanya berlaku selama 60 detik
-terhitung sejak surel ini diterbitkan.
+*Catatan: Kode verifikasi ini hanya berlaku selama 60 detik terhitung sejak surel ini diterbitkan.
 
-INSTRUKSI KEAMANAN:
-{warning}
+INSTRUKSI KEAMANAN: {warning}
 
 Rincian Transaksi Sistem:
 - Waktu Permintaan : {waktu}
@@ -432,15 +639,10 @@ Rincian Transaksi Sistem:
 Hormat kami,
 Divisi Teknologi & Keamanan Informasi,
 Komunitas TV Digital Indonesia (KTVDI)
-========================================================
-"""
+========================================================"""
 
     return subject, body
 
-
-# ==========================================
-# 6.1. TANGGAL HIJRIAH
-# ==========================================
 
 def get_hijri_date_string():
 
@@ -448,11 +650,18 @@ def get_hijri_date_string():
 
     try:
 
-        tz_jakarta = pytz.timezone("Asia/Jakarta")
+        tz_jakarta = pytz.timezone(
+            'Asia/Jakarta'
+        )
 
         now_wib = (
-            datetime.now(tz_jakarta)
-            + timedelta(days=HIJRI_OFFSET)
+            datetime.now(
+                tz_jakarta
+            )
+            +
+            timedelta(
+                days=HIJRI_OFFSET
+            )
         )
 
         url = (
@@ -460,68 +669,129 @@ def get_hijri_date_string():
             f"?date={now_wib.strftime('%d-%m-%Y')}"
         )
 
-        r = requests.get(url, timeout=3)
+        r = requests.get(
+            url,
+            timeout=3
+        )
 
         if r.status_code == 200:
 
-            data = r.json()["data"]["hijri"]
+            data = (
+                r.json()['data']['hijri']
+            )
 
             indo_months = {
-                "Muharram": "Muharam",
-                "Safar": "Safar",
-                "Rabi' al-awwal": "Rabiul Awal",
-                "Rabi' al-thani": "Rabiul Akhir",
-                "Jumada al-awwal": "Jumadil Awal",
-                "Jumada al-thani": "Jumadil Akhir",
-                "Rajab": "Rajab",
-                "Sha'ban": "Syakban",
-                "Ramadan": "Ramadan",
-                "Shawwal": "Syawal",
-                "Dhu al-Qi'dah": "Zulkaidah",
-                "Dhu al-Hijjah": "Zulhijah"
+
+                "Muharram":
+                    "Muharam",
+
+                "Safar":
+                    "Safar",
+
+                "Rabi' al-awwal":
+                    "Rabiul Awal",
+
+                "Rabi' al-thani":
+                    "Rabiul Akhir",
+
+                "Jumada al-awwal":
+                    "Jumadil Awal",
+
+                "Jumada al-thani":
+                    "Jumadil Akhir",
+
+                "Rajab":
+                    "Rajab",
+
+                "Sha'ban":
+                    "Syakban",
+
+                "Ramadan":
+                    "Ramadan",
+
+                "Shawwal":
+                    "Syawal",
+
+                "Dhu al-Qi'dah":
+                    "Zulkaidah",
+
+                "Dhu al-Hijjah":
+                    "Zulhijah"
             }
 
-            d = data["day"].lstrip("0")
-            m = indo_months.get(
-                data["month"]["en"],
-                data["month"]["en"]
-            )
-            y = data["year"]
+            d = data[
+                'day'
+            ].lstrip('0')
 
-            return f"{d} {m} {y} H"
+            m = indo_months.get(
+                data[
+                    'month'
+                ]['en'],
+                data[
+                    'month'
+                ]['en']
+            )
+
+            y = data[
+                'year'
+            ]
+
+            return (
+                f"{d} {m} {y} H"
+            )
 
     except Exception:
+
         pass
 
-    return "Tanggal Hijriah Tidak Tersedia"
+    return (
+        "Tanggal Hijriah Tidak Tersedia"
+    )
 
 
 # ==========================================
-# 6.2. CACHE BERITA
+# CACHE UNTUK BERITA
 # ==========================================
 
 NEWS_CACHE = []
+
 NEWS_LAST_FETCH = 0
 
 
 def get_news_entries():
 
-    global NEWS_CACHE, NEWS_LAST_FETCH
+    global NEWS_CACHE
+    global NEWS_LAST_FETCH
 
     if (
-        len(NEWS_CACHE) > 0
-        and time.time() - NEWS_LAST_FETCH < 30
+
+        len(
+            NEWS_CACHE
+        ) > 0
+
+        and
+
+        (
+            time.time()
+            -
+            NEWS_LAST_FETCH
+            <
+            30
+        )
+
     ):
+
         return NEWS_CACHE
 
     all_news = []
 
     headers = {
-        "User-Agent": "Mozilla/5.0"
+        'User-Agent':
+            'Mozilla/5.0'
     }
 
     # --------------------------------------
-    # BMKG GEMPA TERKINI
+    # BMKG UPDATE
     # --------------------------------------
 
     try:
@@ -537,48 +807,76 @@ def get_news_entries():
                 r_bmkg.content
             )
 
-            gempa = root.find("gempa")
+            gempa = root.find(
+                'gempa'
+            )
 
             if gempa is not None:
 
-                wilayah = gempa.find("Wilayah").text
-                magnitude = gempa.find("Magnitude").text
-                potensi = gempa.find("Potensi").text
-                shakemap = gempa.find("Shakemap").text
+                wilayah = gempa.find(
+                    'Wilayah'
+                ).text
+
+                magnitude = gempa.find(
+                    'Magnitude'
+                ).text
+
+                potensi = gempa.find(
+                    'Potensi'
+                ).text
+
+                shakemap = gempa.find(
+                    'Shakemap'
+                ).text
 
                 all_news.append({
-                    "title": (
+
+                    'title':
                         f"INFORMASI GEMPA BMKG: "
-                        f"Magnitudo {magnitude} di {wilayah} "
-                        f"({potensi})"
-                    ),
-                    "link": "https://warning.bmkg.go.id/",
-                    "published_parsed": datetime.now().timetuple(),
-                    "source_name": "BMKG Resmi",
-                    "image": (
-                        "https://data.bmkg.go.id/"
+                        f"Magnitudo {magnitude} di "
+                        f"{wilayah} ({potensi})",
+
+                    'link':
+                        "https://warning.bmkg.go.id/",
+
+                    'published_parsed':
+                        datetime.now().timetuple(),
+
+                    'source_name':
+                        'BMKG Resmi',
+
+                    'image':
+                        f"https://data.bmkg.go.id/"
                         f"DataMKG/TEWS/{shakemap}"
-                    )
                 })
 
     except Exception:
+
         pass
 
     # --------------------------------------
-    # RSS NEWS
+    # RSS
     # --------------------------------------
 
     try:
 
         sources = [
-            "https://www.kompas.tv/rss",
-            "https://www.setneg.go.id/rss",
-            "https://www.liputan6.com/rss",
-            "https://www.tribunnews.com/rss",
-            "https://www.cnnindonesia.com/nasional/rss",
-            "https://www.cnbcindonesia.com/news/rss",
-            "https://www.antaranews.com/rss/top-news.xml",
-            "https://rss.sindonews.com/news"
+
+            'https://www.kompas.tv/rss',
+
+            'https://www.setneg.go.id/rss',
+
+            'https://www.liputan6.com/rss',
+
+            'https://www.tribunnews.com/rss',
+
+            'https://www.cnnindonesia.com/nasional/rss',
+
+            'https://www.cnbcindonesia.com/news/rss',
+
+            'https://www.antaranews.com/rss/top-news.xml',
+
+            'https://rss.sindonews.com/news'
         ]
 
         def fetch_feed(url):
@@ -592,19 +890,39 @@ def get_news_entries():
                 )
 
                 if res.status_code == 200:
-                    return url, feedparser.parse(res.content)
 
-            except Exception:
-                return url, None
+                    return (
+                        url,
+                        feedparser.parse(
+                            res.content
+                        )
+                    )
 
-            return url, None
+            except:
+
+                return (
+                    url,
+                    None
+                )
+
+            return (
+                url,
+                None
+            )
 
         with concurrent.futures.ThreadPoolExecutor(
-            max_workers=len(sources)
+            max_workers=len(
+                sources
+            )
         ) as pool:
 
             futures = [
-                pool.submit(fetch_feed, url)
+
+                pool.submit(
+                    fetch_feed,
+                    url
+                )
+
                 for url in sources
             ]
 
@@ -614,126 +932,209 @@ def get_news_entries():
 
                 url, feed = future.result()
 
-                if not feed or not feed.entries:
-                    continue
+                if feed and feed.entries:
 
-                for entry in feed.entries[:20]:
+                    for entry in feed.entries[:20]:
 
-                    if "kompas.tv" in url:
-                        source_name = "Kompas TV"
+                        if 'kompas.tv' in url:
 
-                    elif "setneg" in url:
-                        source_name = "Sekretariat Negara"
+                            source_name = 'Kompas TV'
 
-                    elif "liputan6" in url:
-                        source_name = "Liputan 6"
+                        elif 'setneg' in url:
 
-                    elif "tribunnews" in url:
-                        source_name = "Tribunnews"
+                            source_name = 'Sekretariat Negara'
 
-                    elif "cnnindonesia" in url:
-                        source_name = "CNN Indonesia"
+                        elif 'liputan6' in url:
 
-                    elif "cnbcindonesia" in url:
-                        source_name = "CNBC Indonesia"
+                            source_name = 'Liputan 6'
 
-                    elif "antara" in url:
-                        source_name = "Antara News"
+                        elif 'tribunnews' in url:
 
-                    elif "sindonews" in url:
-                        source_name = "Sindonews"
+                            source_name = 'Tribunnews'
 
-                    else:
-                        source_name = (
-                            url.split(".")[1].capitalize()
+                        elif 'cnnindonesia' in url:
+
+                            source_name = 'CNN Indonesia'
+
+                        elif 'cnbcindonesia' in url:
+
+                            source_name = 'CNBC Indonesia'
+
+                        elif 'antara' in url:
+
+                            source_name = 'Antara News'
+
+                        elif 'sindonews' in url:
+
+                            source_name = 'Sindonews'
+
+                        else:
+
+                            source_name = (
+                                url
+                                .split('.')[1]
+                                .capitalize()
+                            )
+
+                        entry[
+                            'source_name'
+                        ] = source_name
+
+                        img_url = None
+
+                        if (
+
+                            'media_content'
+                            in entry
+
+                            and
+                            entry.media_content
+
+                        ):
+
+                            img_url = (
+                                entry
+                                .media_content[0]['url']
+                            )
+
+                        if (
+
+                            not img_url
+                            and
+                            'links'
+                            in entry
+
+                        ):
+
+                            for link in entry.links:
+
+                                if link.get(
+                                    'type',
+                                    ''
+                                ).startswith(
+                                    'image'
+                                ):
+
+                                    img_url = (
+                                        link.get(
+                                            'href'
+                                        )
+                                    )
+
+                                    break
+
+                        if (
+
+                            not img_url
+                            and
+                            'description'
+                            in entry
+
+                        ):
+
+                            match = re.search(
+                                r'src="([^"]+)"',
+                                entry.description
+                            )
+
+                            if match:
+
+                                img_url = (
+                                    match.group(1)
+                                )
+
+                        if (
+
+                            not img_url
+                            and
+                            'enclosures'
+                            in entry
+
+                        ):
+
+                            for enc in entry.enclosures:
+
+                                if enc.get(
+                                    'type',
+                                    ''
+                                ).startswith(
+                                    'image'
+                                ):
+
+                                    img_url = (
+                                        enc.get(
+                                            'href'
+                                        )
+                                    )
+
+                                    break
+
+                        entry[
+                            'image'
+                        ] = img_url
+
+                        all_news.append(
+                            entry
                         )
-
-                    entry["source_name"] = source_name
-
-                    img_url = None
-
-                    if (
-                        "media_content" in entry
-                        and entry.media_content
-                    ):
-
-                        img_url = (
-                            entry.media_content[0]["url"]
-                        )
-
-                    if not img_url and "links" in entry:
-
-                        for link in entry.links:
-
-                            if link.get(
-                                "type", ""
-                            ).startswith("image"):
-
-                                img_url = link.get("href")
-                                break
-
-                    if (
-                        not img_url
-                        and "description" in entry
-                    ):
-
-                        match = re.search(
-                            r'src="([^"]+)"',
-                            entry.description
-                        )
-
-                        if match:
-                            img_url = match.group(1)
-
-                    if not img_url and "enclosures" in entry:
-
-                        for enc in entry.enclosures:
-
-                            if enc.get(
-                                "type", ""
-                            ).startswith("image"):
-
-                                img_url = enc.get("href")
-                                break
-
-                    entry["image"] = img_url
-
-                    all_news.append(entry)
 
         all_news.sort(
+
             key=lambda x:
                 x.published_parsed
-                if x.get("published_parsed")
-                else time.gmtime(0),
+                if x.get(
+                    'published_parsed'
+                )
+                else
+                time.gmtime(0),
+
             reverse=True
+
         )
 
-    except Exception:
+    except:
+
         pass
 
     if not all_news:
 
         if NEWS_CACHE:
+
             return NEWS_CACHE
 
         t = datetime.now().timetuple()
 
         return [{
-            "title":
-                "Pusat Informasi KTVDI Beroperasi Normal",
-            "link": "#",
-            "published_parsed": t,
-            "source_name": "Sistem Internal",
-            "image": None
+
+            'title':
+                'Pusat Informasi KTVDI Beroperasi Normal',
+
+            'link':
+                '#',
+
+            'published_parsed':
+                t,
+
+            'source_name':
+                'Sistem Internal',
+
+            'image':
+                None
         }]
 
-    NEWS_CACHE = all_news[:150]
-    NEWS_LAST_FETCH = time.time()
+    NEWS_CACHE = (
+        all_news[:150]
+    )
+
+    NEWS_LAST_FETCH = (
+        time.time()
+    )
 
     return NEWS_CACHE
 
 
-def time_since_published(published_time):
+def time_since_published(
+    published_time
+):
 
     try:
 
@@ -746,51 +1147,76 @@ def time_since_published(published_time):
         diff = now - pt
 
         if diff.days > 0:
-            return f"{diff.days} hari yang lalu"
+
+            return (
+                f"{diff.days} hari yang lalu"
+            )
 
         if diff.seconds > 3600:
-            return f"{diff.seconds // 3600} jam yang lalu"
+
+            return (
+                f"{diff.seconds // 3600} jam yang lalu"
+            )
 
         if diff.seconds > 60:
-            return f"{diff.seconds // 60} menit yang lalu"
+
+            return (
+                f"{diff.seconds // 60} menit yang lalu"
+            )
 
         return "Terbaru"
 
-    except Exception:
-        return "Waktu tidak dapat dipastikan"
+    except:
+
+        return (
+            "Waktu tidak dapat dipastikan"
+        )
 
 
 def get_quote_religi():
 
     return {
+
         "muslim": [
-            "Maka dirikanlah shalat... (QS. An-Nisa: 103)",
-            "Hindari perbuatan curang dalam bentuk apa pun.",
-            "Manusia terbaik adalah yang memberikan manfaat bagi sesamanya."
+
+            "Maka dirikanlah shalat... "
+            "(QS. An-Nisa: 103)",
+
+            "Hindari perbuatan curang "
+            "dalam bentuk apa pun.",
+
+            "Manusia terbaik adalah yang "
+            "memberikan manfaat bagi sesamanya."
         ],
+
         "universal": [
-            "Integritas adalah landasan dari setiap tindakan yang benar.",
-            "Kedamaian global bermula dari kedamaian personal.",
-            "Kejujuran adalah nilai tukar universal yang diakui secara global."
+
+            "Integritas adalah landasan "
+            "dari setiap tindakan yang benar.",
+
+            "Kedamaian global bermula "
+            "dari kedamaian personal.",
+
+            "Kejujuran adalah nilai tukar "
+            "universal yang diakui secara global."
         ]
     }
 
 
-def get_smart_fallback_response(text):
+def get_smart_fallback_response(
+    text
+):
 
     return (
-        "Mohon maaf, server kecerdasan buatan kami saat ini "
-        "sedang memproses volume antrean yang tinggi. "
-        "Kami memohon kesediaan Anda untuk mencoba kembali "
-        "dalam beberapa saat."
+        "Mohon maaf, server kecerdasan buatan kami "
+        "saat ini sedang memproses volume antrean "
+        "yang tinggi. Kami memohon kesediaan Anda "
+        "untuk mencoba kembali dalam beberapa saat."
     )
 
 
-# ==========================================
-# 6.3. DATA KOTA SHOLAT
-# ==========================================
-
 KEMENAG_KOTA_CACHE = []
+
 KEMENAG_LAST_FETCH = 0
 
 
@@ -800,9 +1226,23 @@ def fetch_kemenag_kota():
     global KEMENAG_LAST_FETCH
 
     if (
-        len(KEMENAG_KOTA_CACHE) > 50
-        and time.time() - KEMENAG_LAST_FETCH < 86400
+
+        len(
+            KEMENAG_KOTA_CACHE
+        ) > 50
+
+        and
+
+        (
+            time.time()
+            -
+            KEMENAG_LAST_FETCH
+            <
+            86400
+        )
+
     ):
+
         return KEMENAG_KOTA_CACHE
 
     try:
@@ -816,49 +1256,87 @@ def fetch_kemenag_kota():
 
             data = r.json()
 
-            if data.get("status") and "data" in data:
+            if (
+                data.get('status')
+                and
+                'data' in data
+            ):
 
                 all_cities = [
+
                     {
-                        "id": item["id"],
-                        "nama": item["lokasi"].title()
+                        "id":
+                            item['id'],
+
+                        "nama":
+                            item['lokasi'].title()
                     }
-                    for item in data["data"]
+
+                    for item
+                    in data['data']
                 ]
 
                 KEMENAG_KOTA_CACHE = sorted(
+
                     all_cities,
-                    key=lambda x: x["nama"]
+
+                    key=lambda x:
+                        x['nama']
+
                 )
 
-                KEMENAG_LAST_FETCH = time.time()
+                KEMENAG_LAST_FETCH = (
+                    time.time()
+                )
 
                 return KEMENAG_KOTA_CACHE
 
     except Exception:
+
         pass
 
     return [
+
         {
-            "id": "1301",
-            "nama": "Kota Jakarta"
+            "id":
+                "1301",
+
+            "nama":
+                "Kota Jakarta"
         },
+
         {
-            "id": "1604",
-            "nama": "Kota Semarang"
+            "id":
+                "1604",
+
+            "nama":
+                "Kota Semarang"
         },
+
         {
-            "id": "1638",
-            "nama": "Kota Surabaya"
+            "id":
+                "1638",
+
+            "nama":
+                "Kota Surabaya"
         },
+
         {
-            "id": "0418",
-            "nama": "Kota Medan"
+            "id":
+                "0418",
+
+            "nama":
+                "Kota Medan"
         },
+
         {
-            "id": "1205",
-            "nama": "Kota Bandung"
+            "id":
+                "1205",
+
+            "nama":
+                "Kota Bandung"
         }
+
     ]
 
 
@@ -866,82 +1344,165 @@ def fetch_kemenag_kota():
 # 7. LOGIKA EWS & CUACA
 # ==========================================
 
-def smart_convert_cm(value):
+def smart_convert_cm(
+    value
+):
 
     try:
 
-        val_float = float(value)
+        val_float = float(
+            value
+        )
 
-        if val_float != 0 and val_float < 50:
+        if (
+
+            val_float != 0
+
+            and
+
+            val_float < 50
+
+        ):
+
             return f"{val_float * 100:.0f}"
 
         return f"{val_float:.0f}"
 
-    except Exception:
+    except:
+
         return "0"
 
 
 def get_cuaca_10_kota():
 
     cities = [
+
         {
-            "name": "Semarang",
-            "lat": -6.9667,
-            "lon": 110.4167
+            "name":
+                "Semarang",
+
+            "lat":
+                -6.9667,
+
+            "lon":
+                110.4167
         },
+
         {
-            "name": "Surakarta",
-            "lat": -7.5761,
-            "lon": 110.8294
+            "name":
+                "Surakarta",
+
+            "lat":
+                -7.5761,
+
+            "lon":
+                110.8294
         },
+
         {
-            "name": "Tegal",
-            "lat": -6.8694,
-            "lon": 109.1403
+            "name":
+                "Tegal",
+
+            "lat":
+                -6.8694,
+
+            "lon":
+                109.1403
         },
+
         {
-            "name": "Pekalongan",
-            "lat": -6.8886,
-            "lon": 109.6753
+            "name":
+                "Pekalongan",
+
+            "lat":
+                -6.8886,
+
+            "lon":
+                109.6753
         },
+
         {
-            "name": "Salatiga",
-            "lat": -7.3305,
-            "lon": 110.5084
+            "name":
+                "Salatiga",
+
+            "lat":
+                -7.3305,
+
+            "lon":
+                110.5084
         },
+
         {
-            "name": "Magelang",
-            "lat": -7.4706,
-            "lon": 110.2178
+            "name":
+                "Magelang",
+
+            "lat":
+                -7.4706,
+
+            "lon":
+                110.2178
         },
+
         {
-            "name": "Purwokerto",
-            "lat": -7.4245,
-            "lon": 109.2302
+            "name":
+                "Purwokerto",
+
+            "lat":
+                -7.4245,
+
+            "lon":
+                109.2302
         },
+
         {
-            "name": "Cilacap",
-            "lat": -7.7279,
-            "lon": 109.0077
+            "name":
+                "Cilacap",
+
+            "lat":
+                -7.7279,
+
+            "lon":
+                109.0077
         },
+
         {
-            "name": "Kudus",
-            "lat": -6.8048,
-            "lon": 110.8405
+            "name":
+                "Kudus",
+
+            "lat":
+                -6.8048,
+
+            "lon":
+                110.8405
         },
+
         {
-            "name": "Pati",
-            "lat": -6.7550,
-            "lon": 111.0380
+            "name":
+                "Pati",
+
+            "lat":
+                -6.7550,
+
+            "lon":
+                111.0380
         }
+
     ]
 
     lats = ",".join(
-        str(c["lat"]) for c in cities
+
+        [
+            str(c['lat'])
+            for c in cities
+        ]
     )
 
     lons = ",".join(
-        str(c["lon"]) for c in cities
+
+        [
+            str(c['lon'])
+            for c in cities
+        ]
     )
 
     url = (
@@ -966,68 +1527,116 @@ def get_cuaca_10_kota():
             data = r.json()
 
             data_list = (
+
                 data
-                if isinstance(data, list)
-                else [data]
-                if "current" in data
-                else []
+
+                if isinstance(
+                    data,
+                    list
+                )
+
+                else
+
+                [data]
+
+                if 'current' in data
+
+                else
+
+                []
+
             )
 
-            for i, item in enumerate(data_list):
+            for i, item in enumerate(
+                data_list
+            ):
 
-                if i >= len(cities):
+                if i >= len(
+                    cities
+                ):
+
                     break
 
-                code = item["current"]["weather_code"]
-                temp = item["current"]["temperature_2m"]
+                code = item[
+                    'current'
+                ]['weather_code']
+
+                temp = item[
+                    'current'
+                ]['temperature_2m']
 
                 status = "Berawan"
+
                 icon = "fa-cloud"
+
                 anim = "float"
 
                 if code in [0, 1]:
 
                     status = "Cerah"
+
                     icon = "fa-sun"
+
                     anim = "spin-slow"
 
                 elif code in [2, 3]:
 
                     status = "Berawan"
+
                     icon = "fa-cloud-sun"
+
                     anim = "float"
 
                 elif code in [45, 48]:
 
                     status = "Kabut"
+
                     icon = "fa-smog"
+
                     anim = "pulse"
 
                 elif code in [
+
                     51, 53, 55,
                     61, 63, 65,
                     80, 81, 82
+
                 ]:
 
                     status = "Hujan"
+
                     icon = "fa-cloud-rain"
+
                     anim = "bounce"
 
                 elif code >= 95:
 
                     status = "Badai"
+
                     icon = "fa-bolt"
+
                     anim = "flash"
 
                 results.append({
-                    "kota": cities[i]["name"],
-                    "suhu": round(temp),
-                    "cuaca": status,
-                    "icon": icon,
-                    "anim": anim
+
+                    "kota":
+                        cities[i]['name'],
+
+                    "suhu":
+                        round(temp),
+
+                    "cuaca":
+                        status,
+
+                    "icon":
+                        icon,
+
+                    "anim":
+                        anim
                 })
 
-    except Exception:
+    except:
+
         pass
 
     if not results:
@@ -1035,17 +1644,29 @@ def get_cuaca_10_kota():
         for c in cities:
 
             results.append({
-                "kota": c["name"],
-                "suhu": "-",
-                "cuaca": "Tidak Tersedia",
-                "icon": "fa-cloud",
-                "anim": ""
+
+                "kota":
+                    c['name'],
+
+                "suhu":
+                    "-",
+
+                "cuaca":
+                    "Tidak Tersedia",
+
+                "icon":
+                    "fa-cloud",
+
+                "anim":
+                    ""
             })
 
     return results
 
 
-def normalize_dam_data(raw_data):
+def normalize_dam_data(
+    raw_data
+):
 
     clean_data = []
 
@@ -1054,59 +1675,125 @@ def normalize_dam_data(raw_data):
         try:
 
             latest = item.get(
-                "latest_debit_report",
+                'latest_debit_report',
                 {}
             )
 
-            if not isinstance(latest, dict):
+            if not isinstance(
+                latest,
+                dict
+            ):
+
                 latest = {}
 
             name = (
-                item.get("dam_name")
-                or item.get("nama")
-                or item.get("name")
-                or "Infrastruktur Bendungan"
+
+                item.get(
+                    'dam_name'
+                )
+
+                or
+
+                item.get(
+                    'nama'
+                )
+
+                or
+
+                item.get(
+                    'name'
+                )
+
+                or
+
+                "Infrastruktur Bendungan"
             )
 
-            siaga_val = item.get("siaga", 0)
-            awas_val = item.get("awas", 0)
+            siaga_val = item.get(
+                'siaga',
+                0
+            )
 
-            siaga_cm = smart_convert_cm(siaga_val)
-            awas_cm = smart_convert_cm(awas_val)
+            awas_val = item.get(
+                'awas',
+                0
+            )
 
-            if float(siaga_cm) == 0:
+            siaga_cm = smart_convert_cm(
+                siaga_val
+            )
+
+            awas_cm = smart_convert_cm(
+                awas_val
+            )
+
+            if float(
+                siaga_cm
+            ) == 0:
+
                 siaga_cm = "200"
 
-            if float(awas_cm) == 0:
+            if float(
+                awas_cm
+            ) == 0:
+
                 awas_cm = "300"
 
             raw_tma = (
-                latest.get("limpas")
+
+                latest.get(
+                    'limpas'
+                )
+
                 if latest
+
                 else (
-                    item.get("tma")
-                    or item.get("siap")
-                    or 0
+
+                    item.get('tma')
+                    or
+                    item.get('siap')
+                    or
+                    0
+
                 )
             )
 
-            tma_cm = smart_convert_cm(raw_tma)
-
-            raw_time = (
-                latest.get("created_at")
-                or item.get("updated_at")
+            tma_cm = smart_convert_cm(
+                raw_tma
             )
 
-            waktu_display = "Pembaruan Terakhir"
+            raw_time = (
+
+                latest.get(
+                    'created_at'
+                )
+
+                or
+
+                item.get(
+                    'updated_at'
+                )
+            )
+
+            waktu_display = (
+                "Pembaruan Terakhir"
+            )
 
             if raw_time:
 
                 try:
 
                     clean_str = (
-                        str(raw_time)
-                        .split(".")[0]
-                        .replace("Z", "")
+
+                        str(
+                            raw_time
+                        )
+                        .split('.')[0]
+                        .replace(
+                            'Z',
+                            ''
+                        )
+
                     )
 
                     dt_utc = datetime.strptime(
@@ -1116,66 +1803,130 @@ def normalize_dam_data(raw_data):
 
                     dt_wib = (
                         dt_utc
-                        + timedelta(hours=7)
+                        +
+                        timedelta(
+                            hours=7
+                        )
                     )
-
-                    waktu_display = dt_wib.strftime(
-                        "%d-%m-%Y %H:%M"
-                    )
-
-                except Exception:
 
                     waktu_display = (
-                        str(raw_time)[:16]
-                        .replace("T", " ")
+                        dt_wib.strftime(
+                            "%d-%m-%Y %H:%M"
+                        )
+                    )
+
+                except:
+
+                    waktu_display = (
+                        str(
+                            raw_time
+                        )[:16]
+                        .replace(
+                            'T',
+                            ' '
+                        )
                     )
 
             status = (
-                latest.get("status")
-                or item.get("status_alert")
-                or "Operasional Normal"
+
+                latest.get(
+                    'status'
+                )
+
+                or
+
+                item.get(
+                    'status_alert'
+                )
+
+                or
+
+                'Operasional Normal'
             )
 
-            pob = latest.get("pob_id")
+            pob = latest.get(
+                'pob_id'
+            )
 
             petugas = (
+
                 f"ID Petugas: {pob}"
+
                 if pob
-                else "Unit Pemantauan"
+
+                else
+
+                "Unit Pemantauan"
             )
 
             cuaca_lokal = latest.get(
-                "cuaca",
-                "Berawan"
+                'cuaca',
+                'Berawan'
             )
 
             dam = {
-                "name": name,
-                "tma": tma_cm,
-                "siaga": siaga_cm,
-                "awas": awas_cm,
-                "inflow": latest.get("debit", 0),
-                "outflow": latest.get(
-                    "debit_ke_saluran_induk",
-                    0
-                ),
-                "status": status,
-                "cuaca": cuaca_lokal,
-                "petugas": petugas,
-                "updated_at": (
-                    waktu_display
-                    + " WIB"
-                ),
-                "lokasi": (
-                    item.get("river_name")
-                    or item.get("regency_name")
-                    or "Jawa Tengah"
-                )
+
+                'name':
+                    name,
+
+                'tma':
+                    tma_cm,
+
+                'siaga':
+                    siaga_cm,
+
+                'awas':
+                    awas_cm,
+
+                'inflow':
+                    latest.get(
+                        'debit',
+                        0
+                    ),
+
+                'outflow':
+                    latest.get(
+                        'debit_ke_saluran_induk',
+                        0
+                    ),
+
+                'status':
+                    status,
+
+                'cuaca':
+                    cuaca_lokal,
+
+                'petugas':
+                    petugas,
+
+                'updated_at':
+                    waktu_display +
+                    " WIB",
+
+                'lokasi':
+                    (
+                        item.get(
+                            'river_name'
+                        )
+
+                        or
+
+                        item.get(
+                            'regency_name'
+                        )
+
+                        or
+
+                        'Jawa Tengah'
+                    )
             }
 
-            clean_data.append(dam)
+            clean_data.append(
+                dam
+            )
 
-        except Exception:
+        except:
+
             continue
 
     return clean_data
@@ -1184,13 +1935,21 @@ def normalize_dam_data(raw_data):
 def fetch_ews_data():
 
     headers = {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json"
+
+        'User-Agent':
+            'Mozilla/5.0',
+
+        'Accept':
+            'application/json'
     }
 
     try:
 
-        ts = int(time.time() * 1000)
+        ts = int(
+            time.time()
+            *
+            1000
+        )
 
         url = (
             "https://siagakranji.my.id/"
@@ -1209,21 +1968,41 @@ def fetch_ews_data():
             data = r.json()
 
             raw_list = (
-                data.get("data")
-                or data.get("result")
-                or (
+
+                data.get(
+                    'data'
+                )
+
+                or
+
+                data.get(
+                    'result'
+                )
+
+                or
+
+                (
                     data
-                    if isinstance(data, list)
-                    else []
+
+                    if isinstance(
+                        data,
+                        list
+                    )
+
+                    else
+
+                    []
                 )
             )
 
             if raw_list:
+
                 return normalize_dam_data(
                     raw_list
                 )
 
-    except Exception:
+    except:
+
         pass
 
     try:
@@ -1245,7 +2024,7 @@ def fetch_ews_data():
             data = r.json()
 
             raw_list = data.get(
-                "data",
+                'data',
                 []
             )
 
@@ -1253,23 +2032,33 @@ def fetch_ews_data():
                 raw_list
             )
 
-    except Exception:
+    except:
+
         pass
 
     return []
 
 
 # ==========================================
-# 8. ROUTES UTAMA
+# 8. ROUTES & CONTROLLERS
 # ==========================================
 
-@app.route("/", methods=["GET"])
+@app.route(
+    "/",
+    methods=['GET']
+)
 def home():
 
     stats = {
-        "wilayah": 0,
-        "mux": 0,
-        "channel": 0
+
+        'wilayah':
+            0,
+
+        'mux':
+            0,
+
+        'channel':
+            0
     }
 
     last_str = "-"
@@ -1279,62 +2068,84 @@ def home():
         try:
 
             siaran = (
-                ref.child("siaran").get()
-                or {}
+                ref.child(
+                    'siaran'
+                ).get()
+                or
+                {}
             )
 
             for prov in siaran.values():
 
-                if isinstance(prov, dict):
+                if isinstance(
+                    prov,
+                    dict
+                ):
 
-                    stats["wilayah"] += len(prov)
+                    stats[
+                        'wilayah'
+                    ] += len(
+                        prov
+                    )
 
                     for wil in prov.values():
 
-                        if isinstance(wil, dict):
+                        if isinstance(
+                            wil,
+                            dict
+                        ):
 
-                            stats["mux"] += len(wil)
+                            stats[
+                                'mux'
+                            ] += len(
+                                wil
+                            )
 
                             for d in wil.values():
 
                                 if (
-                                    isinstance(d, dict)
-                                    and "siaran" in d
+                                    'siaran'
+                                    in
+                                    d
                                 ):
 
-                                    stats["channel"] += len(
-                                        d["siaran"]
+                                    stats[
+                                        'channel'
+                                    ] += len(
+                                        d[
+                                            'siaran'
+                                        ]
                                     )
 
             last_str = datetime.now().strftime(
-                "%d-%m-%Y"
+                '%d-%m-%Y'
             )
 
-        except Exception:
+        except:
+
             pass
 
     return render_template(
-        "index.html",
+        'index.html',
         stats=stats,
         last_updated_time=last_str
     )
 
 
-# ==========================================
-# 8.1 LOGIN
-# ==========================================
-
-@app.route("/login", methods=["GET", "POST"])
+@app.route(
+    '/login',
+    methods=['GET', 'POST']
+)
 def login():
 
-    if request.method == "POST":
+    if request.method == 'POST':
 
         raw_input = request.form.get(
-            "username"
+            'username'
         )
 
         password = request.form.get(
-            "password"
+            'password'
         )
 
         hashed_pw = hash_password(
@@ -1348,7 +2159,7 @@ def login():
         if not ref:
 
             return render_template(
-                "login.html",
+                'login.html',
                 error=(
                     "Sistem gagal terhubung "
                     "ke pangkalan data utama."
@@ -1356,59 +2167,97 @@ def login():
             )
 
         users = (
-            ref.child("users").get()
-            or {}
+            ref.child(
+                'users'
+            ).get()
+            or
+            {}
         )
 
         target_user = None
+
         target_uid = None
 
         for uid, data in users.items():
 
-            if not isinstance(data, dict):
+            if not isinstance(
+                data,
+                dict
+            ):
+
                 continue
 
             if (
-                normalize_input(uid)
-                == clean_input
+
+                normalize_input(
+                    uid
+                )
+                ==
+                clean_input
+
             ):
 
                 target_user = data
+
                 target_uid = uid
+
                 break
 
             if (
+
                 normalize_input(
-                    data.get("email")
+                    data.get(
+                        'email'
+                    )
                 )
-                == clean_input
+                ==
+                clean_input
+
             ):
 
                 target_user = data
+
                 target_uid = uid
+
                 break
 
         if (
+
             target_user
-            and target_user.get("password")
-            == hashed_pw
+
+            and
+
+            target_user.get(
+                'password'
+            )
+            ==
+            hashed_pw
+
         ):
 
             session.permanent = True
 
-            session["user"] = target_uid
+            session[
+                'user'
+            ] = target_uid
 
-            session["nama"] = target_user.get(
-                "nama",
-                "Pengguna Terdaftar"
+            session[
+                'nama'
+            ] = (
+                target_user.get(
+                    'nama',
+                    'Pengguna Terdaftar'
+                )
             )
 
             return redirect(
-                url_for("dashboard")
+                url_for(
+                    'dashboard'
+                )
             )
 
         return render_template(
-            "login.html",
+            'login.html',
             error=(
                 "Kredensial identitas atau "
                 "kata sandi yang Anda masukkan "
@@ -1416,47 +2265,60 @@ def login():
             )
         )
 
-    return render_template("login.html")
+    return render_template(
+        'login.html'
+    )
 
 
-# ==========================================
-# 8.2 REGISTER
-# ==========================================
-
-@app.route("/register", methods=["GET", "POST"])
+@app.route(
+    "/register",
+    methods=["GET", "POST"]
+)
 def register():
 
     if request.method == "POST":
 
         u = normalize_input(
-            request.form.get("username")
+            request.form.get(
+                "username"
+            )
         )
 
         e = normalize_input(
-            request.form.get("email")
+            request.form.get(
+                "email"
+            )
         )
 
-        n = request.form.get("nama")
-        p = request.form.get("password")
+        n = request.form.get(
+            "nama"
+        )
+
+        p = request.form.get(
+            "password"
+        )
 
         if not ref:
 
             return (
-                "Terjadi galat pada koneksi basis data. "
-                "Harap hubungi administrator.",
+                "Terjadi galat pada koneksi "
+                "basis data. Harap hubungi administrator.",
                 500
             )
 
         users = (
-            ref.child("users").get()
-            or {}
+            ref.child(
+                "users"
+            ).get()
+            or
+            {}
         )
 
         if u in users:
 
             flash(
-                "Nama pengguna tersebut telah terdaftar "
-                "di dalam sistem.",
+                "Nama pengguna tersebut telah "
+                "terdaftar di dalam sistem.",
                 "error"
             )
 
@@ -1467,10 +2329,15 @@ def register():
         for uid, data in users.items():
 
             if (
-                isinstance(data, dict)
-                and normalize_input(
-                    data.get("email")
-                ) == e
+
+                normalize_input(
+                    data.get(
+                        'email'
+                    )
+                )
+                ==
+                e
+
             ):
 
                 flash(
@@ -1484,27 +2351,48 @@ def register():
                 )
 
         otp = str(
-            random.randint(100000, 999999)
+            random.randint(
+                100000,
+                999999
+            )
         )
 
-        expiry = time.time() + 60
+        expiry = (
+            time.time()
+            +
+            60
+        )
 
         ref.child(
-            f"pending_users/{u}"
+            f'pending_users/{u}'
         ).set({
-            "nama": n,
-            "email": e,
-            "password": hash_password(p),
-            "otp": otp,
-            "expiry": expiry
+
+            "nama":
+                n,
+
+            "email":
+                e,
+
+            "password":
+                hash_password(
+                    p
+                ),
+
+            "otp":
+                otp,
+
+            "expiry":
+                expiry
         })
 
         try:
 
-            subject, body = get_email_template(
-                "REGISTER",
-                n,
-                otp
+            subject, body = (
+                get_email_template(
+                    "REGISTER",
+                    n,
+                    otp
+                )
             )
 
             msg = Message(
@@ -1514,20 +2402,26 @@ def register():
 
             msg.body = body
 
-            mail.send(msg)
-
-            session["pending_username"] = u
-
-            return redirect(
-                url_for("verify_register")
+            mail.send(
+                msg
             )
 
-        except Exception:
+            session[
+                "pending_username"
+            ] = u
+
+            return redirect(
+                url_for(
+                    "verify_register"
+                )
+            )
+
+        except:
 
             flash(
                 "Kegagalan transmisi surel. "
-                "Pastikan alamat yang diberikan valid "
-                "dan aktif.",
+                "Pastikan alamat yang diberikan "
+                "valid dan aktif.",
                 "error"
             )
 
@@ -1535,10 +2429,6 @@ def register():
         "register.html"
     )
 
-
-# ==========================================
-# 8.3 VERIFIKASI REGISTER
-# ==========================================
 
 @app.route(
     "/verify-register",
@@ -1551,76 +2441,100 @@ def verify_register():
     )
 
     if not u:
+
         return redirect(
-            url_for("register")
+            url_for(
+                "register"
+            )
         )
 
     if request.method == "POST":
 
         p = (
             ref.child(
-                f"pending_users/{u}"
+                f'pending_users/{u}'
             ).get()
         )
 
         if not p:
+
             return redirect(
-                url_for("register")
+                url_for(
+                    "register"
+                )
             )
 
         if time.time() > p.get(
-            "expiry",
+            'expiry',
             0
         ):
 
             flash(
-                "Sesi kode verifikasi telah berakhir. "
-                "Silakan lakukan permohonan ulang.",
+                "Sesi kode verifikasi telah "
+                "berakhir. Silakan lakukan "
+                "permohonan ulang.",
                 "error"
             )
 
             ref.child(
-                f"pending_users/{u}"
+                f'pending_users/{u}'
             ).delete()
 
             return redirect(
-                url_for("register")
+                url_for(
+                    "register"
+                )
             )
 
-        submitted_otp = (
-            request.form.get("otp") or ""
-        ).strip()
-
         if (
-            str(p.get("otp")).strip()
-            == submitted_otp
+
+            str(
+                p.get(
+                    'otp'
+                )
+            ).strip()
+
+            ==
+
+            request.form.get(
+                "otp"
+            ).strip()
+
         ):
 
             ref.child(
-                f"users/{u}"
+                f'users/{u}'
             ).set({
-                "nama": p["nama"],
-                "email": p["email"],
-                "password": p["password"]
+
+                "nama":
+                    p['nama'],
+
+                "email":
+                    p['email'],
+
+                "password":
+                    p['password']
             })
 
             ref.child(
-                f"pending_users/{u}"
+                f'pending_users/{u}'
             ).delete()
 
             session.pop(
-                "pending_username",
+                'pending_username',
                 None
             )
 
             flash(
-                "Registrasi telah berhasil diproses. "
-                "Silakan masuk.",
+                "Registrasi telah berhasil "
+                "diproses. Silakan masuk.",
                 "success"
             )
 
             return redirect(
-                url_for("login")
+                url_for(
+                    'login'
+                )
             )
 
         flash(
@@ -1635,10 +2549,6 @@ def verify_register():
     )
 
 
-# ==========================================
-# 8.4 FORGOT PASSWORD
-# ==========================================
-
 @app.route(
     "/forgot-password",
     methods=["GET", "POST"]
@@ -1648,36 +2558,49 @@ def forgot_password():
     if request.method == "POST":
 
         email_input = normalize_input(
-            request.form.get("identifier")
+            request.form.get(
+                "identifier"
+            )
         )
 
-        if not ref:
-            return render_template(
-                "forgot-password.html"
-            )
-
         users = (
-            ref.child("users").get()
-            or {}
+            ref.child(
+                "users"
+            ).get()
+            or
+            {}
         )
 
         found_uid = None
+
         user_name = "Pengguna"
 
         for uid, user_data in users.items():
 
             if (
-                isinstance(user_data, dict)
-                and normalize_input(
-                    user_data.get("email")
-                ) == email_input
+
+                isinstance(
+                    user_data,
+                    dict
+                )
+
+                and
+
+                normalize_input(
+                    user_data.get(
+                        'email'
+                    )
+                )
+                ==
+                email_input
+
             ):
 
                 found_uid = uid
 
                 user_name = user_data.get(
-                    "nama",
-                    "Pengguna"
+                    'nama',
+                    'Pengguna'
                 )
 
                 break
@@ -1691,50 +2614,67 @@ def forgot_password():
                 )
             )
 
-            expiry = time.time() + 60
+            expiry = (
+                time.time()
+                +
+                60
+            )
 
             ref.child(
                 f"otp/{found_uid}"
             ).set({
-                "email": email_input,
-                "otp": otp,
-                "expiry": expiry
+
+                "email":
+                    email_input,
+
+                "otp":
+                    otp,
+
+                "expiry":
+                    expiry
             })
 
             try:
 
-                subject, body = get_email_template(
-                    "RESET",
-                    user_name,
-                    otp
+                subject, body = (
+                    get_email_template(
+                        "RESET",
+                        user_name,
+                        otp
+                    )
                 )
 
                 msg = Message(
                     subject,
-                    recipients=[email_input]
+                    recipients=[
+                        email_input
+                    ]
                 )
 
                 msg.body = body
 
-                mail.send(msg)
-
-                session["reset_uid"] = found_uid
-
-                return redirect(
-                    url_for("verify_otp")
+                mail.send(
+                    msg
                 )
 
-            except Exception:
+                session[
+                    "reset_uid"
+                ] = found_uid
+
+                return redirect(
+                    url_for(
+                        "verify_otp"
+                    )
+                )
+
+            except:
+
                 pass
 
     return render_template(
         "forgot-password.html"
     )
 
-
-# ==========================================
-# 8.5 VERIFY OTP
-# ==========================================
 
 @app.route(
     "/verify-otp",
@@ -1747,8 +2687,11 @@ def verify_otp():
     )
 
     if not uid:
+
         return redirect(
-            url_for("forgot_password")
+            url_for(
+                "forgot_password"
+            )
         )
 
     if request.method == "POST":
@@ -1760,12 +2703,15 @@ def verify_otp():
         )
 
         if not data:
+
             return redirect(
-                url_for("forgot_password")
+                url_for(
+                    "forgot_password"
+                )
             )
 
         if time.time() > data.get(
-            "expiry",
+            'expiry',
             0
         ):
 
@@ -1776,22 +2722,35 @@ def verify_otp():
             )
 
             return redirect(
-                url_for("forgot_password")
+                url_for(
+                    "forgot_password"
+                )
             )
 
-        submitted_otp = (
-            request.form.get("otp") or ""
-        ).strip()
-
         if (
-            str(data.get("otp")).strip()
-            == submitted_otp
+
+            str(
+                data.get(
+                    "otp"
+                )
+            ).strip()
+
+            ==
+
+            request.form.get(
+                "otp"
+            ).strip()
+
         ):
 
-            session["reset_verified"] = True
+            session[
+                'reset_verified'
+            ] = True
 
             return redirect(
-                url_for("reset_password")
+                url_for(
+                    "reset_password"
+                )
             )
 
         flash(
@@ -1804,10 +2763,6 @@ def verify_otp():
     )
 
 
-# ==========================================
-# 8.6 RESET PASSWORD
-# ==========================================
-
 @app.route(
     "/reset-password",
     methods=["GET", "POST"]
@@ -1815,11 +2770,13 @@ def verify_otp():
 def reset_password():
 
     if not session.get(
-        "reset_verified"
+        'reset_verified'
     ):
 
         return redirect(
-            url_for("login")
+            url_for(
+                'login'
+            )
         )
 
     if request.method == "POST":
@@ -1835,7 +2792,11 @@ def reset_password():
         ref.child(
             f"users/{uid}"
         ).update({
-            "password": hash_password(pw)
+
+            "password":
+                hash_password(
+                    pw
+                )
         })
 
         ref.child(
@@ -1845,7 +2806,9 @@ def reset_password():
         session.clear()
 
         return redirect(
-            url_for("login")
+            url_for(
+                'login'
+            )
         )
 
     return render_template(
@@ -1853,27 +2816,29 @@ def reset_password():
     )
 
 
-@app.route("/logout")
+@app.route(
+    '/logout'
+)
 def logout():
 
     session.clear()
 
     return redirect(
-        url_for("login")
+        url_for(
+            'login'
+        )
     )
 
 
-# ==========================================
-# 8.7 BERITA
-# ==========================================
-
-@app.route("/berita")
+@app.route(
+    '/berita'
+)
 def berita_page():
 
     entries = get_news_entries()
 
     page = request.args.get(
-        "page",
+        'page',
         1,
         type=int
     )
@@ -1884,87 +2849,113 @@ def berita_page():
         page - 1
     ) * per_page
 
-    end = start + per_page
+    end = (
+        start
+        +
+        per_page
+    )
 
     current = entries[
         start:end
     ]
 
-    for article in current:
+    for a in current:
 
         if (
-            "published_parsed" in article
-            and article["published_parsed"]
+
+            'published_parsed' in a
+
+            and
+
+            a['published_parsed']
+
         ):
 
-            article["formatted_date"] = (
-                format_indo_date(
-                    article["published_parsed"]
-                )
+            a[
+                'formatted_date'
+            ] = format_indo_date(
+                a[
+                    'published_parsed'
+                ]
             )
 
-            article["time_since_published"] = (
-                time_since_published(
-                    article["published_parsed"]
-                )
+            a[
+                'time_since_published'
+            ] = time_since_published(
+                a[
+                    'published_parsed'
+                ]
             )
 
         else:
 
-            article["formatted_date"] = (
+            a[
+                'formatted_date'
+            ] = (
                 "Data Waktu Tidak Tersedia"
             )
 
-            article["time_since_published"] = (
-                "Terkini"
-            )
+            a[
+                'time_since_published'
+            ] = "Terkini"
 
-    total_pages = max(
-        1,
-        (len(entries) + per_page - 1)
-        // per_page
-    )
+    total_pages = (
+        len(entries)
+        //
+        per_page
+    ) + 1
 
     return render_template(
-        "berita.html",
+        'berita.html',
         articles=current,
         page=page,
         total_pages=total_pages
     )
 
 
-# ==========================================
-# 8.8 DASHBOARD
-# ==========================================
-
-@app.route("/dashboard")
+@app.route(
+    "/dashboard"
+)
 def dashboard():
 
-    if "user" not in session:
+    if 'user' not in session:
+
         return redirect(
-            url_for("login")
+            url_for(
+                'login'
+            )
         )
 
     data = (
-        ref.child("provinsi").get()
-        or {}
+        ref.child(
+            "provinsi"
+        ).get()
+        or
+        {}
     )
 
     return render_template(
         "dashboard.html",
-        name=session.get("nama"),
+        name=session.get(
+            'nama'
+        ),
         provinsi_list=list(
             data.values()
         )
     )
 
 
-@app.route("/daftar-siaran")
+@app.route(
+    "/daftar-siaran"
+)
 def daftar_siaran():
 
     data = (
-        ref.child("provinsi").get()
-        or {}
+        ref.child(
+            "provinsi"
+        ).get()
+        or
+        {}
     )
 
     return render_template(
@@ -1975,35 +2966,45 @@ def daftar_siaran():
     )
 
 
-# ==========================================
-# 8.9 DATA SIARAN
-# ==========================================
-
 @app.route(
     "/add_data",
     methods=["GET", "POST"]
 )
 def add_data():
 
-    if "user" not in session:
+    if 'user' not in session:
+
         return redirect(
-            url_for("login")
+            url_for(
+                'login'
+            )
         )
 
     prov_data = (
-        ref.child("provinsi").get()
-        or {}
+        ref.child(
+            "provinsi"
+        ).get()
+        or
+        {}
     )
 
     provinsi_list = (
-        list(prov_data.values())
+
+        list(
+            prov_data.values()
+        )
+
         if prov_data
-        else [
+
+        else
+
+        [
             "DKI Jakarta",
             "Jawa Barat",
             "Jawa Tengah",
             "Jawa Timur"
         ]
+
     )
 
     if request.method == "POST":
@@ -2027,18 +3028,30 @@ def add_data():
         if p and w and m and s:
 
             data_new = {
+
                 "siaran": [
+
                     ch.strip()
-                    for ch in s.split(",")
+
+                    for ch in s.split(',')
+
                 ],
+
                 "last_updated_by_name":
-                    session.get("nama"),
+                    session.get(
+                        'nama'
+                    ),
+
                 "last_updated_by_username":
-                    session.get("user"),
+                    session.get(
+                        'user'
+                    ),
+
                 "last_updated_date":
                     datetime.now().strftime(
                         "%d-%m-%Y"
                     ),
+
                 "last_updated_time":
                     datetime.now().strftime(
                         "%H:%M:%S WIB"
@@ -2047,11 +3060,15 @@ def add_data():
 
             ref.child(
                 f"siaran/{p}/{w}/{m}"
-            ).set(data_new)
+            ).set(
+                data_new
+            )
 
             ref.child(
                 f"provinsi/{p}"
-            ).set(p)
+            ).set(
+                p
+            )
 
             flash(
                 "Data berhasil ditambahkan "
@@ -2060,7 +3077,9 @@ def add_data():
             )
 
             return redirect(
-                url_for("dashboard")
+                url_for(
+                    'dashboard'
+                )
             )
 
     return render_template(
@@ -2081,9 +3100,12 @@ def edit_data(
     mux
 ):
 
-    if "user" not in session:
+    if 'user' not in session:
+
         return redirect(
-            url_for("login")
+            url_for(
+                'login'
+            )
         )
 
     curr_data = (
@@ -2095,18 +3117,26 @@ def edit_data(
     if request.method == "POST":
 
         s = request.form.get(
-            "siaran"
+            'siaran'
         )
 
         ref.child(
             f"siaran/{provinsi}/{wilayah}/{mux}"
         ).update({
+
             "siaran": [
+
                 ch.strip()
-                for ch in s.split(",")
+
+                for ch in s.split(',')
+
             ],
+
             "last_updated_by_name":
-                session.get("nama"),
+                session.get(
+                    'nama'
+                ),
+
             "last_updated_date":
                 datetime.now().strftime(
                     "%d-%m-%Y"
@@ -2119,15 +3149,25 @@ def edit_data(
         )
 
         return redirect(
-            url_for("dashboard")
+            url_for(
+                'dashboard'
+            )
         )
 
     siaran_str = (
+
         ", ".join(
-            curr_data.get("siaran", [])
+            curr_data.get(
+                'siaran',
+                []
+            )
         )
+
         if curr_data
-        else ""
+
+        else
+
+        ""
     )
 
     return render_template(
@@ -2151,7 +3191,7 @@ def delete_data(
     mux
 ):
 
-    if "user" in session:
+    if 'user' in session:
 
         try:
 
@@ -2160,92 +3200,103 @@ def delete_data(
             ).delete()
 
             return jsonify({
-                "status": "success"
+
+                "status":
+                    "success"
+
             })
 
-        except Exception:
+        except:
 
             return jsonify({
-                "status": "error"
+
+                "status":
+                    "error"
+
             })
 
     return jsonify({
-        "status": "unauthorized"
+
+        "status":
+            "unauthorized"
+
     })
 
 
-@app.route("/get_wilayah")
+@app.route(
+    "/get_wilayah"
+)
 def get_wilayah():
 
-    provinsi = request.args.get(
-        "provinsi"
-    )
-
-    data = (
-        ref.child(
-            f"siaran/{provinsi}"
-        ).get()
-        or {}
-    )
-
     return jsonify({
-        "wilayah": list(data.keys())
+
+        "wilayah":
+            list(
+
+                (
+                    ref.child(
+                        f"siaran/{request.args.get('provinsi')}"
+                    ).get()
+
+                    or
+                    {}
+
+                ).keys()
+
+            )
+
     })
 
 
-@app.route("/get_mux")
+@app.route(
+    "/get_mux"
+)
 def get_mux():
 
-    provinsi = request.args.get(
-        "provinsi"
-    )
-
-    wilayah = request.args.get(
-        "wilayah"
-    )
-
-    data = (
-        ref.child(
-            f"siaran/{provinsi}/{wilayah}"
-        ).get()
-        or {}
-    )
-
     return jsonify({
-        "mux": list(data.keys())
+
+        "mux":
+            list(
+
+                (
+                    ref.child(
+                        f"siaran/{request.args.get('provinsi')}/"
+                        f"{request.args.get('wilayah')}"
+                    ).get()
+
+                    or
+                    {}
+
+                ).keys()
+
+            )
+
     })
 
 
-@app.route("/get_siaran")
+@app.route(
+    "/get_siaran"
+)
 def get_siaran():
 
-    provinsi = request.args.get(
-        "provinsi"
-    )
+    return jsonify(
 
-    wilayah = request.args.get(
-        "wilayah"
-    )
-
-    mux = request.args.get(
-        "mux"
-    )
-
-    data = (
         ref.child(
-            f"siaran/{provinsi}/{wilayah}/{mux}"
+            f"siaran/"
+            f"{request.args.get('provinsi')}/"
+            f"{request.args.get('wilayah')}/"
+            f"{request.args.get('mux')}"
         ).get()
-        or {}
+
+        or
+        {}
+
     )
 
-    return jsonify(data)
 
-
-# ==========================================
-# 8.10 EWS JATENG
-# ==========================================
-
-@app.route("/ews-jateng")
+@app.route(
+    '/ews-jateng'
+)
 def ews_jateng_page():
 
     dams = fetch_ews_data()
@@ -2253,61 +3304,79 @@ def ews_jateng_page():
     cuaca_list = get_cuaca_10_kota()
 
     return render_template(
-        "ews-jateng.html",
+        'ews-jateng.html',
         dams=dams,
         cuaca_list=cuaca_list
     )
 
 
-@app.route("/lokasi")
+@app.route(
+    '/lokasi'
+)
 def lokasi_page():
 
     return render_template(
-        "lokasi.html"
+        'lokasi.html'
     )
 
 
-# ==========================================
-# 8.11 CHATBOT MODI
-# ==========================================
-
 @app.route(
-    "/api/chat",
-    methods=["POST"]
+    '/api/chat',
+    methods=['POST']
 )
 def chatbot_api():
 
-    data = request.get_json() or {}
+    data = request.get_json()
 
     user_msg = data.get(
-        "prompt",
-        ""
+        'prompt',
+        ''
     )
 
     if (
-        "bendungan" in user_msg.lower()
-        or "banjir" in user_msg.lower()
+
+        "bendungan"
+        in
+        user_msg.lower()
+
+        or
+
+        "banjir"
+        in
+        user_msg.lower()
+
     ):
 
         dams = fetch_ews_data()
 
         bahaya = [
+
             f"{d['name']} ({d['status']})"
+
             for d in dams
+
             if (
-                "awas"
-                in d["status"].lower()
-                or "siaga"
-                in d["status"].lower()
+
+                'awas'
+                in
+                d['status'].lower()
+
+                or
+
+                'siaga'
+                in
+                d['status'].lower()
+
             )
+
         ]
 
         if bahaya:
 
             context = (
-                "INSTRUKSI PRIORITAS: "
-                "Terdeteksi infrastruktur bendungan "
-                "dalam status kewaspadaan tingkat tinggi: "
+                "INSTRUKSI PRIORITAS: Terdeteksi "
+                "infrastruktur bendungan dalam status "
+                "kewaspadaan tingkat tinggi: "
                 f"{', '.join(bahaya)}. "
             )
 
@@ -2339,10 +3408,12 @@ def chatbot_api():
     if not model:
 
         return jsonify({
+
             "response":
                 get_smart_fallback_response(
                     user_msg
                 )
+
         })
 
     try:
@@ -2361,12 +3432,15 @@ def chatbot_api():
                 "Sistem keamanan otomatis AI "
                 "memblokir transmisi ini karena "
                 "terindikasi mengandung konten yang "
-                "tidak sesuai dengan protokol "
-                "keamanan standar. Proses dihentikan."
+                "tidak sesuai dengan protokol keamanan "
+                "standar. Proses dihentikan."
             )
 
         return jsonify({
-            "response": teks_balasan
+
+            "response":
+                teks_balasan
+
         })
 
     except Exception as e:
@@ -2376,25 +3450,23 @@ def chatbot_api():
         )
 
         return jsonify({
+
             "response":
                 get_smart_fallback_response(
                     user_msg
                 )
+
         })
 
 
-# ==========================================
-# 8.12 JADWAL SHOLAT
-# ==========================================
-
-@app.route("/jadwal-sholat")
+@app.route(
+    "/jadwal-sholat"
+)
 def jadwal_sholat_page():
 
     daftar_kota = fetch_kemenag_kota()
 
-    hijri_today = (
-        get_hijri_date_string()
-    )
+    hijri_today = get_hijri_date_string()
 
     return render_template(
         "jadwal-sholat.html",
@@ -2404,7 +3476,9 @@ def jadwal_sholat_page():
     )
 
 
-@app.route("/api/jadwal-imsakiyah")
+@app.route(
+    "/api/jadwal-imsakiyah"
+)
 def get_jadwal_kemenag():
 
     id_kota = request.args.get(
@@ -2424,17 +3498,20 @@ def get_jadwal_kemenag():
     if not id_kota:
 
         return jsonify({
-            "status": False,
-            "message": (
+
+            "status":
+                False,
+
+            "message":
                 "Atribut id_kota bersifat esensial "
                 "dan wajib dilampirkan."
-            )
+
         })
 
     try:
 
         url = (
-            "https://api.myquran.com/v2/sholat/"
+            f"https://api.myquran.com/v2/sholat/"
             f"jadwal/{id_kota}/{tahun}/{bulan}"
         )
 
@@ -2444,6 +3521,7 @@ def get_jadwal_kemenag():
         )
 
         if r.status_code == 200:
+
             return jsonify(
                 r.json()
             )
@@ -2451,127 +3529,175 @@ def get_jadwal_kemenag():
     except Exception as e:
 
         return jsonify({
-            "status": False,
-            "message": str(e)
+
+            "status":
+                False,
+
+            "message":
+                str(e)
+
         })
 
     return jsonify({
-        "status": False,
-        "message": (
+
+        "status":
+            False,
+
+        "message":
             "Terjadi kegagalan komunikasi dengan "
             "server penjadwalan pusat."
-        )
+
     })
 
 
-# ==========================================
-# 8.13 NEWS TICKER
-# ==========================================
-
-@app.route("/api/news-ticker")
+@app.route(
+    "/api/news-ticker"
+)
 def news_ticker():
 
     return jsonify([
-        n["title"]
+
+        n['title']
+
         for n in get_news_entries()
+
     ])
 
 
-# ==========================================
-# 8.14 VISITOR STATS
-# ==========================================
-
-@app.route("/api/visitor-stats")
+@app.route(
+    '/api/visitor-stats'
+)
 def visitor_stats():
 
     current_time = time.time()
 
     active_ips = {
+
         ip: ts
+
         for ip, ts
         in TRACKER_DATA["online_ips"].items()
+
         if current_time - ts <= 300
+
     }
 
-    TRACKER_DATA["online_ips"] = active_ips
+    TRACKER_DATA[
+        "online_ips"
+    ] = active_ips
 
     active_locations = [
-        TRACKER_DATA["ip_locations"].get(
+
+        TRACKER_DATA[
+            "ip_locations"
+        ].get(
             ip,
             "Tidak Terdeteksi"
         )
+
         for ip in active_ips.keys()
+
     ]
 
     return jsonify({
-        "daily": len(
-            TRACKER_DATA["daily_ips"]
-        ),
-        "online": max(
-            1,
-            len(active_ips)
-        ),
-        "active_locations": list(
-            set(active_locations)
-        )
+
+        "daily":
+            len(
+                TRACKER_DATA[
+                    "daily_ips"
+                ]
+            ),
+
+        "online":
+            max(
+                1,
+                len(active_ips)
+            ),
+
+        "active_locations":
+            list(
+                set(
+                    active_locations
+                )
+            )
+
     })
 
 
 # ==========================================
-# 9. API DETEKSI PELANGGARAN
+# 9. API DETEKSI PELANGGARAN (SIMULASI DUMMY)
 # ==========================================
 
 @app.route(
-    "/api/detect_violation",
-    methods=["POST"]
+    '/api/detect_violation',
+    methods=['POST']
 )
 def api_detect_violation():
 
     try:
 
-        data = request.get_json() or {}
+        data = request.get_json()
 
         frame_base64 = data.get(
-            "frame",
-            ""
+            'frame',
+            ''
         )
 
-        chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        chars = (
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        )
 
         plat = (
+
             f"H {random.randint(1000, 9999)} "
             f"{random.choice(chars)}"
             f"{random.choice(chars)}"
+
         )
 
         pelanggaran = random.choice([
+
             "Pelanggaran Marka Jalan",
-            "Ketidakpatuhan Penggunaan Sabuk Pengaman",
-            "Pengendara Tidak Menggunakan Helm Standar"
+
+            "Ketidakpatuhan Penggunaan "
+            "Sabuk Pengaman",
+
+            "Pengendara Tidak Menggunakan "
+            "Helm Standar"
+
         ])
 
         return jsonify({
-            "status": "success",
-            "plate": plat,
-            "violation": pelanggaran
+
+            "status":
+                "success",
+
+            "plate":
+                plat,
+
+            "violation":
+                pelanggaran
+
         })
 
     except Exception as e:
 
         return jsonify({
-            "status": "error",
-            "message": (
+
+            "status":
+                "error",
+
+            "message":
                 "Terjadi kesalahan pada modul "
-                f"pemrosesan citra: {str(e)}"
-            )
+                "pemrosesan citra: "
+                f"{str(e)}"
+
         }), 500
 
 
-# ==========================================
-# 10. HALAMAN LAIN
-# ==========================================
-
-@app.route("/about")
+@app.route(
+    '/about'
+)
 def about():
 
     return render_template(
@@ -2579,7 +3705,9 @@ def about():
     )
 
 
-@app.route("/cctv")
+@app.route(
+    '/cctv'
+)
 def cctv_page():
 
     return render_template(
@@ -2587,61 +3715,67 @@ def cctv_page():
     )
 
 
-@app.route("/sitemap.xml")
+@app.route(
+    '/sitemap.xml'
+)
 def sitemap():
 
     return send_from_directory(
-        "static",
-        "sitemap.xml"
+        'static',
+        'sitemap.xml'
     )
 
 
 # ==========================================
-# 11. EMAIL BLAST EWS KTVDI
+# 10. FITUR PUSAT PESAN BLAST EWS KTVDI
 # ==========================================
 
 @app.route(
-    "/email",
-    methods=["GET", "POST"]
+    '/email',
+    methods=['GET', 'POST']
 )
 def email_blast_page():
 
-    if "user" not in session:
+    if 'user' not in session:
 
         return redirect(
-            url_for("login")
+            url_for(
+                'login'
+            )
         )
 
-    if request.method == "POST":
+    if request.method == 'POST':
 
         subject = request.form.get(
-            "subject"
+            'subject'
         )
 
         body_text = request.form.get(
-            "message"
+            'message'
         )
 
         kategori = request.form.get(
-            "kategori",
-            "Informasi Umum"
+            'kategori',
+            'Informasi Umum'
         )
 
         prioritas = request.form.get(
-            "prioritas",
-            "Normal"
+            'prioritas',
+            'Normal'
         )
 
         if not subject or not body_text:
 
             flash(
-                "Halo Admin, mohon pastikan "
-                "subjek dan isi pesan sudah terisi ya.",
+                "Halo Admin, mohon pastikan subjek "
+                "dan isi pesan sudah terisi ya.",
                 "error"
             )
 
             return redirect(
-                url_for("email_blast_page")
+                url_for(
+                    'email_blast_page'
+                )
             )
 
         if not ref:
@@ -2653,18 +3787,23 @@ def email_blast_page():
             )
 
             return redirect(
-                url_for("email_blast_page")
+                url_for(
+                    'email_blast_page'
+                )
             )
 
         users = (
-            ref.child("users").get()
-            or {}
+            ref.child(
+                'users'
+            ).get()
+            or
+            {}
         )
 
         sent_details = []
 
         tz_jakarta = pytz.timezone(
-            "Asia/Jakarta"
+            'Asia/Jakarta'
         )
 
         with app.app_context():
@@ -2675,18 +3814,20 @@ def email_blast_page():
                     user_data,
                     dict
                 ):
+
                     continue
 
                 email_tujuan = user_data.get(
-                    "email"
+                    'email'
                 )
 
                 nama_user = user_data.get(
-                    "nama",
-                    "Anggota KTVDI"
+                    'nama',
+                    'Anggota KTVDI'
                 )
 
                 if not email_tujuan:
+
                     continue
 
                 formatted_body = f"""
@@ -2699,18 +3840,18 @@ Halo Bapak/Ibu {nama_user},
 
 {body_text}
 
-Terima kasih atas perhatiannya. Mari tetap dukung
-pertelevisian di Indonesia bersama KTVDI.
+Terima kasih atas perhatiannya. Mari tetap dukung pertelevisian di Indonesia bersama KTVDI.
 
 Salam hangat,
 Admin KTVDI
-========================================================
-"""
+========================================================"""
 
-                waktu_kirim = datetime.now(
-                    tz_jakarta
-                ).strftime(
-                    "%d %b %Y - %H:%M:%S WIB"
+                waktu_kirim = (
+                    datetime.now(
+                        tz_jakarta
+                    ).strftime(
+                        "%d %b %Y - %H:%M:%S WIB"
+                    )
                 )
 
                 try:
@@ -2724,13 +3865,24 @@ Admin KTVDI
 
                     msg.body = formatted_body
 
-                    mail.send(msg)
+                    mail.send(
+                        msg
+                    )
 
                     sent_details.append({
-                        "nama": nama_user,
-                        "email": email_tujuan,
-                        "waktu": waktu_kirim,
-                        "status": "Sukses"
+
+                        "nama":
+                            nama_user,
+
+                        "email":
+                            email_tujuan,
+
+                        "waktu":
+                            waktu_kirim,
+
+                        "status":
+                            "Sukses"
+
                     })
 
                 except Exception as e:
@@ -2741,22 +3893,36 @@ Admin KTVDI
                     )
 
                     sent_details.append({
-                        "nama": nama_user,
-                        "email": email_tujuan,
-                        "waktu": waktu_kirim,
-                        "status": "Gagal"
+
+                        "nama":
+                            nama_user,
+
+                        "email":
+                            email_tujuan,
+
+                        "waktu":
+                            waktu_kirim,
+
+                        "status":
+                            "Gagal"
+
                     })
 
         if sent_details:
 
             session[
-                "last_sent_details"
+                'last_sent_details'
             ] = sent_details
 
             berhasil = sum(
+
                 1
+
                 for x in sent_details
-                if x["status"] == "Sukses"
+
+                if x['status'] ==
+                   "Sukses"
+
             )
 
             flash(
@@ -2775,11 +3941,13 @@ Admin KTVDI
             )
 
         return redirect(
-            url_for("email_blast_page")
+            url_for(
+                'email_blast_page'
+            )
         )
 
     sent_list = session.pop(
-        "last_sent_details",
+        'last_sent_details',
         None
     )
 
@@ -2791,1135 +3959,5634 @@ Admin KTVDI
 
             total_users = len(
                 ref.child(
-                    "users"
+                    'users'
                 ).get()
-                or {}
+                or
+                {}
             )
 
-        except Exception:
+        except:
+
             pass
 
     return render_template(
-        "email.html",
+        'email.html',
         sent_list=sent_list,
         total_users=total_users
     )
 
+# ==========================================
+# 11. FITUR DASHBOARD JARINGAN KTVDI
+#     CLIENT NETWORK + WIFI + ISP + SPEEDTEST
+# ==========================================
 
-# ==========================================================
-# 12. NETWORK MONITORING
-# ==========================================================
+#
+# SUMBER DATA:
+#
+# CLIENT:
+#   - public IP browser
+#   - ISP / ASN berdasarkan public IP client
+#   - browser
+#   - OS
+#   - effective connection type
+#   - browser downlink
+#   - browser RTT
+#
+# LOCAL BACKEND:
+#   - local IPv4
+#   - default gateway
+#   - subnet
+#   - ARP / neighbour table
+#   - hostname
+#   - SSID
+#   - Wi-Fi signal
+#   - Wi-Fi channel
+#   - Wi-Fi radio / band
+#   - interface
+#
+# SPEEDTEST:
+#   - Ookla Speedtest CLI jika tersedia
+#
+# PENTING:
+#
+# Kalau Flask berjalan di laptop Windows:
+#     data LAN/WiFi = laptop tersebut.
+#
+# Kalau Flask berjalan di Vercel/cloud:
+#     data LAN/WiFi = server cloud,
+#     BUKAN perangkat pengunjung.
+#
+# ==========================================
+
 
 NETWORK_CACHE = {
-    "time": 0,
-    "data": None
+
+    "data":
+        None,
+
+    "timestamp":
+        0,
+
+    "lock":
+        __import__(
+            "threading"
+        ).RLock(),
+
+    "building":
+        False
+
 }
 
 
-def run_command(command, timeout=3):
+NETWORK_CACHE_TTL = max(
+
+    3,
+
+    int(
+        os.environ.get(
+            "NETWORK_CACHE_TTL",
+            "5"
+        )
+    )
+
+)
+
+
+NETWORK_ACTIVE_DISCOVERY = (
+
+    os.environ.get(
+        "NETWORK_ACTIVE_DISCOVERY",
+        "false"
+    )
+    .strip()
+    .lower()
+
+    in (
+
+        "1",
+        "true",
+        "yes",
+        "on"
+
+    )
+
+)
+
+
+NETWORK_DISCOVERY_WORKERS = max(
+
+    4,
+
+    min(
+
+        64,
+
+        int(
+            os.environ.get(
+                "NETWORK_DISCOVERY_WORKERS",
+                "32"
+            )
+        )
+
+    )
+
+)
+
+
+NETWORK_DISCOVERY_TIMEOUT = max(
+
+    0.2,
+
+    min(
+
+        1.5,
+
+        float(
+            os.environ.get(
+                "NETWORK_DISCOVERY_TIMEOUT",
+                "0.5"
+            )
+        )
+
+    )
+
+)
+
+
+# Jalankan speedtest hanya jika diaktifkan.
+#
+# .env:
+#
+# NETWORK_SPEEDTEST=true
+#
+NETWORK_SPEEDTEST_ENABLED = (
+
+    os.environ.get(
+        "NETWORK_SPEEDTEST",
+        "false"
+    )
+    .strip()
+    .lower()
+
+    in (
+
+        "1",
+        "true",
+        "yes",
+        "on"
+
+    )
+
+)
+
+
+NETWORK_SPEEDTEST_TIMEOUT = max(
+
+    10,
+
+    min(
+
+        120,
+
+        int(
+
+            os.environ.get(
+                "NETWORK_SPEEDTEST_TIMEOUT",
+                "60"
+            )
+
+        )
+
+    )
+
+)
+
+
+# ==========================================
+# COMMAND OS
+# ==========================================
+
+def _run_command(
+    command,
+    timeout=3
+):
 
     try:
 
+        creationflags = 0
+
+        if (
+            platform.system().lower()
+            ==
+            "windows"
+        ):
+
+            creationflags = (
+                subprocess.CREATE_NO_WINDOW
+            )
+
         result = subprocess.run(
+
             command,
-            capture_output=True,
+
+            stdout=subprocess.PIPE,
+
+            stderr=subprocess.DEVNULL,
+
+            stdin=subprocess.DEVNULL,
+
             text=True,
+
             timeout=timeout,
-            shell=False
+
+            check=False,
+
+            creationflags=creationflags
+
         )
 
-        return result.stdout.strip()
+        return (
+            result.stdout.strip()
+        )
 
-    except Exception:
+    except (
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+        PermissionError,
+        OSError
+    ):
+
         return ""
 
 
-def get_default_gateway():
+# ==========================================
+# VALIDASI IPV4
+# ==========================================
 
-    system = platform.system().lower()
+def _is_valid_ipv4(
+    ip
+):
 
-    # --------------------------------------
-    # WINDOWS
-    # --------------------------------------
+    try:
 
-    if system == "windows":
-
-        output = run_command(
-            [
-                "ipconfig"
-            ],
-            timeout=3
+        parsed = ipaddress.ip_address(
+            str(ip).strip()
         )
 
-        gateway = None
+        return (
+            parsed.version == 4
+        )
 
-        for line in output.splitlines():
+    except ValueError:
 
-            if (
-                "Default Gateway"
-                in line
+        return False
+
+
+def _is_valid_lan_ipv4(
+    ip
+):
+
+    try:
+
+        parsed = ipaddress.ip_address(
+            str(ip).strip()
+        )
+
+        return (
+
+            parsed.version == 4
+
+            and
+            parsed.is_private
+
+            and
+            not parsed.is_loopback
+
+            and
+            not parsed.is_link_local
+
+            and
+            not parsed.is_unspecified
+
+            and
+            not parsed.is_multicast
+
+        )
+
+    except ValueError:
+
+        return False
+
+
+# ==========================================
+# PUBLIC IP BACKEND
+# ==========================================
+
+def get_public_ip():
+
+    services = [
+
+        (
+            "https://api.ipify.org"
+            "?format=json"
+        ),
+
+        (
+            "https://api64.ipify.org"
+            "?format=json"
+        )
+
+    ]
+
+    for service in services:
+
+        try:
+
+            response = requests.get(
+
+                service,
+
+                timeout=3,
+
+                headers={
+                    "User-Agent":
+                        "KTVDI-NetSight/1.0"
+                }
+
+            )
+
+            if not response.ok:
+
+                continue
+
+            data = response.json()
+
+            public_ip = str(
+                data.get(
+                    "ip",
+                    ""
+                )
+            ).strip()
+
+            if _is_valid_ipv4(
+                public_ip
             ):
 
-                value = line.split(
-                    ":",
-                    1
-                )[-1].strip()
+                return public_ip
 
-                if value:
+            # IPv6 juga valid.
+            try:
 
-                    try:
-                        ipaddress.ip_address(
-                            value
-                        )
+                ipaddress.ip_address(
+                    public_ip
+                )
 
-                        gateway = value
-                        break
+                return public_ip
 
-                    except Exception:
-                        continue
+            except ValueError:
 
-        return gateway
+                continue
 
-    # --------------------------------------
-    # LINUX / MAC
-    # --------------------------------------
+        except Exception:
 
-    if shutil.which("ip"):
-
-        output = run_command(
-            [
-                "ip",
-                "route",
-                "show",
-                "default"
-            ]
-        )
-
-        match = re.search(
-            r"default via ([0-9.]+)",
-            output
-        )
-
-        if match:
-            return match.group(1)
-
-    if shutil.which("route"):
-
-        output = run_command(
-            [
-                "route",
-                "-n"
-            ]
-        )
-
-        for line in output.splitlines():
-
-            parts = line.split()
-
-            if (
-                len(parts) >= 2
-                and parts[0] == "0.0.0.0"
-            ):
-
-                try:
-
-                    ipaddress.ip_address(
-                        parts[1]
-                    )
-
-                    return parts[1]
-
-                except Exception:
-                    pass
+            continue
 
     return None
 
 
+# ==========================================
+# ISP / ASN CLIENT
+# ==========================================
+
+def get_ip_organization(
+    public_ip
+):
+
+    """
+    Lookup berdasarkan IP publik CLIENT.
+
+    IPinfo menyediakan field org/ASN organization.
+    """
+
+    if not public_ip:
+
+        return {
+
+            "isp":
+                None,
+
+            "asn":
+                None,
+
+            "org":
+                None,
+
+            "domain":
+                None,
+
+            "city":
+                None,
+
+            "region":
+                None,
+
+            "country":
+                None,
+
+            "source":
+                None
+
+        }
+
+
+    # --------------------------------------
+    # IPINFO TOKEN
+    # --------------------------------------
+
+    token = os.environ.get(
+        "IPINFO_TOKEN",
+        ""
+    ).strip()
+
+
+    urls = []
+
+
+    if token:
+
+        urls.append(
+
+            (
+                "https://ipinfo.io/"
+                f"{public_ip}/json"
+                f"?token={token}"
+            )
+
+        )
+
+    else:
+
+        urls.append(
+
+            (
+                "https://ipinfo.io/"
+                f"{public_ip}/json"
+            )
+
+        )
+
+
+    for url in urls:
+
+        try:
+
+            response = requests.get(
+
+                url,
+
+                timeout=4,
+
+                headers={
+
+                    "User-Agent":
+                        "KTVDI-NetSight/1.0",
+
+                    "Accept":
+                        "application/json"
+
+                }
+
+            )
+
+            if not response.ok:
+
+                continue
+
+
+            data = response.json()
+
+
+            org_raw = str(
+                data.get(
+                    "org",
+                    ""
+                )
+            ).strip()
+
+
+            isp = None
+
+            asn = None
+
+
+            if org_raw:
+
+                parts = org_raw.split(
+                    " ",
+                    1
+                )
+
+
+                if (
+                    parts
+                    and
+                    parts[0].upper().startswith(
+                        "AS"
+                    )
+                ):
+
+                    asn = parts[0]
+
+                    isp = (
+                        parts[1].strip()
+                        if len(parts) > 1
+                        else
+                        org_raw
+                    )
+
+                else:
+
+                    isp = org_raw
+
+
+            # Legacy / nested ASN
+            if not asn:
+
+                asn_data = data.get(
+                    "asn"
+                )
+
+                if isinstance(
+                    asn_data,
+                    dict
+                ):
+
+                    asn = asn_data.get(
+                        "asn"
+                    )
+
+                    if not isp:
+
+                        isp = (
+                            asn_data.get(
+                                "name"
+                            )
+                            or
+                            asn_data.get(
+                                "domain"
+                            )
+                        )
+
+
+            return {
+
+                "isp":
+                    isp,
+
+                "asn":
+                    asn,
+
+                "org":
+                    org_raw or None,
+
+                "domain":
+                    (
+                        data.get(
+                            "hostname"
+                        )
+                        or
+                        (
+                            data.get(
+                                "asn",
+                                {}
+                            ).get(
+                                "domain"
+                            )
+                            if isinstance(
+                                data.get(
+                                    "asn"
+                                ),
+                                dict
+                            )
+                            else
+                            None
+                        )
+                    ),
+
+                "city":
+                    data.get(
+                        "city"
+                    ),
+
+                "region":
+                    data.get(
+                        "region"
+                    ),
+
+                "country":
+                    data.get(
+                        "country"
+                    ),
+
+                "source":
+                    "IPinfo"
+
+            }
+
+
+        except Exception as e:
+
+            print(
+                "INFO: IP organization lookup gagal: "
+                f"{e}"
+            )
+
+            continue
+
+
+    return {
+
+        "isp":
+            None,
+
+        "asn":
+            None,
+
+        "org":
+            None,
+
+        "domain":
+            None,
+
+        "city":
+            None,
+
+        "region":
+            None,
+
+        "country":
+            None,
+
+        "source":
+            None
+
+    }
+
+
+# ==========================================
+# IP CLIENT VIA HTTP HEADER
+# ==========================================
+
+def get_request_public_ip():
+
+    """
+    Mendapatkan IP pengunjung dari request.
+
+    Prioritas:
+    X-Forwarded-For
+    X-Real-IP
+    remote_addr
+
+    Dipakai sebagai fallback apabila browser
+    tidak mengirim public IP melalui API.
+    """
+
+    candidates = [
+
+        request.headers.get(
+            "X-Forwarded-For"
+        ),
+
+        request.headers.get(
+            "X-Real-IP"
+        ),
+
+        request.remote_addr
+
+    ]
+
+
+    for candidate in candidates:
+
+        if not candidate:
+
+            continue
+
+
+        for raw_ip in str(
+            candidate
+        ).split(","):
+
+            raw_ip = raw_ip.strip()
+
+
+            if _is_valid_ipv4(
+                raw_ip
+            ):
+
+                try:
+
+                    parsed = ipaddress.ip_address(
+                        raw_ip
+                    )
+
+                    if not parsed.is_private:
+
+                        return raw_ip
+
+                except ValueError:
+
+                    continue
+
+
+    return None
+
+
+# ==========================================
+# IP LOKAL
+# ==========================================
+
 def get_local_ip():
+
+    """
+    IPv4 interface LAN yang digunakan route utama.
+    """
+
+    sock = None
 
     try:
 
-        s = socket.socket(
+        sock = socket.socket(
+
             socket.AF_INET,
+
             socket.SOCK_DGRAM
+
         )
 
-        s.settimeout(1)
-
-        s.connect(
-            ("8.8.8.8", 80)
+        sock.settimeout(
+            0.8
         )
 
-        ip = s.getsockname()[0]
-
-        s.close()
-
-        return ip
-
-    except Exception:
-
-        try:
-            return socket.gethostbyname(
-                socket.gethostname()
+        sock.connect(
+            (
+                "8.8.8.8",
+                80
             )
-        except Exception:
-            return None
+        )
+
+        local_ip = (
+            sock.getsockname()[0]
+        )
 
 
-def get_local_interface():
+        if _is_valid_lan_ipv4(
+            local_ip
+        ):
+
+            return local_ip
+
+
+    except (
+        OSError,
+        socket.error
+    ):
+
+        pass
+
+
+    finally:
+
+        if sock:
+
+            try:
+
+                sock.close()
+
+            except:
+
+                pass
+
 
     system = platform.system().lower()
 
+
+    # ======================================
+    # WINDOWS
+    # ======================================
+
     if system == "windows":
 
-        local_ip = get_local_ip()
+        output = _run_command(
 
-        if not local_ip:
-            return ""
-
-        output = run_command(
             [
-                "ipconfig"
-            ]
+                "powershell",
+                "-NoProfile",
+                "-Command",
+
+                (
+                    "Get-NetIPAddress "
+                    "-AddressFamily IPv4 "
+                    "| Where-Object {"
+                    "$_.IPAddress -and "
+                    "$_.IPAddress -notlike '127.*' -and "
+                    "$_.IPAddress -notlike '169.254.*'"
+                    "} "
+                    "| Select-Object "
+                    "-ExpandProperty IPAddress"
+                )
+
+            ],
+
+            timeout=3
+
         )
 
-        current_adapter = ""
+
+        candidates = []
 
         for line in output.splitlines():
 
-            line_strip = line.strip()
+            candidate = line.strip()
 
-            if (
-                line
-                and not line.startswith(" ")
-                and not line.startswith("\t")
-                and ":" in line
+            if _is_valid_lan_ipv4(
+                candidate
             ):
-                current_adapter = (
-                    line_strip.rstrip(":")
+
+                candidates.append(
+                    candidate
                 )
 
-            if local_ip in line:
 
-                return current_adapter
+        if candidates:
 
-        return ""
+            return candidates[0]
 
-    if shutil.which("ip"):
 
-        local_ip = get_local_ip()
+    # ======================================
+    # LINUX
+    # ======================================
 
-        output = run_command(
+    if system == "linux":
+
+        output = _run_command(
+
             [
                 "ip",
+                "-4",
                 "-o",
                 "addr",
                 "show"
-            ]
+            ],
+
+            timeout=3
+
         )
+
 
         for line in output.splitlines():
 
-            if local_ip and local_ip in line:
+            match = re.search(
 
-                parts = line.split()
+                r"\binet\s+"
+                r"(\d+\.\d+\.\d+\.\d+)/\d+",
 
-                if len(parts) >= 2:
-                    return parts[1]
+                line
 
-    return ""
-
-
-def get_local_network():
-
-    local_ip = get_local_ip()
-    gateway = get_default_gateway()
-
-    if not local_ip:
-        return None
-
-    # Umumnya LAN rumah/kantor menggunakan /24.
-    # Jika gateway diketahui dan satu subnet,
-    # gunakan /24 sebagai fallback aman.
-
-    try:
-
-        if gateway:
-
-            network = ipaddress.ip_network(
-                f"{local_ip}/24",
-                strict=False
             )
 
-            if (
-                ipaddress.ip_address(
-                    gateway
-                ) in network
-            ):
-                return network
 
-        return ipaddress.ip_network(
-            f"{local_ip}/24",
-            strict=False
-        )
+            if match:
 
-    except Exception:
-        return None
+                candidate = (
+                    match.group(1)
+                )
 
 
-def normalize_mac(mac):
+                if _is_valid_lan_ipv4(
+                    candidate
+                ):
 
-    if not mac:
-        return ""
-
-    mac = mac.strip().lower()
-
-    mac = mac.replace("-", ":")
-    mac = mac.replace(".", ":")
-
-    parts = mac.split(":")
-
-    if len(parts) == 6:
-
-        return ":".join(
-            p.zfill(2)
-            for p in parts
-        )
-
-    return mac
+                    return candidate
 
 
-def get_mac_vendor(mac):
-
-    """
-    Lookup vendor melalui MAC prefix.
-    Tidak bergantung pada layanan eksternal.
-    """
-
-    if not mac:
-        return "Tidak Diketahui"
-
-    oui = normalize_mac(
-        mac
-    ).replace(":", "")[:6].upper()
-
-    known = {
-
-        "001A2B": "Cisco",
-        "001C42": "Parallels",
-        "000C29": "VMware",
-        "005056": "VMware",
-        "080027": "VirtualBox",
-
-        "3C5A37": "Google",
-        "F4F5D8": "Google",
-
-        "B827EB": "Raspberry Pi",
-        "DC4F22": "Raspberry Pi",
-
-        "ACDE48": "Apple",
-        "3C22FB": "Apple",
-        "F0D2F1": "Apple",
-
-        "001A11": "Intel",
-        "3CE9F7": "Intel",
-
-        "F8E4FB": "Xiaomi",
-        "C8FF28": "Xiaomi",
-        "7811DC": "Xiaomi",
-
-        "A4C138": "Samsung",
-        "CC07AB": "Samsung",
-        "B8BC1B": "Samsung",
-
-        "D850E6": "Huawei",
-        "E8CD2D": "Huawei",
-
-        "FCFBFB": "TP-Link",
-        "50C7BF": "TP-Link",
-        "AC84C6": "TP-Link",
-
-        "E4FAED": "ZTE",
-
-        "001E58": "Hikvision",
-        "C0EAE4": "Hikvision",
-
-        "B0BE76": "D-Link",
-        "1C7EE5": "D-Link"
-    }
-
-    return known.get(
-        oui,
-        "Vendor Tidak Diketahui"
-    )
-
-
-def resolve_hostname(ip):
+    # ======================================
+    # GENERIC
+    # ======================================
 
     try:
 
-        host = socket.gethostbyaddr(
-            ip
-        )[0]
+        hostname = socket.gethostname()
 
-        if host:
-            return host
+        addresses = socket.gethostbyname_ex(
+            hostname
+        )[2]
+
+
+        for ip in addresses:
+
+            if _is_valid_lan_ipv4(
+                ip
+            ):
+
+                return ip
+
 
     except Exception:
+
         pass
 
-    return "-"
+
+    return None
 
 
-def guess_device_type(
-    hostname="",
-    vendor="",
-    mac=""
+# ==========================================
+# DEFAULT GATEWAY
+# ==========================================
+
+def detect_default_gateway():
+
+    system = platform.system().lower()
+
+
+    # ======================================
+    # WINDOWS
+    # ======================================
+
+    if system == "windows":
+
+        output = _run_command(
+
+            [
+                "route",
+                "print",
+                "-4",
+                "0.0.0.0"
+            ],
+
+            timeout=3
+
+        )
+
+
+        for line in output.splitlines():
+
+            line = line.strip()
+
+            if not line:
+
+                continue
+
+
+            parts = line.split()
+
+
+            if len(parts) >= 3:
+
+                if parts[0] == "0.0.0.0":
+
+                    gateway = parts[2]
+
+
+                    if _is_valid_lan_ipv4(
+                        gateway
+                    ):
+
+                        return gateway
+
+
+        ps_output = _run_command(
+
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+
+                (
+                    "(Get-NetRoute "
+                    "-AddressFamily IPv4 "
+                    "-DestinationPrefix '0.0.0.0/0' "
+                    "| Where-Object {"
+                    "$_.NextHop -and "
+                    "$_.NextHop -ne '0.0.0.0'"
+                    "} "
+                    "| Sort-Object RouteMetric,ifMetric "
+                    "| Select-Object -First 1 "
+                    "-ExpandProperty NextHop)"
+                )
+
+            ],
+
+            timeout=4
+
+        )
+
+
+        for line in ps_output.splitlines():
+
+            gateway = line.strip()
+
+            if _is_valid_lan_ipv4(
+                gateway
+            ):
+
+                return gateway
+
+
+    # ======================================
+    # LINUX
+    # ======================================
+
+    elif system == "linux":
+
+        output = _run_command(
+
+            [
+                "ip",
+                "-4",
+                "route",
+                "show",
+                "default"
+            ],
+
+            timeout=3
+
+        )
+
+
+        match = re.search(
+
+            r"default\s+via\s+"
+            r"(\d+\.\d+\.\d+\.\d+)",
+
+            output
+
+        )
+
+
+        if match:
+
+            gateway = match.group(1)
+
+
+            if _is_valid_lan_ipv4(
+                gateway
+            ):
+
+                return gateway
+
+
+    # ======================================
+    # MACOS
+    # ======================================
+
+    elif system == "darwin":
+
+        output = _run_command(
+
+            [
+                "route",
+                "-n",
+                "get",
+                "default"
+            ],
+
+            timeout=3
+
+        )
+
+
+        match = re.search(
+
+            r"gateway:\s+"
+            r"(\d+\.\d+\.\d+\.\d+)",
+
+            output
+
+        )
+
+
+        if match:
+
+            gateway = match.group(1)
+
+
+            if _is_valid_lan_ipv4(
+                gateway
+            ):
+
+                return gateway
+
+
+    return None
+
+
+# ==========================================
+# SUBNET
+# ==========================================
+
+def get_interface_network(
+    local_ip,
+    gateway=None
 ):
 
-    text = (
-        f"{hostname} "
-        f"{vendor} "
-        f"{mac}"
-    ).lower()
+    if not local_ip:
 
-    if any(
-        x in text
-        for x in [
-            "iphone",
-            "ipad",
-            "apple"
-        ]
-    ):
-        return "Apple"
-
-    if any(
-        x in text
-        for x in [
-            "android",
-            "samsung",
-            "xiaomi",
-            "redmi",
-            "oppo",
-            "vivo",
-            "realme",
-            "huawei"
-        ]
-    ):
-        return "Smartphone"
-
-    if any(
-        x in text
-        for x in [
-            "printer",
-            "epson",
-            "canon",
-            "hp-"
-        ]
-    ):
-        return "Printer"
-
-    if any(
-        x in text
-        for x in [
-            "camera",
-            "cctv",
-            "hikvision",
-            "dahua"
-        ]
-    ):
-        return "CCTV"
-
-    if any(
-        x in text
-        for x in [
-            "router",
-            "gateway",
-            "mikrotik",
-            "tp-link",
-            "zte",
-            "huawei"
-        ]
-    ):
-        return "Router / Network"
-
-    if any(
-        x in text
-        for x in [
-            "desktop",
-            "pc",
-            "windows"
-        ]
-    ):
-        return "PC"
-
-    if any(
-        x in text
-        for x in [
-            "laptop",
-            "notebook"
-        ]
-    ):
-        return "Laptop"
-
-    return "Perangkat"
-
-
-def parse_linux_neighbors():
-
-    devices = []
-
-    if not shutil.which("ip"):
-        return devices
-
-    output = run_command(
-        [
-            "ip",
-            "neigh",
-            "show"
-        ],
-        timeout=3
-    )
-
-    for line in output.splitlines():
-
-        line = line.strip()
-
-        if not line:
-            continue
-
-        match = re.search(
-            r"^(\d+\.\d+\.\d+\.\d+)"
-            r".*?"
-            r"(?:lladdr\s+)"
-            r"([0-9a-fA-F:]{17})"
-            r"(?:\s+(\S+))?",
-            line
-        )
-
-        if not match:
-            continue
-
-        ip = match.group(1)
-        mac = normalize_mac(
-            match.group(2)
-        )
-
-        state = (
-            match.group(3)
-            or "UNKNOWN"
-        ).upper()
-
-        devices.append({
-            "ip": ip,
-            "mac": mac,
-            "state": state,
-            "source": "ARP / Neighbor"
-        })
-
-    return devices
-
-
-def parse_windows_arp():
-
-    devices = []
-
-    if platform.system().lower() != "windows":
-        return devices
-
-    output = run_command(
-        [
-            "arp",
-            "-a"
-        ],
-        timeout=4
-    )
-
-    for line in output.splitlines():
-
-        match = re.search(
-            r"(\d+\.\d+\.\d+\.\d+)"
-            r"\s+"
-            r"([0-9a-fA-F-]{17})"
-            r"\s+(\w+)",
-            line
-        )
-
-        if not match:
-            continue
-
-        devices.append({
-            "ip": match.group(1),
-            "mac": normalize_mac(
-                match.group(2)
-            ),
-            "state": "REACHABLE",
-            "source": "ARP"
-        })
-
-    return devices
-
-
-def parse_arp_command():
-
-    devices = []
-
-    if not shutil.which("arp"):
-        return devices
-
-    output = run_command(
-        [
-            "arp",
-            "-a"
-        ],
-        timeout=4
-    )
-
-    for line in output.splitlines():
-
-        match = re.search(
-            r"\(?(\d+\.\d+\.\d+\.\d+)\)?"
-            r".*?"
-            r"([0-9a-fA-F:]{17}|[0-9a-fA-F-]{17})",
-            line
-        )
-
-        if not match:
-            continue
-
-        devices.append({
-            "ip": match.group(1),
-            "mac": normalize_mac(
-                match.group(2)
-            ),
-            "state": "REACHABLE",
-            "source": "ARP"
-        })
-
-    return devices
-
-
-def get_gateway_device():
-
-    gateway = get_default_gateway()
-
-    if not gateway:
         return None
 
-    mac = ""
 
-    for source in [
-        parse_linux_neighbors(),
-        parse_windows_arp(),
-        parse_arp_command()
-    ]:
+    system = platform.system().lower()
 
-        for item in source:
 
-            if item["ip"] == gateway:
+    # ======================================
+    # WINDOWS POWERSHELL
+    # ======================================
 
-                mac = item.get(
-                    "mac",
-                    ""
+    if system == "windows":
+
+        command = (
+
+            "Get-NetIPAddress "
+
+            "-AddressFamily IPv4 "
+
+            f"-IPAddress '{local_ip}' "
+
+            "| Select-Object "
+            "IPAddress,PrefixLength "
+
+            "| ConvertTo-Json -Compress"
+
+        )
+
+
+        output = _run_command(
+
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                command
+            ],
+
+            timeout=4
+
+        )
+
+
+        if output:
+
+            try:
+
+                data = json.loads(
+                    output
                 )
+
+
+                if isinstance(
+                    data,
+                    list
+                ):
+
+                    data = (
+                        data[0]
+                        if data
+                        else
+                        None
+                    )
+
+
+                if isinstance(
+                    data,
+                    dict
+                ):
+
+                    prefix = data.get(
+                        "PrefixLength"
+                    )
+
+
+                    if prefix is not None:
+
+                        prefix = int(
+                            prefix
+                        )
+
+
+                        return ipaddress.ip_network(
+
+                            f"{local_ip}/{prefix}",
+
+                            strict=False
+
+                        )
+
+
+            except Exception:
+
+                pass
+
+
+    # ======================================
+    # LINUX
+    # ======================================
+
+    elif system == "linux":
+
+        output = _run_command(
+
+            [
+                "ip",
+                "-4",
+                "-o",
+                "addr",
+                "show"
+            ],
+
+            timeout=3
+
+        )
+
+
+        for line in output.splitlines():
+
+            match = re.search(
+
+                r"\binet\s+"
+                r"(\d+\.\d+\.\d+\.\d+)/(\d+)",
+
+                line
+
+            )
+
+
+            if match:
+
+                candidate_ip = (
+                    match.group(1)
+                )
+
+                prefix = int(
+                    match.group(2)
+                )
+
+
+                if candidate_ip == local_ip:
+
+                    return ipaddress.ip_network(
+
+                        f"{local_ip}/{prefix}",
+
+                        strict=False
+
+                    )
+
+
+    # ======================================
+    # FALLBACK
+    # ======================================
+
+    try:
+
+        return ipaddress.ip_network(
+
+            f"{local_ip}/24",
+
+            strict=False
+
+        )
+
+    except ValueError:
+
+        return None
+
+
+# ==========================================
+# WINDOWS WIFI INFO
+# ==========================================
+
+def get_windows_wifi_info():
+
+    """
+    Membaca Wi-Fi interface aktif dengan:
+
+        netsh wlan show interfaces
+
+    Informasi yang dicoba:
+        SSID
+        BSSID
+        Signal
+        Channel
+        Radio type
+        Authentication
+        Receive rate
+        Transmit rate
+        State
+    """
+
+    if (
+        platform.system().lower()
+        !=
+        "windows"
+    ):
+
+        return {
+
+            "available":
+                False,
+
+            "connected":
+                False,
+
+            "ssid":
+                None,
+
+            "bssid":
+                None,
+
+            "signal_percent":
+                None,
+
+            "channel":
+                None,
+
+            "radio_type":
+                None,
+
+            "band":
+                None,
+
+            "interface":
+                None,
+
+            "receive_mbps":
+                None,
+
+            "transmit_mbps":
+                None,
+
+            "authentication":
+                None,
+
+            "state":
+                None,
+
+            "source":
+                None
+
+        }
+
+
+    output = _run_command(
+
+        [
+            "netsh",
+            "wlan",
+            "show",
+            "interfaces"
+        ],
+
+        timeout=5
+
+    )
+
+
+    result = {
+
+        "available":
+            bool(output),
+
+        "connected":
+            False,
+
+        "ssid":
+            None,
+
+        "bssid":
+            None,
+
+        "signal_percent":
+            None,
+
+        "channel":
+            None,
+
+        "radio_type":
+            None,
+
+        "band":
+            None,
+
+        "interface":
+            None,
+
+        "receive_mbps":
+            None,
+
+        "transmit_mbps":
+            None,
+
+        "authentication":
+            None,
+
+        "state":
+            None,
+
+        "source":
+            "netsh wlan"
+
+    }
+
+
+    if not output:
+
+        return result
+
+
+    # ======================================
+    # PARSER FIELD
+    # ======================================
+
+    field_patterns = {
+
+        "interface":
+            [
+                r"^\s*Name\s*:\s*(.+)$",
+                r"^\s*Nama\s*:\s*(.+)$"
+            ],
+
+        "state":
+            [
+                r"^\s*State\s*:\s*(.+)$",
+                r"^\s*Status\s*:\s*(.+)$"
+            ],
+
+        "ssid":
+            [
+                r"^\s*SSID\s*:\s*(.*)$"
+            ],
+
+        "bssid":
+            [
+                r"^\s*BSSID\s*:\s*(.*)$"
+            ],
+
+        "signal":
+            [
+                r"^\s*Signal\s*:\s*(\d+)%"
+            ],
+
+        "channel":
+            [
+                r"^\s*Channel\s*:\s*(\d+)"
+            ],
+
+        "radio_type":
+            [
+                r"^\s*Radio type\s*:\s*(.+)$",
+                r"^\s*Tipe radio\s*:\s*(.+)$"
+            ],
+
+        "authentication":
+            [
+                r"^\s*Authentication\s*:\s*(.+)$",
+                r"^\s*Authentication\s*:\s*(.+)$"
+            ],
+
+        "receive":
+            [
+                r"^\s*Receive rate \(Mbps\)\s*:\s*([\d.]+)",
+                r"^\s*Kecepatan penerimaan \(Mbps\)\s*:\s*([\d.]+)"
+            ],
+
+        "transmit":
+            [
+                r"^\s*Transmit rate \(Mbps\)\s*:\s*([\d.]+)",
+                r"^\s*Kecepatan transmisi \(Mbps\)\s*:\s*([\d.]+)"
+            ]
+
+    }
+
+
+    for line in output.splitlines():
+
+        for key, patterns in field_patterns.items():
+
+            for pattern in patterns:
+
+                match = re.search(
+                    pattern,
+                    line,
+                    re.I
+                )
+
+
+                if not match:
+
+                    continue
+
+
+                value = (
+                    match.group(1).strip()
+                )
+
+
+                if key == "signal":
+
+                    try:
+
+                        result[
+                            "signal_percent"
+                        ] = int(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                elif key == "channel":
+
+                    try:
+
+                        result[
+                            "channel"
+                        ] = int(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                elif key == "receive":
+
+                    try:
+
+                        result[
+                            "receive_mbps"
+                        ] = float(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                elif key == "transmit":
+
+                    try:
+
+                        result[
+                            "transmit_mbps"
+                        ] = float(
+                            value
+                        )
+
+                    except:
+
+                        pass
+
+                else:
+
+                    result[key] = value
+
 
                 break
 
-        if mac:
-            break
 
-    hostname = resolve_hostname(
-        gateway
-    )
+    # ======================================
+    # NORMALISASI STATE
+    # ======================================
 
-    vendor = get_mac_vendor(
-        mac
-    )
-
-    return {
-        "ip": gateway,
-        "mac": mac,
-        "hostname": hostname,
-        "vendor": vendor,
-        "device": "Gateway / Router",
-        "status": "Online",
-        "signal": "-",
-        "connection": "Gateway",
-        "source": "Gateway"
-    }
-
-
-def scan_with_nmap(network):
-
-    devices = []
-
-    if not shutil.which("nmap"):
-        return devices
-
-    try:
-
-        output = run_command(
-            [
-                "nmap",
-                "-sn",
-                str(network)
-            ],
-            timeout=20
+    state_value = (
+        str(
+            result.get(
+                "state"
+            )
+            or
+            ""
         )
+        .strip()
+        .lower()
+    )
 
-        current_ip = None
-
-        for line in output.splitlines():
-
-            ip_match = re.search(
-                r"Nmap scan report for "
-                r"(?:[^(]+\s+\()?(\d+\.\d+\.\d+\.\d+)",
-                line
-            )
-
-            if ip_match:
-
-                current_ip = (
-                    ip_match.group(1)
-                )
-
-            mac_match = re.search(
-                r"MAC Address:\s+"
-                r"([0-9A-Fa-f:]{17})"
-                r"(?:\s+\((.*?)\))?",
-                line
-            )
-
-            if (
-                current_ip
-                and mac_match
-            ):
-
-                mac = normalize_mac(
-                    mac_match.group(1)
-                )
-
-                vendor = (
-                    mac_match.group(2)
-                    or get_mac_vendor(mac)
-                )
-
-                devices.append({
-                    "ip": current_ip,
-                    "mac": mac,
-                    "state": "REACHABLE",
-                    "vendor": vendor,
-                    "source": "Nmap"
-                })
-
-                current_ip = None
-
-    except Exception:
-        pass
-
-    return devices
-
-
-def scan_network_devices():
-
-    now = time.time()
-
-    # Cache 15 detik supaya network.html
-    # polling tidak melakukan scan terus-menerus.
 
     if (
-        NETWORK_CACHE["data"] is not None
-        and now - NETWORK_CACHE["time"] < 15
+        state_value
+        in
+        (
+            "connected",
+            "terhubung"
+        )
     ):
-        return NETWORK_CACHE["data"]
 
-    local_ip = get_local_ip()
-    gateway = get_default_gateway()
-    interface = get_local_interface()
-    network = get_local_network()
+        result[
+            "connected"
+        ] = True
 
-    raw_devices = []
 
-    # --------------------------------------
-    # 1. Linux Neighbor Table
-    # --------------------------------------
+    # ======================================
+    # BAND
+    # ======================================
 
-    raw_devices.extend(
-        parse_linux_neighbors()
+    channel = result.get(
+        "channel"
     )
 
-    # --------------------------------------
-    # 2. Windows ARP
-    # --------------------------------------
 
-    raw_devices.extend(
-        parse_windows_arp()
+    radio_type = (
+        str(
+            result.get(
+                "radio_type"
+            )
+            or
+            ""
+        )
+        .lower()
     )
 
-    # --------------------------------------
-    # 3. ARP Generic
-    # --------------------------------------
 
-    raw_devices.extend(
-        parse_arp_command()
-    )
+    if channel is not None:
 
-    # --------------------------------------
-    # 4. NMAP sebagai tambahan
-    # --------------------------------------
-
-    if network:
-
-        raw_devices.extend(
-            scan_with_nmap(
-                network
-            )
-        )
-
-    # --------------------------------------
-    # DEDUPLICATION
-    # --------------------------------------
-
-    unique = {}
-
-    for item in raw_devices:
-
-        ip = item.get("ip")
-
-        if not ip:
-            continue
-
-        try:
-            ipaddress.ip_address(ip)
-        except Exception:
-            continue
-
-        mac = normalize_mac(
-            item.get("mac", "")
-        )
-
-        key = mac or ip
-
-        if key not in unique:
-
-            unique[key] = {
-                "ip": ip,
-                "mac": mac,
-                "state": item.get(
-                    "state",
-                    "UNKNOWN"
-                ),
-                "source": item.get(
-                    "source",
-                    "Unknown"
-                ),
-                "vendor": item.get(
-                    "vendor",
-                    ""
-                )
-            }
-
-        else:
-
-            # Jika sumber baru mempunyai MAC
-            # lebih lengkap, gunakan data tersebut.
-
-            if (
-                mac
-                and not unique[key].get("mac")
-            ):
-                unique[key]["mac"] = mac
-
-            if (
-                item.get("vendor")
-                and (
-                    not unique[key].get("vendor")
-                    or unique[key]["vendor"]
-                    == "Vendor Tidak Diketahui"
-                )
-            ):
-                unique[key]["vendor"] = (
-                    item["vendor"]
-                )
-
-    # --------------------------------------
-    # FORMAT FINAL
-    # --------------------------------------
-
-    devices = []
-
-    for item in unique.values():
-
-        ip = item["ip"]
-        mac = item.get("mac", "")
-
-        hostname = resolve_hostname(
-            ip
-        )
-
-        vendor = (
-            item.get("vendor")
-            or get_mac_vendor(mac)
-        )
-
-        state = (
-            item.get("state")
-            or "UNKNOWN"
-        ).upper()
-
-        online_states = [
-            "REACHABLE",
-            "STALE",
-            "DELAY",
-            "PROBE"
-        ]
-
-        status = (
-            "Online"
-            if state in online_states
-            else "Terdeteksi"
-        )
-
-        # Gateway selalu diprioritaskan.
-
-        if gateway and ip == gateway:
-
-            device_type = (
-                "Gateway / Router"
-            )
-
-            connection = "Gateway"
-
-        else:
-
-            device_type = guess_device_type(
-                hostname,
-                vendor,
-                mac
-            )
-
-            connection = (
-                "LAN"
-                if ip
-                else "-"
-            )
-
-        devices.append({
-            "ip": ip,
-            "mac": mac or "-",
-            "hostname": hostname,
-            "vendor": vendor,
-            "device": device_type,
-            "status": status,
-            "signal": "-",
-            "connection": connection,
-            "source": item.get(
-                "source",
-                "ARP"
-            )
-        })
-
-    # --------------------------------------
-    # MASUKKAN LOCAL HOST
-    # --------------------------------------
-
-    if local_ip:
-
-        local_exists = any(
-            d["ip"] == local_ip
-            for d in devices
-        )
-
-        if not local_exists:
-
-            hostname = resolve_hostname(
-                local_ip
-            )
-
-            devices.append({
-                "ip": local_ip,
-                "mac": "-",
-                "hostname": hostname,
-                "vendor": "Local Host",
-                "device": "Server / Host",
-                "status": "Online",
-                "signal": "-",
-                "connection": "LAN",
-                "source": "Local"
-            })
-
-    # --------------------------------------
-    # GATEWAY
-    # --------------------------------------
-
-    gateway_device = (
-        get_gateway_device()
-    )
-
-    if gateway_device:
-
-        existing_gateway = next(
-            (
-                d
-                for d in devices
-                if d["ip"] == gateway_device["ip"]
-            ),
-            None
-        )
-
-        if existing_gateway:
-
-            existing_gateway.update(
-                gateway_device
-            )
-
-        else:
-
-            devices.insert(
-                0,
-                gateway_device
-            )
-
-    # --------------------------------------
-    # SORT IP
-    # --------------------------------------
-
-    def ip_sort(item):
-
-        try:
-
-            return tuple(
-                int(x)
-                for x in item["ip"].split(".")
-            )
-
-        except Exception:
-
-            return (
-                999,
-                999,
-                999,
-                999
-            )
-
-    devices.sort(
-        key=ip_sort
-    )
-
-    result = {
-        "status": "success",
-        "local_ip": local_ip or "-",
-        "gateway": gateway or "-",
-        "network": (
-            str(network)
-            if network
-            else "-"
-        ),
-        "interface": interface or "-",
-        "platform": platform.system(),
-        "clients_count": len(devices),
-        "online_count": sum(
+        if (
             1
-            for d in devices
-            if d["status"] == "Online"
-        ),
-        "devices": devices,
-        "scan_time": datetime.now().strftime(
-            "%d-%m-%Y %H:%M:%S"
-        )
-    }
+            <=
+            int(channel)
+            <=
+            14
+        ):
 
-    NETWORK_CACHE["time"] = now
-    NETWORK_CACHE["data"] = result
+            result[
+                "band"
+            ] = "2.4 GHz"
+
+        elif (
+            32
+            <=
+            int(channel)
+            <=
+            177
+        ):
+
+            result[
+                "band"
+            ] = "5 GHz"
+
+
+    if not result.get(
+        "band"
+    ):
+
+        if (
+            "802.11ax"
+            in
+            radio_type
+        ):
+
+            result[
+                "band"
+            ] = "5/2.4 GHz"
+
+        elif (
+            "802.11ac"
+            in
+            radio_type
+        ):
+
+            result[
+                "band"
+            ] = "5 GHz"
+
 
     return result
 
 
 # ==========================================
-# 12.1 NETWORK PAGE
+# GENERIC WIFI INFO
 # ==========================================
 
-@app.route("/network")
-def network_page():
+def get_wifi_info():
 
-    if "user" not in session:
+    system = platform.system().lower()
 
-        return redirect(
-            url_for("login")
+
+    if system == "windows":
+
+        return get_windows_wifi_info()
+
+
+    # ======================================
+    # LINUX
+    # ======================================
+
+    if system == "linux":
+
+        result = {
+
+            "available":
+                False,
+
+            "connected":
+                False,
+
+            "ssid":
+                None,
+
+            "bssid":
+                None,
+
+            "signal_percent":
+                None,
+
+            "channel":
+                None,
+
+            "radio_type":
+                None,
+
+            "band":
+                None,
+
+            "interface":
+                None,
+
+            "receive_mbps":
+                None,
+
+            "transmit_mbps":
+                None,
+
+            "authentication":
+                None,
+
+            "state":
+                None,
+
+            "source":
+                "Linux"
+
+        }
+
+
+        iw_output = _run_command(
+
+            [
+                "iw",
+                "dev"
+            ],
+
+            timeout=4
+
         )
 
-    return render_template(
-        "network.html"
+
+        if iw_output:
+
+            result[
+                "available"
+            ] = True
+
+
+        # interface
+        match = re.search(
+
+            r"Interface\s+(\S+)",
+
+            iw_output
+
+        )
+
+
+        if match:
+
+            result[
+                "interface"
+            ] = match.group(1)
+
+
+        if result.get(
+            "interface"
+        ):
+
+            link = _run_command(
+
+                [
+                    "iw",
+                    "dev",
+                    result["interface"],
+                    "link"
+                ],
+
+                timeout=4
+
+            )
+
+
+            if link:
+
+                result[
+                    "connected"
+                ] = "Connected" in link
+
+
+                match = re.search(
+
+                    r"SSID\s+(.+)",
+
+                    link
+
+                )
+
+
+                if match:
+
+                    result[
+                        "ssid"
+                    ] = match.group(1).strip()
+
+
+                match = re.search(
+
+                    r"signal:\s+(-?\d+)",
+
+                    link
+
+                )
+
+
+                if match:
+
+                    result[
+                        "signal_dbm"
+                    ] = int(
+                        match.group(1)
+                    )
+
+
+        return result
+
+
+    # ======================================
+    # MACOS
+    # ======================================
+
+    if system == "darwin":
+
+        result = {
+
+            "available":
+                True,
+
+            "connected":
+                False,
+
+            "ssid":
+                None,
+
+            "bssid":
+                None,
+
+            "signal_percent":
+                None,
+
+            "signal_dbm":
+                None,
+
+            "channel":
+                None,
+
+            "radio_type":
+                None,
+
+            "band":
+                None,
+
+            "interface":
+                None,
+
+            "receive_mbps":
+                None,
+
+            "transmit_mbps":
+                None,
+
+            "authentication":
+                None,
+
+            "state":
+                None,
+
+            "source":
+                "macOS"
+
+        }
+
+
+        airport_output = _run_command(
+
+            [
+                "/System/Library/PrivateFrameworks/"
+                "Apple80211.framework/Versions/Current/"
+                "Resources/airport",
+                "-I"
+            ],
+
+            timeout=5
+
+        )
+
+
+        if airport_output:
+
+            result[
+                "connected"
+            ] = True
+
+
+            patterns = {
+
+                "ssid":
+                    r"^\s*SSID:\s*(.+)$",
+
+                "bssid":
+                    r"^\s*BSSID:\s*(.+)$",
+
+                "signal_dbm":
+                    r"^\s*agrCtlRSSI:\s*(-?\d+)",
+
+                "channel":
+                    r"^\s*channel:\s*(\d+)"
+
+            }
+
+
+            for key, pattern in patterns.items():
+
+                match = re.search(
+
+                    pattern,
+
+                    airport_output,
+
+                    re.I |
+                    re.M
+
+                )
+
+
+                if match:
+
+                    value = match.group(1).strip()
+
+
+                    try:
+
+                        result[key] = (
+                            int(value)
+                            if key in
+                            (
+                                "channel",
+                                "signal_dbm"
+                            )
+                            else
+                            value
+                        )
+
+                    except:
+
+                        result[key] = value
+
+
+            channel = result.get(
+                "channel"
+            )
+
+
+            if channel:
+
+                result[
+                    "band"
+                ] = (
+                    "2.4 GHz"
+                    if channel <= 14
+                    else
+                    "5 GHz"
+                )
+
+
+        return result
+
+
+    return {
+
+        "available":
+            False,
+
+        "connected":
+            False,
+
+        "ssid":
+            None,
+
+        "bssid":
+            None,
+
+        "signal_percent":
+            None,
+
+        "signal_dbm":
+            None,
+
+        "channel":
+            None,
+
+        "radio_type":
+            None,
+
+        "band":
+            None,
+
+        "interface":
+            None,
+
+        "receive_mbps":
+            None,
+
+        "transmit_mbps":
+            None,
+
+        "authentication":
+            None,
+
+        "state":
+            None,
+
+        "source":
+            None
+
+    }
+
+
+# ==========================================
+# ARP / NEIGHBOUR
+# ==========================================
+
+def normalize_mac(
+    mac
+):
+
+    if not mac:
+
+        return None
+
+
+    compact = re.sub(
+
+        r"[^0-9A-Fa-f]",
+
+        "",
+
+        str(mac)
+
+    )
+
+
+    if len(compact) == 12:
+
+        return ":".join(
+
+            [
+
+                compact[0:2],
+                compact[2:4],
+                compact[4:6],
+                compact[6:8],
+                compact[8:10],
+                compact[10:12]
+
+            ]
+
+        ).upper()
+
+
+    return str(
+        mac
+    ).replace(
+        "-",
+        ":"
+    ).upper()
+
+
+def get_arp_neighbors():
+
+    neighbors = {}
+
+    system = platform.system().lower()
+
+
+    # ======================================
+    # WINDOWS
+    # ======================================
+
+    if system == "windows":
+
+        output = _run_command(
+
+            [
+                "arp",
+                "-a"
+            ],
+
+            timeout=4
+
+        )
+
+
+        current_interface = None
+
+
+        for line in output.splitlines():
+
+            line = line.strip()
+
+
+            if not line:
+
+                continue
+
+
+            interface_match = re.search(
+
+                r"Interface:\s+"
+                r"(\d+\.\d+\.\d+\.\d+)",
+
+                line,
+
+                re.I
+
+            )
+
+
+            if interface_match:
+
+                current_interface = (
+                    interface_match.group(1)
+                )
+
+                continue
+
+
+            match = re.search(
+
+                r"(\d+\.\d+\.\d+\.\d+)"
+                r"\s+"
+                r"([0-9a-fA-F:-]{17})"
+                r"\s+"
+                r"(\w+)",
+
+                line
+
+            )
+
+
+            if match:
+
+                ip_addr = (
+                    match.group(1)
+                )
+
+
+                if not _is_valid_ipv4(
+                    ip_addr
+                ):
+
+                    continue
+
+
+                mac_addr = (
+                    match.group(2)
+                )
+
+
+                state = (
+                    match.group(3)
+                    .upper()
+                )
+
+
+                neighbors[
+                    ip_addr
+                ] = {
+
+                    "ip":
+                        ip_addr,
+
+                    "mac":
+                        normalize_mac(
+                            mac_addr
+                        ),
+
+                    "state":
+                        state,
+
+                    "interface":
+                        current_interface
+
+                }
+
+
+        # ==================================
+        # POWERSHELL
+        # ==================================
+
+        ps_output = _run_command(
+
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+
+                (
+                    "Get-NetNeighbor "
+                    "-AddressFamily IPv4 "
+                    "| Where-Object {"
+                    "$_.IPAddress -and "
+                    "$_.LinkLayerAddress"
+                    "} "
+                    "| Select-Object "
+                    "IPAddress,LinkLayerAddress,State "
+                    "| ConvertTo-Json -Compress"
+                )
+
+            ],
+
+            timeout=5
+
+        )
+
+
+        if ps_output:
+
+            try:
+
+                data = json.loads(
+                    ps_output
+                )
+
+
+                if isinstance(
+                    data,
+                    dict
+                ):
+
+                    data = [data]
+
+
+                for item in data:
+
+                    if not isinstance(
+                        item,
+                        dict
+                    ):
+
+                        continue
+
+
+                    ip_addr = str(
+                        item.get(
+                            "IPAddress",
+                            ""
+                        )
+                    ).strip()
+
+
+                    mac_addr = str(
+                        item.get(
+                            "LinkLayerAddress",
+                            ""
+                        )
+                    ).strip()
+
+
+                    state = str(
+                        item.get(
+                            "State",
+                            "UNKNOWN"
+                        )
+                    ).upper()
+
+
+                    if not _is_valid_ipv4(
+                        ip_addr
+                    ):
+
+                        continue
+
+
+                    if (
+                        not re.match(
+                            r"^[0-9A-Fa-f:-]{17}$",
+                            mac_addr
+                        )
+                    ):
+
+                        continue
+
+
+                    neighbors[
+                        ip_addr
+                    ] = {
+
+                        "ip":
+                            ip_addr,
+
+                        "mac":
+                            normalize_mac(
+                                mac_addr
+                            ),
+
+                        "state":
+                            state,
+
+                        "interface":
+                            None
+
+                    }
+
+
+            except Exception:
+
+                pass
+
+
+    # ======================================
+    # LINUX
+    # ======================================
+
+    elif system == "linux":
+
+        output = _run_command(
+
+            [
+                "ip",
+                "-4",
+                "neigh",
+                "show"
+            ],
+
+            timeout=4
+
+        )
+
+
+        for line in output.splitlines():
+
+            match = re.search(
+
+                r"(\d+\.\d+\.\d+\.\d+)"
+                r".*?"
+                r"(?:lladdr\s+"
+                r"([0-9a-fA-F:]{17}))?"
+                r".*?"
+                r"(REACHABLE|STALE|DELAY|PROBE|FAILED|PERMANENT|NOARP|INCOMPLETE)",
+
+                line,
+
+                re.I
+
+            )
+
+
+            if match:
+
+                ip_addr = (
+                    match.group(1)
+                )
+
+
+                neighbors[
+                    ip_addr
+                ] = {
+
+                    "ip":
+                        ip_addr,
+
+                    "mac":
+                        normalize_mac(
+                            match.group(2)
+                        ),
+
+                    "state":
+                        (
+                            match.group(3)
+                            or
+                            "UNKNOWN"
+                        ).upper(),
+
+                    "interface":
+                        None
+
+                }
+
+
+    # ======================================
+    # MACOS
+    # ======================================
+
+    elif system == "darwin":
+
+        output = _run_command(
+
+            [
+                "arp",
+                "-an"
+            ],
+
+            timeout=4
+
+        )
+
+
+        for line in output.splitlines():
+
+            match = re.search(
+
+                r"\((\d+\.\d+\.\d+\.\d+)\)"
+                r"\s+at\s+"
+                r"([0-9a-fA-F:]{17})",
+
+                line,
+
+                re.I
+
+            )
+
+
+            if match:
+
+                ip_addr = (
+                    match.group(1)
+                )
+
+
+                neighbors[
+                    ip_addr
+                ] = {
+
+                    "ip":
+                        ip_addr,
+
+                    "mac":
+                        normalize_mac(
+                            match.group(2)
+                        ),
+
+                    "state":
+                        "KNOWN",
+
+                    "interface":
+                        None
+
+                }
+
+
+    return neighbors
+
+
+# ==========================================
+# MAC VENDOR
+# ==========================================
+
+def get_mac_vendor(
+    mac
+):
+
+    mac = normalize_mac(
+        mac
+    )
+
+
+    if not mac:
+
+        return None
+
+
+    compact = re.sub(
+        r"[^0-9A-F]",
+        "",
+        mac.upper()
+    )
+
+
+    if len(compact) < 6:
+
+        return None
+
+
+    oui = ":".join(
+
+        [
+
+            compact[0:2],
+            compact[2:4],
+            compact[4:6]
+
+        ]
+
+    )
+
+
+    common_oui = {
+
+        "00:46:4B":
+            "Huawei",
+
+        "00:18:82":
+            "Huawei",
+
+        "00:25:68":
+            "Huawei",
+
+        "48:46:FB":
+            "Huawei",
+
+        "50:C7:BF":
+            "TP-Link",
+
+        "54:A7:03":
+            "TP-Link",
+
+        "C0:4A:00":
+            "TP-Link",
+
+        "28:6C:07":
+            "Xiaomi",
+
+        "34:CE:00":
+            "Xiaomi",
+
+        "64:09:80":
+            "Xiaomi",
+
+        "00:1C:B3":
+            "Apple",
+
+        "3C:06:30":
+            "Apple",
+
+        "A4:83:E7":
+            "Apple",
+
+        "00:07:AB":
+            "Samsung",
+
+        "5C:49:7D":
+            "Samsung",
+
+        "CC:07:AB":
+            "Samsung",
+
+        "00:1B:21":
+            "Intel",
+
+        "00:1E:67":
+            "Intel",
+
+        "3C:F0:11":
+            "Intel",
+
+        "00:E0:4C":
+            "Realtek",
+
+        "00:00:0C":
+            "Cisco",
+
+        "00:14:22":
+            "Dell",
+
+        "00:1E:0B":
+            "HP",
+
+        "00:1F:C6":
+            "ASUS",
+
+        "3C:5A:B4":
+            "Google"
+
+    }
+
+
+    return common_oui.get(
+        oui
     )
 
 
 # ==========================================
-# 12.2 NETWORK DATA API
+# HOSTNAME
 # ==========================================
 
-@app.route("/api/network-data")
-def network_data_api():
+def resolve_hostname(
+    ip,
+    timeout=0.5
+):
+
+    old_timeout = (
+        socket.getdefaulttimeout()
+    )
+
 
     try:
 
-        data = scan_network_devices()
+        socket.setdefaulttimeout(
+            timeout
+        )
 
-        return jsonify(data)
+
+        result = socket.gethostbyaddr(
+            ip
+        )
+
+
+        if result:
+
+            return result[0]
+
+
+    except (
+        socket.herror,
+        socket.gaierror,
+        socket.timeout,
+        OSError
+    ):
+
+        pass
+
+
+    finally:
+
+        try:
+
+            socket.setdefaulttimeout(
+                old_timeout
+            )
+
+        except:
+
+            pass
+
+
+    return None
+
+
+def resolve_hostnames_parallel(
+    devices,
+    max_workers=16
+):
+
+    targets = [
+
+        device
+
+        for device in devices
+
+        if (
+
+            device.get(
+                "ip"
+            )
+
+            and
+
+            not device.get(
+                "hostname"
+            )
+
+            and
+
+            device.get(
+                "role"
+            )
+            !=
+            "local_device"
+
+        )
+
+    ]
+
+
+    if not targets:
+
+        return devices
+
+
+    workers = max(
+
+        1,
+
+        min(
+            max_workers,
+            len(targets)
+        )
+
+    )
+
+
+    with ThreadPoolExecutor(
+        max_workers=workers
+    ) as executor:
+
+        futures = {
+
+            executor.submit(
+
+                resolve_hostname,
+
+                device["ip"]
+
+            ):
+                device
+
+            for device in targets
+
+        }
+
+
+        for future in as_completed(
+            futures
+        ):
+
+            device = futures[
+                future
+            ]
+
+
+            try:
+
+                hostname = (
+                    future.result()
+                )
+
+
+                if hostname:
+
+                    device[
+                        "hostname"
+                    ] = hostname
+
+
+            except Exception:
+
+                pass
+
+
+    return devices
+
+
+# ==========================================
+# PING
+# ==========================================
+
+def ping_host(
+    ip,
+    timeout=1
+):
+
+    if not ip:
+
+        return False, None
+
+
+    if not _is_valid_ipv4(
+        ip
+    ):
+
+        return False, None
+
+
+    system = platform.system().lower()
+
+
+    if system == "windows":
+
+        command = [
+
+            "ping",
+
+            "-n",
+            "1",
+
+            "-w",
+            str(
+                max(
+                    1,
+                    int(
+                        timeout
+                        *
+                        1000
+                    )
+                )
+            ),
+
+            ip
+
+        ]
+
+
+    else:
+
+        command = [
+
+            "ping",
+
+            "-c",
+            "1",
+
+            "-W",
+            str(
+                max(
+                    1,
+                    int(timeout)
+                )
+            ),
+
+            ip
+
+        ]
+
+
+    started = time.perf_counter()
+
+
+    output = _run_command(
+
+        command,
+
+        timeout=(
+            timeout
+            +
+            1.5
+        )
+
+    )
+
+
+    elapsed = round(
+
+        (
+            time.perf_counter()
+            -
+            started
+        )
+        *
+        1000,
+
+        1
+
+    )
+
+
+    if output:
+
+        text = output.lower()
+
+
+        if (
+
+            "ttl=" in text
+
+            or
+
+            "time=" in text
+
+            or
+
+            "time<" in text
+
+        ):
+
+            # Coba ambil angka ping asli.
+            match = re.search(
+
+                r"(?:time[=<])\s*(\d+(?:[.,]\d+)?)\s*ms",
+
+                text
+
+            )
+
+
+            if match:
+
+                try:
+
+                    return True, float(
+                        match.group(1)
+                        .replace(
+                            ",",
+                            "."
+                        )
+                    )
+
+                except:
+
+                    pass
+
+
+            return True, elapsed
+
+
+    return False, None
+
+
+# ==========================================
+# ACTIVE DISCOVERY
+# ==========================================
+
+def probe_host(
+    ip,
+    timeout=0.5
+):
+
+    online, latency = ping_host(
+
+        ip,
+
+        timeout=timeout
+
+    )
+
+
+    return {
+
+        "ip":
+            ip,
+
+        "online":
+            online,
+
+        "latency_ms":
+            latency
+
+    }
+
+
+def active_network_discovery(
+    network,
+    known_neighbors=None,
+    local_ip=None,
+    gateway=None
+):
+
+    if not NETWORK_ACTIVE_DISCOVERY:
+
+        return {}
+
+
+    if not network:
+
+        return {}
+
+
+    if not isinstance(
+        network,
+        ipaddress.IPv4Network
+    ):
+
+        return {}
+
+
+    # Hindari scan terlalu besar.
+    if (
+
+        network.prefixlen < 16
+
+        or
+
+        network.prefixlen > 24
+
+    ):
+
+        return {}
+
+
+    known_neighbors = (
+
+        known_neighbors
+
+        if isinstance(
+            known_neighbors,
+            dict
+        )
+
+        else
+
+        {}
+
+    )
+
+
+    known_ips = set(
+        known_neighbors.keys()
+    )
+
+
+    targets = []
+
+
+    for host in network.hosts():
+
+        ip_addr = str(
+            host
+        )
+
+
+        if ip_addr == local_ip:
+
+            continue
+
+
+        if ip_addr == gateway:
+
+            continue
+
+
+        if ip_addr in known_ips:
+
+            continue
+
+
+        targets.append(
+            ip_addr
+        )
+
+
+    if not targets:
+
+        return {}
+
+
+    discovered = {}
+
+
+    workers = min(
+
+        NETWORK_DISCOVERY_WORKERS,
+
+        len(targets)
+
+    )
+
+
+    with ThreadPoolExecutor(
+        max_workers=max(
+            1,
+            workers
+        )
+    ) as executor:
+
+        futures = {
+
+            executor.submit(
+
+                probe_host,
+
+                ip_addr,
+
+                NETWORK_DISCOVERY_TIMEOUT
+
+            ):
+                ip_addr
+
+            for ip_addr in targets
+
+        }
+
+
+        for future in as_completed(
+            futures
+        ):
+
+            try:
+
+                item = future.result()
+
+
+                if item.get(
+                    "online"
+                ):
+
+                    discovered[
+                        item["ip"]
+                    ] = item
+
+
+            except Exception:
+
+                continue
+
+
+    return discovered
+
+
+# ==========================================
+# BUILD DEVICES
+# ==========================================
+
+def build_device_list(
+    local_ip,
+    gateway,
+    network,
+    neighbors,
+    active_discovered=None
+):
+
+    devices = {}
+
+
+    active_discovered = (
+
+        active_discovered
+
+        if isinstance(
+            active_discovered,
+            dict
+        )
+
+        else
+
+        {}
+
+    )
+
+
+    # --------------------------------------
+    # LOCAL
+    # --------------------------------------
+
+    if local_ip:
+
+        devices[
+            local_ip
+        ] = {
+
+            "ip":
+                local_ip,
+
+            "mac":
+                None,
+
+            "hostname":
+                socket.gethostname(),
+
+            "online":
+                True,
+
+            "latency_ms":
+                0,
+
+            "role":
+                "local_device",
+
+            "vendor":
+                None,
+
+            "state":
+                "LOCAL",
+
+            "source":
+                "local_interface"
+
+        }
+
+
+    # --------------------------------------
+    # NEIGHBOR
+    # --------------------------------------
+
+    online_states = {
+
+        "REACHABLE",
+        "STALE",
+        "DELAY",
+        "PROBE",
+        "PERMANENT",
+        "PUBLISHED",
+        "KNOWN",
+        "DYNAMIC",
+        "STATIC",
+        "NOARP"
+
+    }
+
+
+    for ip_addr, item in neighbors.items():
+
+        if not _is_valid_ipv4(
+            ip_addr
+        ):
+
+            continue
+
+
+        mac = normalize_mac(
+            item.get(
+                "mac"
+            )
+        )
+
+
+        state = str(
+            item.get(
+                "state",
+                "UNKNOWN"
+            )
+        ).upper()
+
+
+        is_online = (
+
+            state
+            in
+            online_states
+
+        )
+
+
+        role = "device"
+
+
+        if (
+
+            gateway
+
+            and
+
+            ip_addr == gateway
+
+        ):
+
+            role = "router"
+
+            # Gateway routing table saja tidak
+            # berarti ping wajib berhasil.
+            # Status ditentukan ping di tahap berikut.
+
+
+        if (
+
+            local_ip
+
+            and
+
+            ip_addr == local_ip
+
+        ):
+
+            role = "local_device"
+
+            is_online = True
+
+
+        devices[
+            ip_addr
+        ] = {
+
+            "ip":
+                ip_addr,
+
+            "mac":
+                mac,
+
+            "hostname":
+                None,
+
+            "online":
+                is_online,
+
+            "latency_ms":
+                None,
+
+            "role":
+                role,
+
+            "vendor":
+                get_mac_vendor(
+                    mac
+                ),
+
+            "state":
+                state,
+
+            "source":
+                "arp"
+
+        }
+
+
+    # --------------------------------------
+    # ACTIVE DISCOVERY
+    # --------------------------------------
+
+    for ip_addr, item in active_discovered.items():
+
+        if not _is_valid_ipv4(
+            ip_addr
+        ):
+
+            continue
+
+
+        if ip_addr in devices:
+
+            devices[
+                ip_addr
+            ]["online"] = True
+
+
+            devices[
+                ip_addr
+            ]["latency_ms"] = (
+                item.get(
+                    "latency_ms"
+                )
+            )
+
+
+            devices[
+                ip_addr
+            ]["source"] = (
+
+                devices[
+                    ip_addr
+                ].get(
+                    "source",
+                    "arp"
+                )
+
+                +
+                "+probe"
+
+            )
+
+
+            continue
+
+
+        devices[
+            ip_addr
+        ] = {
+
+            "ip":
+                ip_addr,
+
+            "mac":
+                None,
+
+            "hostname":
+                None,
+
+            "online":
+                True,
+
+            "latency_ms":
+                item.get(
+                    "latency_ms"
+                ),
+
+            "role":
+                "device",
+
+            "vendor":
+                None,
+
+            "state":
+                "PROBE_REACHABLE",
+
+            "source":
+                "active_probe"
+
+        }
+
+
+    # --------------------------------------
+    # GATEWAY
+    # --------------------------------------
+
+    if gateway:
+
+        if gateway not in devices:
+
+            devices[
+                gateway
+            ] = {
+
+                "ip":
+                    gateway,
+
+                "mac":
+                    None,
+
+                "hostname":
+                    None,
+
+                "online":
+                    False,
+
+                "latency_ms":
+                    None,
+
+                "role":
+                    "router",
+
+                "vendor":
+                    None,
+
+                "state":
+                    "ROUTING_TABLE",
+
+                "source":
+                    "routing_table"
+
+            }
+
+        else:
+
+            devices[
+                gateway
+            ]["role"] = (
+                "router"
+            )
+
+
+    return list(
+        devices.values()
+    )
+
+
+# ==========================================
+# SPEEDTEST OOKLA CLI
+# ==========================================
+
+def find_speedtest_command():
+
+    candidates = [
+
+        "speedtest",
+
+        "speedtest.exe"
+
+    ]
+
+
+    for command in candidates:
+
+        output = _run_command(
+
+            [
+                command,
+                "--version"
+            ],
+
+            timeout=5
+
+        )
+
+
+        if output:
+
+            return command
+
+
+    # Windows common path
+    windows_paths = [
+
+        os.path.join(
+            os.environ.get(
+                "ProgramFiles",
+                "C:\\Program Files"
+            ),
+            "Ookla",
+            "Speedtest",
+            "speedtest.exe"
+        ),
+
+        os.path.join(
+            os.environ.get(
+                "ProgramFiles(x86)",
+                "C:\\Program Files (x86)"
+            ),
+            "Ookla",
+            "Speedtest",
+            "speedtest.exe"
+        ),
+
+        os.path.join(
+            os.environ.get(
+                "LOCALAPPDATA",
+                ""
+            ),
+            "Programs",
+            "speedtest",
+            "speedtest.exe"
+        )
+
+    ]
+
+
+    for path in windows_paths:
+
+        if os.path.isfile(
+            path
+        ):
+
+            return path
+
+
+    return None
+
+
+def run_ookla_speedtest():
+
+    """
+    Menjalankan Ookla Speedtest CLI jika tersedia.
+
+    Hasil:
+        ping_ms
+        download_mbps
+        upload_mbps
+        server
+        isp
+        packet_loss
+    """
+
+    if not NETWORK_SPEEDTEST_ENABLED:
+
+        return {
+
+            "available":
+                False,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest dinonaktifkan."
+
+        }
+
+
+    command = find_speedtest_command()
+
+
+    if not command:
+
+        return {
+
+            "available":
+                False,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                (
+                    "Ookla Speedtest CLI tidak ditemukan "
+                    "di komputer tempat Flask berjalan."
+                )
+
+        }
+
+
+    try:
+
+        # JSON output dipakai agar tidak perlu parsing
+        # teks progress yang panjang.
+        result = subprocess.run(
+
+            [
+                command,
+                "--format=json",
+                "--accept-license",
+                "--accept-gdpr"
+            ],
+
+            stdout=subprocess.PIPE,
+
+            stderr=subprocess.DEVNULL,
+
+            stdin=subprocess.DEVNULL,
+
+            text=True,
+
+            timeout=NETWORK_SPEEDTEST_TIMEOUT,
+
+            check=False,
+
+            creationflags=(
+
+                subprocess.CREATE_NO_WINDOW
+
+                if platform.system().lower()
+                ==
+                "windows"
+
+                else
+
+                0
+
+            )
+
+        )
+
+
+        raw = (
+            result.stdout
+            or
+            ""
+        ).strip()
+
+
+        if not raw:
+
+            return {
+
+                "available":
+                    True,
+
+                "running":
+                    False,
+
+                "success":
+                    False,
+
+                "download_mbps":
+                    None,
+
+                "upload_mbps":
+                    None,
+
+                "ping_ms":
+                    None,
+
+                "packet_loss_percent":
+                    None,
+
+                "server":
+                    None,
+
+                "isp":
+                    None,
+
+                "source":
+                    "Ookla Speedtest CLI",
+
+                "message":
+                    "Speedtest tidak mengembalikan data."
+
+            }
+
+
+        # Terkadang output memiliki line tambahan.
+        # Ambil JSON object pertama.
+        json_start = raw.find(
+            "{"
+        )
+
+        json_end = raw.rfind(
+            "}"
+        )
+
+
+        if (
+            json_start == -1
+            or
+            json_end == -1
+        ):
+
+            raise ValueError(
+                "Output Speedtest bukan JSON."
+            )
+
+
+        payload = json.loads(
+
+            raw[
+                json_start:
+                json_end + 1
+            ]
+
+        )
+
+
+        download_bps = None
+
+        upload_bps = None
+
+        ping_ms = None
+
+        packet_loss = None
+
+
+        if isinstance(
+            payload.get("download"),
+            dict
+        ):
+
+            download_bps = payload[
+                "download"
+            ].get(
+                "bandwidth"
+            )
+
+
+        if isinstance(
+            payload.get("upload"),
+            dict
+        ):
+
+            upload_bps = payload[
+                "upload"
+            ].get(
+                "bandwidth"
+            )
+
+
+        if isinstance(
+            payload.get("ping"),
+            dict
+        ):
+
+            ping_ms = payload[
+                "ping"
+            ].get(
+                "latency"
+            )
+
+
+            packet_loss = payload[
+                "ping"
+            ].get(
+                "packetLoss"
+            )
+
+
+        # Ookla JSON menggunakan bandwidth bytes/sec.
+        #
+        # Konversi:
+        # bytes/s -> bits/s -> Mbps
+        #
+        download_mbps = (
+
+            (
+                float(download_bps)
+                *
+                8
+            )
+            /
+            1_000_000
+
+            if download_bps is not None
+
+            else
+
+            None
+
+        )
+
+
+        upload_mbps = (
+
+            (
+                float(upload_bps)
+                *
+                8
+            )
+            /
+            1_000_000
+
+            if upload_bps is not None
+
+            else
+
+            None
+
+        )
+
+
+        server = (
+            payload.get(
+                "server"
+            )
+            if isinstance(
+                payload.get(
+                    "server"
+                ),
+                dict
+            )
+            else
+            {}
+        )
+
+
+        server_name = (
+
+            server.get(
+                "name"
+            )
+            or
+            server.get(
+                "host"
+            )
+
+        )
+
+
+        isp = (
+            payload.get(
+                "isp"
+            )
+        )
+
+
+        return {
+
+            "available":
+                True,
+
+            "running":
+                False,
+
+            "success":
+                True,
+
+            "download_mbps":
+                round(
+                    download_mbps,
+                    2
+                )
+                if download_mbps is not None
+                else
+                None,
+
+            "upload_mbps":
+                round(
+                    upload_mbps,
+                    2
+                )
+                if upload_mbps is not None
+                else
+                None,
+
+            "ping_ms":
+                round(
+                    float(ping_ms),
+                    2
+                )
+                if ping_ms is not None
+                else
+                None,
+
+            "packet_loss_percent":
+                (
+                    round(
+                        float(packet_loss),
+                        2
+                    )
+                    if packet_loss is not None
+                    else
+                    None
+                ),
+
+            "server":
+                server_name,
+
+            "isp":
+                isp,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest berhasil."
+
+        }
+
+
+    except subprocess.TimeoutExpired:
+
+        return {
+
+            "available":
+                True,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest melebihi batas waktu."
+
+        }
+
 
     except Exception as e:
 
+        print(
+            "INFO: Ookla Speedtest gagal: "
+            f"{e}"
+        )
+
+
+        return {
+
+            "available":
+                True,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                str(e)
+
+        }
+
+
+# ==========================================
+# NETWORK SNAPSHOT
+# ==========================================
+
+def build_network_snapshot():
+
+    started = time.perf_counter()
+
+
+    # ======================================
+    # LOCAL NETWORK
+    # ======================================
+
+    local_ip = get_local_ip()
+
+
+    gateway = detect_default_gateway()
+
+
+    network = get_interface_network(
+
+        local_ip,
+
+        gateway
+
+    )
+
+
+    neighbors = get_arp_neighbors()
+
+
+    wifi = get_wifi_info()
+
+
+    # ======================================
+    # ACTIVE DISCOVERY
+    # ======================================
+
+    active_discovered = (
+
+        active_network_discovery(
+
+            network,
+
+            known_neighbors=neighbors,
+
+            local_ip=local_ip,
+
+            gateway=gateway
+
+        )
+
+        if NETWORK_ACTIVE_DISCOVERY
+
+        else
+
+        {}
+
+    )
+
+
+    # ======================================
+    # DEVICES
+    # ======================================
+
+    devices = build_device_list(
+
+        local_ip,
+
+        gateway,
+
+        network,
+
+        neighbors,
+
+        active_discovered
+
+    )
+
+
+    devices = resolve_hostnames_parallel(
+        devices
+    )
+
+
+    # ======================================
+    # GATEWAY PING
+    # ======================================
+
+    gateway_online = False
+
+    gateway_latency = None
+
+
+    router = next(
+
+        (
+
+            device
+
+            for device in devices
+
+            if device.get(
+                "role"
+            )
+            ==
+            "router"
+
+        ),
+
+        None
+
+    )
+
+
+    if gateway:
+
+        gateway_online, gateway_latency = (
+
+            ping_host(
+
+                gateway,
+
+                timeout=1
+
+            )
+
+        )
+
+
+        if router:
+
+            router[
+                "online"
+            ] = gateway_online
+
+            router[
+                "latency_ms"
+            ] = gateway_latency
+
+
+    # ======================================
+    # CLIENT DEVICE STATUS
+    # ======================================
+
+    active_devices = [
+
+        device
+
+        for device in devices
+
+        if (
+
+            device.get(
+                "online"
+            )
+
+            and
+
+            device.get(
+                "role"
+            )
+            not in
+            (
+                "router",
+                "local_device"
+            )
+
+        )
+
+    ]
+
+
+    known_devices = [
+
+        device
+
+        for device in devices
+
+        if device.get(
+            "role"
+        )
+        ==
+        "device"
+
+    ]
+
+
+    # ======================================
+    # BACKEND PUBLIC IP
+    # ======================================
+
+    server_public_ip = (
+        get_public_ip()
+    )
+
+
+    # ======================================
+    # ROUTER INFO
+    # ======================================
+
+    router_data = {
+
+        "online":
+            gateway_online,
+
+        "ip":
+            gateway,
+
+        "mac":
+            (
+                router.get(
+                    "mac"
+                )
+                if router
+                else
+                None
+            ),
+
+        "hostname":
+            (
+                router.get(
+                    "hostname"
+                )
+                if router
+                else
+                None
+            ),
+
+        "latency_ms":
+            gateway_latency,
+
+        "vendor":
+            (
+                router.get(
+                    "vendor"
+                )
+                if router
+                else
+                None
+            ),
+
+        "state":
+            (
+                router.get(
+                    "state"
+                )
+                if router
+                else
+                None
+            )
+
+    }
+
+
+    # ======================================
+    # SPEEDTEST
+    # ======================================
+
+    speedtest = (
+        run_ookla_speedtest()
+        if NETWORK_SPEEDTEST_ENABLED
+        else
+        {
+
+            "available":
+                False,
+
+            "running":
+                False,
+
+            "success":
+                False,
+
+            "download_mbps":
+                None,
+
+            "upload_mbps":
+                None,
+
+            "ping_ms":
+                None,
+
+            "packet_loss_percent":
+                None,
+
+            "server":
+                None,
+
+            "isp":
+                None,
+
+            "source":
+                "Ookla Speedtest CLI",
+
+            "message":
+                "Speedtest tidak dijalankan."
+
+        }
+    )
+
+
+    # ======================================
+    # RESPONSE
+    # ======================================
+
+    return {
+
+        "status":
+            "success",
+
+        "auto_detected":
+            True,
+
+        "source":
+            "local_device",
+
+        "timestamp":
+            datetime.now(
+                pytz.timezone(
+                    "Asia/Jakarta"
+                )
+            ).isoformat(),
+
+        "scan_time_ms":
+            round(
+
+                (
+                    time.perf_counter()
+                    -
+                    started
+                )
+                *
+                1000,
+
+                1
+
+            ),
+
+
+        # ==================================
+        # ROUTER
+        # ==================================
+
+        "router":
+            router_data,
+
+
+        "gateway":
+            gateway,
+
+
+        "gateway_ip":
+            gateway,
+
+
+        # ==================================
+        # LOCAL
+        # ==================================
+
+        "local":
+            {
+
+                "ip":
+                    local_ip,
+
+                "network":
+                    (
+                        str(network)
+                        if network
+                        else
+                        None
+                    ),
+
+                "prefix":
+                    (
+                        network.prefixlen
+                        if network
+                        else
+                        None
+                    ),
+
+                "hostname":
+                    socket.gethostname()
+
+            },
+
+
+        # ==================================
+        # SERVER
+        # ==================================
+
+        "server":
+            {
+
+                "public_ip":
+                    server_public_ip,
+
+                "hostname":
+                    socket.gethostname(),
+
+                "platform":
+                    platform.system(),
+
+                "source":
+                    "Flask backend"
+
+            },
+
+
+        # ==================================
+        # WIFI
+        # ==================================
+
+        "wifi":
+            wifi,
+
+
+        "ssid":
+            wifi.get(
+                "ssid"
+            ),
+
+
+        "bssid":
+            wifi.get(
+                "bssid"
+            ),
+
+
+        "channel":
+            wifi.get(
+                "channel"
+            ),
+
+
+        "band":
+            wifi.get(
+                "band"
+            ),
+
+
+        "wifi_signal_percent":
+            wifi.get(
+                "signal_percent"
+            ),
+
+
+        "wifi_signal_dbm":
+            wifi.get(
+                "signal_dbm"
+            ),
+
+
+        "wifi_radio_type":
+            wifi.get(
+                "radio_type"
+            ),
+
+
+        "wifi_interface":
+            wifi.get(
+                "interface"
+            ),
+
+
+        "wifi_receive_mbps":
+            wifi.get(
+                "receive_mbps"
+            ),
+
+
+        "wifi_transmit_mbps":
+            wifi.get(
+                "transmit_mbps"
+            ),
+
+
+        # ==================================
+        # SPEEDTEST
+        # ==================================
+
+        "speedtest":
+            speedtest,
+
+
+        "download_mbps":
+            speedtest.get(
+                "download_mbps"
+            ),
+
+
+        "upload_mbps":
+            speedtest.get(
+                "upload_mbps"
+            ),
+
+
+        "speedtest_ping_ms":
+            speedtest.get(
+                "ping_ms"
+            ),
+
+
+        "speedtest_server":
+            speedtest.get(
+                "server"
+            ),
+
+
+        "speedtest_isp":
+            speedtest.get(
+                "isp"
+            ),
+
+
+        # ==================================
+        # CLIENT
+        # ==================================
+
+        #
+        # Data client dikirim oleh browser
+        # melalui /api/client-network.
+        #
+        "client":
+            {
+
+                "public_ip":
+                    None,
+
+                "isp":
+                    None,
+
+                "asn":
+                    None,
+
+                "org":
+                    None,
+
+                "city":
+                    None,
+
+                "region":
+                    None,
+
+                "country":
+                    None,
+
+                "browser":
+                    None,
+
+                "os":
+                    None,
+
+                "connection_type":
+                    None,
+
+                "downlink_mbps":
+                    None,
+
+                "rtt_ms":
+                    None,
+
+                "save_data":
+                    None
+
+            },
+
+
+        # ==================================
+        # DEVICES
+        # ==================================
+
+        "clients_count":
+            len(
+                active_devices
+            ),
+
+
+        "known_devices_count":
+            len(
+                known_devices
+            ),
+
+
+        "active_discovery":
+            NETWORK_ACTIVE_DISCOVERY,
+
+
+        "devices":
+            sorted(
+
+                devices,
+
+                key=lambda x: (
+
+                    0
+
+                    if x.get(
+                        "role"
+                    )
+                    ==
+                    "local_device"
+
+                    else
+
+                    1
+
+                    if x.get(
+                        "role"
+                    )
+                    ==
+                    "router"
+
+                    else
+
+                    2,
+
+                    (
+                        int(
+                            ipaddress.ip_address(
+                                x["ip"]
+                            )
+                        )
+
+                        if x.get(
+                            "ip"
+                        )
+
+                        else
+
+                        0
+
+                    )
+
+                )
+
+            ),
+
+
+        # ==================================
+        # CAPABILITIES
+        # ==================================
+
+        "capabilities":
+            {
+
+                "local_ip_detection":
+                    True,
+
+                "gateway_detection":
+                    True,
+
+                "subnet_detection":
+                    True,
+
+                "arp_discovery":
+                    True,
+
+                "neighbor_table_discovery":
+                    True,
+
+                "hostname_resolution":
+                    True,
+
+                "ping_gateway":
+                    True,
+
+                "wifi_ssid":
+                    bool(
+                        wifi.get(
+                            "ssid"
+                        )
+                    ),
+
+                "wifi_band":
+                    bool(
+                        wifi.get(
+                            "band"
+                        )
+                    ),
+
+                "wifi_channel":
+                    bool(
+                        wifi.get(
+                            "channel"
+                        )
+                    ),
+
+                "wifi_signal":
+                    (
+                        wifi.get(
+                            "signal_percent"
+                        )
+                        is not None
+                        or
+                        wifi.get(
+                            "signal_dbm"
+                        )
+                        is not None
+                    ),
+
+                "wifi_interface":
+                    bool(
+                        wifi.get(
+                            "interface"
+                        )
+                    ),
+
+                "ookla_speedtest":
+                    bool(
+                        speedtest.get(
+                            "available"
+                        )
+                    ),
+
+                "router_bandwidth":
+                    bool(
+                        speedtest.get(
+                            "success"
+                        )
+                    ),
+
+                "client_isp":
+                    False,
+
+                "client_public_ip":
+                    "browser",
+
+                "tr069":
+                    False,
+
+                "snmp":
+                    False,
+
+                "active_discovery":
+                    NETWORK_ACTIVE_DISCOVERY,
+
+                "full_subnet_scan":
+                    NETWORK_ACTIVE_DISCOVERY
+
+            },
+
+
+        "message":
+            (
+
+                "Deteksi jaringan lokal berhasil. "
+
+                "Gateway, LAN, ARP, hostname, dan Wi-Fi "
+                "dibaca dari mesin tempat Flask berjalan. "
+
+                "Informasi ISP client tidak diambil dari "
+                "IP server backend; ISP akan ditentukan "
+                "berdasarkan IP publik client yang dikirim "
+                "oleh browser. "
+
+                "Bandwidth aktual hanya diisi dari "
+                "Ookla Speedtest CLI apabila tersedia "
+                "dan NETWORK_SPEEDTEST=true."
+
+            )
+
+    }
+
+
+# ==========================================
+# NETWORK CACHE
+# ==========================================
+
+def get_network_snapshot(
+    force=False
+):
+
+    now = time.time()
+
+
+    with NETWORK_CACHE[
+        "lock"
+    ]:
+
+        cached_data = (
+            NETWORK_CACHE.get(
+                "data"
+            )
+        )
+
+
+        cached_timestamp = (
+            NETWORK_CACHE.get(
+                "timestamp",
+                0
+            )
+        )
+
+
+        cache_valid = (
+
+            cached_data is not None
+
+            and
+
+            (
+                now
+                -
+                cached_timestamp
+            )
+            <
+            NETWORK_CACHE_TTL
+
+        )
+
+
+        if (
+
+            not force
+
+            and
+
+            cache_valid
+
+        ):
+
+            return cached_data
+
+
+        if NETWORK_CACHE.get(
+            "building"
+        ):
+
+            if cached_data is not None:
+
+                return cached_data
+
+
+        NETWORK_CACHE[
+            "building"
+        ] = True
+
+
+    try:
+
+        data = (
+            build_network_snapshot()
+        )
+
+
+        with NETWORK_CACHE[
+            "lock"
+        ]:
+
+            NETWORK_CACHE[
+                "data"
+            ] = data
+
+            NETWORK_CACHE[
+                "timestamp"
+            ] = time.time()
+
+            NETWORK_CACHE[
+                "building"
+            ] = False
+
+
+        return data
+
+
+    except Exception:
+
+        with NETWORK_CACHE[
+            "lock"
+        ]:
+
+            NETWORK_CACHE[
+                "building"
+            ] = False
+
+
+        raise
+
+
+# ==========================================
+# NETWORK PAGE
+# ==========================================
+
+@app.route(
+    "/network"
+)
+def network_page():
+
+    if 'user' not in session:
+
+        return redirect(
+            url_for(
+                'login'
+            )
+        )
+
+
+    return render_template(
+        'network.html'
+    )
+
+
+# ==========================================
+# CLIENT NETWORK API
+# ==========================================
+
+@app.route(
+    '/api/client-network',
+    methods=['POST']
+)
+def client_network_api():
+
+    if 'user' not in session:
+
         return jsonify({
-            "status": "error",
-            "message": str(e),
-            "ssid": "Tidak Terdeteksi",
-            "channel": "-",
-            "clients_count": 0,
-            "online_count": 0,
-            "avg_signal": 0,
-            "download_mbps": 0,
-            "upload_mbps": 0,
-            "devices": []
+
+            "status":
+                "error",
+
+            "message":
+                "Unauthorized"
+
+        }), 401
+
+
+    try:
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+
+        public_ip = str(
+            data.get(
+                "public_ip",
+                ""
+            )
+        ).strip()
+
+
+        browser = str(
+            data.get(
+                "browser",
+                ""
+            )
+        ).strip()
+
+
+        operating_system = str(
+            data.get(
+                "os",
+                ""
+            )
+        ).strip()
+
+
+        connection_type = str(
+            data.get(
+                "connection_type",
+                ""
+            )
+        ).strip()
+
+
+        downlink = data.get(
+            "downlink"
+        )
+
+
+        rtt = data.get(
+            "rtt"
+        )
+
+
+        save_data = data.get(
+            "save_data"
+        )
+
+
+        # ----------------------------------
+        # VALIDATE PUBLIC IP
+        # ----------------------------------
+
+        valid_public_ip = None
+
+
+        if public_ip:
+
+            try:
+
+                parsed = ipaddress.ip_address(
+                    public_ip
+                )
+
+
+                if (
+                    parsed.version
+                    in
+                    (
+                        4,
+                        6
+                    )
+                ):
+
+                    valid_public_ip = (
+                        public_ip
+                    )
+
+            except ValueError:
+
+                pass
+
+
+        # ----------------------------------
+        # FALLBACK HEADER
+        # ----------------------------------
+
+        if not valid_public_ip:
+
+            valid_public_ip = (
+                get_request_public_ip()
+            )
+
+
+        # ----------------------------------
+        # NUMBERS
+        # ----------------------------------
+
+        try:
+
+            downlink_value = (
+
+                float(
+                    downlink
+                )
+                if downlink is not None
+                else
+                None
+
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            downlink_value = None
+
+
+        try:
+
+            rtt_value = (
+
+                float(
+                    rtt
+                )
+                if rtt is not None
+                else
+                None
+
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            rtt_value = None
+
+
+        # ----------------------------------
+        # ISP LOOKUP
+        # ----------------------------------
+
+        organization = (
+            get_ip_organization(
+                valid_public_ip
+            )
+        )
+
+
+        client_data = {
+
+            "public_ip":
+                valid_public_ip,
+
+            "isp":
+                organization.get(
+                    "isp"
+                ),
+
+            "asn":
+                organization.get(
+                    "asn"
+                ),
+
+            "org":
+                organization.get(
+                    "org"
+                ),
+
+            "domain":
+                organization.get(
+                    "domain"
+                ),
+
+            "city":
+                organization.get(
+                    "city"
+                ),
+
+            "region":
+                organization.get(
+                    "region"
+                ),
+
+            "country":
+                organization.get(
+                    "country"
+                ),
+
+            "browser":
+                browser or None,
+
+            "os":
+                operating_system or None,
+
+            "connection_type":
+                connection_type or None,
+
+            "downlink_mbps":
+                downlink_value,
+
+            "rtt_ms":
+                rtt_value,
+
+            "save_data":
+                save_data,
+
+            "received_at":
+                datetime.now(
+                    pytz.timezone(
+                        "Asia/Jakarta"
+                    )
+                ).isoformat(),
+
+            "source":
+                "browser_client"
+
+        }
+
+
+        return jsonify({
+
+            "status":
+                "success",
+
+            "client":
+                client_data,
+
+            "message":
+                (
+                    "Data client diterima dan ISP "
+                    "ditentukan berdasarkan IP publik "
+                    "client."
+                )
+
         })
 
 
-# ==========================================
-# 12.3 NETWORK RESCAN
-# ==========================================
-
-@app.route("/api/network-rescan")
-def network_rescan():
-
-    try:
-
-        NETWORK_CACHE["time"] = 0
-        NETWORK_CACHE["data"] = None
-
-        data = scan_network_devices()
-
-        return jsonify(data)
-
     except Exception as e:
 
+        app.logger.exception(
+            "Client network API error"
+        )
+
+
         return jsonify({
-            "status": "error",
-            "message": str(e),
-            "devices": []
+
+            "status":
+                "error",
+
+            "message":
+                str(e)
+
         }), 500
 
 
 # ==========================================
-# 13. RUN SERVER
+# NETWORK DATA API
 # ==========================================
 
-if __name__ == "__main__":
+@app.route(
+    '/api/network-data'
+)
+def network_data_api():
 
-    app.run(
-        host="0.0.0.0",
-        port=int(
-            os.environ.get(
-                "PORT",
-                5000
-            )
-        ),
-        debug=True
+    if 'user' not in session:
+
+        return jsonify({
+
+            "status":
+                "error",
+
+            "message":
+                "Unauthorized"
+
+        }), 401
+
+
+    force = (
+
+        request.args.get(
+            'refresh',
+            '0'
+        )
+        .lower()
+
+        in
+
+        (
+            '1',
+            'true',
+            'yes'
+        )
+
     )
+
+
+    try:
+
+        data = (
+            get_network_snapshot(
+                force=force
+            )
+        )
+
+
+        return jsonify(
+            data
+        )
+
+
+    except Exception as e:
+
+        app.logger.exception(
+            "Network discovery error"
+        )
+
+
+        return jsonify({
+
+            "status":
+                "error",
+
+            "auto_detected":
+                False,
+
+            "message":
+                "Gagal mendeteksi jaringan lokal: "
+                +
+                str(e)
+
+        }), 500
+
+
+# ==========================================
+# MERGE CLIENT DATA KE NETWORK DATA
+# ==========================================
+
+@app.route(
+    '/api/network-client-merge',
+    methods=['POST']
+)
+def network_client_merge():
+
+    """
+    Endpoint alternatif apabila network.html ingin
+    mengirim data client dan langsung menerima
+    snapshot lengkap.
+
+    Browser mengirim public IP + metadata.
+    Backend kemudian:
+        1. lookup ISP client
+        2. ambil snapshot LAN/Wi-Fi
+        3. gabungkan semuanya
+    """
+
+    if 'user' not in session:
+
+        return jsonify({
+
+            "status":
+                "error",
+
+            "message":
+                "Unauthorized"
+
+        }), 401
+
+
+    try:
+
+        client_payload = (
+            request.get_json(
+                silent=True
+            )
+            or
+            {}
+        )
+
+
+        public_ip = str(
+            client_payload.get(
+                "public_ip",
+                ""
+            )
+        ).strip()
+
+
+        browser = str(
+            client_payload.get(
+                "browser",
+                ""
+            )
+        ).strip()
+
+
+        operating_system = str(
+            client_payload.get(
+                "os",
+                ""
+            )
+        ).strip()
+
+
+        connection_type = str(
+            client_payload.get(
+                "connection_type",
+                ""
+            )
+        ).strip()
+
+
+        downlink = client_payload.get(
+            "downlink"
+        )
+
+
+        rtt = client_payload.get(
+            "rtt"
+        )
+
+
+        save_data = client_payload.get(
+            "save_data"
+        )
+
+
+        if public_ip:
+
+            try:
+
+                ipaddress.ip_address(
+                    public_ip
+                )
+
+            except ValueError:
+
+                public_ip = (
+                    get_request_public_ip()
+                )
+
+        else:
+
+            public_ip = (
+                get_request_public_ip()
+            )
+
+
+        organization = (
+            get_ip_organization(
+                public_ip
+            )
+        )
+
+
+        try:
+
+            downlink = (
+                float(
+                    downlink
+                )
+                if downlink is not None
+                else
+                None
+            )
+
+        except:
+
+            downlink = None
+
+
+        try:
+
+            rtt = (
+                float(
+                    rtt
+                )
+                if rtt is not None
+                else
+                None
+            )
+
+        except:
+
+            rtt = None
+
+
+        snapshot = (
+            get_network_snapshot(
+                force=True
+            )
+        )
+
+
+        snapshot[
+            "client"
+        ] = {
+
+            "public_ip":
+                public_ip,
+
+            "isp":
+                organization.get(
+                    "isp"
+                ),
+
+            "asn":
+                organization.get(
+                    "asn"
+                ),
+
+            "org":
+                organization.get(
+                    "org"
+                ),
+
+            "domain":
+                organization.get(
+                    "domain"
+                ),
+
+            "city":
+                organization.get(
+                    "city"
+                ),
+
+            "region":
+                organization.get(
+                    "region"
+                ),
+
+            "country":
+                organization.get(
+                    "country"
+                ),
+
+            "browser":
+                browser or None,
+
+            "os":
+                operating_system or None,
+
+            "connection_type":
+                connection_type or None,
+
+            "downlink_mbps":
+                downlink,
+
+            "rtt_ms":
+                rtt,
+
+            "save_data":
+                save_data,
+
+            "source":
+                "browser_client"
+
+        }
+
+
+        snapshot[
+            "capabilities"
+        ][
+            "client_isp"
+        ] = bool(
+            organization.get(
+                "isp"
+            )
+        )
+
+
+        return jsonify(
+            snapshot
+        )
+
+
+    except Exception as e:
+
+        app.logger.exception(
+            "Network client merge error"
+        )
+
+
+        return jsonify({
+
+            "status":
+                "error",
+
+            "message":
+                str(e)
+
+        }), 500
+
+
+# ==========================================
+# FORCE NETWORK REFRESH
+# ==========================================
+
+@app.route(
+    '/api/network-refresh',
+    methods=['POST']
+)
+def network_refresh_api():
+
+    if 'user' not in session:
+
+        return jsonify({
+
+            "status":
+                "error",
+
+            "message":
+                "Unauthorized"
+
+        }), 401
+
+
+    try:
+
+        data = (
+            get_network_snapshot(
+                force=True
+            )
+        )
+
+
+        return jsonify(
+            data
+        )
+
+
+    except Exception as e:
+
+        app.logger.exception(
+            "Forced network discovery error"
+        )
+
+
+        return jsonify({
+
+            "status":
+                "error",
+
+            "message":
+                "Gagal melakukan refresh "
+                "jaringan lokal: "
+                +
+                str(e)
+
+        }), 500
