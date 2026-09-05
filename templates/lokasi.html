@@ -2,7 +2,9 @@
 {% block title %}KTVDI MAPS CITY{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Mengganti Leaflet dengan MapLibre GL untuk Native 3D Rendering -->
+<link href="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js"></script>
 
 <style>
     /* === THEME: MITSUBISHI XPANDER CROSS MID (AUTOMOTIVE ROBUST) === */
@@ -43,12 +45,10 @@
         }
     }
 
-    /* === SCROLLBAR === */
     .premium-scroll::-webkit-scrollbar { width: 5px; }
     .premium-scroll::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
     .premium-scroll::-webkit-scrollbar-thumb { background-color: #475569; border-radius: 4px; }
 
-    /* === DASHBOARD PANELS === */
     .dash-panel {
         background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
         border: 2px solid #334155;
@@ -69,181 +69,134 @@
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #e2e8f0;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        z-index: 2;
+        display: flex; align-items: center; gap: 10px; color: #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2); z-index: 2;
     }
 
-    /* === U17 BANNER STYLE === */
     .u17-banner {
         background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 50%, #000000 100%);
-        border: 2px solid #ef4444;
-        border-radius: 16px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
+        border: 2px solid #ef4444; border-radius: 16px;
+        position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4);
     }
     .u17-banner::after {
-        content: '';
-        position: absolute;
-        top: 0; right: 0; bottom: 0; left: 0;
+        content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0;
         background: url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
-        opacity: 0.3;
-        pointer-events: none;
+        opacity: 0.3; pointer-events: none;
     }
-    .u17-glow {
-        text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4);
-    }
+    .u17-glow { text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); }
 
-    /* === DIGITAL SPEEDOMETER === */
     .speedo-wrapper {
-        position: relative;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        padding: 40px 20px;
-        height: 100%;
+        position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 40px 20px; height: 100%;
         background: radial-gradient(circle at center, #1e293b 0%, #0b0f19 80%);
     }
-    
     .speedo-ring {
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 220px; height: 220px; border-radius: 50%;
-        border: 4px solid #334155;
-        border-top: 4px solid #ef4444;
-        border-right: 4px solid #ef4444;
-        pointer-events: none;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5);
+        border: 4px solid #334155; border-top: 4px solid #ef4444; border-right: 4px solid #ef4444;
+        pointer-events: none; box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 15px rgba(0,0,0,0.5);
     }
     .speedo-ring::after {
         content: ''; position: absolute; inset: 8px; border-radius: 50%;
-        border: 4px dashed #64748b;
-        opacity: 0.5;
+        border: 4px dashed #64748b; opacity: 0.5;
     }
 
     .digital-speed {
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 6rem;
-        font-weight: 900;
-        color: #ffffff;
-        line-height: 0.9;
-        letter-spacing: -3px;
-        z-index: 2;
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        font-family: 'Courier New', Courier, monospace; font-size: 6rem; font-weight: 900;
+        color: #ffffff; line-height: 0.9; letter-spacing: -3px; z-index: 2; text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
     }
-    .digital-unit {
-        font-size: 1.2rem; color: #94a3b8; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px; z-index: 2;
-    }
+    .digital-unit { font-size: 1.2rem; color: #94a3b8; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; margin-top: 5px; z-index: 2; }
 
-    .eco-indicator {
-        position: absolute; top: 20px; right: 20px;
-        color: #10b981; font-weight: 800; font-size: 0.8rem;
-        display: flex; align-items: center; gap: 5px;
-        text-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
-        transition: opacity 0.3s;
-    }
-    
-    .speed-warning {
+    /* === SMART HUD WARNINGS === */
+    .hud-warning {
         position: absolute; top: 15px; left: 15px; right: 15px;
-        background: #dc2626; border: 2px solid #991b1b;
-        color: #ffffff; padding: 12px; border-radius: 8px;
-        font-size: 0.70rem; font-weight: 900; text-align: center;
-        text-transform: uppercase; letter-spacing: 0.5px;
-        animation: blink-red 0.8s infinite;
-        z-index: 10;
-        display: none;
-        box-shadow: 0 10px 20px rgba(220, 38, 38, 0.5);
+        padding: 12px; border-radius: 8px; font-size: 0.70rem; font-weight: 900;
+        text-align: center; text-transform: uppercase; letter-spacing: 0.5px;
+        z-index: 10; display: none; opacity: 0; transition: opacity 0.3s;
     }
-    @keyframes blink-red {
-        0%, 100% { background: #dc2626; border-color: #f87171; }
-        50% { background: #991b1b; border-color: #dc2626; }
+    .hud-hard-brake {
+        background: #dc2626; border: 2px solid #f87171; color: #ffffff;
+        box-shadow: 0 10px 30px rgba(220, 38, 38, 0.8);
+        animation: blink-red-fast 0.3s infinite;
     }
+    .hud-traffic-jam {
+        background: #ea580c; border: 2px solid #fdba74; color: #ffffff;
+        box-shadow: 0 10px 20px rgba(234, 88, 12, 0.5);
+        animation: blink-orange 1.5s infinite;
+    }
+    @keyframes blink-red-fast { 0%, 100% { background: #dc2626; } 50% { background: #991b1b; } }
+    @keyframes blink-orange { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-    /* === VEHICLE ANIMATIONS & MAP === */
-    #map {
-        height: 100%;
-        min-height: 400px;
-        width: 100%;
-        background-color: #12151c;
-        z-index: 1;
-    }
-    @media (min-width: 1024px) {
-        #map { min-height: calc(100vh - 250px); }
-    }
+    /* === MAP CONTAINER === */
+    #map { height: 100%; min-height: 400px; width: 100%; background-color: #12151c; z-index: 1; }
+    @media (min-width: 1024px) { #map { min-height: calc(100vh - 250px); } }
     
-    .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out, .leaflet-control-attribution {
-        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%) sepia(20%);
-    }
+    .maplibregl-popup-content { background: #0f172a; color: white; border: 1px solid #334155; border-radius: 8px; }
+    .maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: #0f172a; }
 
     /* Vehicle Switcher */
     .vehicle-switcher {
         position: absolute; top: 15px; left: 15px; z-index: 400;
-        display: flex; background: #0f172a; border-radius: 8px;
-        border: 2px solid #334155; overflow: hidden;
-        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        display: flex; background: #0f172a; border-radius: 8px; border: 2px solid #334155; overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
     }
     .v-btn {
-        padding: 8px 16px; font-size: 0.75rem; font-weight: 900;
-        color: #94a3b8; cursor: pointer; transition: all 0.2s;
-        display: flex; align-items: center; gap: 8px;
+        padding: 8px 16px; font-size: 0.75rem; font-weight: 900; color: #94a3b8; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
     }
     .v-btn.active { background: #38bdf8; color: #fff; }
     .v-btn:not(.active):hover { background: #1e293b; color: #e2e8f0; }
 
-    /* Animated Vehicle Marker */
-    .vehicle-marker-container {
-        position: relative;
-        display: flex; align-items: center; justify-content: center;
-        width: 50px; height: 50px;
-        transition: transform 0.5s ease-out; /* Smooth rotation */
-    }
-    .directional-arrow {
-        position: absolute; top: -10px; font-size: 1.2rem;
-        color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
-        z-index: 10;
-    }
-    .vehicle-body {
-        width: 36px; height: 36px;
-        background: #0f172a; border: 2px solid #38bdf8;
-        border-radius: 50%; display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
-        color: #fff; font-size: 1.2rem; z-index: 5;
+    /* === 3D VEHICLE CSS MODELS === */
+    .vehicle-model-container {
+        width: 60px; height: 100px; position: relative;
+        display: flex; justify-content: center; align-items: center;
+        /* Diatur oleh JS rotation (bearing) */
     }
 
-    /* Speed Animations */
-    .anim-idle .vehicle-body { box-shadow: 0 0 5px rgba(56,189,248,0.5); }
-    .anim-slow .vehicle-body { animation: engine-vibrate 0.3s infinite alternate; box-shadow: 0 0 15px rgba(56,189,248,0.8); }
-    .anim-fast .vehicle-body { animation: engine-vibrate 0.1s infinite alternate, exhaust-burn 0.5s infinite; border-color: #ef4444; color: #ef4444; }
-    .anim-fast .directional-arrow { color: #facc15; text-shadow: 0 0 15px #facc15; }
+    /* 3D Car Model (Top-Down) */
+    .model-car {
+        width: 32px; height: 60px; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        border-radius: 8px; border: 2px solid #38bdf8; position: relative;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.2);
+    }
+    .model-car::before { /* Kaca Depan */
+        content: ''; position: absolute; top: 15px; left: 4px; right: 4px; height: 10px;
+        background: #020617; border-radius: 3px; border-top: 1px solid #38bdf8;
+    }
+    .model-car::after { /* Kaca Belakang */
+        content: ''; position: absolute; bottom: 10px; left: 4px; right: 4px; height: 8px;
+        background: #020617; border-radius: 2px;
+    }
+    /* Lampu Rem */
+    .taillight {
+        position: absolute; bottom: -2px; width: 8px; height: 4px; background: #7f1d1d; border-radius: 2px; transition: all 0.1s;
+    }
+    .taillight.left { left: 2px; } .taillight.right { right: 2px; }
+    .is-braking .taillight { background: #ef4444; box-shadow: 0 0 15px #ef4444, 0 5px 20px #ef4444; }
 
-    @keyframes engine-vibrate {
-        0% { transform: translate(0, 0); }
-        100% { transform: translate(0, 2px); }
+    /* 3D Motor Model (Top-Down) */
+    .model-motor {
+        width: 14px; height: 45px; background: #0f172a;
+        border-radius: 8px; border: 1.5px solid #38bdf8; position: relative;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.8);
     }
-    @keyframes exhaust-burn {
-        0% { box-shadow: 0 0 20px rgba(239,68,68,0.8), 0 20px 10px -10px rgba(249,115,22,0.5); }
-        50% { box-shadow: 0 0 30px rgba(239,68,68,1), 0 25px 15px -10px rgba(249,115,22,0.8); }
-        100% { box-shadow: 0 0 20px rgba(239,68,68,0.8), 0 20px 10px -10px rgba(249,115,22,0.5); }
+    .model-motor::before { /* Stang */
+        content: ''; position: absolute; top: 8px; left: -6px; right: -6px; height: 3px;
+        background: #94a3b8; border-radius: 2px;
     }
+    .model-motor::after { /* Helm Pengendara */
+        content: ''; position: absolute; top: 15px; left: 1px; right: 1px; height: 12px;
+        background: #38bdf8; border-radius: 50%; box-shadow: inset 0 -2px 5px rgba(0,0,0,0.5);
+    }
+    .is-braking .taillight { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
 
     .btn-center-map {
         position: absolute; bottom: 20px; right: 20px; z-index: 400;
-        background: #ffffff; border: 1px solid #cbd5e1;
-        color: #0f172a; padding: 10px 20px; border-radius: 4px;
-        font-size: 0.85rem; font-weight: 900; cursor: pointer;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
+        background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 10px 20px; border-radius: 4px;
+        font-size: 0.85rem; font-weight: 900; cursor: pointer; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); transition: all 0.2s;
     }
     .btn-center-map:hover { background: #e2e8f0; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6); }
 
-    /* === LIST ITEMS === */
-    .list-item-custom {
-        padding: 14px 16px; border-bottom: 1px solid #1e293b;
-        display: flex; justify-content: space-between; align-items: center;
-        background: #0f172a;
-        transition: background 0.2s;
-    }
+    .list-item-custom { padding: 14px 16px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; background: #0f172a; transition: background 0.2s; }
     .list-item-custom:nth-child(even) { background: #151e2f; }
     .list-item-custom:last-child { border-bottom: none; }
     .list-item-custom:hover { background: #1e293b; }
@@ -266,7 +219,7 @@
             </div>
             <div class="z-10 flex gap-3 w-full md:w-auto">
                 <button onclick="document.getElementById('map').scrollIntoView({behavior: 'smooth'})" class="flex-1 md:flex-none bg-white text-red-700 px-6 py-3 rounded-lg font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition shadow-lg text-center">
-                    <i class="fa-solid fa-map-location-dot mr-2"></i> Buka Peta
+                    <i class="fa-solid fa-map-location-dot mr-2"></i> Buka 3D Navigasi
                 </button>
             </div>
         </div>
@@ -279,52 +232,45 @@
                 <h1 class="text-3xl md:text-5xl font-black tracking-tighter leading-none uppercase" style="text-shadow: 2px 2px 0 #000, 4px 4px 10px rgba(0,0,0,0.8);">
                     <span class="text-slate-100">KTVDI</span> 
                     <span class="text-slate-400">MAPS</span>
-                    <span class="text-red-600">CITY</span>
+                    <span class="text-red-600">3D</span>
                 </h1>
-            </div>
-            <div class="flex gap-2">
-                <a href="/" class="px-6 py-3 rounded-lg bg-[#1e293b] hover:bg-[#334155] border-b-4 border-[#0f172a] text-slate-200 hover:text-white text-xs font-black transition flex items-center gap-2 shadow-lg uppercase tracking-wider">
-                    <i class="fa-solid fa-gauge-high"></i> Dasbor Utama
-                </a>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
             <div class="lg:col-span-3 flex flex-col gap-6">
                 
+                <!-- DASHBOARD SPEEDOMETER -->
                 <div class="dash-panel h-72 lg:h-auto lg:flex-1">
                     <div class="panel-header text-slate-300"><i class="fa-solid fa-gauge-simple-high text-[#38bdf8]"></i> INFO BERKENDARA</div>
                     <div class="speedo-wrapper">
                         <div class="speedo-ring"></div>
                         
-                        <div id="ecoIndicator" class="eco-indicator">
-                            <i class="fa-solid fa-leaf"></i> ECO
+                        <!-- AI WARNINGS HUD -->
+                        <div id="hudHardBrake" class="hud-warning hud-hard-brake">
+                            <i class="fa-solid fa-triangle-exclamation text-xl mb-1"></i><br>AWAS REM DADAKAN!
                         </div>
-
-                        <div id="speedWarning" class="speed-warning">
-                            <i class="fa-solid fa-triangle-exclamation text-xl mb-1 text-white animate-bounce"></i><br>
-                            Terdeteksi Kecepatan Tinggi!<br>Pastikan sudah menggunakan Sabuk Keselamatan atau Helm SNI.
+                        <div id="hudTrafficJam" class="hud-warning hud-traffic-jam">
+                            <i class="fa-solid fa-car-burst text-xl mb-1"></i><br>TERDETEKSI KEMACETAN
                         </div>
 
                         <div class="digital-speed" id="speedVal">0</div>
                         <div class="digital-unit mb-1">KM/JAM</div>
-                        
                         <div id="driveMode" class="text-lg font-black tracking-widest" style="color: #94a3b8;">DIAM</div>
 
                         <div class="absolute bottom-4 left-4 right-4 flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-[#0b0f19] px-3 py-2 rounded-lg border border-[#1e293b]">
-                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-mountain text-emerald-500"></i> ELEVASI: <span id="altVal" class="text-white">---</span></span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-mountain text-emerald-500"></i> <span id="altVal" class="text-white">---</span></span>
                             <span class="flex items-center gap-1.5"><i class="fa-regular fa-compass text-[#38bdf8]"></i> <span id="headingVal" class="text-white">---</span></span>
                         </div>
                     </div>
                 </div>
-
             </div>
 
+            <!-- 3D MAP AREA -->
             <div class="lg:col-span-6">
                 <div class="dash-panel h-full flex flex-col min-h-[500px] relative">
                     <div class="panel-header text-slate-300 justify-between hidden lg:flex">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-[#38bdf8]"></i> LIVE NAVIGATION OSM</span>
+                        <span class="flex items-center gap-2"><i class="fa-solid fa-cube text-[#38bdf8]"></i> 3D TELEMETRY NAVIGATOR</span>
                         <div id="gps-accuracy-badge" class="flex items-center gap-2 text-[10px] text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/30 font-bold tracking-widest">
                             <i class="fa-solid fa-spinner fa-spin"></i> MENCARI SATELIT...
                         </div>
@@ -337,22 +283,22 @@
                             <div id="btn-motor" class="v-btn" onclick="setVehicleType('motor')"><i class="fa-solid fa-motorcycle"></i> MOTOR</div>
                         </div>
 
+                        <!-- MAP CONTAINER -->
                         <div id="map"></div>
-                        <button class="btn-center-map" onclick="recenterMap()"><i class="fa-solid fa-crosshairs"></i> FOKUS LOKASI</button>
+                        <button class="btn-center-map" onclick="recenterMap()"><i class="fa-solid fa-crosshairs"></i> FOKUS 3D</button>
                     </div>
                 </div>
             </div>
 
+            <!-- RADAR LIST -->
             <div class="lg:col-span-3 flex flex-col gap-6">
-                
                 <div class="dash-panel lg:max-h-[350px] flex flex-col">
                     <div class="panel-header text-slate-300">
                         <i class="fa-solid fa-house-crack text-[#ef4444]"></i> RADAR BENCANA (BMKG)
                     </div>
                     <div class="flex-1 overflow-y-auto premium-scroll" id="bmkg-list">
                         <div class="p-8 text-center text-[11px] text-slate-500 font-bold uppercase tracking-widest">
-                            <i class="fa-solid fa-satellite-dish fa-spin text-3xl mb-4 block text-[#ef4444]"></i>
-                            Menyinkronkan API JSON...
+                            <i class="fa-solid fa-satellite-dish fa-spin text-3xl mb-4 block text-[#ef4444]"></i> Menyinkronkan...
                         </div>
                     </div>
                 </div>
@@ -360,56 +306,70 @@
                 <div class="dash-panel flex-1 flex flex-col lg:max-h-[350px]">
                     <div class="panel-header text-slate-300 justify-between">
                         <span class="flex items-center gap-2"><i class="fa-solid fa-location-crosshairs text-amber-500"></i> RADAR LOKAL (POI)</span>
-                        <i class="fa-solid fa-circle-notch fa-spin text-[10px] hidden text-slate-400" id="poi-loader"></i>
                     </div>
                     <div class="p-2 bg-[#0b0f19] border-b border-[#1e293b] text-[9px] text-slate-400 font-bold text-center uppercase tracking-widest">
-                        Jangkauan Deteksi Diperluas: 100M - 10KM
+                        Jangkauan Deteksi: 100M - 10KM
                     </div>
                     <div class="flex-1 overflow-y-auto premium-scroll" id="poi-list">
                         <div class="p-8 text-center text-[11px] text-slate-500 font-bold uppercase tracking-widest">
-                            <i class="fa-solid fa-radar animate-spin text-3xl mb-4 block text-slate-600"></i>
-                            Menunggu Titik Koordinat...
+                            <i class="fa-solid fa-radar animate-spin text-3xl mb-4 block text-slate-600"></i> Menunggu Titik GPS...
                         </div>
                     </div>
                 </div>
-
             </div>
             
         </div>
     </div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         
         // ==========================================
-        // 1. INISIALISASI PETA (OSM DARK MODE)
+        // 1. INISIALISASI MAPLIBRE GL (3D ENGINE)
         // ==========================================
-        const map = L.map('map', {zoomControl: false}).setView([-2.5, 118.0], 5);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OSM | KTVDI Telemetry'
-        }).addTo(map);
-        
-        L.control.zoom({ position: 'bottomleft' }).addTo(map);
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json', // Dark style
+            center: [118.0, -2.5], // [LNG, LAT] format MapLibre
+            zoom: 5,
+            pitch: 65,    // Mengubah tampilan menjadi 3D Navigasi
+            bearing: 0,
+            antialias: true
+        });
 
-        const userLayer = L.layerGroup().addTo(map);
-        const poiLayer = L.layerGroup().addTo(map);
-        const bmkgLayer = L.layerGroup().addTo(map);
+        map.addControl(new maplibregl.NavigationControl({ showCompass: true, showZoom: false }), 'bottom-left');
 
         let userMarker = null;
         let myLat = null; 
         let myLon = null;
         let autoCenter = true;
+        let vehicleType = 'car'; 
+        let currentHeading = 0;
+        let currentSpeed = 0;
+        let isBraking = false;
+        
+        // Variabel Telemetry AI
+        let lastSpeed = 0;
+        let lastSpeedTime = Date.now();
+        let slowSpeedDuration = 0; 
+
+        // Penampung Marker
+        let poiMarkers = [];
+        let bmkgMarkers = [];
 
         map.on('dragstart', function() { autoCenter = false; });
 
         window.recenterMap = function() {
             if(myLat && myLon) {
-                map.flyTo([myLat, myLon], 16, {animate: true, duration: 1.5});
+                map.flyTo({
+                    center: [myLon, myLat],
+                    zoom: 17,
+                    pitch: 65,
+                    bearing: currentHeading || 0,
+                    speed: 1.5,
+                    curve: 1
+                });
                 autoCenter = true;
             } else {
                 alert("Sedang mengunci posisi GPS satelit...");
@@ -417,81 +377,67 @@
         };
 
         // ==========================================
-        // 1.5 VEHICLE TYPE SELECTION & ANIMATION
+        // 2. KONTROL JENIS KENDARAAN (3D HTML/CSS)
         // ==========================================
-        let vehicleType = 'car'; // default
-        let currentHeading = 0;
-        let currentSpeed = 0;
-
         window.setVehicleType = function(type) {
             vehicleType = type;
             document.getElementById('btn-car').classList.toggle('active', type === 'car');
             document.getElementById('btn-motor').classList.toggle('active', type === 'motor');
-            
-            if(userMarker) {
-                userMarker.setIcon(createDynamicVehicleIcon());
-            }
+            updateVehicleVisual();
         };
 
-        function createDynamicVehicleIcon() {
-            let animClass = 'anim-idle';
-            if (currentSpeed > 5 && currentSpeed < 40) animClass = 'anim-slow';
-            else if (currentSpeed >= 40) animClass = 'anim-fast';
-
-            let iconClass = vehicleType === 'car' ? 'fa-car' : 'fa-motorcycle';
+        function getVehicleHTML() {
+            let brakeClass = isBraking ? 'is-braking' : '';
             
-            return L.divIcon({
-                html: `
-                    <div class="vehicle-marker-container" style="transform: rotate(${currentHeading || 0}deg);">
-                        <i class="fa-solid fa-location-arrow directional-arrow"></i>
-                        <div class="vehicle-body ${animClass}">
-                            <i class="fa-solid ${iconClass}"></i>
-                        </div>
+            if (vehicleType === 'car') {
+                return `
+                <div class="vehicle-model-container" style="transform: rotate(${currentHeading}deg);">
+                    <div class="model-car ${brakeClass}">
+                        <div class="taillight left"></div>
+                        <div class="taillight right"></div>
                     </div>
-                `,
-                className: '',
-                iconSize: [50, 50],
-                iconAnchor: [25, 25]
-            });
+                </div>`;
+            } else {
+                return `
+                <div class="vehicle-model-container" style="transform: rotate(${currentHeading}deg);">
+                    <div class="model-motor ${brakeClass}">
+                        <div class="taillight" style="bottom:-2px; width:6px; left:2.5px;"></div>
+                    </div>
+                </div>`;
+            }
         }
 
-        const bmkgIcon = L.divIcon({
-            html: '<div class="text-3xl text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.9)]"><i class="fa-solid fa-bullseye fa-fade"></i></div>',
-            className: '', iconSize: [30, 30], iconAnchor: [15, 15]
-        });
-
-        const foodIcon = L.divIcon({
-            html: '<div class="w-7 h-7 bg-amber-500 text-white rounded-full flex items-center justify-center text-[11px] border-2 border-[#0f172a] shadow-lg"><i class="fa-solid fa-burger"></i></div>',
-            className: '', iconSize: [28, 28]
-        });
-
-        const tourIcon = L.divIcon({
-            html: '<div class="w-7 h-7 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[11px] border-2 border-[#0f172a] shadow-lg"><i class="fa-solid fa-tree"></i></div>',
-            className: '', iconSize: [28, 28]
-        });
-        
-        const facilityIcon = L.divIcon({
-            html: '<div class="w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center text-[11px] border-2 border-[#0f172a] shadow-lg"><i class="fa-solid fa-gas-pump"></i></div>',
-            className: '', iconSize: [28, 28]
-        });
+        function updateVehicleVisual() {
+            if(!userMarker) {
+                const el = document.createElement('div');
+                el.innerHTML = getVehicleHTML();
+                userMarker = new maplibregl.Marker({ element: el.firstElementChild })
+                    .setLngLat([myLon || 118, myLat || -2.5])
+                    .addTo(map);
+            } else {
+                // Update HTML rotation & braking states
+                userMarker.getElement().outerHTML = getVehicleHTML();
+                // MapLibre loses reference if outerHTML is overwritten, so we recreate it quickly
+                const el = document.createElement('div');
+                el.innerHTML = getVehicleHTML();
+                userMarker.remove();
+                userMarker = new maplibregl.Marker({ element: el.firstElementChild })
+                    .setLngLat([myLon, myLat])
+                    .addTo(map);
+            }
+        }
 
         // ==========================================
-        // 2. LOGIKA TELEMETRI & SPEEDOMETER
+        // 3. LOGIKA TELEMETRI & AI DETECTOR
         // ==========================================
-        let lastHeading = null;
-        const warningEl = document.getElementById('speedWarning');
         const speedValEl = document.getElementById('speedVal');
         const headingValEl = document.getElementById('headingVal');
         const altValEl = document.getElementById('altVal');
         const driveModeEl = document.getElementById('driveMode');
         const accuracyBadge = document.getElementById('gps-accuracy-badge');
-        const ecoIndicator = document.getElementById('ecoIndicator');
-
-        function getDirection(heading) {
-            if(heading === null || isNaN(heading)) return "N/A";
-            const dirs = ["U", "TL", "T", "TG", "S", "BD", "B", "BL"];
-            return dirs[Math.round(heading / 45) % 8] + ` (${Math.round(heading)}°)`;
-        }
+        
+        const hudBrake = document.getElementById('hudHardBrake');
+        const hudJam = document.getElementById('hudTrafficJam');
 
         function updateLocationLogic(lat, lon, speedKmh, heading, altitude, source) {
             myLat = lat; myLon = lon;
@@ -499,293 +445,245 @@
             if (heading !== null && !isNaN(heading)) currentHeading = heading;
             
             speedValEl.innerText = speedKmh;
-            headingValEl.innerText = getDirection(heading);
-            altValEl.innerText = (altitude !== null && !isNaN(altitude)) ? Math.round(altitude) + " MDPL" : "N/A";
+            headingValEl.innerText = (heading !== null) ? `${Math.round(heading)}°` : "N/A";
+            altValEl.innerText = (altitude !== null) ? Math.round(altitude) + " MDPL" : "N/A";
             
+            // --- AI TELEMETRY LOGIC ---
+            let currentTime = Date.now();
+            let timeDiffSec = (currentTime - lastSpeedTime) / 1000;
+            let speedDrop = lastSpeed - speedKmh; // Positif jika melambat
+            
+            isBraking = false;
+            hudBrake.style.display = 'none';
+            hudBrake.style.opacity = '0';
+
+            // 1. HARD BRAKING DETECTION (Turun drastis > 20km/jam dalam waktu singkat)
+            if (timeDiffSec > 0 && speedDrop > 15 && lastSpeed > 30) {
+                isBraking = true;
+                hudBrake.style.display = 'block';
+                hudBrake.style.opacity = '1';
+                setTimeout(() => { hudBrake.style.opacity = '0'; }, 2000); // hilangkan setelah 2 detik
+            } 
+            // Normal braking (Lampu rem nyala, tapi tidak ada warning HUD)
+            else if (speedDrop > 3) {
+                isBraking = true;
+            }
+
+            // 2. TRAFFIC JAM DETECTION
+            // Jika kecepatan > 0 tapi < 15 km/h terus menerus, kumpulkan durasi
+            if (speedKmh > 0 && speedKmh < 15) {
+                slowSpeedDuration += timeDiffSec;
+            } else if (speedKmh >= 15) {
+                slowSpeedDuration = 0; // Reset jika mulai jalan lancar
+                hudJam.style.display = 'none';
+            }
+
+            if (slowSpeedDuration > 15) { // Terjebak pelan selama > 15 detik
+                hudJam.style.display = 'block';
+                hudJam.style.opacity = '1';
+            }
+
+            lastSpeed = speedKmh;
+            lastSpeedTime = currentTime;
+            // ---------------------------
+
             let modeText = "DIAM";
             let modeColor = "#94a3b8"; 
-            
-            if (speedKmh > 105) { modeText = "SUPER NGEBUT"; modeColor = "#ea002a"; } 
-            else if (speedKmh >= 80) { modeText = "NGEBUT"; modeColor = "#f97316"; } 
-            else if (speedKmh >= 60) { modeText = "CEPAT"; modeColor = "#eab308"; } 
-            else if (speedKmh >= 30) { modeText = "STANDAR"; modeColor = "#10b981"; } 
+            if (speedKmh > 80) { modeText = "NGEBUT"; modeColor = "#ea002a"; } 
+            else if (speedKmh >= 40) { modeText = "LANCAR"; modeColor = "#10b981"; } 
             else if (speedKmh > 5) { modeText = "PELAN"; modeColor = "#38bdf8"; } 
-            else { modeText = "DIAM"; modeColor = "#94a3b8"; }
             
             driveModeEl.innerText = modeText;
             driveModeEl.style.color = modeColor;
-            driveModeEl.style.textShadow = `0 0 15px ${modeColor}`;
 
-            if(speedKmh > 80) ecoIndicator.style.opacity = '0'; 
-            else ecoIndicator.style.opacity = '1'; 
-            
-            if(source === 'GPS') {
-                accuracyBadge.innerHTML = '<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_#22c55e]"></div> GPS AKURAT (3D FIX)';
-                accuracyBadge.className = "flex items-center gap-2 text-[9px] text-green-400 bg-green-400/10 px-2 py-1 rounded border border-green-400/30 font-bold tracking-widest";
-            } else {
-                accuracyBadge.innerHTML = '<div class="w-2 h-2 bg-amber-500 rounded-full shadow-[0_0_8px_#f59e0b]"></div> FALLBACK (IP/BTS)';
-                accuracyBadge.className = "flex items-center gap-2 text-[9px] text-amber-500 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/30 font-bold tracking-widest";
-            }
-            
-            let isTurning = false;
-            if(heading !== null && lastHeading !== null) {
-                let diff = Math.abs(heading - lastHeading);
-                if(diff > 180) diff = 360 - diff; 
-                if(diff > 15) isTurning = true;
-            }
-            
-            if(speedKmh > 80 && isTurning) {
-                warningEl.style.display = 'block';
-                speedValEl.style.color = '#ef4444';
-                speedValEl.style.textShadow = '0 0 20px rgba(239,68,68,0.8)';
-            } else {
-                warningEl.style.display = 'none';
-                speedValEl.style.color = '#ffffff';
-                speedValEl.style.textShadow = '0 0 15px rgba(255,255,255,0.5)';
-            }
-            lastHeading = heading;
+            accuracyBadge.innerHTML = source === 'GPS' ? 
+                '<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> GPS 3D FIX' : 
+                '<div class="w-2 h-2 bg-amber-500 rounded-full"></div> LOKASI BTS/IP';
 
-            // Map Marker Update with Animation
-            if (!userMarker) {
-                userMarker = L.marker([lat, lon], {icon: createDynamicVehicleIcon(), zIndexOffset: 1000}).addTo(userLayer);
-                map.flyTo([lat, lon], 15, {animate: true});
+            // Perbarui visual marker di peta
+            updateVehicleVisual();
+            
+            // Pergerakan Kamera 3D yang mulus mengikuti mobil
+            if(autoCenter) {
+                map.easeTo({
+                    center: [lon, lat],
+                    zoom: 17,
+                    bearing: currentHeading,
+                    pitch: 65,
+                    duration: 1000, // Smooth transition
+                    easing: (t) => t
+                });
+            }
+
+            // Refresh POI jika jalan jauh
+            if(!lastFetchLat || getDistanceFromLatLonInKm(lat, lon, lastFetchLat, lastFetchLon) > 5) {
                 triggerPOIFetch(lat, lon);
-            } else {
-                userMarker.setLatLng([lat, lon]);
-                userMarker.setIcon(createDynamicVehicleIcon()); // Refresh animation class and rotation
-                
-                if(autoCenter) map.panTo([lat, lon]);
-                
-                if(lastFetchLat && lastFetchLon) {
-                    let d = getDistanceFromLatLonInKm(lat, lon, lastFetchLat, lastFetchLon);
-                    if(d > 5) triggerPOIFetch(lat, lon); // Refetch setiap jalan 5KM untuk out-of-town
-                }
-                updateLocalPOIDistances();
             }
+            updateLocalPOIDistances();
         }
 
         if ("geolocation" in navigator) {
             navigator.geolocation.watchPosition((pos) => {
                 let speedMs = pos.coords.speed;
-                if (speedMs === null || speedMs < 0) speedMs = 0;
-                let speedKmh = Math.round(speedMs * 3.6);
-                let heading = pos.coords.heading; 
-                let altitude = pos.coords.altitude;
-
-                updateLocationLogic(pos.coords.latitude, pos.coords.longitude, speedKmh, heading, altitude, 'GPS');
+                let speedKmh = (speedMs && speedMs > 0) ? Math.round(speedMs * 3.6) : 0;
+                let heading = pos.coords.heading || currentHeading; // Keep last heading if null
+                
+                updateLocationLogic(pos.coords.latitude, pos.coords.longitude, speedKmh, heading, pos.coords.altitude, 'GPS');
             }, (err) => {
-                console.warn("GPS Ditolak/Error, Fallback IP...", err.message);
                 fallbackToIPLocation(); 
-            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
         } else {
             fallbackToIPLocation();
         }
 
         function fallbackToIPLocation() {
             if(myLat !== null) return; 
-            headingValEl.innerText = "IP BASE";
-            altValEl.innerText = "N/A";
-            driveModeEl.innerText = "DIAM";
-            driveModeEl.style.color = "#94a3b8";
-            
             fetch('https://ipapi.co/json/')
                 .then(res => res.json())
                 .then(data => {
                     if(data.latitude && data.longitude) {
-                        updateLocationLogic(data.latitude, data.longitude, 0, null, null, 'IP');
+                        updateLocationLogic(data.latitude, data.longitude, 0, 0, null, 'IP');
+                        setTimeout(() => map.flyTo({center: [data.longitude, data.latitude], zoom:15, pitch:65}), 500);
                     }
-                })
-                .catch(e => {
-                    headingValEl.innerText = "OFFLINE";
-                    accuracyBadge.innerHTML = '<div class="w-2 h-2 bg-red-500 rounded-full"></div> LOKASI GAGAL';
-                    accuracyBadge.className = "flex items-center gap-2 text-[9px] text-red-500 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 font-bold";
                 });
         }
 
         // ==========================================
-        // 3. AUTO DETEKSI KULINER, WISATA, FASILITAS (OVERPASS API DIOPTIMASI)
+        // 4. OVERPASS API (POI)
         // ==========================================
         let rawPOIs = [];
         let lastFetchLat = null; let lastFetchLon = null;
 
         function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-            var R = 6371; 
-            var dLat = (lat2-lat1) * Math.PI/180;
-            var dLon = (lon2-lon1) * Math.PI/180; 
+            var R = 6371; var dLat = (lat2-lat1) * Math.PI/180; var dLon = (lon2-lon1) * Math.PI/180; 
             var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2) * Math.sin(dLon/2); 
-            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-            return R * c;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function createCustomUIMarker(iconClass, bgColor) {
+            const el = document.createElement('div');
+            el.innerHTML = `<div style="width:30px;height:30px;background:${bgColor};border:2px solid #0f172a;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;box-shadow:0 5px 15px rgba(0,0,0,0.5);"><i class="fa-solid ${iconClass}"></i></div>`;
+            return el;
         }
 
         async function triggerPOIFetch(lat, lon) {
-            document.getElementById('poi-loader').classList.remove('hidden');
             lastFetchLat = lat; lastFetchLon = lon;
             
-            // Radius diperluas ke 10KM, kategori ditambah (SPBU, Minimarket, ATM) agar akurat luar kota
             const query = `
                 [out:json][timeout:15];
                 (
                   node["amenity"~"restaurant|cafe|fast_food|fuel|atm"](around:10000,${lat},${lon});
                   node["tourism"~"attraction|museum|viewpoint|theme_park"](around:10000,${lat},${lon});
-                  node["shop"~"convenience|supermarket"](around:10000,${lat},${lon});
-                );
-                out tags center 30;
+                ); out tags center 30;
             `;
             
             try {
                 const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 
-                poiLayer.clearLayers();
+                poiMarkers.forEach(m => m.remove());
+                poiMarkers = [];
                 rawPOIs = [];
 
                 if(data && data.elements) {
                     data.elements.forEach(el => {
                         if(el.tags && el.tags.name) {
                             let type = 'Fasilitas';
-                            let iconObj = facilityIcon;
+                            let iconClass = 'fa-gas-pump'; let bgColor = '#3b82f6';
                             
                             if (el.tags.amenity && el.tags.amenity.match(/restaurant|cafe|fast_food/)) {
-                                type = 'Kuliner';
-                                iconObj = foodIcon;
+                                type = 'Kuliner'; iconClass = 'fa-burger'; bgColor = '#f59e0b';
                             } else if (el.tags.tourism) {
-                                type = 'Pariwisata';
-                                iconObj = tourIcon;
+                                type = 'Pariwisata'; iconClass = 'fa-tree'; bgColor = '#10b981';
                             }
                             
                             let street = el.tags['addr:street'] || "Jalan tidak terdata";
-                            
-                            rawPOIs.push({
-                                name: el.tags.name,
-                                type: type,
-                                street: street,
-                                lat: el.lat,
-                                lon: el.lon,
-                                iconType: type
-                            });
+                            rawPOIs.push({ name: el.tags.name, type: type, street: street, lat: el.lat, lon: el.lon, iconClass: iconClass });
 
-                            L.marker([el.lat, el.lon], {icon: iconObj}).addTo(poiLayer)
-                             .bindPopup(`<strong style="color:#0f172a; font-family:'Inter'; font-size:12px;">${el.tags.name}</strong><br><span style="font-size:10px;color:gray;">${street}</span>`);
+                            let marker = new maplibregl.Marker({ element: createCustomUIMarker(iconClass, bgColor) })
+                                .setLngLat([el.lon, el.lat])
+                                .setPopup(new maplibregl.Popup({offset: 15}).setHTML(`<strong style="color:black">${el.tags.name}</strong>`))
+                                .addTo(map);
+                            poiMarkers.push(marker);
                         }
                     });
                 }
                 updateLocalPOIDistances();
-            } catch(e) {
-                console.error("POI Fetch Error", e);
-            } finally {
-                document.getElementById('poi-loader').classList.add('hidden');
-            }
+            } catch(e) { console.error("POI Fetch Error", e); }
         }
 
         function updateLocalPOIDistances() {
-            if(!myLat || !myLon || rawPOIs.length === 0) {
-                document.getElementById('poi-list').innerHTML = '<div class="p-8 text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">0 Objek dalam radius 10KM.</div>';
-                return;
-            }
+            if(!myLat || !myLon || rawPOIs.length === 0) return;
 
-            let list = rawPOIs.map(p => {
-                p.distance = getDistanceFromLatLonInKm(myLat, myLon, p.lat, p.lon);
-                return p;
-            });
-
-            // Rentang tampil diperluas hingga 10 KM
-            list = list.filter(p => p.distance >= 0.1 && p.distance <= 10);
-            list.sort((a,b) => a.distance - b.distance);
+            let list = rawPOIs.map(p => { p.distance = getDistanceFromLatLonInKm(myLat, myLon, p.lat, p.lon); return p; });
+            list = list.filter(p => p.distance >= 0.1 && p.distance <= 10).sort((a,b) => a.distance - b.distance);
 
             let html = '';
             list.forEach(p => {
                 let distText = p.distance < 1 ? (Math.round(p.distance * 1000) + ' M') : (p.distance.toFixed(1) + ' KM');
-                
-                let color = 'text-blue-400';
-                let icon = 'fa-gas-pump';
-                if (p.iconType === 'Kuliner') { color = 'text-amber-400'; icon = 'fa-utensils'; }
-                else if (p.iconType === 'Pariwisata') { color = 'text-emerald-400'; icon = 'fa-camera'; }
-                
                 html += `
                     <div class="list-item-custom group">
                         <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 rounded-full bg-[#0b0f19] border border-[#334155] flex items-center justify-center ${color} shadow-[0_4px_10px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform">
-                                <i class="fa-solid ${icon} text-sm"></i>
+                            <div class="w-10 h-10 rounded-full bg-[#0b0f19] border border-[#334155] flex items-center justify-center text-white shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                                <i class="fa-solid ${p.iconClass}"></i>
                             </div>
                             <div>
                                 <p class="text-[13px] font-bold text-slate-200 leading-tight">${p.name}</p>
-                                <p class="text-[9px] text-slate-500 flex items-center gap-1.5 mt-1 uppercase tracking-widest"><i class="fa-solid fa-road text-slate-600"></i> ${p.street}</p>
+                                <p class="text-[9px] text-slate-500 mt-1 uppercase tracking-widest"><i class="fa-solid fa-road"></i> ${p.street}</p>
                             </div>
                         </div>
-                        <div class="text-[10px] font-black text-slate-300 bg-[#0b0f19] border border-[#334155] px-3 py-1.5 rounded-lg shadow-sm whitespace-nowrap">
-                            ${distText}
-                        </div>
+                        <div class="text-[10px] font-black text-slate-300 bg-[#0b0f19] border border-[#334155] px-3 py-1.5 rounded-lg">${distText}</div>
                     </div>
                 `;
             });
-
-            if(html === '') html = '<div class="p-8 text-center text-[10px] text-slate-500 font-bold uppercase tracking-widest">Di luar jangkauan radar.</div>';
-            document.getElementById('poi-list').innerHTML = html;
+            document.getElementById('poi-list').innerHTML = html || '<div class="p-8 text-center text-[10px] text-slate-500 font-bold uppercase">Di luar jangkauan radar.</div>';
         }
 
         // ==========================================
-        // 4. BMKG GEMPA TERKINI (JSON API REALTIME)
+        // 5. BMKG GEMPA TERKINI 
         // ==========================================
         async function fetchBMKG() {
             try {
                 const bmkgUrl = `https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json?t=${Date.now()}`;
                 const response = await fetch(bmkgUrl);
                 const data = await response.json();
-                
                 const gempaList = data.Infogempa.gempa;
                 const bmkgContainer = document.getElementById('bmkg-list');
                 bmkgContainer.innerHTML = '';
 
-                let bounds = [];
-                const maxItems = Math.min(gempaList.length, 15); 
-                for (let i = 0; i < maxItems; i++) {
+                let bounds = new maplibregl.LngLatBounds();
+                
+                for (let i = 0; i < Math.min(gempaList.length, 10); i++) {
                     const gempa = gempaList[i];
-                    
-                    const tanggal = gempa.Tanggal;
-                    const jam = gempa.Jam;
                     const coords = gempa.Coordinates.split(',');
                     const lat = parseFloat(coords[0]);
                     const lon = parseFloat(coords[1]);
-                    const mag = gempa.Magnitude;
-                    const depth = gempa.Kedalaman;
-                    const wilayah = gempa.Wilayah;
-                    const potensi = gempa.Potensi;
 
-                    L.circle([lat, lon], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.15, radius: 20000 }).addTo(bmkgLayer);
-                    L.marker([lat, lon], {icon: bmkgIcon}).addTo(bmkgLayer)
-                     .bindPopup(`<div style="font-family:'Inter',sans-serif; color:#0f172a;">
-                                    <strong style="color:#ef4444; font-size:14px;">M ${mag} - ${wilayah}</strong><br>
-                                    Kedalaman: ${depth}<br><b style="font-size:11px; text-transform:uppercase;">${potensi}</b>
-                                 </div>`);
-                    bounds.push([lat, lon]);
+                    // Marker Gempa
+                    let el = document.createElement('div');
+                    el.innerHTML = '<div style="color:#ef4444; font-size:24px; text-shadow:0 0 10px #ef4444;"><i class="fa-solid fa-bullseye fa-fade"></i></div>';
+                    new maplibregl.Marker({element: el}).setLngLat([lon, lat])
+                       .setPopup(new maplibregl.Popup({offset: 10}).setHTML(`<b style="color:black">M ${gempa.Magnitude} - ${gempa.Wilayah}</b>`))
+                       .addTo(map);
+                    bounds.extend([lon, lat]);
 
                     bmkgContainer.innerHTML += `
-                        <div class="list-item-custom flex-col items-start gap-1 hover:bg-[#1e293b] cursor-pointer" onclick="map.flyTo([${lat}, ${lon}], 8)">
+                        <div class="list-item-custom flex-col items-start gap-1 hover:bg-[#1e293b] cursor-pointer" onclick="map.flyTo({center: [${lon}, ${lat}], zoom: 8, pitch: 0})">
                             <div class="flex justify-between items-center w-full mb-1">
-                                <span class="bg-[#ef4444] text-white px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shadow-[0_0_10px_rgba(239,68,68,0.5)]">MAG ${mag}</span>
-                                <span class="text-[9px] text-slate-400 font-bold">${tanggal} | ${jam}</span>
+                                <span class="bg-[#ef4444] text-white px-2 py-0.5 rounded text-[10px] font-black uppercase">MAG ${gempa.Magnitude}</span>
+                                <span class="text-[9px] text-slate-400 font-bold">${gempa.Tanggal}</span>
                             </div>
-                            <p class="text-[13px] font-bold text-white leading-snug mt-1">${wilayah}</p>
-                            <div class="flex justify-between items-center w-full mt-2">
-                                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest"><i class="fa-solid fa-water text-[#38bdf8] mr-1"></i> ${depth}</p>
-                                <p class="text-[8px] text-[#ef4444] font-black uppercase tracking-wider bg-[#ef4444]/10 px-2 py-1 rounded border border-[#ef4444]/30">${potensi}</p>
-                            </div>
+                            <p class="text-[13px] font-bold text-white leading-snug mt-1">${gempa.Wilayah}</p>
+                            <p class="text-[10px] text-[#ef4444] mt-1 font-bold uppercase">${gempa.Potensi}</p>
                         </div>
                     `;
                 }
-                
-                if(bounds.length > 0 && !myLat) {
-                    map.fitBounds(bounds, {padding: [50,50], maxZoom: 6});
-                }
-
             } catch (err) {
-                console.error("Gagal load BMKG", err);
-                document.getElementById('bmkg-list').innerHTML = '<div class="p-8 text-[10px] text-red-500 font-bold text-center uppercase">Gagal koneksi ke server BMKG.</div>';
+                document.getElementById('bmkg-list').innerHTML = '<div class="p-8 text-[10px] text-red-500 text-center uppercase">Gagal koneksi ke BMKG.</div>';
             }
         }
         fetchBMKG();
 
     });
 </script>
-
 {% endblock %}
