@@ -565,7 +565,7 @@
 
             <div class="w-full relative mt-2 rounded-2xl overflow-hidden shadow-xl border border-blue-200 dark:border-yellow-600/30 bg-black group" style="padding-top: 56.25%;">
                 <div class="absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-black/80 to-transparent z-10 flex justify-between items-center pointer-events-none">
-                    <span class="text-xs font-bold text-red-500 bg-black/50 px-2 py-0.5 rounded border border-red-500/30 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> LIVE</span>
+                    <span class="text-xs font-bold text-red-500 bg-black/50 px-2 py-0.5 rounded border border-red-500/30 flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-50 animate-pulse"></span> LIVE</span>
                     <span class="text-xs font-bold text-white/70">Moji TV</span>
                 </div>
                 <iframe class="vidio-embed absolute top-0 left-0 w-full h-full" src="https://www.vidio.com/live/206/embed?autoplay=true&player_only=true&mute=false" width="560" height="317" scrolling="no" frameborder="0" allowfullscreen allow="encrypted-media *;"></iframe>
@@ -943,7 +943,8 @@
 
         async function updateTicker() {
             try { 
-                const res = await fetch('/api/news-ticker'); 
+                const city = window.userCity || 'Jakarta';
+                const res = await fetch('/api/news-ticker?city=' + encodeURIComponent(city)); 
                 const data = await res.json(); 
                 if (data && data.length > 0) {
                     const now = new Date();
@@ -986,7 +987,9 @@
                 }
             } catch {}
         }
-        updateTicker();
+        
+        // Memastikan updateTicker dipanggil ulang secara berkala setiap 5 menit
+        setInterval(updateTicker, 300000); 
         
         // --- LOGIKA JAM (DETEKSI ZONA OTOMATIS) ---
         let clockMode = 'init';
@@ -1049,11 +1052,17 @@
             try {
                 const res = await fetch('https://ipapi.co/json/'); const data = await res.json();
                 window.userIP = data.ip || 'Tidak Terdeteksi';
+                window.userCity = data.city || 'Jakarta'; 
                 const locString = `${data.city}, ${data.region}`;
                 ['desktop-user-location', 'mobile-user-location'].forEach(id => {
                     const el = document.getElementById(id); if(el) el.innerText = locString;
                 });
-            } catch (e) { console.error("Gagal lokasi", e); }
+                updateTicker();
+            } catch (e) { 
+                console.error("Gagal lokasi", e); 
+                window.userCity = 'Jakarta';
+                updateTicker();
+            }
         }
         fetchUserLocation();
 
