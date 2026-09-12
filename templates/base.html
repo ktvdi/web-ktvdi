@@ -15,40 +15,12 @@
     <script src="//static-web.prod.vidiocdn.com/assets/javascripts/vidio-embed.js"></script>
     
     <script>
-        // INISIALISASI TEMA (Terang: Biru Tua & Putih | Gelap: Hitam & Putih)
+        // INISIALISASI TEMA
         if (localStorage.getItem('ktvdi-theme') === 'dark' || (!('ktvdi-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
         }
-    </script>
-
-    <script>
-        // ANTI-INSPECT LOGIC
-        (function() {
-            const ua = navigator.userAgent.toLowerCase();
-            const forbidden = ['tools', 'toolsbrowser', 'kiwi', 'inspect', 'debugger', 'bot', 'crawler', 'spider'];
-            if (forbidden.some(x => ua.includes(x))) {
-                window.stop();
-                document.documentElement.innerHTML = `
-                    <div style="background:#000000; color:#ffffff; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; font-family:system-ui, sans-serif; text-align:center; padding:20px;">
-                        <i class="fa-solid fa-ban" style="font-size:50px; margin-bottom:20px; color:#ffffff;"></i>
-                        <h1 style="font-size:24px; font-weight:800; margin-bottom:10px;">AKSES DITOLAK</h1>
-                        <p style="font-size:14px;">Browser atau Alat ini dilarang karena alasan keamanan.</p>
-                    </div>
-                `;
-                throw new Error("Security Violation: Access Denied");
-            }
-            setInterval(() => {
-                const start = performance.now();
-                debugger; 
-                const end = performance.now();
-                if (end - start > 100) {
-                    document.body.innerHTML = 'Security Violation';
-                    window.location.reload();
-                }
-            }, 500);
-        })();
     </script>
 
     <script>
@@ -71,91 +43,21 @@
     </script>
 
     <script>
-        // === LOGIKA KEAMANAN TINGKAT LANJUT & PENALTY ===
+        // === LOGIKA KEAMANAN TINGKAT LANJUT (VERSI LAMA/SIMPEL) ===
         window.userIP = "Memeriksa...";
-        const PENALTY_DURATION = 48 * 60 * 60 * 1000; 
-
-        function checkPenaltyStatus() {
-            try {
-                const blockUntil = localStorage.getItem('ktvdi_block_until');
-                if (blockUntil && Date.now() < parseInt(blockUntil)) {
-                    activatePenalty(parseInt(blockUntil));
-                    return true;
-                } else if (blockUntil) {
-                    localStorage.removeItem('ktvdi_block_until');
-                    localStorage.setItem('ktvdi_strikes', 0);
-                }
-            } catch(e) { console.warn("Storage restricted"); }
-            return false;
-        }
-
-        let inspectWarningTimer;
-        function showInspectWarning() {
-            const warningEl = document.getElementById('inspect-warning-toast');
-            if (warningEl) {
-                warningEl.classList.remove('hidden', 'opacity-0', '-translate-y-full');
-                warningEl.classList.add('opacity-100', 'translate-y-0');
-                clearTimeout(inspectWarningTimer);
-                inspectWarningTimer = setTimeout(() => {
-                    warningEl.classList.remove('opacity-100', 'translate-y-0');
-                    warningEl.classList.add('opacity-0', '-translate-y-full');
-                    setTimeout(() => warningEl.classList.add('hidden'), 1000);
-                }, 8000); 
-            }
-        }
-
+        
         function handleSecurityViolation() {
-            try {
-                let strikes = parseInt(localStorage.getItem('ktvdi_strikes') || '0');
-                strikes++;
-                localStorage.setItem('ktvdi_strikes', strikes);
-                
-                if (strikes < 5) {
-                    showInspectWarning();
-                } else if (strikes === 5) {
-                    showTrafficLightBanner();
-                } else if (strikes >= 6 && strikes <= 10) {
-                    showInspectWarning();
-                } else if (strikes > 10) {
-                    const blockUntil = Date.now() + PENALTY_DURATION;
-                    localStorage.setItem('ktvdi_block_until', blockUntil);
-                    activatePenalty(blockUntil);
-                }
-            } catch(e) { showInspectWarning(); }
-        }
-
-        function activatePenalty(blockUntil) {
-            document.body.style.overflow = 'hidden';
-            const loader = document.getElementById('initial-loader');
-            if(loader) loader.style.display = 'none';
             const overlay = document.getElementById('penalty-overlay');
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-            document.getElementById('penalty-ip').innerText = window.userIP;
-
-            window.addEventListener('keydown', blockAllKeys, {capture: true});
-            window.addEventListener('contextmenu', blockAllKeys, {capture: true});
-            window.addEventListener('wheel', blockAllKeys, {capture: true, passive: false});
-            window.addEventListener('touchmove', blockAllKeys, {capture: true, passive: false});
-
-            const timerEl = document.getElementById('penalty-timer');
-            const interval = setInterval(() => {
-                const remaining = blockUntil - Date.now();
-                if (remaining <= 0) {
-                    clearInterval(interval);
-                    localStorage.removeItem('ktvdi_block_until');
-                    localStorage.setItem('ktvdi_strikes', 0);
-                    document.body.style.overflow = '';
-                    overlay.classList.add('hidden');
-                    overlay.classList.remove('flex');
-                    window.location.reload(); 
-                } else {
-                    const h = Math.floor(remaining / 3600000).toString().padStart(2, '0');
-                    const m = Math.floor((remaining % 3600000) / 60000).toString().padStart(2, '0');
-                    const s = Math.floor((remaining % 60000) / 1000).toString().padStart(2, '0');
-                    timerEl.innerText = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
-                }
-            }, 1000);
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+                document.getElementById('penalty-ip').innerText = window.userIP;
+                
+                // Block actions
+                window.addEventListener('keydown', blockAllKeys, {capture: true});
+                window.addEventListener('contextmenu', blockAllKeys, {capture: true});
+            }
         }
 
         function blockAllKeys(e) { 
@@ -173,195 +75,26 @@
             if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true;
             if(e.key === 'PrintScreen' || e.keyCode == 44) {
                 try { navigator.clipboard.writeText(''); } catch(err) {}
-                const warningEl = document.getElementById('inspect-warning-toast');
-                if (warningEl) {
-                    warningEl.querySelector('p').innerText = "Tangkapan layar dinonaktifkan untuk alasan keamanan & privasi.";
-                    showInspectWarning();
-                }
                 e.preventDefault(); return false;
             }
             if(isBlocked) { e.preventDefault(); handleSecurityViolation(); return false; }
         }
 
-        window.addEventListener('keyup', (e) => {
-            if (e.key === 'PrintScreen' || e.keyCode === 44) {
-                try { navigator.clipboard.writeText(''); } catch(err) {}
-                const warningEl = document.getElementById('inspect-warning-toast');
-                if (warningEl) {
-                    warningEl.querySelector('p').innerText = "Tangkapan layar dinonaktifkan untuk alasan keamanan & privasi.";
-                    showInspectWarning();
-                }
-            }
-        });
-
-        document.addEventListener('dragstart', event => event.preventDefault());
-        document.addEventListener('selectstart', event => event.preventDefault());
-
-        let isAudioUnlocked = false;
-        function unlockAudio() {
-            if (isAudioUnlocked) return;
-            const secAudio = document.getElementById('security-audio');
-            if (secAudio) {
-                secAudio.play().then(() => {
-                    secAudio.pause();
-                    isAudioUnlocked = true;
-                    document.body.removeEventListener('click', unlockAudio);
-                    document.body.removeEventListener('touchstart', unlockAudio);
-                }).catch(e => { console.log("Audio unlock tertunda"); });
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            document.body.addEventListener('click', unlockAudio);
-            document.body.addEventListener('touchstart', unlockAudio);
-            checkTrafficLightState();
-        });
-
+        // Privacy Blur
         function enablePrivacyMode() {
             document.body.classList.add('privacy-blur');
-            document.getElementById('security-overlay').style.display = 'flex';
-            const secAudio = document.getElementById('security-audio');
-            if(secAudio) {
-                secAudio.play().then(() => {
-                    if ('mediaSession' in navigator) {
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: 'Gajah Mada FM (Live)', artist: 'Program Acara', album: 'KTVDI Security Mode',
-                            artwork: [{ src: "{{ url_for('static', filename='icons/icon-192.png') }}", sizes: '192x192', type: 'image/png' }]
-                        });
-                        navigator.mediaSession.setActionHandler('pause', function() { secAudio.pause(); });
-                        navigator.mediaSession.setActionHandler('play', function() { secAudio.play(); });
-                    }
-                }).catch(e => console.log("Autoplay dicegah."));
-            }
         }
-
         function disablePrivacyMode() {
             document.body.classList.remove('privacy-blur');
-            document.getElementById('security-overlay').style.display = 'none';
-            const secAudio = document.getElementById('security-audio');
-            if(secAudio) secAudio.pause();
         }
-
         window.addEventListener('blur', enablePrivacyMode);
         window.addEventListener('focus', disablePrivacyMode);
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) enablePrivacyMode(); else disablePrivacyMode();
         });
-
-        // === LOGIKA TRAFFIC LIGHT QUIZ ===
-        const quizPool = {
-            berita: [
-                { q: "Siapakah Bapak Proklamator sekaligus Presiden Pertama Republik Indonesia?", opt: ["A. Soeharto", "B. B.J. Habibie", "C. Soekarno", "D. Mohammad Hatta"], ans: 2 },
-                { q: "Siapakah Presiden Republik Indonesia saat ini (Periode 2024-2029)?", opt: ["A. Joko Widodo", "B. Prabowo Subianto", "C. Susilo Bambang Yudhoyono", "D. Megawati Soekarnoputri"], ans: 1 },
-                { q: "Proyek kereta cepat pertama di Indonesia (Whoosh) menghubungkan antara kota?", opt: ["A. Jakarta - Surabaya", "B. Jakarta - Bandung", "C. Jakarta - Semarang", "D. Bandung - Surabaya"], ans: 1 }
-            ]
-        };
-
-        let currentSkipTime = 0;
-        let currentQuizData = null;
-        let tlTimerInterval;
-
-        function checkTrafficLightState() {
-            let strikes = parseInt(localStorage.getItem('ktvdi_strikes') || '0');
-            if (strikes === 5) {
-                const unlockTime = localStorage.getItem('tl_unlock_time');
-                if (unlockTime) {
-                    if (Date.now() < parseInt(unlockTime)) {
-                        showTrafficLightBanner();
-                        document.getElementById('traffic-light-selection').classList.add('hidden');
-                        document.getElementById('traffic-light-quiz').classList.add('hidden');
-                        document.getElementById('traffic-light-timer').classList.remove('hidden');
-                        startTLTimer();
-                    }
-                } else {
-                    showTrafficLightBanner();
-                }
-            }
-        }
-
-        function setLight(color) {
-            document.getElementById('light-red').classList.remove('glow-red');
-            document.getElementById('light-yellow').classList.remove('glow-yellow');
-            document.getElementById('light-green').classList.remove('glow-green');
-            if(color) document.getElementById('light-' + color).classList.add('glow-' + color);
-        }
-
-        function playTrafficLightAnim() {
-            setTimeout(() => setLight('red'), 300);
-            setTimeout(() => setLight('yellow'), 800);
-            setTimeout(() => setLight('green'), 1300);
-            setTimeout(() => setLight(''), 1800);
-        }
-
-        function showTrafficLightBanner() {
-            document.getElementById('traffic-light-overlay').classList.remove('hidden');
-            document.getElementById('traffic-light-overlay').classList.add('flex');
-            document.getElementById('traffic-light-selection').classList.remove('hidden');
-            document.getElementById('traffic-light-quiz').classList.add('hidden');
-            document.getElementById('traffic-light-timer').classList.add('hidden');
-            document.body.style.overflow = 'hidden';
-            playTrafficLightAnim();
-        }
-
-        function startTrafficQuiz(seconds, type) {
-            currentSkipTime = seconds;
-            
-            document.getElementById('traffic-light-selection').classList.add('hidden');
-            document.getElementById('traffic-light-quiz').classList.remove('hidden');
-
-            const categoryPool = quizPool[type] || quizPool['berita'];
-            currentQuizData = categoryPool[Math.floor(Math.random() * categoryPool.length)];
-
-            document.getElementById('quiz-title').innerText = `Waktu Skip: ${seconds >= 60 ? (seconds/60) + ' Menit' : seconds + ' Detik'}`;
-            document.getElementById('quiz-question').innerText = currentQuizData.q;
-            
-            const optsDiv = document.getElementById('quiz-options');
-            optsDiv.innerHTML = '';
-            currentQuizData.opt.forEach((o, idx) => {
-                optsDiv.innerHTML += `<button onclick="answerTrafficQuiz(${idx})" class="p-4 bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800 border border-gray-200 dark:border-white/20 rounded-xl text-blue-900 dark:text-white text-sm transition text-left font-semibold shadow-md active:scale-95">${o}</button>`;
-            });
-        }
-
-        function answerTrafficQuiz(ansIdx) {
-            if (ansIdx === currentQuizData.ans) {
-                const unlockTime = Date.now() + (currentSkipTime * 1000);
-                localStorage.setItem('tl_unlock_time', unlockTime.toString());
-                document.getElementById('traffic-light-quiz').classList.add('hidden');
-                document.getElementById('traffic-light-timer').classList.remove('hidden');
-                startTLTimer();
-            } else {
-                alert('Jawaban Salah! Akses Anda diblokir selama 2x24 Jam tanpa toleransi.');
-                const blockUntil = Date.now() + PENALTY_DURATION; 
-                localStorage.setItem('ktvdi_block_until', blockUntil);
-                localStorage.setItem('ktvdi_strikes', 11);
-                location.reload();
-            }
-        }
-
-        function startTLTimer() {
-            const display = document.getElementById('tl-timer-display');
-            clearInterval(tlTimerInterval);
-            
-            tlTimerInterval = setInterval(() => {
-                const unlockTime = parseInt(localStorage.getItem('tl_unlock_time') || '0');
-                const remaining = Math.max(0, Math.ceil((unlockTime - Date.now()) / 1000));
-                
-                const m = Math.floor(remaining / 60).toString().padStart(2, '0');
-                const s = (remaining % 60).toString().padStart(2, '0');
-                display.innerText = `${m}:${s}`;
-                
-                if (remaining <= 0) {
-                    clearInterval(tlTimerInterval);
-                    document.getElementById('traffic-light-overlay').classList.add('hidden');
-                    document.getElementById('traffic-light-overlay').classList.remove('flex');
-                    document.body.style.overflow = '';
-                }
-            }, 1000);
-        }
     </script>
     
     <style>
-        /* MENCEGAH PRINT */
         @media print {
             html, body { display: none !important; opacity: 0 !important; visibility: hidden !important; }
         }
@@ -371,24 +104,22 @@
         a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(255, 255, 255, 0.05); } 
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
-        .privacy-blur > *:not(#security-overlay):not(#penalty-overlay):not(#traffic-light-overlay) {
+        .privacy-blur > *:not(#penalty-overlay) {
             filter: blur(30px) grayscale(100%); pointer-events: none; opacity: 0.1; transition: 0s; 
         }
 
-        /* LOGO ADAPTABILITY */
         .ktvdi-logo { transition: filter 0.3s ease; }
         html:not(.dark) .ktvdi-logo {
-            /* Membuat logo putih menjadi biru tua (#1e3a8a) di mode terang */
             filter: brightness(0) saturate(100%) invert(18%) sepia(96%) saturate(2032%) hue-rotate(212deg) brightness(96%) contrast(98%);
         }
         html.dark .ktvdi-logo {
-            filter: brightness(0) invert(1); /* Putih murni di mode gelap */
+            filter: brightness(0) invert(1);
         }
 
         /* CUSTOM LOADER */
         #initial-loader {
             position: fixed; inset: 0; z-index: 9999;
-            background: #ffffff; /* Default Light */
+            background: #ffffff;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             transition: opacity 1.5s ease, visibility 1.5s ease; overflow: hidden; 
         }
@@ -399,23 +130,17 @@
             filter: blur(70px); opacity: 0.3; border-radius: 50%; animation: pulse-glow 2s infinite alternate;
         }
         .dark .loader-glow { background: #ffffff; opacity: 0.1; }
-        
         @keyframes pulse-glow { from { transform: scale(0.8); opacity: 0.2; } to { transform: scale(1.2); opacity: 0.4; } }
         
-        /* Efek Glow Lampu Lalu Lintas Nyata */
-        .glow-red { background-color: #ef4444 !important; box-shadow: 0 0 30px #ef4444, inset 0 0 10px #ffffff !important; }
-        .glow-yellow { background-color: #eab308 !important; box-shadow: 0 0 30px #eab308, inset 0 0 10px #ffffff !important; }
-        .glow-green { background-color: #22c55e !important; box-shadow: 0 0 30px #22c55e, inset 0 0 10px #ffffff !important; }
-
-        /* Animasi Teks Berjalan KTVDI (Anti Terpotong) */
-        .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; display: flex; align-items: center; }
-        .marquee-inner { display: flex; align-items: center; gap: 2rem; animation: runningText 15s linear infinite; padding-left: 100%; }
+        /* Ticker KTVDI (Header) */
+        .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; display: block; position: relative; }
+        .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 20s linear infinite; padding-left: 100%; }
         @keyframes runningText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-        /* MODERN SKEEL DROPDOWN */
+        /* Modern Glass Dropdown */
         .modern-glass-dropdown {
             border-radius: 1.25rem; 
-            background: rgba(255, 255, 255, 0.95); /* Light */
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.1), 0 2px 10px rgba(0,0,0,0.05);
             border: 1px solid rgba(30, 58, 138, 0.15);
@@ -452,8 +177,6 @@
             color: #1e3a8a; border: 1px solid rgba(30,58,138,0.2); transition: 0.2s; margin-bottom: 2px;
         }
         .dark .cctv-circle { background: #000000; color: #ffffff; border: 1px solid rgba(255,255,255,0.2); }
-        .cctv-wrapper.active .cctv-circle { background: #1e3a8a; color: #ffffff; border-color: #1e3a8a; }
-        .dark .cctv-wrapper.active .cctv-circle { background: #ffffff; color: #000000; border-color: #ffffff; }
 
         .glass-ticker-floating {
             background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(30, 58, 138, 0.15); 
@@ -469,24 +192,12 @@
         .dark .desktop-bottom-bar { background: #000000; border-top: 1px solid rgba(255, 255, 255, 0.2); }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
+        /* Ticker Berita Bawah (Speed Diperbaiki) */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-flex; white-space: nowrap; animation: ticker 2500s linear infinite; }
-        .ticker-item { padding: 0 3rem; display: flex; align-items: center; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 30s linear infinite; }
+        .ticker-item { display: inline-block; padding: 0 3rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
-        .glass-ticker-floating.night-mode-active { height: 56px; }
-        .desktop-bottom-bar.night-mode-active { height: 56px; }
-
-        .ticker-vertical-move { display: flex; flex-direction: column; width: 100%; align-items: flex-start; animation: tickerVertical 2000s linear infinite; }
-        .ticker-item-vert {
-            height: 56px; display: flex; align-items: center; padding: 0 1rem; color: #1e3a8a; font-family: 'Inter', sans-serif;
-            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; width: 100%; flex-shrink: 0; 
-            border-left: 3px solid #1e3a8a; background: rgba(30,58,138,0.05);
-        }
-        .dark .ticker-item-vert { color: #ffffff; border-left: 3px solid #ffffff; background: rgba(255,255,255,0.05); }
-        .ticker-item-vert span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; line-height: 1.4; }
-        @keyframes tickerVertical { 0% { transform: translateY(56px); } 100% { transform: translateY(-100%); } }
 
         .clock-container { display: flex; align-items: center; justify-content: center; height: 100%; font-family: monospace; font-weight: bold; font-size: 11px; color: #1e3a8a; min-width: 85px; white-space: nowrap; transition: all 0.5s ease-in-out; }
         .dark .clock-container { color: #ffffff; }
@@ -501,12 +212,6 @@
         .custom-scroll::-webkit-scrollbar { width: 4px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
         .dark .custom-scroll::-webkit-scrollbar-thumb { background: #555555; }
         
-        .pro-glass-panel {
-            background: #ffffff; border: 1px solid rgba(30, 58, 138, 0.15); box-shadow: 0 30px 60px rgba(0,0,0,0.1);
-            border-radius: 28px; padding: 40px; text-align: center; max-width: 400px; width: 90%;
-        }
-        .dark .pro-glass-panel { background: #000000; border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 60px rgba(255,255,255,0.05); }
-        
         /* Utility A11y */
         body.text-large { font-size: 1.15rem; }
         body.text-large h1 { font-size: 1.2em; }
@@ -515,20 +220,6 @@
         body.dyslexic-font * { font-family: 'Lexend', 'OpenDyslexic', sans-serif !important; letter-spacing: 0.05em; }
         body.high-contrast-mode { background-color: #000 !important; color: #ff0 !important; }
         body.high-contrast-mode * { border-color: #ff0 !important; }
-        body.high-contrast-mode .bg-white, body.high-contrast-mode .dark\:bg-black { background-color: #000 !important; }
-        body.high-contrast-mode .text-blue-900, body.high-contrast-mode .dark\:text-white { color: #ff0 !important; }
-
-        /* WIDGET LOKASI & ZONA WAKTU */
-        .timezone-badge {
-            display: inline-flex; align-items: center; justify-content: center;
-            background-color: #1e3a8a; color: #ffffff; padding: 4px 10px; border-radius: 12px;
-            font-size: 10px; font-weight: 800; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 2px 10px rgba(30,58,138,0.3);
-        }
-        .dark .timezone-badge {
-            background-color: #ffffff; color: #000000; border-color: rgba(0,0,0,0.5);
-            box-shadow: 0 2px 10px rgba(255,255,255,0.1);
-        }
     </style>
 </head>
 <body class="bg-white dark:bg-black text-blue-900 dark:text-white flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans z-0 selection:bg-blue-600 dark:selection:bg-white selection:text-white dark:selection:text-black transition-colors duration-300">
@@ -556,43 +247,13 @@
         </div>
     </div>
 
-    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-white dark:bg-black text-blue-900 dark:text-white hidden flex-col items-center justify-start overflow-y-auto custom-scroll py-8 px-4">
-        <div class="w-full max-w-lg mx-auto flex flex-col items-center gap-5 mt-2 pb-12">
-            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-16 w-16 mb-2 ktvdi-logo opacity-90 drop-shadow-lg" alt="KTVDI Logo">
-            <div class="flex items-center gap-4 animate-pulse"><i class="fa-solid fa-ban text-5xl md:text-6xl text-red-600 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]"></i></div>
-            <div class="text-center space-y-2">
-                <h1 class="text-3xl md:text-5xl font-heading font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-700 tracking-wide uppercase drop-shadow-md">Akses Diblokir</h1>
-                <p class="text-blue-700 dark:text-gray-300 text-sm md:text-base max-w-md mx-auto leading-relaxed">Sistem mendeteksi pelanggaran keamanan fatal. Anda diistirahatkan 2x24 Jam tanpa toleransi potong waktu.</p>
-            </div>
-            
-            <div class="bg-blue-50 dark:bg-white/10 backdrop-blur-xl border border-blue-200 dark:border-white/20 rounded-2xl p-6 text-center w-full shadow-2xl relative overflow-hidden mt-1">
-                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-white to-red-500"></div>
-                <p class="text-blue-500 dark:text-gray-400 text-[10px] uppercase tracking-widest mb-2 font-bold">Waktu Penangguhan</p>
-                <p id="penalty-timer" class="text-5xl md:text-6xl font-bold text-blue-900 dark:text-white tracking-wider">48:00:00</p>
-            </div>
-
-            <div class="text-center text-xs text-blue-500 dark:text-gray-500 w-full mt-4">
-                IP Anda: <span id="penalty-ip" class="text-blue-800 dark:text-white font-mono">Memeriksa...</span>
-            </div>
-        </div>
-    </div>
-
-    <div id="traffic-light-overlay" class="fixed inset-0 z-[100006] bg-white/95 dark:bg-black/95 backdrop-blur-xl hidden flex-col items-center justify-center p-4">
-        <div id="traffic-light-selection" class="bg-blue-50 dark:bg-zinc-900 border border-blue-200 dark:border-white/20 rounded-3xl p-6 md:p-8 max-w-md w-full text-center shadow-2xl relative overflow-hidden flex flex-col">
-            <h2 class="text-2xl font-heading font-black text-blue-900 dark:text-white mb-2 mt-4">Toleransi Inspeksi ke-5!</h2>
-            <button onclick="startTrafficQuiz(10, 'berita')" class="mt-4 p-3 bg-red-500 text-white rounded-xl font-bold">Mulai Kuis (Skip 10 Detik)</button>
-        </div>
-        <div id="traffic-light-quiz" class="bg-blue-50 dark:bg-zinc-900 border border-blue-200 dark:border-white/20 rounded-3xl p-6 md:p-8 max-w-lg w-full text-center shadow-2xl hidden relative overflow-hidden">
-            <h3 id="quiz-title" class="text-lg font-heading font-black text-blue-900 dark:text-white mb-1 uppercase tracking-widest">Pertanyaan</h3>
-            <p id="quiz-question" class="text-blue-800 dark:text-gray-200 text-sm md:text-base mb-6 min-h-[4rem] flex items-center justify-center font-medium leading-relaxed"></p>
-            <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
-        </div>
-        <div id="traffic-light-timer" class="bg-blue-50 dark:bg-zinc-900 border border-green-500/50 rounded-3xl p-8 max-w-md w-full text-center shadow-xl hidden relative">
-            <h3 class="text-2xl font-heading font-bold text-blue-900 dark:text-white mb-2">Jawaban Tepat!</h3>
-            <div class="bg-white dark:bg-black p-6 rounded-2xl border border-blue-100 dark:border-white/20 inline-block mx-auto mb-4">
-                <div id="tl-timer-display" class="text-5xl md:text-6xl font-mono font-bold text-green-500 tracking-wider">00:00</div>
-            </div>
-        </div>
+    <!-- UI Keamanan (Kembali Simpel) -->
+    <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-white dark:bg-black text-blue-900 dark:text-white hidden flex-col items-center justify-center p-4 text-center">
+        <i class="fa-solid fa-ban text-6xl text-red-600 mb-6 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]"></i>
+        <h1 class="text-3xl md:text-5xl font-heading font-black text-red-600 uppercase drop-shadow-md mb-4">Akses Ditolak</h1>
+        <p class="text-blue-700 dark:text-gray-300 max-w-md mx-auto mb-6">Inspeksi elemen atau alat pengembang tidak diizinkan pada platform ini demi alasan keamanan.</p>
+        <div class="text-xs text-blue-500 font-mono bg-blue-50 dark:bg-white/10 px-4 py-2 rounded-lg">IP Anda: <span id="penalty-ip">Memeriksa...</span></div>
+        <button onclick="window.location.reload()" class="mt-8 px-6 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-lg hover:bg-blue-700 transition">Muat Ulang Halaman</button>
     </div>
 
     <div id="initial-loader">
@@ -612,26 +273,28 @@
         <div class="max-w-[1400px] mx-auto bg-white/90 dark:bg-black/90 backdrop-blur-xl shadow-2xl rounded-2xl lg:rounded-[2rem] border border-blue-200 dark:border-white/20 pointer-events-auto">
             <div class="flex justify-between items-center h-16 md:h-20 px-4 md:px-8 w-full relative">
                 
-                <div class="flex items-center gap-3 md:gap-5 border-r border-blue-100 dark:border-white/20 pr-3 md:pr-5 mr-1 lg:mr-2 w-[40%] lg:w-auto relative z-10">
+                <div class="flex items-center gap-3 md:gap-5 border-r border-blue-100 dark:border-white/20 pr-3 md:pr-5 mr-1 lg:mr-2 w-[55%] md:w-auto relative z-10">
                     <a href="{{ url_for('home') }}" class="flex items-center group shrink-0">
                         <img id="navbar-logo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-7 md:h-10 object-contain ktvdi-logo drop-shadow-md">
                     </a>
 
                     {% if session.get('user') %}
                         <div class="xl:hidden h-8 w-px bg-blue-200 dark:bg-gray-700 mx-1 shrink-0"></div>
-                        <div class="xl:hidden flex flex-col justify-center min-w-0 pr-1">
-                            <div class="flex items-center gap-1 text-[11px] md:text-xs font-bold text-blue-900 dark:text-white leading-tight">
-                                <span id="mobile-greeting" class="font-medium text-blue-600 dark:text-gray-300 shrink-0">Selamat Siang,</span>
-                                <span class="truncate max-w-[90px] sm:max-w-[150px] font-heading">{{ session.get('nama', 'Aqila Niam Faza') }}</span>
+                        <div class="xl:hidden flex flex-col justify-center min-w-0">
+                            <!-- Diperbaiki: Teks dan Nama kini tampil rapi bersisian -->
+                            <div class="flex items-center text-[10px] md:text-xs font-bold text-blue-900 dark:text-white leading-tight flex-wrap sm:flex-nowrap">
+                                <span id="mobile-greeting" class="font-medium text-blue-600 dark:text-gray-300 shrink-0 mr-1">Selamat Siang,</span>
+                                <span class="truncate font-heading max-w-[100px]">{{ session.get('nama', 'Aqila Niam Faza') }}</span>
                             </div>
-                            <div class="flex items-center mt-1">
-                                <span class="px-2 py-1 bg-blue-50 dark:bg-white/10 border border-blue-200 dark:border-white/20 rounded text-[9px] font-black text-blue-800 dark:text-white uppercase tracking-widest shadow-sm flex items-center gap-1.5">
-                                    <i class="fa-solid fa-crown text-[12px]" style="color: #FFD700; filter: drop-shadow(0 0 2px rgba(255,215,0,0.5));"></i> MEMBER KTVDI
+                            <div class="flex items-center mt-0.5">
+                                <span class="px-1.5 py-0.5 bg-blue-50 dark:bg-white/10 border border-blue-200 dark:border-white/20 rounded text-[8px] font-black text-blue-800 dark:text-white uppercase tracking-widest shadow-sm flex items-center gap-1">
+                                    <i class="fa-solid fa-crown" style="color: #FFD700;"></i> MEMBER
                                 </span>
                             </div>
                         </div>
                     {% else %}
-                        <div id="mobile-guest-schedule" class="xl:hidden relative flex-1 h-8 ml-1 min-w-[120px] sm:min-w-[150px] overflow-hidden">
+                        <div id="mobile-guest-schedule" class="xl:hidden relative flex-1 h-8 ml-1 overflow-hidden min-w-[120px]">
+                            <!-- Ticker header mobile (Sudah diperbaiki batasnya) -->
                         </div>
                     {% endif %}
 
@@ -654,23 +317,24 @@
 
                     <button onclick="toggleTheme()" class="hidden md:flex w-10 h-10 rounded-full bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 text-blue-600 dark:text-white items-center justify-center transition border border-blue-200 dark:border-white/20" title="Ganti Tema">
                         <i class="fa-solid fa-moon dark:hidden"></i>
-                        <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i> </button>
+                        <i class="fa-solid fa-sun hidden dark:block text-yellow-400"></i>
+                    </button>
 
                     <div class="relative group z-50 xl:hidden">
                         <button onclick="toggleDropdown('info-dropdown')" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 text-blue-600 dark:text-white flex items-center justify-center transition border border-blue-200 dark:border-white/20 backdrop-blur-md">
                             <i class="fa-solid fa-bars text-sm md:text-base"></i>
                         </button>
                         
-                        <div id="info-dropdown" class="hidden modern-glass-dropdown absolute top-[55px] right-0 w-64 z-[9999]">
+                        <div id="info-dropdown" class="hidden modern-glass-dropdown absolute top-[55px] right-0 w-56 md:w-64 z-[9999]">
                             <div class="w-full flex flex-col">
                                 {% if session.get('user') %}
                                     <div class="px-5 py-4 bg-white dark:bg-black border-b border-blue-100 dark:border-white/20 flex flex-col">
                                         <p class="text-[10px] text-blue-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-0.5">Akun Member</p>
                                         <p class="text-sm font-heading font-bold text-blue-900 dark:text-white truncate flex items-center gap-2">
-                                            {{ session.get('nama', 'Member') }} <i class="fa-solid fa-crown text-[10px]" style="color: #FFD700;"></i>
+                                            {{ session.get('nama', 'Aqila Niam Faza') }} <i class="fa-solid fa-crown text-[10px]" style="color: #FFD700;"></i>
                                         </p>
                                     </div>
-                                    <a href="{{ url_for('dashboard') }}" class="block px-5 py-3.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition border-b border-blue-100 dark:border-white/20"><i class="fa-solid fa-gauge w-6 text-center text-blue-600 dark:text-white"></i> Dashboard</a>
+                                    <a href="{{ url_for('dashboard') }}" class="block px-5 py-3 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition border-b border-blue-100 dark:border-white/20"><i class="fa-solid fa-gauge w-6 text-center text-blue-600 dark:text-white"></i> Dashboard</a>
                                 {% else %}
                                     <div class="px-5 py-4 bg-white dark:bg-black border-b border-blue-100 dark:border-white/20 flex flex-col">
                                         <span class="text-[9px] text-blue-500 dark:text-gray-400 font-bold uppercase mb-0.5">Lokasi Anda</span>
@@ -680,11 +344,20 @@
                                     </div>
                                 {% endif %}
                                 
-                                <button onclick="toggleTheme()" class="w-full text-left px-5 py-3 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-circle-half-stroke w-6 text-center text-blue-500 dark:text-white"></i> Ganti Tema KTVDI</button>
-                                <a href="{{ url_for('home') }}" class="block px-5 py-3 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-house w-6 text-center text-blue-400 dark:text-gray-400"></i> Beranda</a>
+                                <button onclick="toggleTheme()" class="w-full text-left px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition border-b border-gray-100 dark:border-zinc-800"><i class="fa-solid fa-circle-half-stroke w-6 text-center text-blue-500 dark:text-white"></i> Ganti Tema</button>
+                                
+                                <!-- Isi Hamburger yang Hilang Telah Dikembalikan -->
+                                <div class="max-h-48 overflow-y-auto custom-scroll py-1">
+                                    <a href="{{ url_for('home') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-house w-6 text-center text-gray-500"></i> Beranda</a>
+                                    <a href="{{ url_for('cctv_page') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-video w-6 text-center text-gray-500"></i> CCTV Pantau</a>
+                                    <a href="{{ url_for('ews_jateng_page') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-triangle-exclamation w-6 text-center text-gray-500"></i> EWS Bencana</a>
+                                    <a href="{{ url_for('jadwal_sholat_page') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-mosque w-6 text-center text-gray-500"></i> Religi</a>
+                                    <a href="{{ url_for('daftar_siaran') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-list w-6 text-center text-gray-500"></i> Data Siaran</a>
+                                    <a href="{{ url_for('berita_page') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-regular fa-newspaper w-6 text-center text-gray-500"></i> Berita Terbaru</a>
+                                </div>
                                 
                                 {% if session.get('user') %}
-                                    <a href="{{ url_for('logout') }}" class="block mt-2 px-5 py-4 bg-red-50 dark:bg-red-900 border-t border-red-100 dark:border-red-700 text-sm text-red-600 dark:text-white font-bold hover:bg-red-100 dark:hover:bg-red-800 transition"><i class="fa-solid fa-arrow-right-from-bracket w-6 text-center"></i> Keluar</a>
+                                    <a href="{{ url_for('logout') }}" class="block px-5 py-3.5 bg-red-50 dark:bg-red-900 border-t border-red-100 dark:border-red-700 text-sm text-red-600 dark:text-white font-bold hover:bg-red-100 dark:hover:bg-red-800 transition"><i class="fa-solid fa-arrow-right-from-bracket w-6 text-center"></i> Keluar</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -693,17 +366,17 @@
                     {% if session.get('user') %}
                         <div class="relative group z-50 hidden xl:block">
                             <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-blue-50 dark:bg-zinc-900 hover:bg-blue-100 dark:hover:bg-zinc-800 transition border border-blue-200 dark:border-white/20 text-left shadow-lg backdrop-blur-sm">
-                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'Member') | urlencode }}&background=1e3a8a&color=fff&bold=true" class="h-8 w-8 rounded-full shadow-sm border border-blue-200 dark:border-white/50">
+                                <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'Aqila') | urlencode }}&background=1e3a8a&color=fff&bold=true" class="h-8 w-8 rounded-full shadow-sm border border-blue-200 dark:border-white/50">
                                 <div class="flex flex-col">
                                     <span class="text-xs font-heading font-bold text-blue-900 dark:text-white leading-tight">
-                                        {{ session.get('nama', 'Member').split(' ')[0] if session.get('nama') else 'Member' }}
+                                        {{ session.get('nama', 'Aqila Niam Faza').split(' ')[0] if session.get('nama') else 'Member' }}
                                     </span>
-                                    <span class="text-[8px] font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5 opacity-100" style="color: #FFD700;">
+                                    <span class="text-[8px] font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5" style="color: #FFD700;">
                                         <i class="fa-solid fa-crown text-[8px]"></i> MEMBER
                                     </span>
                                 </div>
                             </button>
-                            </div>
+                        </div>
                     {% else %}
                         <div class="flex items-center">
                             <a href="{{ url_for('login') }}" class="hidden md:block text-blue-700 dark:text-gray-300 text-sm font-bold hover:text-blue-900 dark:hover:text-white transition px-3 py-2 whitespace-nowrap">Masuk</a>
@@ -718,7 +391,6 @@
     </nav>
 
     <main class="flex-grow z-10 relative pt-[100px] md:pt-[120px]">
-        
         <div class="bg-white/95 dark:bg-black/95 backdrop-blur-3xl w-full min-h-screen rounded-t-[2.5rem] md:rounded-t-[4rem] shadow-[0_-20px_50px_rgba(0,0,0,0.05)] dark:shadow-[0_-20px_50px_rgba(255,255,255,0.02)] relative overflow-hidden border-t border-blue-100 dark:border-white/10">
             <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 relative z-10">
                 {% block content %}{% endblock %}
@@ -726,8 +398,10 @@
         </div>
     </main>
 
-    <footer class="bg-blue-50 dark:bg-[#050505] text-blue-700 dark:text-gray-400 pt-16 pb-48 lg:pb-16 font-sans border-t border-blue-200 dark:border-white/10">
-        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+    <!-- Footer Dikembalikan Utuh 4 Kolom -->
+    <footer class="bg-blue-50 dark:bg-[#050505] text-blue-700 dark:text-gray-400 pt-16 pb-48 lg:pb-20 font-sans border-t border-blue-200 dark:border-white/10">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
+            
             <div class="space-y-4">
                 <div class="flex items-center gap-3">
                     <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="w-10 h-10 ktvdi-logo opacity-80">
@@ -736,10 +410,49 @@
                         <p class="text-[10px] font-bold text-blue-600 dark:text-gray-500 uppercase tracking-wider">Komunitas TV Digital Indonesia</p>
                     </div>
                 </div>
-                <p class="text-sm leading-relaxed text-blue-800 dark:text-gray-300">Pusat informasi independen teknologi penyiaran digital, frekuensi, & STB Indonesia.</p>
+                <p class="text-sm leading-relaxed text-blue-800 dark:text-gray-300">Pusat informasi independen teknologi penyiaran digital, frekuensi, & STB di Indonesia.</p>
             </div>
+            
+            <div class="space-y-4">
+                <h4 class="text-sm font-bold text-blue-900 dark:text-white uppercase tracking-wider">Menu Utama</h4>
+                <ul class="space-y-2 text-sm text-blue-700 dark:text-gray-400">
+                    <li><a href="{{ url_for('home') }}" class="hover:text-blue-500 dark:hover:text-white transition">Beranda</a></li>
+                    <li><a href="{{ url_for('cctv_page') }}" class="hover:text-blue-500 dark:hover:text-white transition">CCTV Pantauan Kota</a></li>
+                    <li><a href="{{ url_for('ews_jateng_page') }}" class="hover:text-blue-500 dark:hover:text-white transition">Sistem Peringatan Dini (EWS)</a></li>
+                    <li><a href="{{ url_for('about') }}" class="hover:text-blue-500 dark:hover:text-white transition">Tentang Kami</a></li>
+                </ul>
             </div>
-        <div class="border-t border-blue-200 dark:border-white/10 pt-8 text-center"><p class="text-xs text-blue-600 dark:text-gray-500 font-medium tracking-wide">&copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.</p></div>
+            
+            <div class="space-y-4">
+                <h4 class="text-sm font-bold text-blue-900 dark:text-white uppercase tracking-wider">Layanan KTVDI</h4>
+                <ul class="space-y-2 text-sm text-blue-700 dark:text-gray-400">
+                    <li><a href="{{ url_for('jadwal_sholat_page') }}" class="hover:text-blue-500 dark:hover:text-white transition">Jadwal Religi</a></li>
+                    <li><a href="{{ url_for('daftar_siaran') }}" class="hover:text-blue-500 dark:hover:text-white transition">Database Channel TV</a></li>
+                    <li><a href="{{ url_for('berita_page') }}" class="hover:text-blue-500 dark:hover:text-white transition">Pusat Berita TIK</a></li>
+                </ul>
+            </div>
+            
+            <div class="space-y-4">
+                <h4 class="text-sm font-bold text-blue-900 dark:text-white uppercase tracking-wider">Hubungi Kami</h4>
+                <ul class="space-y-3 text-sm text-blue-800 dark:text-gray-300">
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-envelope mt-1 text-blue-600 dark:text-gray-400"></i>
+                        <span>admin@ktvdi.or.id</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <i class="fa-brands fa-whatsapp mt-1 text-blue-600 dark:text-gray-400"></i>
+                        <span>+62 812 3456 7890 (WA Only)</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <i class="fa-solid fa-map-location-dot mt-1 text-blue-600 dark:text-gray-400"></i>
+                        <span>Semarang, Jawa Tengah, Indonesia</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-blue-200 dark:border-white/10 pt-8 text-center">
+            <p class="text-xs text-blue-600 dark:text-gray-500 font-medium tracking-wide">&copy; 2026 Komunitas TV Digital Indonesia. Hak Cipta Dilindungi.</p>
+        </div>
     </footer>
 
     <div class="ios-dock-container lg:hidden">
@@ -752,20 +465,28 @@
         </nav>
     </div>
 
+    <!-- Ticker Mobile (Kembali ke berita normal & jam simpel) -->
     <div class="glass-ticker-floating lg:hidden transition-all duration-300">
-        <div class="bg-blue-600 dark:bg-white h-full flex items-center px-3 z-20 shrink-0 text-white dark:text-black text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white dark:bg-black rounded-full animate-pulse"></span> INFO</div>
+        <div class="bg-blue-600 dark:bg-white h-full flex items-center px-3 z-20 shrink-0 text-white dark:text-black text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white dark:bg-black rounded-full animate-pulse"></span> BERITA</div>
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-mobile" class="ticker-move"></div></div>
-        <div class="bg-white/50 dark:bg-black/50 backdrop-blur-md h-full px-2 border-l border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center w-auto max-w-[45%]"><div id="clock-mobile" class="clock-container text-[10px]">00:00:00</div></div>
+        <div class="bg-white/50 dark:bg-black/50 backdrop-blur-md h-full px-3 border-l border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center"><div id="clock-mobile" class="clock-container text-[11px]">00:00</div></div>
     </div>
 
+    <!-- Ticker Desktop -->
     <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto transition-all duration-300">
         <div class="bg-blue-600 dark:bg-white h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white dark:text-black text-[10px] font-black uppercase tracking-widest gap-2 mr-4">
-            <i class="fa-solid fa-clock"></i> ZONA WAKTU: <span id="desktop-timezone-badge" class="font-extrabold ml-1">WIB</span>
+            <span class="w-1.5 h-1.5 bg-white dark:bg-black rounded-full animate-pulse"></span> UPDATE TERKINI
         </div>
         
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-desktop" class="ticker-move"></div></div>
-        <div class="bg-blue-50 dark:bg-zinc-800 backdrop-blur-md h-8 px-4 rounded-lg border border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center gap-2 ml-4 text-blue-900 dark:text-white text-[11px] font-bold"><i class="fa-solid fa-location-dot text-blue-600 dark:text-white animate-bounce"></i><span id="desktop-user-location">Mendeteksi...</span></div>
-        <div class="bg-blue-50 dark:bg-zinc-800 backdrop-blur-md h-8 px-4 rounded-lg border border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center ml-2"><div id="clock-desktop" class="clock-container text-[11px]">00:00:00</div></div>
+        
+        <div class="bg-blue-50 dark:bg-zinc-800 backdrop-blur-md h-8 px-4 rounded-lg border border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center gap-2 ml-4 text-blue-900 dark:text-white text-[11px] font-bold">
+            <i class="fa-solid fa-location-dot text-blue-600 dark:text-white animate-bounce"></i><span id="desktop-user-location">Mendeteksi...</span>
+        </div>
+        <div class="bg-blue-50 dark:bg-zinc-800 backdrop-blur-md h-8 px-4 rounded-lg border border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center ml-2">
+            <i class="fa-solid fa-clock text-blue-600 dark:text-white mr-1.5"></i>
+            <div id="clock-desktop" class="clock-container text-[11px]">00:00:00</div>
+        </div>
     </div>
 
     <div id="call-center-widget" class="hidden fixed bottom-[160px] lg:bottom-24 left-4 z-[60] flex-col gap-3 pb-safe">
@@ -784,7 +505,6 @@
             document.documentElement.classList.toggle('dark');
             const isDark = document.documentElement.classList.contains('dark');
             localStorage.setItem('ktvdi-theme', isDark ? 'dark' : 'light');
-            updateClockTick(); 
         }
 
         function updateMobileGreeting() {
@@ -800,13 +520,13 @@
         updateMobileGreeting();
 
         function initHeaderRotator() {
+            // Animasi Komunitas Nabrak Batas Diperbaiki Menggunakan CSS Padding & Blok
             const dynamicHeader = document.getElementById('desktop-header-dynamic');
             if (dynamicHeader) {
                 dynamicHeader.innerHTML = `
                     <div class="marquee-box w-full max-w-[350px]">
                         <div class="marquee-inner">
-                            <span class="text-xs font-heading font-bold tracking-widest uppercase drop-shadow-md">KOMUNITAS TV DIGITAL INDONESIA</span>
-                            <span class="text-xs font-heading font-bold tracking-widest uppercase drop-shadow-md">KOMUNITAS TV DIGITAL INDONESIA</span>
+                            <span class="text-xs font-heading font-bold tracking-widest uppercase drop-shadow-md mx-8">KOMUNITAS TV DIGITAL INDONESIA</span>
                         </div>
                     </div>`;
             }
@@ -814,10 +534,9 @@
             const mobileGuestHeader = document.getElementById('mobile-guest-schedule');
             if (mobileGuestHeader) {
                 mobileGuestHeader.innerHTML = `
-                    <div class="marquee-box w-full h-full">
+                    <div class="marquee-box w-full h-full flex items-center">
                         <div class="marquee-inner">
-                            <span class="text-[11px] font-heading font-black text-blue-900 dark:text-white drop-shadow-md tracking-wide uppercase">KOMUNITAS TV DIGITAL INDONESIA</span>
-                            <span class="text-[11px] font-heading font-black text-blue-900 dark:text-white drop-shadow-md tracking-wide uppercase">KOMUNITAS TV DIGITAL INDONESIA</span>
+                            <span class="text-[10px] sm:text-[11px] font-heading font-black text-blue-900 dark:text-white drop-shadow-md tracking-wide uppercase mx-4">KOMUNITAS TV DIGITAL INDONESIA</span>
                         </div>
                     </div>`;
             }
@@ -832,10 +551,7 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            try { if(!checkPenaltyStatus()) setTimeout(forceHideLoader, 1200); } catch(e) { forceHideLoader(); }
-        });
-        setTimeout(forceHideLoader, 3000);
+        window.addEventListener('DOMContentLoaded', () => { setTimeout(forceHideLoader, 1200); });
 
         function toggleDropdown(id) {
             const el = document.getElementById(id);
@@ -843,116 +559,40 @@
             el.classList.toggle('hidden');
         }
 
-        // --- SISTEM RUNNING TEXT & JADWAL SHOLAT ---
-        let normalNewsData = [];
-        let isPrayerTimeActive = false;
-
-        // Dummy data waktu sholat (Anda bisa mengintegrasikan API sungguhan di sini)
-        const mockJadwalSholat = {
-            "Subuh": "04:30", "Dzuhur": "11:45", "Ashar": "15:00", "Maghrib": "18:00", "Isya": "19:15"
-        };
-
+        // --- SISTEM RUNNING TEXT BERITA SAJA (DIPERCEPAT KECEPATAN STANDAR) ---
         async function fetchNews() {
+            let newsData = [];
             try { 
                 const city = window.userCity || 'Jakarta';
                 const res = await fetch('/api/news-ticker?city=' + encodeURIComponent(city)); 
-                normalNewsData = await res.json(); 
+                newsData = await res.json(); 
             } catch {
-                normalNewsData = ["Selamat datang di KTVDI", "Pantau terus informasi TV Digital terkini"];
+                newsData = ["Selamat datang di Portal Komunitas TV Digital Indonesia", "Dapatkan informasi update seputar siaran digital dan infrastruktur jaringan", "Tetap waspada terhadap informasi hoaks seputar Analog Switch Off (ASO)"];
             }
-            renderTicker();
-        }
-
-        function checkPrayerOverride() {
-            const now = new Date();
-            let activePrayer = null;
-            let activeTime = null;
-
-            for (const [name, timeStr] of Object.entries(mockJadwalSholat)) {
-                const [pH, pM] = timeStr.split(':').map(Number);
-                const prayerTime = new Date();
-                prayerTime.setHours(pH, pM, 0, 0);
-                
-                const diffMinutes = (now - prayerTime) / 60000;
-                // Aktif dari waktu sholat hingga 10 menit setelahnya
-                if (diffMinutes >= 0 && diffMinutes <= 10) {
-                    activePrayer = name;
-                    activeTime = timeStr;
-                    break;
-                }
-            }
-
-            if (activePrayer) {
-                isPrayerTimeActive = true;
-                const loc = window.userCity || "SEKITARNYA";
-                const msg = `SAAT WAKTU ${activePrayer.toUpperCase()} UNTUK WILAYAH ${loc.toUpperCase()} DAN SEKITARNYA // MOHON AGAR SEGERA MENJALANKAN KEWAJIBANNYA KE MASJID TERDEKAT DAN MENEPI SEBENTAR APABILA ANDA SEDANG BERKENDARA // ${activePrayer.toUpperCase()} PUKUL : ${activeTime} WIB`;
-                renderTickerOverride(msg);
-            } else {
-                if (isPrayerTimeActive) {
-                    isPrayerTimeActive = false;
-                    renderTicker(); // Kembali ke berita normal
-                }
-            }
-        }
-
-        function renderTickerOverride(message) {
-            const mobTicker = document.getElementById('unified-ticker-mobile');
-            const deskTicker = document.getElementById('unified-ticker-desktop');
-            const html = `<div class="ticker-item text-red-600 dark:text-white font-black text-lg">${message}</div><span class="opacity-50 font-black flex items-center text-lg">//</span>`;
-            
-            if(mobTicker) { mobTicker.className = 'ticker-move'; mobTicker.innerHTML = html.repeat(3); }
-            if(deskTicker) { deskTicker.className = 'ticker-move'; deskTicker.innerHTML = html.repeat(3); }
-        }
-
-        function renderTicker() {
-            if(isPrayerTimeActive || !normalNewsData || normalNewsData.length === 0) return;
             
             const mobTicker = document.getElementById('unified-ticker-mobile');
             const deskTicker = document.getElementById('unified-ticker-desktop');
-            const items = normalNewsData.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black flex items-center text-lg">//</span>`).join('');
+            const items = newsData.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-lg">//</span>`).join('');
             
-            if(mobTicker) { mobTicker.className = 'ticker-move'; mobTicker.innerHTML = items.repeat(3); }
-            if(deskTicker) { deskTicker.className = 'ticker-move'; deskTicker.innerHTML = items.repeat(3); }
+            // Pengulangan agar animasi berkesinambungan
+            if(mobTicker) { mobTicker.innerHTML = items.repeat(3); }
+            if(deskTicker) { deskTicker.innerHTML = items.repeat(3); }
         }
-
-        // Jalankan pengecekan secara reguler
-        setInterval(checkPrayerOverride, 10000); 
         setInterval(fetchNews, 300000); 
 
-        // --- LOGIKA JAM ---
-        let clockMode = 'init';
-        let localZone = null;
-
-        function initClock() {
-            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            if (['Asia/Jakarta', 'Asia/Pontianak'].includes(tz)) localZone = { label: 'WIB', offset: 7, desc: 'Waktu Indonesia Barat' };
-            else if (['Asia/Makassar', 'Asia/Bali', 'Asia/Kuala_Lumpur', 'Asia/Singapore'].includes(tz)) localZone = { label: 'WITA', offset: 8, desc: 'Waktu Indonesia Tengah' };
-            else if (['Asia/Jayapura'].includes(tz)) localZone = { label: 'WIT', offset: 9, desc: 'Waktu Indonesia Timur' };
-            else localZone = { label: 'WIB', offset: 7, desc: 'Waktu Indonesia Barat' }; // Fallback default
-
-            // Update badge khusus WIB/WITA/WIT di Desktop agar lebih jelas
-            const deskBadge = document.getElementById('desktop-timezone-badge');
-            if(deskBadge) deskBadge.innerText = localZone.label;
-
-            clockMode = 'run';
-            updateClockTick();
-            setInterval(updateClockTick, 1000); 
-        }
-
+        // --- LOGIKA JAM (BERSIH DARI DETEKSI ZONA ERROR) ---
         function updateClockTick() {
-            if (clockMode === 'init') return;
             const now = new Date();
-            const zoneTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * localZone.offset));
-            const timeString = zoneTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
             
-            const fullString = `${timeString} <span class="timezone-badge ml-2">${localZone.label}</span>`;
-
-            ['clock-mobile', 'clock-desktop'].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.innerHTML = fullString;
-            });
+            const deskClock = document.getElementById('clock-desktop');
+            const mobClock = document.getElementById('clock-mobile');
+            if(deskClock) deskClock.innerText = timeString;
+            // Di mobile hanya tampilkan jam:menit agar rapi
+            if(mobClock) mobClock.innerText = timeString.substring(0, 5);
         }
-        initClock();
+        setInterval(updateClockTick, 1000); 
+        updateClockTick();
 
         // --- LOGIKA LOKASI ---
         async function fetchUserLocation() {
@@ -978,16 +618,12 @@
             }
         });
 
-        // LOGIKA CALL CENTER BERJADWAL (20:30 - 08:00)
+        // LOGIKA CALL CENTER BERJADWAL
         function checkWidgetSchedule() {
             const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const currentTime = currentHour + (currentMinute / 60);
-            
+            const currentTime = now.getHours() + (now.getMinutes() / 60);
             const callCenterWidget = document.getElementById('call-center-widget');
-
-            // 20.5 (20:30) sampai sebelum 8 (08:00)
+            
             if (currentTime >= 20.5 || currentTime < 8) {
                 if(callCenterWidget) { callCenterWidget.classList.remove('hidden'); callCenterWidget.classList.add('flex'); }
             } else {
