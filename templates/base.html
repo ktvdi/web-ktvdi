@@ -43,7 +43,7 @@
     </script>
 
     <script>
-        // === LOGIKA KEAMANAN TINGKAT LANJUT (VERSI LAMA/SIMPEL) ===
+        // === LOGIKA KEAMANAN TINGKAT LANJUT ===
         window.userIP = "Memeriksa...";
         
         function handleSecurityViolation() {
@@ -132,9 +132,9 @@
         .dark .loader-glow { background: #ffffff; opacity: 0.1; }
         @keyframes pulse-glow { from { transform: scale(0.8); opacity: 0.2; } to { transform: scale(1.2); opacity: 0.4; } }
         
-        /* Ticker KTVDI (Header) */
+        /* Ticker KTVDI (Header) - DIPERLAMBAT */
         .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; display: block; position: relative; }
-        .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 20s linear infinite; padding-left: 100%; }
+        .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 40s linear infinite; padding-left: 100%; }
         @keyframes runningText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
         /* Modern Glass Dropdown */
@@ -192,14 +192,15 @@
         .dark .desktop-bottom-bar { background: #000000; border-top: 1px solid rgba(255, 255, 255, 0.2); }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
-        /* Ticker Berita Bawah (Speed Diperbaiki) */
+        /* Ticker Berita Bawah - DIPERLAMBAT */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 30s linear infinite; }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 60s linear infinite; }
         .ticker-item { display: inline-block; padding: 0 3rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
-        .clock-container { display: flex; align-items: center; justify-content: center; height: 100%; font-family: monospace; font-weight: bold; font-size: 11px; color: #1e3a8a; min-width: 85px; white-space: nowrap; transition: all 0.5s ease-in-out; }
+        /* Ruang jam dilebarkan untuk WIB */
+        .clock-container { display: flex; align-items: center; justify-content: center; height: 100%; font-family: monospace; font-weight: bold; font-size: 11px; color: #1e3a8a; min-width: 110px; white-space: nowrap; transition: all 0.5s ease-in-out; }
         .dark .clock-container { color: #ffffff; }
 
         .desktop-link { color: #64748b; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.85rem; }
@@ -247,7 +248,7 @@
         </div>
     </div>
 
-    <!-- UI Keamanan (Kembali Simpel) -->
+    <!-- UI Keamanan -->
     <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-white dark:bg-black text-blue-900 dark:text-white hidden flex-col items-center justify-center p-4 text-center">
         <i class="fa-solid fa-ban text-6xl text-red-600 mb-6 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]"></i>
         <h1 class="text-3xl md:text-5xl font-heading font-black text-red-600 uppercase drop-shadow-md mb-4">Akses Ditolak</h1>
@@ -273,32 +274,31 @@
         <div class="max-w-[1400px] mx-auto bg-white/90 dark:bg-black/90 backdrop-blur-xl shadow-2xl rounded-2xl lg:rounded-[2rem] border border-blue-200 dark:border-white/20 pointer-events-auto">
             <div class="flex justify-between items-center h-16 md:h-20 px-4 md:px-8 w-full relative">
                 
-                <div class="flex items-center gap-3 md:gap-5 border-r border-blue-100 dark:border-white/20 pr-3 md:pr-5 mr-1 lg:mr-2 w-[55%] md:w-auto relative z-10">
+                <!-- Navbar Kiri Dirapikan (Menggunakan flex-1 min-w-0 agar tidak nabrak di HP) -->
+                <div class="flex items-center gap-2 md:gap-4 border-r border-blue-100 dark:border-white/20 pr-3 md:pr-5 mr-1 lg:mr-2 flex-1 min-w-0 relative z-10">
                     <a href="{{ url_for('home') }}" class="flex items-center group shrink-0">
                         <img id="navbar-logo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI Logo" class="h-7 md:h-10 object-contain ktvdi-logo drop-shadow-md">
                     </a>
 
                     {% if session.get('user') %}
                         <div class="xl:hidden h-8 w-px bg-blue-200 dark:bg-gray-700 mx-1 shrink-0"></div>
-                        <div class="xl:hidden flex flex-col justify-center min-w-0">
-                            <!-- Diperbaiki: Teks dan Nama kini tampil rapi bersisian -->
-                            <div class="flex items-center text-[10px] md:text-xs font-bold text-blue-900 dark:text-white leading-tight flex-wrap sm:flex-nowrap">
-                                <span id="mobile-greeting" class="font-medium text-blue-600 dark:text-gray-300 shrink-0 mr-1">Selamat Siang,</span>
-                                <span class="truncate font-heading max-w-[100px]">{{ session.get('nama', 'Aqila Niam Faza') }}</span>
+                        <div class="xl:hidden flex flex-col justify-center min-w-0 flex-1">
+                            <div class="flex items-center text-[10px] md:text-xs font-bold text-blue-900 dark:text-white leading-tight flex-nowrap overflow-hidden">
+                                <span id="mobile-greeting" class="font-medium text-blue-600 dark:text-gray-300 shrink-0 mr-1 hidden sm:inline">Selamat Siang,</span>
+                                <span class="truncate font-heading">{{ session.get('nama', 'Aqila Niam Faza') }}</span>
                             </div>
                             <div class="flex items-center mt-0.5">
-                                <span class="px-1.5 py-0.5 bg-blue-50 dark:bg-white/10 border border-blue-200 dark:border-white/20 rounded text-[8px] font-black text-blue-800 dark:text-white uppercase tracking-widest shadow-sm flex items-center gap-1">
+                                <span class="px-1.5 py-0.5 bg-blue-50 dark:bg-white/10 border border-blue-200 dark:border-white/20 rounded text-[8px] font-black text-blue-800 dark:text-white uppercase tracking-widest shadow-sm flex items-center gap-1 shrink-0">
                                     <i class="fa-solid fa-crown" style="color: #FFD700;"></i> MEMBER
                                 </span>
                             </div>
                         </div>
                     {% else %}
-                        <div id="mobile-guest-schedule" class="xl:hidden relative flex-1 h-8 ml-1 overflow-hidden min-w-[120px]">
-                            <!-- Ticker header mobile (Sudah diperbaiki batasnya) -->
+                        <div id="mobile-guest-schedule" class="xl:hidden relative flex-1 h-8 ml-1 overflow-hidden min-w-0">
                         </div>
                     {% endif %}
 
-                    <div id="desktop-header-dynamic" class="hidden lg:flex relative items-center justify-center text-blue-800 dark:text-white min-w-[320px] h-12 overflow-hidden">
+                    <div id="desktop-header-dynamic" class="hidden lg:flex relative items-center justify-center text-blue-800 dark:text-white max-w-[320px] w-full h-12 overflow-hidden">
                     </div>
                 </div>
 
@@ -346,7 +346,6 @@
                                 
                                 <button onclick="toggleTheme()" class="w-full text-left px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition border-b border-gray-100 dark:border-zinc-800"><i class="fa-solid fa-circle-half-stroke w-6 text-center text-blue-500 dark:text-white"></i> Ganti Tema</button>
                                 
-                                <!-- Isi Hamburger yang Hilang Telah Dikembalikan -->
                                 <div class="max-h-48 overflow-y-auto custom-scroll py-1">
                                     <a href="{{ url_for('home') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-house w-6 text-center text-gray-500"></i> Beranda</a>
                                     <a href="{{ url_for('cctv_page') }}" class="block px-5 py-2.5 text-sm text-blue-700 dark:text-gray-300 font-medium hover:bg-blue-50 dark:hover:bg-zinc-800 transition"><i class="fa-solid fa-video w-6 text-center text-gray-500"></i> CCTV Pantau</a>
@@ -398,7 +397,7 @@
         </div>
     </main>
 
-    <!-- Footer Dikembalikan Utuh 4 Kolom -->
+    <!-- Footer Dikembalikan dengan Kontak Asli -->
     <footer class="bg-blue-50 dark:bg-[#050505] text-blue-700 dark:text-gray-400 pt-16 pb-48 lg:pb-20 font-sans border-t border-blue-200 dark:border-white/10">
         <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
             
@@ -437,11 +436,12 @@
                 <ul class="space-y-3 text-sm text-blue-800 dark:text-gray-300">
                     <li class="flex items-start gap-3">
                         <i class="fa-solid fa-envelope mt-1 text-blue-600 dark:text-gray-400"></i>
-                        <span>admin@ktvdi.or.id</span>
+                        <span>kom.tvdigitalid@gmail.com</span>
                     </li>
                     <li class="flex items-start gap-3">
                         <i class="fa-brands fa-whatsapp mt-1 text-blue-600 dark:text-gray-400"></i>
-                        <span>+62 812 3456 7890 (WA Only)</span>
+                        <!-- Silakan isi/perbaiki nomor Lukas jika salah -->
+                        <span>+62 [Nomor Lukas] (Lukas - WA Only)</span>
                     </li>
                     <li class="flex items-start gap-3">
                         <i class="fa-solid fa-map-location-dot mt-1 text-blue-600 dark:text-gray-400"></i>
@@ -465,11 +465,11 @@
         </nav>
     </div>
 
-    <!-- Ticker Mobile (Kembali ke berita normal & jam simpel) -->
+    <!-- Ticker Mobile -->
     <div class="glass-ticker-floating lg:hidden transition-all duration-300">
         <div class="bg-blue-600 dark:bg-white h-full flex items-center px-3 z-20 shrink-0 text-white dark:text-black text-[9px] font-black uppercase tracking-widest gap-2"><span class="w-1.5 h-1.5 bg-white dark:bg-black rounded-full animate-pulse"></span> BERITA</div>
         <div class="ticker-wrap relative flex-1"><div id="unified-ticker-mobile" class="ticker-move"></div></div>
-        <div class="bg-white/50 dark:bg-black/50 backdrop-blur-md h-full px-3 border-l border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center"><div id="clock-mobile" class="clock-container text-[11px]">00:00</div></div>
+        <div class="bg-white/50 dark:bg-black/50 backdrop-blur-md h-full px-3 border-l border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center"><div id="clock-mobile" class="clock-container text-[11px]">00:00 WIB</div></div>
     </div>
 
     <!-- Ticker Desktop -->
@@ -485,7 +485,7 @@
         </div>
         <div class="bg-blue-50 dark:bg-zinc-800 backdrop-blur-md h-8 px-4 rounded-lg border border-blue-200 dark:border-white/20 z-20 shrink-0 flex items-center ml-2">
             <i class="fa-solid fa-clock text-blue-600 dark:text-white mr-1.5"></i>
-            <div id="clock-desktop" class="clock-container text-[11px]">00:00:00</div>
+            <div id="clock-desktop" class="clock-container text-[11px]">00:00:00 WIB</div>
         </div>
     </div>
 
@@ -520,11 +520,10 @@
         updateMobileGreeting();
 
         function initHeaderRotator() {
-            // Animasi Komunitas Nabrak Batas Diperbaiki Menggunakan CSS Padding & Blok
             const dynamicHeader = document.getElementById('desktop-header-dynamic');
             if (dynamicHeader) {
                 dynamicHeader.innerHTML = `
-                    <div class="marquee-box w-full max-w-[350px]">
+                    <div class="marquee-box w-full">
                         <div class="marquee-inner">
                             <span class="text-xs font-heading font-bold tracking-widest uppercase drop-shadow-md mx-8">KOMUNITAS TV DIGITAL INDONESIA</span>
                         </div>
@@ -559,7 +558,6 @@
             el.classList.toggle('hidden');
         }
 
-        // --- SISTEM RUNNING TEXT BERITA SAJA (DIPERCEPAT KECEPATAN STANDAR) ---
         async function fetchNews() {
             let newsData = [];
             try { 
@@ -574,27 +572,24 @@
             const deskTicker = document.getElementById('unified-ticker-desktop');
             const items = newsData.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-lg">//</span>`).join('');
             
-            // Pengulangan agar animasi berkesinambungan
             if(mobTicker) { mobTicker.innerHTML = items.repeat(3); }
             if(deskTicker) { deskTicker.innerHTML = items.repeat(3); }
         }
         setInterval(fetchNews, 300000); 
 
-        // --- LOGIKA JAM (BERSIH DARI DETEKSI ZONA ERROR) ---
+        // LOGIKA JAM DENGAN WIB
         function updateClockTick() {
             const now = new Date();
             const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
             
             const deskClock = document.getElementById('clock-desktop');
             const mobClock = document.getElementById('clock-mobile');
-            if(deskClock) deskClock.innerText = timeString;
-            // Di mobile hanya tampilkan jam:menit agar rapi
-            if(mobClock) mobClock.innerText = timeString.substring(0, 5);
+            if(deskClock) deskClock.innerText = timeString + ' WIB';
+            if(mobClock) mobClock.innerText = timeString.substring(0, 5) + ' WIB';
         }
         setInterval(updateClockTick, 1000); 
         updateClockTick();
 
-        // --- LOGIKA LOKASI ---
         async function fetchUserLocation() {
             try {
                 const res = await fetch('https://ipapi.co/json/'); const data = await res.json();
@@ -618,7 +613,6 @@
             }
         });
 
-        // LOGIKA CALL CENTER BERJADWAL
         function checkWidgetSchedule() {
             const now = new Date();
             const currentTime = now.getHours() + (now.getMinutes() / 60);
