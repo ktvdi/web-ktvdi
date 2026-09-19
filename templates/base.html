@@ -115,9 +115,9 @@
         .dark .loader-glow { background: #ffffff; opacity: 0.1; }
         @keyframes pulse-glow { from { transform: scale(0.8); opacity: 0.2; } to { transform: scale(1.2); opacity: 0.4; } }
         
-        /* Ticker KTVDI (Header) - SANGAT PELAN */
+        /* Ticker KTVDI (Header) - DIPERCEPAT SEDIKIT (30s) */
         .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; display: block; position: relative; }
-        .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 150s linear infinite; padding-left: 100%; }
+        .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 30s linear infinite; padding-left: 100%; }
         @keyframes runningText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
         /* Animasi Transisi Ticker & Speedometer */
@@ -181,14 +181,15 @@
         .dark .desktop-bottom-bar { background: #000000; border-top: 1px solid rgba(255, 255, 255, 0.2); }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
-        /* Ticker Berita Bawah - SANGAT PELAN */
+        /* Ticker Berita Bawah - DIPERLAMBAT EKSTRA (600s) */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 400s linear infinite; }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 600s linear infinite; }
         .ticker-item { display: inline-block; padding: 0 2rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-        .ticker-urgent { color: #ef4444 !important; font-weight: 800; animation: pulse-text 2s infinite; }
-        @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        
+        .ticker-urgent { color: #ef4444 !important; font-weight: 900; animation: pulse-text 2s infinite; display: inline-block; padding: 0 2rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
         /* Jam Ticker */
         .clock-container { display: flex; align-items: center; justify-content: center; height: 100%; font-family: monospace; font-weight: bold; color: #1e3a8a; min-width: 90px; white-space: nowrap; transition: all 0.5s ease-in-out; }
@@ -512,17 +513,24 @@
         }
         updateMobileGreeting();
 
+        // === LOGIKA SPEEDOMETER BERKENDARA ===
+        let currentSpeedKmh = "0.0";
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    // speed mereturn meter per detik (m/s). Konversi ke km/h (* 3.6)
+                    if (position.coords.speed !== null) {
+                        currentSpeedKmh = (position.coords.speed * 3.6).toFixed(1);
+                    }
+                },
+                (error) => { console.log("Akses GPS Speedometer ditolak atau tidak valid", error); },
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+            );
+        }
+
         // === ROTASI HEADER DINAMIS: TICKER (10s) <--> SPEEDOMETER (15s) ===
         let isShowingTicker = true;
         
-        function getNetworkSpeed() {
-            // Mengambil speed asli dari downlink (jika support), atau simulasi mockup (10 - 25 Mbps)
-            if (navigator.connection && navigator.connection.downlink) {
-                return navigator.connection.downlink.toFixed(1);
-            }
-            return Math.floor(Math.random() * 15 + 10).toFixed(1);
-        }
-
         function startHeaderRotation() {
             const deskContainer = document.getElementById('desktop-header-dynamic');
             const mobContainer = document.getElementById('mobile-guest-schedule');
@@ -537,8 +545,8 @@
             const speedHTML = `
                 <div class="flex items-center justify-center w-full h-full fade-swap">
                     <div class="flex items-center gap-1.5 md:gap-2 bg-blue-50 dark:bg-white/10 px-3 py-1 rounded-full border border-blue-200 dark:border-white/20 shadow-inner">
-                        <i class="fa-solid fa-gauge-high text-blue-600 dark:text-yellow-400 animate-pulse text-[10px] md:text-sm"></i>
-                        <span class="text-[8px] md:text-xs font-bold text-blue-900 dark:text-white uppercase tracking-wider">Kecepatan: <span class="text-blue-600 dark:text-yellow-400 font-black">${getNetworkSpeed()} Mbps</span></span>
+                        <i class="fa-solid fa-car text-blue-600 dark:text-yellow-400 animate-pulse text-[10px] md:text-sm"></i>
+                        <span class="text-[8px] md:text-xs font-bold text-blue-900 dark:text-white uppercase tracking-wider">Berkendara: <span class="text-blue-600 dark:text-yellow-400 font-black">${currentSpeedKmh} km/h</span></span>
                     </div>
                 </div>`;
             
@@ -577,43 +585,86 @@
             el.classList.toggle('hidden');
         }
 
-        // --- INJEKSI JADWAL SHOLAT KE TICKER ---
-        function checkJadwalSholat() {
-            const city = window.userCity ? window.userCity.toUpperCase() : "SEMARANG";
+        // === LOGIKA JADWAL SHOLAT REAL (TIMPA TICKER) ===
+        let jadwalSholatHariIni = null;
+        let cachedNewsData = [];
+
+        // Fetch jadwal sholat dari public API aladhan berdasarkan Kota User
+        async function fetchJadwalSholatReal(city) {
+            try {
+                const response = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${city}&country=Indonesia&method=11`);
+                const data = await response.json();
+                if(data && data.data && data.data.timings) {
+                    jadwalSholatHariIni = data.data.timings;
+                }
+            } catch(e) {
+                console.log("Gagal memuat jadwal sholat", e);
+            }
+        }
+
+        // Cek secara spesifik menit per menit
+        function checkWaktuSholatTiba() {
+            if(!jadwalSholatHariIni) return null;
             
-            // Hapus blok 'if(false)' dan ganti dengan variabel penanda waktu masuk sholat dari API backend Anda
-            const isWaktuSholat = false; 
-            const namaSholat = "MAGHRIB";
+            const now = new Date();
+            const currentMinutes = (now.getHours() * 60) + now.getMinutes();
             
-            if (isWaktuSholat) {
-                return `<span class="ticker-urgent"><i class="fa-solid fa-mosque mr-2"></i> SAAT WAKTU ${namaSholat} UNTUK WILAYAH ${city} DAN SEKITARNYA</span>`;
+            const timesToCheck = {
+                'SUBUH': jadwalSholatHariIni.Fajr,
+                'DZUHUR': jadwalSholatHariIni.Dhuhr,
+                'ASHAR': jadwalSholatHariIni.Asr,
+                'MAGHRIB': jadwalSholatHariIni.Maghrib,
+                'ISYA': jadwalSholatHariIni.Isha
+            };
+
+            for (const [namaSholat, waktu] of Object.entries(timesToCheck)) {
+                if (!waktu) continue;
+                const [h, m] = waktu.split(':').map(Number);
+                const sholatMinutes = (h * 60) + m;
+                
+                // Jika waktu saat ini berada dalam rentang 0 hingga 15 menit semenjak jam ibadah
+                if (currentMinutes >= sholatMinutes && currentMinutes <= (sholatMinutes + 15)) {
+                    const city = window.userCity ? window.userCity.toUpperCase() : "ANDA";
+                    return `<span class="ticker-urgent"><i class="fa-solid fa-mosque mr-2 text-red-600 dark:text-red-400"></i> SAAT WAKTU ${namaSholat} UNTUK WILAYAH ${city} DAN SEKITARNYA</span>`;
+                }
             }
             return null;
         }
 
-        async function fetchNews() {
-            let newsData = [];
-            try { 
-                const city = window.userCity || 'Jakarta';
-                const res = await fetch('/api/news-ticker?city=' + encodeURIComponent(city)); 
-                newsData = await res.json(); 
-            } catch {
-                newsData = ["Selamat datang di Portal Komunitas TV Digital Indonesia", "Dapatkan informasi update seputar siaran digital dan infrastruktur jaringan", "Tetap waspada terhadap informasi hoaks seputar Analog Switch Off (ASO)"];
-            }
+        // Fungsi me-render ulang UI Ticker Bawah tanpa harus fetch berita terus menerus
+        function renderTicker() {
+            let finalNewsToRender = [...cachedNewsData];
             
-            const alertSholat = checkJadwalSholat();
+            // Cek apakah ada jadwal ibadah yg tiba
+            const alertSholat = checkWaktuSholatTiba();
             if (alertSholat) {
-                newsData = [alertSholat, ...newsData];
+                finalNewsToRender.unshift(alertSholat); // Timpa dan masukkan ke array paling depan
             }
             
             const mobTicker = document.getElementById('unified-ticker-mobile');
             const deskTicker = document.getElementById('unified-ticker-desktop');
-            const items = newsData.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-sm md:text-lg">//</span>`).join('');
+            const items = finalNewsToRender.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-sm md:text-lg">//</span>`).join('');
             
             if(mobTicker) { mobTicker.innerHTML = items.repeat(3); }
             if(deskTicker) { deskTicker.innerHTML = items.repeat(3); }
         }
+
+        // Fetch berita TIK 
+        async function fetchNews() {
+            try { 
+                const city = window.userCity || 'Jakarta';
+                const res = await fetch('/api/news-ticker?city=' + encodeURIComponent(city)); 
+                cachedNewsData = await res.json(); 
+            } catch {
+                cachedNewsData = ["Selamat datang di Portal Komunitas TV Digital Indonesia", "Dapatkan informasi update seputar siaran digital dan infrastruktur jaringan", "Tetap waspada terhadap informasi hoaks seputar Analog Switch Off (ASO)"];
+            }
+            renderTicker();
+        }
+
+        // Fetch berita setiap 5 Menit
         setInterval(fetchNews, 300000); 
+        // Render & Cek Waktu Ibadah setiap 1 Menit agar cepat merespon saat jam berubah
+        setInterval(renderTicker, 60000);
 
         // === LOGIKA JAM DENGAN DETIK & FORMAT WIB/WITA/WIT (Dinamis) ===
         function updateClockTick() {
@@ -644,9 +695,13 @@
                 ['desktop-user-location', 'mobile-user-location'].forEach(id => {
                     const el = document.getElementById(id); if(el) el.innerText = locString;
                 });
+                
+                // Jika lokasi berhasil didapatkan, ambil jadwal ibadah untuk kota tersebut
+                await fetchJadwalSholatReal(window.userCity);
                 fetchNews();
             } catch (e) { 
                 window.userCity = 'Jakarta';
+                await fetchJadwalSholatReal(window.userCity);
                 fetchNews();
             }
         }
