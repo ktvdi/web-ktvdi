@@ -37,14 +37,16 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
 # ==========================================
-MAINTENANCE_END_DATE = datetime(2026, 2, 3, 7, 0, 0) 
+MAINTENANCE_START_DATE = datetime(2026, 9, 19, 23, 31, 0)
+MAINTENANCE_END_DATE = datetime(2026, 9, 20, 7, 0, 0) 
 
 @app.before_request
 def maintenance_interceptor():
     if request.endpoint == 'static':
         return None
     now_wib = datetime.utcnow() + timedelta(hours=7) 
-    if now_wib < MAINTENANCE_END_DATE:
+    # Jika waktu saat ini berada di antara jadwal maintenance, arahkan ke maintenance.html
+    if MAINTENANCE_START_DATE <= now_wib < MAINTENANCE_END_DATE:
         return render_template('maintenance.html'), 503
     return None
 
@@ -285,17 +287,22 @@ def get_news_entries():
     except Exception as e:
         pass
 
-    # Ambil RSS sesuai list terbaru
+    # Ambil RSS dengan perluasan ekosistem (Multi-platform / Non-Transmedia dominance)
     try:
         sources = [
-            'https://www.kompas.tv/rss',
-            'https://www.setneg.go.id/rss',
+            'https://www.kompas.com/rss',
             'https://www.liputan6.com/rss',
             'https://www.tribunnews.com/rss',
-            'https://www.cnnindonesia.com/nasional/rss',
-            'https://www.cnbcindonesia.com/news/rss',
             'https://www.antaranews.com/rss/top-news.xml',
-            'https://rss.sindonews.com/news'
+            'https://rss.sindonews.com/news',
+            'https://www.suara.com/rss/tekno',
+            'https://www.republika.co.id/rss/tekno',
+            'https://www.jawapos.com/teknologi/rss',
+            'https://www.tempo.co/rss/tekno',
+            'https://teknologi.bisnis.com/rss',
+            'https://www.setneg.go.id/rss',
+            'https://www.cnnindonesia.com/nasional/rss',
+            'https://www.cnbcindonesia.com/news/rss'
         ]
         
         def fetch_feed(url):
@@ -312,9 +319,9 @@ def get_news_entries():
             for future in concurrent.futures.as_completed(futures):
                 url, feed = future.result()
                 if feed and feed.entries:
-                    for entry in feed.entries[:20]: 
-                        # Penamaan sumber baru
-                        if 'kompas.tv' in url: source_name = 'Kompas TV'
+                    for entry in feed.entries[:15]: 
+                        # Pemetaan nama sumber berita dengan rapi
+                        if 'kompas' in url: source_name = 'Kompas'
                         elif 'setneg' in url: source_name = 'Sekretariat Negara'
                         elif 'liputan6' in url: source_name = 'Liputan 6'
                         elif 'tribunnews' in url: source_name = 'Tribunnews'
@@ -322,6 +329,11 @@ def get_news_entries():
                         elif 'cnbcindonesia' in url: source_name = 'CNBC Indonesia'
                         elif 'antara' in url: source_name = 'Antara News'
                         elif 'sindonews' in url: source_name = 'Sindonews'
+                        elif 'suara' in url: source_name = 'Suara.com'
+                        elif 'republika' in url: source_name = 'Republika'
+                        elif 'jawapos' in url: source_name = 'Jawa Pos'
+                        elif 'tempo' in url: source_name = 'Tempo.co'
+                        elif 'bisnis' in url: source_name = 'Bisnis Indonesia'
                         else: source_name = url.split('.')[1].capitalize()
                         
                         entry['source_name'] = source_name
