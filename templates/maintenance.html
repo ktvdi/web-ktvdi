@@ -19,7 +19,6 @@
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* Mengunci layar penuh secara total */
         html, body {
             width: 100vw;
             height: 100vh;
@@ -35,7 +34,6 @@
             z-index: 999999;
         }
 
-        /* Flexbox penengah layar */
         .maintenance-container {
             width: 100%;
             height: 100%;
@@ -149,6 +147,25 @@
         .time-label { font-size: 0.6rem; text-transform: uppercase; color: var(--gold); margin-top: 4px; letter-spacing: 1px; }
         .separator { font-size: 1.4rem; color: rgba(255,255,255,0.3); margin-top: 4px; }
 
+        /* Indosat 5G Box */
+        .coverage-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px dashed rgba(251, 191, 36, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .coverage-box::-webkit-scrollbar { width: 4px; }
+        .coverage-box::-webkit-scrollbar-thumb { background: rgba(74, 222, 128, 0.3); border-radius: 4px; }
+        .coverage-title {
+            font-size: 0.7rem; color: var(--gold); text-transform: uppercase; 
+            letter-spacing: 1px; margin-bottom: 8px; font-weight: bold;
+            display: flex; align-items: center; gap: 5px;
+        }
+
         .footer {
             font-size: 0.7rem; color: #94a3b8;
             border-top: 1px solid rgba(255,255,255,0.1);
@@ -186,21 +203,20 @@
         <div class="card">
             <div class="brand-wrapper">
                 <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="logo-img" alt="KTVDI Logo" onerror="this.src='https://iili.io/f87539s.png'">
-                
                 <div class="brand-text">
                     <div class="brand-title">KTVDI</div>
                     <div class="brand-sub">Komunitas TV Digital Indonesia</div>
                 </div>
             </div>
 
-            <h1>Peningkatan Layanan Sistem KTVDI</h1>
+            <h1 id="main-heading">Peningkatan Layanan Sistem</h1>
 
-            <p>
-                Mohon maaf atas ketidaknyamanannya. Saat ini sistem sedang melakukan pemeliharaan server secara menyeluruh guna mengoptimalkan performa dan keamanan layanan.
+            <p id="main-desc">
+                Sistem dijadwalkan untuk menjalani pemeliharaan server secara menyeluruh guna mengoptimalkan performa dan keamanan layanan.
             </p>
 
             <div class="countdown-wrapper">
-                <div style="font-size: 0.65rem; color: var(--gold); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Sistem Kembali Online Dalam:</div>
+                <div id="status-label" style="font-size: 0.65rem; color: var(--gold); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Memeriksa Jadwal...</div>
                 <div class="timer-grid" id="timer">
                     <div class="time-unit">
                         <span class="time-val" id="hours">00</span>
@@ -219,9 +235,17 @@
                 </div>
             </div>
 
+            <!-- API 5G INDOSAT RENDER -->
+            <div class="coverage-box">
+                <div class="coverage-title">
+                    <i class="fa-solid fa-tower-cell"></i> Live Status: Indosat 5G Coverage
+                </div>
+                <div id="coverage-data" style="font-size: 0.75rem; color: #cbd5e1;">Memuat data dari API Indosat...</div>
+            </div>
+
             <div class="footer">
-                <div>WEBSITE KTVDI DAPAT DIAKSES KEMBALI PADA :</div>
-                <strong style="color: white; font-size: 0.85rem;">Sabtu, 12 Sep 2026 - 05:00 WIB</strong>
+                <div>JADWAL MAINTENANCE KTVDI :</div>
+                <strong style="color: white; font-size: 0.85rem;">19 Sep (23:31) - 20 Sep 2026 (07:00 WIB)</strong>
                 <br><br>
                 &copy; 2026 KTVDI Network. Professional IT Maintenance.<br>
                 <span style="font-size: 0.6rem; opacity: 0.7;">Terima kasih atas kesabaran Sobat KTVDI.</span>
@@ -230,14 +254,25 @@
     </div>
 
     <script>
-        // Target: 12 September 2026, 05:00:00 WIB
-        const targetDate = new Date("2026-09-12T05:00:00+07:00").getTime();
+        // Logika Waktu Maintenance
+        const startMaintenance = new Date("2026-09-19T23:31:00+07:00").getTime();
+        const endMaintenance = new Date("2026-09-20T07:00:00+07:00").getTime();
 
         function updateTimer() {
             const now = new Date().getTime();
-            const distance = targetDate - now;
+            let distance = 0;
 
-            if (distance < 0) {
+            if (now < startMaintenance) {
+                // FASE 1: Menunggu Waktu Mulai Maintenance (Sebelum 23:31 WIB)
+                distance = startMaintenance - now;
+                document.getElementById("status-label").innerText = "Maintenance Dimulai Dalam:";
+            } else if (now >= startMaintenance && now < endMaintenance) {
+                // FASE 2: Sedang Dalam Proses Maintenance (23:31 - 07:00 WIB)
+                distance = endMaintenance - now;
+                document.getElementById("status-label").innerText = "Sistem Kembali Online Dalam:";
+                document.getElementById("main-desc").innerText = "Saat ini sistem sedang dalam mode maintenance. Mohon maaf atas ketidaknyamanan sementara ini.";
+            } else {
+                // FASE 3: Maintenance Selesai (Lewat 07:00 WIB)
                 document.getElementById("timer").innerHTML = "<span style='color:#4ade80; font-weight:bold; font-size:1.1rem;'>Memuat Ulang Sistem...</span>";
                 setTimeout(() => window.location.reload(), 3000);
                 return;
@@ -253,6 +288,49 @@
         }
         setInterval(updateTimer, 1000);
         updateTimer();
+
+        // API Fetch Logic - Indosat 5G
+        async function fetchIndosat5G() {
+            const container = document.getElementById("coverage-data");
+            try {
+                // Mencoba metode GET, sebagian besar endpoint map coverage menggunakan parameter lat/lng/keyword atau polosan untuk list
+                const res = await fetch("https://im3.id/portalapis/api/mapcoverage/findmapcoverage", {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                
+                const data = await res.json();
+                
+                // Menampilkan raw JSON secara rapi dalam <pre>
+                const formattedData = JSON.stringify(data, null, 2);
+                container.innerHTML = `<pre style="color: #4ade80; font-size: 0.65rem; font-family: monospace;">${formattedData}</pre>`;
+                
+            } catch (error) {
+                // Mencoba metode fallback POST jika GET ditolak API
+                try {
+                    const resPost = await fetch("https://im3.id/portalapis/api/mapcoverage/findmapcoverage", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ keyword: "5G" })
+                    });
+                    const dataPost = await resPost.json();
+                    container.innerHTML = `<pre style="color: #4ade80; font-size: 0.65rem; font-family: monospace;">${JSON.stringify(dataPost, null, 2)}</pre>`;
+                } catch(fallbackError) {
+                    container.innerHTML = `
+                        <span style="color: #ef4444; font-size: 0.75rem;">
+                            <i class="fa-solid fa-circle-exclamation"></i> Gagal mengambil data jaringan 5G.<br>
+                            Koneksi ke server Indosat diblokir oleh CORS policy browser atau API membutuhkan token / parameter spesifik.
+                        </span>
+                    `;
+                    console.error("Indosat API Error:", error, fallbackError);
+                }
+            }
+        }
+        
+        // Panggil fetch api saat halaman termuat
+        window.addEventListener('load', fetchIndosat5G);
 
         // Canvas Star Background
         const canvas = document.getElementById('star-canvas');
