@@ -5,16 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Maintenance WEB KTVDI</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
-            --primary: #1e3a8a;
-            --dark: #020617;
-            --gold: #fbbf24;
-            --gold-light: #fde68a;
+            --bg-dark: #020617;
+            --bg-glow: #1e3a8a;
+            --accent: #38bdf8;
+            --accent-dark: #0284c7;
             --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --border-color: rgba(56, 189, 248, 0.25);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,7 +29,7 @@
             overflow: hidden;
             position: fixed;
             inset: 0;
-            background: radial-gradient(circle at 50% 10%, #172554, #020617);
+            background: radial-gradient(circle at 50% 0%, var(--bg-glow), var(--bg-dark));
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             -webkit-user-select: none;
@@ -34,9 +37,14 @@
             z-index: 999999;
         }
 
+        #network-canvas { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 1; pointer-events: none; 
+        }
+
         .maintenance-container {
             width: 100%;
-            height: 100%;
+            height: calc(100% - 40px); /* Kurangi tinggi ticker */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -46,85 +54,62 @@
             padding: 1rem;
         }
 
-        /* --- ORNAMEN --- */
-        .decoration { position: absolute; pointer-events: none; z-index: 2; }
-        .lantern {
-            top: -20px; 
-            color: var(--gold);
-            filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.6));
-            animation: swing 3s ease-in-out infinite alternate;
-            transform-origin: top center;
-        }
-        .lantern-1 { left: 10%; font-size: 80px; animation-duration: 3.5s; }
-        .lantern-2 { right: 10%; font-size: 100px; animation-duration: 4s; }
-        .lantern-3 { right: 25%; font-size: 60px; top: -10px; animation-duration: 3s; opacity: 0.8; }
-
-        .corner-pattern {
-            position: absolute; width: 300px; height: 300px;
-            background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L100 50 L50 100 L0 50 Z' fill='none' stroke='%23fbbf24' stroke-width='1' opacity='0.2'/%3E%3C/svg%3E");
-            z-index: 1; opacity: 0.3; pointer-events: none;
-        }
-        .cp-tl { top: 0; left: 0; transform: rotate(0deg); }
-        .cp-br { bottom: 0; right: 0; transform: rotate(180deg); }
-
-        #star-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-
         /* --- MAIN CARD --- */
         .card {
             position: relative; z-index: 10;
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(251, 191, 36, 0.25);
-            box-shadow: 0 0 60px rgba(0, 0, 0, 0.7), inset 0 0 20px rgba(251, 191, 36, 0.05);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(56, 189, 248, 0.05);
             padding: 2.5rem 3rem;
             border-radius: 24px;
             text-align: center;
-            max-width: 580px;
-            width: 92%;
-            max-height: 90vh;
+            max-width: 600px;
+            width: 95%;
+            max-height: 85vh;
             overflow-y: auto;
             animation: slideUp 1s ease-out;
         }
 
         .card::-webkit-scrollbar { width: 4px; }
-        .card::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.3); border-radius: 4px; }
+        .card::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.4); border-radius: 4px; }
 
         /* Logo Area */
         .brand-wrapper {
             display: flex; align-items: center; justify-content: center; gap: 15px;
             margin-bottom: 1.5rem;
         }
-        .logo-img {
-            width: 48px; height: 48px;
-            object-fit: contain;
-            filter: drop-shadow(0 0 10px rgba(255,255,255,0.3));
+        .logo-icon {
+            font-size: 2.5rem;
+            color: var(--accent);
+            filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.5));
+            animation: pulse 2s infinite alternate;
         }
         .brand-text { text-align: left; }
-        .brand-title { font-size: 1.4rem; font-weight: 800; letter-spacing: -1px; line-height: 1; color: white; }
-        .brand-sub { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+        .brand-title { font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; line-height: 1; color: white; }
+        .brand-sub { font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); font-weight: 600; }
 
         /* Typography */
         h1 {
-            font-family: 'Cinzel', serif;
-            font-size: 1.6rem;
-            color: var(--gold);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: white;
             margin-bottom: 0.8rem;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
         p {
             font-size: 0.9rem;
-            color: #cbd5e1;
-            line-height: 1.5;
+            color: var(--text-muted);
+            line-height: 1.6;
             margin-bottom: 1.5rem;
         }
 
         /* Countdown */
         .countdown-wrapper {
             border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.4);
+            background: rgba(0,0,0,0.5);
             border-radius: 16px;
             padding: 1.2rem;
             margin-bottom: 1.5rem;
@@ -133,90 +118,123 @@
         }
         .countdown-wrapper::before {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
         }
 
         .timer-grid { display: flex; justify-content: center; gap: 15px; }
         .time-unit { display: flex; flex-direction: column; align-items: center; min-width: 55px; }
         .time-val {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.8rem; font-weight: 700; color: white;
-            text-shadow: 0 0 20px rgba(37, 99, 235, 0.8);
+            font-size: 1.8rem; font-weight: 800; color: white;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.8);
             font-variant-numeric: tabular-nums;
         }
-        .time-label { font-size: 0.6rem; text-transform: uppercase; color: var(--gold); margin-top: 4px; letter-spacing: 1px; }
-        .separator { font-size: 1.4rem; color: rgba(255,255,255,0.3); margin-top: 4px; }
+        .time-label { font-size: 0.6rem; text-transform: uppercase; color: var(--accent); margin-top: 4px; letter-spacing: 1px; font-weight: 600; }
+        .separator { font-size: 1.4rem; color: rgba(255,255,255,0.2); margin-top: 4px; font-weight: bold; }
 
-        /* Indosat 5G Box */
-        .coverage-box {
+        /* Widget Box (Sholat & API) */
+        .widget-box {
             background: rgba(15, 23, 42, 0.6);
-            border: 1px dashed rgba(251, 191, 36, 0.3);
+            border: 1px dashed var(--border-color);
             border-radius: 12px;
             padding: 1rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             text-align: left;
-            max-height: 150px;
-            overflow-y: auto;
+            position: relative;
+            overflow: hidden;
         }
-        .coverage-box::-webkit-scrollbar { width: 4px; }
-        .coverage-box::-webkit-scrollbar-thumb { background: rgba(74, 222, 128, 0.3); border-radius: 4px; }
-        .coverage-title {
-            font-size: 0.7rem; color: var(--gold); text-transform: uppercase; 
-            letter-spacing: 1px; margin-bottom: 8px; font-weight: bold;
-            display: flex; align-items: center; gap: 5px;
+        .widget-box::after {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+            background: var(--accent);
         }
+        .widget-title {
+            font-size: 0.75rem; color: var(--accent); text-transform: uppercase; 
+            letter-spacing: 1px; margin-bottom: 8px; font-weight: 700;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .widget-content {
+            font-size: 0.8rem; color: var(--text-main); line-height: 1.5;
+        }
+        
+        /* Sholat Grid */
+        .sholat-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;
+        }
+        .sholat-item {
+            background: rgba(0,0,0,0.3); padding: 5px; border-radius: 6px; text-align: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .sholat-name { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; }
+        .sholat-time { font-size: 0.85rem; font-weight: bold; color: white; }
+
+        .api-scroll { max-height: 100px; overflow-y: auto; }
+        .api-scroll::-webkit-scrollbar { width: 3px; }
+        .api-scroll::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
 
         .footer {
-            font-size: 0.7rem; color: #94a3b8;
+            font-size: 0.7rem; color: var(--text-muted);
             border-top: 1px solid rgba(255,255,255,0.1);
-            padding-top: 0.8rem;
+            padding-top: 1rem; margin-top: 0.5rem;
         }
 
-        @keyframes swing {
-            0% { transform: rotate(3deg); }
-            100% { transform: rotate(-3deg); }
+        /* --- TICKER RUNNING TEXT --- */
+        .ticker-wrap {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: #020617; border-top: 1px solid var(--border-color);
+            height: 40px; display: flex; align-items: center; overflow: hidden; z-index: 100;
         }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        .ticker-label {
+            background: var(--accent-dark); color: white; height: 100%;
+            display: flex; align-items: center; padding: 0 15px;
+            font-size: 0.75rem; font-weight: 800; letter-spacing: 1px; z-index: 2;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5); text-transform: uppercase;
         }
+        .ticker-move {
+            display: inline-block; white-space: nowrap;
+            animation: ticker 25s linear infinite; padding-left: 100%;
+        }
+        .ticker-item {
+            display: inline-block; padding: 0 2rem; color: var(--text-main);
+            font-size: 0.8rem; font-weight: 500;
+        }
+        .ticker-item i { color: var(--accent); margin-right: 5px; }
+
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { from { opacity: 0.7; transform: scale(0.95); } to { opacity: 1; transform: scale(1.05); } }
 
         @media (max-width: 480px) {
             h1 { font-size: 1.25rem; }
-            .card { padding: 1.5rem 1rem; width: 95%; }
+            .card { padding: 1.5rem 1rem; }
             .time-val { font-size: 1.4rem; }
-            .lantern-2 { display: none; }
+            .sholat-grid { grid-template-columns: repeat(2, 1fr); }
+            .ticker-label { display: none; } /* Hide label on very small screens for more text space */
         }
     </style>
 </head>
 <body>
 
+    <!-- Animasi Network Nodes Background -->
+    <canvas id="network-canvas"></canvas>
+
     <div class="maintenance-container">
-        <canvas id="star-canvas"></canvas>
-
-        <div class="decoration lantern lantern-1"><i class="fa-solid fa-mosque"></i></div>
-        <div class="decoration lantern lantern-2"><i class="fa-solid fa-star-and-crescent"></i></div>
-        <div class="decoration lantern lantern-3"><i class="fa-solid fa-lightbulb"></i></div>
-        <div class="corner-pattern cp-tl"></div>
-        <div class="corner-pattern cp-br"></div>
-
         <div class="card">
             <div class="brand-wrapper">
-                <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="logo-img" alt="KTVDI Logo" onerror="this.src='https://iili.io/f87539s.png'">
+                <i class="fa-solid fa-server logo-icon"></i>
                 <div class="brand-text">
                     <div class="brand-title">KTVDI</div>
-                    <div class="brand-sub">Komunitas TV Digital Indonesia</div>
+                    <div class="brand-sub">Sistem Pusat Jaringan</div>
                 </div>
             </div>
 
-            <h1 id="main-heading">Peningkatan Layanan Sistem</h1>
+            <h1 id="main-heading">Peningkatan Layanan Sistem IT</h1>
 
             <p id="main-desc">
-                Sistem dijadwalkan untuk menjalani pemeliharaan server secara menyeluruh guna mengoptimalkan performa dan keamanan layanan.
+                Sistem dijadwalkan untuk menjalani pemeliharaan server secara menyeluruh guna mengoptimalkan performa, stabilitas jaringan, dan keamanan layanan.
             </p>
 
+            <!-- Countdown Timer -->
             <div class="countdown-wrapper">
-                <div id="status-label" style="font-size: 0.65rem; color: var(--gold); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Memeriksa Jadwal...</div>
+                <div id="status-label" style="font-size: 0.65rem; color: var(--accent); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Memeriksa Jadwal...</div>
                 <div class="timer-grid" id="timer">
                     <div class="time-unit">
                         <span class="time-val" id="hours">00</span>
@@ -235,12 +253,25 @@
                 </div>
             </div>
 
-            <!-- API 5G INDOSAT RENDER -->
-            <div class="coverage-box">
-                <div class="coverage-title">
+            <!-- Widget Jadwal Sholat -->
+            <div class="widget-box">
+                <div class="widget-title">
+                    <i class="fa-solid fa-mosque"></i> Jadwal Imsakiyah & Sholat
+                    <span id="sholat-lokasi" style="color:#94a3b8; font-weight:normal; margin-left:auto;">Memuat...</span>
+                </div>
+                <div class="widget-content" id="sholat-container">
+                    <div style="color: #94a3b8; font-size: 0.75rem;">Mengambil data dari API MyQuran...</div>
+                </div>
+            </div>
+
+            <!-- Widget API 5G INDOSAT -->
+            <div class="widget-box">
+                <div class="widget-title">
                     <i class="fa-solid fa-tower-cell"></i> Live Status: Indosat 5G Coverage
                 </div>
-                <div id="coverage-data" style="font-size: 0.75rem; color: #cbd5e1;">Memuat data dari API Indosat...</div>
+                <div class="widget-content api-scroll" id="coverage-data">
+                    <span style="color: #94a3b8; font-size: 0.75rem;">Mencoba terhubung ke satelit Indosat...</span>
+                </div>
             </div>
 
             <div class="footer">
@@ -248,13 +279,25 @@
                 <strong style="color: white; font-size: 0.85rem;">19 Sep (23:31) - 20 Sep 2026 (07:00 WIB)</strong>
                 <br><br>
                 &copy; 2026 KTVDI Network. Professional IT Maintenance.<br>
-                <span style="font-size: 0.6rem; opacity: 0.7;">Terima kasih atas kesabaran Sobat KTVDI.</span>
             </div>
         </div>
     </div>
 
+    <!-- Ticker Running Text -->
+    <div class="ticker-wrap">
+        <div class="ticker-label"><i class="fa-solid fa-bolt" style="margin-right: 5px;"></i> INFO KTVDI</div>
+        <div class="ticker-move">
+            <div class="ticker-item"><i class="fa-solid fa-circle-info"></i> Seluruh layanan web dan database KTVDI sedang dalam proses pemeliharaan.</div>
+            <div class="ticker-item"><i class="fa-solid fa-shield-halved"></i> Peningkatan sistem keamanan enkripsi server dan optimasi database siaran digital.</div>
+            <div class="ticker-item"><i class="fa-solid fa-satellite-dish"></i> Pantauan EWS Bencana dan CCTV Kota akan kembali online pada 20 September 2026, 07:00 WIB.</div>
+            <div class="ticker-item"><i class="fa-solid fa-clock"></i> Mohon maaf atas ketidaknyamanan ini. Terima kasih atas dukungan Sobat KTVDI.</div>
+        </div>
+    </div>
+
     <script>
-        // Logika Waktu Maintenance
+        // ==========================================
+        // 1. LOGIKA COUNTDOWN MAINTENANCE
+        // ==========================================
         const startMaintenance = new Date("2026-09-19T23:31:00+07:00").getTime();
         const endMaintenance = new Date("2026-09-20T07:00:00+07:00").getTime();
 
@@ -263,17 +306,14 @@
             let distance = 0;
 
             if (now < startMaintenance) {
-                // FASE 1: Menunggu Waktu Mulai Maintenance (Sebelum 23:31 WIB)
                 distance = startMaintenance - now;
                 document.getElementById("status-label").innerText = "Maintenance Dimulai Dalam:";
             } else if (now >= startMaintenance && now < endMaintenance) {
-                // FASE 2: Sedang Dalam Proses Maintenance (23:31 - 07:00 WIB)
                 distance = endMaintenance - now;
                 document.getElementById("status-label").innerText = "Sistem Kembali Online Dalam:";
-                document.getElementById("main-desc").innerText = "Saat ini sistem sedang dalam mode maintenance. Mohon maaf atas ketidaknyamanan sementara ini.";
+                document.getElementById("main-desc").innerText = "Saat ini sistem sedang dalam mode maintenance (Terkunci). Mohon maaf atas ketidaknyamanan sementara ini.";
             } else {
-                // FASE 3: Maintenance Selesai (Lewat 07:00 WIB)
-                document.getElementById("timer").innerHTML = "<span style='color:#4ade80; font-weight:bold; font-size:1.1rem;'>Memuat Ulang Sistem...</span>";
+                document.getElementById("timer").innerHTML = "<span style='color:#38bdf8; font-weight:bold; font-size:1.1rem;'>Memuat Ulang Sistem...</span>";
                 setTimeout(() => window.location.reload(), 3000);
                 return;
             }
@@ -289,26 +329,66 @@
         setInterval(updateTimer, 1000);
         updateTimer();
 
-        // API Fetch Logic - Indosat 5G
+        // ==========================================
+        // 2. FETCH API JADWAL SHOLAT (MYQURAN)
+        // ==========================================
+        async function fetchJadwalSholat() {
+            const container = document.getElementById('sholat-container');
+            const locLabel = document.getElementById('sholat-lokasi');
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            
+            // 1604 adalah ID Kota Semarang di API MyQuran
+            try {
+                const res = await fetch(`https://api.myquran.com/v2/sholat/jadwal/1604/${year}/${month}/${day}`);
+                const data = await res.json();
+                
+                if (data.status && data.data && data.data.jadwal) {
+                    locLabel.innerText = data.data.lokasi;
+                    const j = data.data.jadwal;
+                    
+                    container.innerHTML = `
+                        <div class="sholat-grid">
+                            <div class="sholat-item"><div class="sholat-name">Imsak</div><div class="sholat-time">${j.imsak}</div></div>
+                            <div class="sholat-item"><div class="sholat-name">Subuh</div><div class="sholat-time">${j.subuh}</div></div>
+                            <div class="sholat-item"><div class="sholat-name">Terbit</div><div class="sholat-time">${j.terbit}</div></div>
+                            <div class="sholat-item"><div class="sholat-name">Dzuhur</div><div class="sholat-time">${j.dzuhur}</div></div>
+                            <div class="sholat-item"><div class="sholat-name">Ashar</div><div class="sholat-time">${j.ashar}</div></div>
+                            <div class="sholat-item"><div class="sholat-name">Maghrib</div><div class="sholat-time">${j.maghrib}</div></div>
+                            <div class="sholat-item"><div class="sholat-name">Isya</div><div class="sholat-time">${j.isya}</div></div>
+                            <div class="sholat-item" style="grid-column: span 2; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3);">
+                                <div class="sholat-name" style="color:var(--accent);">Tanggal</div>
+                                <div class="sholat-time" style="font-size:0.75rem;">${j.tanggal}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error("Format API berubah");
+                }
+            } catch (error) {
+                container.innerHTML = `<span style="color: #ef4444; font-size: 0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> Gagal mengambil data jadwal sholat hari ini.</span>`;
+                locLabel.innerText = "Error";
+            }
+        }
+
+        // ==========================================
+        // 3. FETCH API INDOSAT 5G
+        // ==========================================
         async function fetchIndosat5G() {
             const container = document.getElementById("coverage-data");
             try {
-                // Mencoba metode GET, sebagian besar endpoint map coverage menggunakan parameter lat/lng/keyword atau polosan untuk list
                 const res = await fetch("https://im3.id/portalapis/api/mapcoverage/findmapcoverage", {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }
                 });
 
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                
                 const data = await res.json();
                 
-                // Menampilkan raw JSON secara rapi dalam <pre>
-                const formattedData = JSON.stringify(data, null, 2);
-                container.innerHTML = `<pre style="color: #4ade80; font-size: 0.65rem; font-family: monospace;">${formattedData}</pre>`;
-                
+                container.innerHTML = `<pre style="color: #4ade80; font-size: 0.65rem; font-family: monospace;">${JSON.stringify(data, null, 2)}</pre>`;
             } catch (error) {
-                // Mencoba metode fallback POST jika GET ditolak API
                 try {
                     const resPost = await fetch("https://im3.id/portalapis/api/mapcoverage/findmapcoverage", {
                         method: 'POST',
@@ -319,53 +399,56 @@
                     container.innerHTML = `<pre style="color: #4ade80; font-size: 0.65rem; font-family: monospace;">${JSON.stringify(dataPost, null, 2)}</pre>`;
                 } catch(fallbackError) {
                     container.innerHTML = `
-                        <span style="color: #ef4444; font-size: 0.75rem;">
-                            <i class="fa-solid fa-circle-exclamation"></i> Gagal mengambil data jaringan 5G.<br>
-                            Koneksi ke server Indosat diblokir oleh CORS policy browser atau API membutuhkan token / parameter spesifik.
+                        <span style="color: #ef4444; font-size: 0.75rem; display:block; padding-top:5px;">
+                            <i class="fa-solid fa-circle-exclamation"></i> Gagal terhubung ke Database Indosat.<br>
+                            Diblokir oleh CORS policy browser atau Server Target menolak permintaan (403).
                         </span>
                     `;
-                    console.error("Indosat API Error:", error, fallbackError);
                 }
             }
         }
         
-        // Panggil fetch api saat halaman termuat
-        window.addEventListener('load', fetchIndosat5G);
+        window.addEventListener('load', () => {
+            fetchJadwalSholat();
+            fetchIndosat5G();
+        });
 
-        // Canvas Star Background
-        const canvas = document.getElementById('star-canvas');
+        // ==========================================
+        // 4. ANIMASI NETWORK NODES (CANVAS)
+        // ==========================================
+        const canvas = document.getElementById('network-canvas');
         const ctx = canvas.getContext('2d');
         let width, height;
-        let stars = [];
+        let particles = [];
 
         function resize() {
             width = window.innerWidth;
             height = window.innerHeight;
             canvas.width = width;
             canvas.height = height;
-            initStars();
+            initParticles();
         }
 
-        class Star {
+        class Particle {
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.size = Math.random() * 2;
-                this.speedX = (Math.random() - 0.5) * 0.2;
-                this.speedY = (Math.random() - 0.5) * 0.2;
-                this.opacity = Math.random();
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
             }
             update() {
                 this.x += this.speedX;
                 this.y += this.speedY;
                 
+                // Interaksi mouse tarik node
                 if(mouse.x) {
                     const dx = this.x - mouse.x;
                     const dy = this.y - mouse.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    if(dist < 100) {
-                        this.x += dx * 0.05;
-                        this.y += dy * 0.05;
+                    if(dist < 120) {
+                        this.x += dx * 0.02;
+                        this.y += dy * 0.02;
                     }
                 }
 
@@ -375,28 +458,49 @@
                 if (this.y > height) this.y = 0;
             }
             draw() {
-                ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                ctx.fillStyle = `rgba(56, 189, 248, 0.8)`;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
-        function initStars() {
-            stars = [];
-            for (let i = 0; i < 150; i++) stars.push(new Star());
+        function initParticles() {
+            particles = [];
+            // Sesuaikan jumlah partikel dengan lebar layar agar tidak lag di HP
+            const numParticles = width < 768 ? 40 : 100;
+            for (let i = 0; i < numParticles; i++) particles.push(new Particle());
         }
 
         let mouse = { x: null, y: null };
         window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('mouseout', () => { mouse.x = null; mouse.y = null; });
         window.addEventListener('resize', resize);
 
         function animate() {
             ctx.clearRect(0, 0, width, height);
-            stars.forEach(star => {
-                star.update();
-                star.draw();
-            });
+            
+            // Update dan gambar node
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                
+                // Gambar garis antar node yang berdekatan (Efek Jaringan)
+                for (let j = i; j < particles.length; j++) {
+                    let dx = particles[i].x - particles[j].x;
+                    let dy = particles[i].y - particles[j].y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 120) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(56, 189, 248, ${0.2 - distance/600})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
             requestAnimationFrame(animate);
         }
 
