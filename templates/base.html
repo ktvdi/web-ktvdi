@@ -14,7 +14,7 @@
     <script src="//static-web.prod.vidiocdn.com/assets/javascripts/vidio-embed.js"></script>
     
     <script>
-        // INISIALISASI TEMA
+        // INISIALISASI TEMA GELAP/TERANG
         if (localStorage.getItem('ktvdi-theme') === 'dark' || (!('ktvdi-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
         } else {
@@ -23,6 +23,7 @@
     </script>
 
     <script>
+        // PENGATURAN TAILWIND CSS
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -42,53 +43,56 @@
     </script>
 
     <script>
-        // === LOGIKA KEAMANAN TINGKAT LANJUT ===
-        window.userIP = "Memeriksa...";
+        // === LOGIKA KEAMANAN (MENCEGAH KLIK KANAN DAN INSPECT ELEMENT) ===
+        window.ipPengguna = "Memeriksa...";
         
-        function handleSecurityViolation() {
-            const overlay = document.getElementById('penalty-overlay');
-            if (overlay) {
-                overlay.classList.remove('hidden');
-                overlay.classList.add('flex');
-                document.body.style.overflow = 'hidden';
-                document.getElementById('penalty-ip').innerText = window.userIP;
+        function tanganiPelanggaranKeamanan() {
+            const layarPeringatan = document.getElementById('penalty-overlay');
+            if (layarPeringatan) {
+                layarPeringatan.classList.remove('hidden');
+                layarPeringatan.classList.add('flex');
+                document.body.style.overflow = 'hidden'; // Kunci scroll layar
+                document.getElementById('penalty-ip').innerText = window.ipPengguna;
                 
-                window.addEventListener('keydown', blockAllKeys, {capture: true});
-                window.addEventListener('contextmenu', blockAllKeys, {capture: true});
+                window.addEventListener('keydown', blokirSemuaTombol, {capture: true});
+                window.addEventListener('contextmenu', blokirSemuaTombol, {capture: true});
             }
         }
 
-        function blockAllKeys(e) { 
-            e.stopPropagation(); e.preventDefault(); return false; 
+        function blokirSemuaTombol(kejadian) { 
+            kejadian.stopPropagation(); kejadian.preventDefault(); return false; 
         }
 
-        document.addEventListener('contextmenu', event => { 
-            event.preventDefault(); handleSecurityViolation(); 
+        // Mencegah klik kanan
+        document.addEventListener('contextmenu', kejadian => { 
+            kejadian.preventDefault(); tanganiPelanggaranKeamanan(); 
         });
         
-        document.onkeydown = function(e) {
-            let isBlocked = false;
-            if(e.keyCode == 123) isBlocked = true; 
-            if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) isBlocked = true;
-            if(e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) isBlocked = true;
-            if(e.key === 'PrintScreen' || e.keyCode == 44) {
+        // Mencegah kombinasi tombol keyboard (F12, Ctrl+Shift+I, dll)
+        document.onkeydown = function(kejadian) {
+            let apakahDiblokir = false;
+            if(kejadian.keyCode == 123) apakahDiblokir = true; // Tombol F12
+            if(kejadian.ctrlKey && kejadian.shiftKey && (kejadian.keyCode == 'I'.charCodeAt(0) || kejadian.keyCode == 'C'.charCodeAt(0) || kejadian.keyCode == 'J'.charCodeAt(0))) apakahDiblokir = true;
+            if(kejadian.ctrlKey && (kejadian.keyCode == 'U'.charCodeAt(0) || kejadian.keyCode == 'S'.charCodeAt(0) || kejadian.keyCode == 'P'.charCodeAt(0))) apakahDiblokir = true;
+            if(kejadian.key === 'PrintScreen' || kejadian.keyCode == 44) {
                 try { navigator.clipboard.writeText(''); } catch(err) {}
-                e.preventDefault(); return false;
+                kejadian.preventDefault(); return false;
             }
-            if(isBlocked) { e.preventDefault(); handleSecurityViolation(); return false; }
+            if(apakahDiblokir) { kejadian.preventDefault(); tanganiPelanggaranKeamanan(); return false; }
         }
 
-        // Privacy Blur
-        function enablePrivacyMode() { document.body.classList.add('privacy-blur'); }
-        function disablePrivacyMode() { document.body.classList.remove('privacy-blur'); }
-        window.addEventListener('blur', enablePrivacyMode);
-        window.addEventListener('focus', disablePrivacyMode);
+        // Mode Blur Privasi saat pindah tab
+        function aktifkanModePrivasi() { document.body.classList.add('privacy-blur'); }
+        function nonaktifkanModePrivasi() { document.body.classList.remove('privacy-blur'); }
+        window.addEventListener('blur', aktifkanModePrivasi);
+        window.addEventListener('focus', nonaktifkanModePrivasi);
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) enablePrivacyMode(); else disablePrivacyMode();
+            if (document.hidden) aktifkanModePrivasi(); else nonaktifkanModePrivasi();
         });
     </script>
     
     <style>
+        /* Gaya untuk mencegah halaman dicetak (Print) */
         @media print { html, body { display: none !important; opacity: 0 !important; visibility: hidden !important; } }
 
         body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none; overflow-x: hidden; transition: background-color 0.3s, color 0.3s; }
@@ -96,15 +100,17 @@
         a, button, .nav-item, input { -webkit-tap-highlight-color: rgba(255, 255, 255, 0.05); } 
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
+        /* Efek blur privasi */
         .privacy-blur > *:not(#penalty-overlay) {
             filter: blur(30px) grayscale(100%); pointer-events: none; opacity: 0.1; transition: 0s; 
         }
 
+        /* Penyesuaian Logo KTVDI */
         .ktvdi-logo { transition: filter 0.3s ease; }
         html:not(.dark) .ktvdi-logo { filter: brightness(0) saturate(100%) invert(18%) sepia(96%) saturate(2032%) hue-rotate(212deg) brightness(96%) contrast(98%); }
         html.dark .ktvdi-logo { filter: brightness(0) invert(1); }
 
-        /* CUSTOM LOADER */
+        /* Tampilan Pemuat Awal (Loading Screen) */
         #initial-loader {
             position: fixed; inset: 0; z-index: 9999; background: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 1.5s ease, visibility 1.5s ease; overflow: hidden; 
         }
@@ -115,7 +121,7 @@
         .dark .loader-glow { background: #ffffff; opacity: 0.1; }
         @keyframes pulse-glow { from { transform: scale(0.8); opacity: 0.2; } to { transform: scale(1.2); opacity: 0.4; } }
         
-        /* Ticker KTVDI (Header) */
+        /* Teks Berjalan KTVDI di Header (Atas) */
         .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; display: block; position: relative; }
         .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 15s linear infinite; padding-left: 100%; }
         @keyframes runningText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
@@ -124,7 +130,7 @@
         .fade-swap { animation: fadeSwapAnim 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeSwapAnim { 0% { opacity: 0; transform: translateY(-10px) scale(0.98); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
 
-        /* Modern Glass Dropdown */
+        /* Menu Dropdown Desain Kaca Modern */
         .modern-glass-dropdown {
             border-radius: 1.25rem; 
             background: rgba(255, 255, 255, 0.95);
@@ -140,7 +146,7 @@
         }
         @keyframes sheetPop { 0% { opacity: 0; transform: scale(0.95) translateY(-5px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
 
-        /* Bottom Dock Mobile */
+        /* Navigasi Bawah untuk Handphone (Mobile Dock) */
         .ios-dock {
             background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(30, 58, 138, 0.15);
             box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15); border-radius: 36px; margin: 0;
@@ -166,7 +172,7 @@
         }
         .dark .cctv-circle { background: #000000; color: #ffffff; border: 1px solid rgba(255,255,255,0.2); }
 
-        /* Floating Ticker Mobile */
+        /* Teks Berjalan Mengambang (Floating Ticker) untuk HP */
         .glass-ticker-floating {
             background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(30, 58, 138, 0.15); 
             backdrop-filter: blur(12px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); border-radius: 18px; 
@@ -177,7 +183,7 @@
             box-shadow: 0 8px 30px rgba(255, 255, 255, 0.05);
         }
 
-        /* Desktop Bottom Bar (Head-Unit Safe) */
+        /* Navigasi Bawah Desktop (Aman untuk Head Unit Mobil, Mengambang/Floating) */
         .desktop-bottom-bar { 
             background: rgba(255, 255, 255, 0.95); 
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -201,21 +207,23 @@
         }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
-        /* Ticker Berita Bawah Dinamis (Kecepatan dikontrol JS, default pelan) */
+        /* Ticker Berita Bawah Dinamis (Kecepatan Default 390s) */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 600s linear infinite; }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 390s linear infinite; }
         .ticker-move:hover { animation-play-state: paused; }
         .ticker-item { display: inline-block; padding: 0 2rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
         
+        /* Teks Peringatan Darurat Sholat (Berkedip/Pulse) */
         .ticker-urgent { font-weight: 900; animation: pulse-text 2s infinite; display: inline-block; padding: 0 2rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
         @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-        /* Jam Ticker */
+        /* Wadah Penunjuk Jam */
         .clock-container { display: flex; align-items: center; justify-content: center; height: 100%; font-family: monospace; font-weight: bold; color: #1e3a8a; min-width: 90px; white-space: nowrap; transition: all 0.5s ease-in-out; }
         .dark .clock-container { color: #ffffff; }
 
+        /* Tautan Header Desktop */
         .desktop-link { color: #64748b; font-weight: 600; padding: 8px 16px; border-radius: 16px; transition: all 0.2s; font-size: 0.85rem; }
         .dark .desktop-link { color: #a1a1aa; }
         .desktop-link:hover { color: #1e3a8a; background: rgba(30,58,138,0.05); }
@@ -223,10 +231,11 @@
         .desktop-link.active { color: #1e3a8a; font-weight: 800; }
         .dark .desktop-link.active { color: #ffffff; }
 
+        /* Pengubah Gaya Scrollbar */
         .custom-scroll::-webkit-scrollbar { width: 4px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
         .dark .custom-scroll::-webkit-scrollbar-thumb { background: #555555; }
         
-        /* Utility A11y */
+        /* Opsi Aksesibilitas */
         body.text-large { font-size: 1.15rem; }
         body.text-large h1 { font-size: 1.2em; }
         body.text-large p { font-size: 1.1em; }
@@ -246,6 +255,11 @@
         </button>
         <div id="a11y-panel" class="pointer-events-auto mt-2 p-4 bg-white/95 dark:bg-black/95 backdrop-blur-xl border border-blue-200 dark:border-white/20 rounded-l-2xl shadow-2xl transition-transform duration-300 translate-x-full flex flex-col gap-2 w-56">
             <h4 class="text-xs font-black uppercase tracking-wider text-blue-800 dark:text-white border-b border-blue-100 dark:border-white/20 pb-2 mb-1">Aksesibilitas</h4>
+            
+            <button onclick="ubahKecepatanTeksBerjalan()" class="w-full flex items-center gap-3 text-left text-sm font-semibold text-blue-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-white/10 p-2.5 rounded-lg transition active:bg-blue-100 dark:active:bg-white/20">
+                <i class="fa-solid fa-gauge-high w-5 text-center"></i> <span id="label-kecepatan-teks">Teks: Normal</span>
+            </button>
+            
             <button onclick="document.body.classList.toggle('text-large')" class="w-full flex items-center gap-3 text-left text-sm font-semibold text-blue-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-white/10 p-2.5 rounded-lg transition active:bg-blue-100 dark:active:bg-white/20">
                 <i class="fa-solid fa-magnifying-glass-plus w-5 text-center"></i> Perbesar Teks
             </button>
@@ -330,13 +344,13 @@
                         <a href="{{ url_for('about') }}" class="desktop-link">Tentang Kami</a>
                     </div>
 
-                    <button onclick="toggleTheme()" class="flex w-7 h-7 md:w-10 md:h-10 rounded-full bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 text-blue-600 dark:text-white items-center justify-center transition border border-blue-200 dark:border-white/20 shadow-sm" title="Ganti Tema">
+                    <button onclick="gantiTema()" class="flex w-7 h-7 md:w-10 md:h-10 rounded-full bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 text-blue-600 dark:text-white items-center justify-center transition border border-blue-200 dark:border-white/20 shadow-sm" title="Ganti Tema">
                         <i class="fa-solid fa-moon dark:hidden text-[11px] md:text-base"></i>
                         <i class="fa-solid fa-sun hidden dark:block text-yellow-400 text-[11px] md:text-base"></i>
                     </button>
 
                     <div class="relative group z-50 xl:hidden">
-                        <button onclick="toggleDropdown('info-dropdown')" class="w-7 h-7 md:w-10 md:h-10 rounded-full bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 text-blue-600 dark:text-white flex items-center justify-center transition border border-blue-200 dark:border-white/20 backdrop-blur-md shadow-sm">
+                        <button onclick="bukaTutupDropdown('info-dropdown')" class="w-7 h-7 md:w-10 md:h-10 rounded-full bg-blue-50 dark:bg-zinc-800 hover:bg-blue-100 dark:hover:bg-zinc-700 text-blue-600 dark:text-white flex items-center justify-center transition border border-blue-200 dark:border-white/20 backdrop-blur-md shadow-sm">
                             <i class="fa-solid fa-bars text-[11px] md:text-base"></i>
                         </button>
                         
@@ -380,7 +394,7 @@
 
                     {% if session.get('user') %}
                         <div class="relative group z-50 hidden xl:block">
-                            <button onclick="toggleDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-blue-50 dark:bg-zinc-900 hover:bg-blue-100 dark:hover:bg-zinc-800 transition border border-blue-200 dark:border-white/20 text-left shadow-lg backdrop-blur-sm">
+                            <button onclick="bukaTutupDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full bg-blue-50 dark:bg-zinc-900 hover:bg-blue-100 dark:hover:bg-zinc-800 transition border border-blue-200 dark:border-white/20 text-left shadow-lg backdrop-blur-sm">
                                 <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'User') | urlencode }}&background=1e3a8a&color=fff&bold=true" class="h-8 w-8 rounded-full shadow-sm border border-blue-200 dark:border-white/50">
                                 <div class="flex flex-col">
                                     <span class="text-xs font-heading font-bold text-blue-900 dark:text-white leading-tight">
@@ -482,7 +496,7 @@
         </nav>
     </div>
 
-    <div class="glass-ticker-floating lg:hidden transition-all duration-510">
+    <div class="glass-ticker-floating lg:hidden transition-all duration-300">
         <div class="bg-blue-600 dark:bg-white h-full flex items-center px-2 md:px-3 z-20 shrink-0 text-white dark:text-black text-[8px] md:text-[9px] font-black uppercase tracking-widest gap-1 md:gap-2">
             <span class="w-1.5 h-1.5 bg-white dark:bg-black rounded-full animate-pulse"></span> INFO
         </div>
@@ -520,46 +534,71 @@
     </div>
 
     <script>
-        function toggleTheme() {
-            document.documentElement.classList.toggle('dark');
-            const isDark = document.documentElement.classList.contains('dark');
-            localStorage.setItem('ktvdi-theme', isDark ? 'dark' : 'light');
-        }
+        // === VARIABEL GLOBAL UNTUK KECEPATAN TICKER (TAMBAHAN BARU) ===
+        let durasiTeksBerjalan = 390; // Default 390 detik sesuai permintaan
+        let modeKecepatan = 1; // 1: Normal(390s), 2: Cepat(150s), 3: Lambat(720s)
 
-        function updateMobileGreeting() {
-            const hour = new Date().getHours();
-            let greeting = "Selamat Malam,";
-            if (hour >= 4 && hour < 11) greeting = "Selamat Pagi,";
-            else if (hour >= 11 && hour < 15) greeting = "Selamat Siang,";
-            else if (hour >= 15 && hour < 18) greeting = "Selamat Sore,";
+        // === FUNGSI UBAH KECEPATAN TEKS BERJALAN ===
+        function ubahKecepatanTeksBerjalan() {
+            modeKecepatan++;
+            if(modeKecepatan > 3) modeKecepatan = 1; // Kembali ke awal jika sudah maksimal
             
-            const greetEl = document.getElementById('mobile-greeting');
-            if(greetEl) greetEl.innerText = greeting;
+            const labelKecepatan = document.getElementById('label-kecepatan-teks');
+            
+            if (modeKecepatan === 1) {
+                durasiTeksBerjalan = 390;
+                if(labelKecepatan) labelKecepatan.innerText = "Teks: Normal";
+            } else if (modeKecepatan === 2) {
+                durasiTeksBerjalan = 150;
+                if(labelKecepatan) labelKecepatan.innerText = "Teks: Cepat";
+            } else if (modeKecepatan === 3) {
+                durasiTeksBerjalan = 720;
+                if(labelKecepatan) labelKecepatan.innerText = "Teks: Lambat";
+            }
+            
+            // Panggil ulang fungsi render ticker agar kecepatan baru langsung diterapkan
+            tampilkanTeksBerjalan();
         }
-        updateMobileGreeting();
 
-        // === LOGIKA SPEEDOMETER BERKENDARA (Akurat & Filter GPS Drift) ===
-        let currentSpeedKmh = "0.0";
-        let speedBuffer = [];
+        function gantiTema() {
+            document.documentElement.classList.toggle('dark');
+            const apakahGelap = document.documentElement.classList.contains('dark');
+            localStorage.setItem('ktvdi-theme', apakahGelap ? 'dark' : 'light');
+        }
+
+        function perbaruiSalamPonsel() {
+            const jamSekarang = new Date().getHours();
+            let teksSalam = "Selamat Malam,";
+            if (jamSekarang >= 4 && jamSekarang < 11) teksSalam = "Selamat Pagi,";
+            else if (jamSekarang >= 11 && jamSekarang < 15) teksSalam = "Selamat Siang,";
+            else if (jamSekarang >= 15 && jamSekarang < 18) teksSalam = "Selamat Sore,";
+            
+            const elemenSalam = document.getElementById('mobile-greeting');
+            if(elemenSalam) elemenSalam.innerText = teksSalam;
+        }
+        perbaruiSalamPonsel();
+
+        let kecepatanSaatIniKmh = "0.0";
+        let bufferKecepatan = [];
         
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
-                (position) => {
-                    if (position.coords.accuracy < 30) {
-                        let speedMs = position.coords.speed;
+                (posisi) => {
+                    if (posisi.coords.accuracy < 30) {
+                        let kecepatanMs = posisi.coords.speed;
                         
-                        if (speedMs !== null) {
-                            if (speedMs < 0.5) speedMs = 0; 
+                        if (kecepatanMs !== null) {
+                            if (kecepatanMs < 0.5) kecepatanMs = 0; 
                             
-                            speedBuffer.push(speedMs);
-                            if (speedBuffer.length > 4) speedBuffer.shift();
+                            bufferKecepatan.push(kecepatanMs);
+                            if (bufferKecepatan.length > 4) bufferKecepatan.shift();
                             
-                            const avgSpeedMs = speedBuffer.reduce((a, b) => a + b, 0) / speedBuffer.length;
+                            const rataRataKecepatanMs = bufferKecepatan.reduce((a, b) => a + b, 0) / bufferKecepatan.length;
                             
-                            if (avgSpeedMs > 0.5) {
-                                currentSpeedKmh = (avgSpeedMs * 3.6).toFixed(1);
+                            if (rataRataKecepatanMs > 0.5) {
+                                kecepatanSaatIniKmh = (rataRataKecepatanMs * 3.6).toFixed(1);
                             } else {
-                                currentSpeedKmh = "0.0";
+                                kecepatanSaatIniKmh = "0.0";
                             }
                         }
                     }
@@ -569,98 +608,96 @@
             );
         }
 
-        // === ROTASI HEADER DINAMIS: TICKER (15s) <--> SPEEDOMETER (5s) ===
-        let isShowingTicker = true;
+        let apakahMenampilkanTeksTicker = true;
         
-        function startHeaderRotation() {
-            const deskContainer = document.getElementById('desktop-header-dynamic');
-            const mobContainer = document.getElementById('mobile-guest-schedule');
+        function mulaiRotasiHeader() {
+            const wadahDesktop = document.getElementById('desktop-header-dynamic');
+            const wadahMobile = document.getElementById('mobile-guest-schedule');
             
-            const tickerHTML = `
+            const htmlTeksKtvdi = `
                 <div class="marquee-box w-full h-full flex items-center fade-swap">
                     <div class="marquee-inner">
                         <span class="text-[9px] md:text-xs font-heading font-bold tracking-widest uppercase drop-shadow-md mx-4 md:mx-8">KOMUNITAS TV DIGITAL INDONESIA</span>
                     </div>
                 </div>`;
                 
-            const speedHTML = `
+            const htmlSpeedometer = `
                 <div class="flex items-center justify-center w-full h-full fade-swap">
                     <div class="flex items-center gap-1.5 md:gap-2 bg-blue-50 dark:bg-white/10 px-3 py-1 rounded-full border border-blue-200 dark:border-white/20 shadow-inner">
                         <i class="fa-solid fa-car text-blue-600 dark:text-yellow-400 animate-pulse text-[10px] md:text-sm"></i>
-                        <span class="text-[8px] md:text-xs font-bold text-blue-900 dark:text-white uppercase tracking-wider">Berkendara: <span class="text-blue-600 dark:text-yellow-400 font-black">${currentSpeedKmh} km/h</span></span>
+                        <span class="text-[8px] md:text-xs font-bold text-blue-900 dark:text-white uppercase tracking-wider">Berkendara: <span class="text-blue-600 dark:text-yellow-400 font-black">${kecepatanSaatIniKmh} km/h</span></span>
                     </div>
                 </div>`;
             
-            if (isShowingTicker) {
-                if(deskContainer) deskContainer.innerHTML = tickerHTML;
-                if(mobContainer) mobContainer.innerHTML = tickerHTML;
+            if (apakahMenampilkanTeksTicker) {
+                if(wadahDesktop) wadahDesktop.innerHTML = htmlTeksKtvdi;
+                if(wadahMobile) wadahMobile.innerHTML = htmlTeksKtvdi;
                 setTimeout(() => {
-                    isShowingTicker = false;
-                    startHeaderRotation();
-                }, 15000); // Tampil 15 detik
+                    apakahMenampilkanTeksTicker = false;
+                    mulaiRotasiHeader();
+                }, 15000); 
             } else {
-                if(deskContainer) deskContainer.innerHTML = speedHTML;
-                if(mobContainer) mobContainer.innerHTML = speedHTML;
+                if(wadahDesktop) wadahDesktop.innerHTML = htmlSpeedometer;
+                if(wadahMobile) wadahMobile.innerHTML = htmlSpeedometer;
                 setTimeout(() => {
-                    isShowingTicker = true;
-                    startHeaderRotation();
-                }, 5000); // Tampil 5 detik
+                    apakahMenampilkanTeksTicker = true;
+                    mulaiRotasiHeader();
+                }, 5000); 
             }
         }
         
-        startHeaderRotation();
+        mulaiRotasiHeader();
 
-        function forceHideLoader() {
-            const loader = document.getElementById('initial-loader');
-            if(loader && loader.style.display !== 'none') {
-                loader.style.opacity = '0';
-                setTimeout(() => { loader.style.visibility = 'hidden'; loader.style.display = 'none'; }, 1500);
+        function sembunyikanPemuat() {
+            const elemenPemuat = document.getElementById('initial-loader');
+            if(elemenPemuat && elemenPemuat.style.display !== 'none') {
+                elemenPemuat.style.opacity = '0';
+                setTimeout(() => { elemenPemuat.style.visibility = 'hidden'; elemenPemuat.style.display = 'none'; }, 1500);
             }
         }
-        window.addEventListener('DOMContentLoaded', () => { setTimeout(forceHideLoader, 1200); });
+        window.addEventListener('DOMContentLoaded', () => { setTimeout(sembunyikanPemuat, 1200); });
 
-        function toggleDropdown(id) {
-            const el = document.getElementById(id);
-            document.querySelectorAll('.modern-glass-dropdown').forEach(d => { if(d.id !== id) d.classList.add('hidden'); });
-            el.classList.toggle('hidden');
+        function bukaTutupDropdown(idElemen) {
+            const elemen = document.getElementById(idElemen);
+            document.querySelectorAll('.modern-glass-dropdown').forEach(d => { if(d.id !== idElemen) d.classList.add('hidden'); });
+            elemen.classList.toggle('hidden');
         }
 
-        // === LOGIKA JADWAL SHOLAT REAL (KEMENAG API via MYQURAN) ===
-        let jadwalSholatHariIni = null;
-        let cachedNewsData = [];
+        let dataJadwalSholatHariIni = null;
+        let dataBeritaTersimpan = [];
 
-        async function fetchJadwalSholatReal(city) {
+        async function ambilJadwalSholatReal(namaKota) {
             try {
-                const searchRes = await fetch(`https://api.myquran.com/v2/sholat/kota/cari/${encodeURIComponent(city)}`);
-                const searchData = await searchRes.json();
+                const responsPencarian = await fetch(`https://api.myquran.com/v2/sholat/kota/cari/${encodeURIComponent(namaKota)}`);
+                const hasilPencarian = await responsPencarian.json();
                 
-                if (searchData && searchData.status && searchData.data && searchData.data.length > 0) {
-                    const cityId = searchData.data[0].id;
-                    const date = new Date();
-                    const year = date.getFullYear();
-                    const month = date.getMonth() + 1;
-                    const day = date.getDate();
+                if (hasilPencarian && hasilPencarian.status && hasilPencarian.data && hasilPencarian.data.length > 0) {
+                    const idKota = hasilPencarian.data[0].id;
+                    const tanggalSekarang = new Date();
+                    const tahun = tanggalSekarang.getFullYear();
+                    const bulan = tanggalSekarang.getMonth() + 1;
+                    const hari = tanggalSekarang.getDate();
                     
-                    const jadwalRes = await fetch(`https://api.myquran.com/v2/sholat/jadwal/${cityId}/${year}/${month}/${day}`);
-                    const jadwalData = await jadwalRes.json();
+                    const responsJadwal = await fetch(`https://api.myquran.com/v2/sholat/jadwal/${idKota}/${tahun}/${bulan}/${hari}`);
+                    const hasilJadwal = await responsJadwal.json();
                     
-                    if (jadwalData && jadwalData.status && jadwalData.data && jadwalData.data.jadwal) {
-                        jadwalSholatHariIni = jadwalData.data.jadwal;
+                    if (hasilJadwal && hasilJadwal.status && hasilJadwal.data && hasilJadwal.data.jadwal) {
+                        dataJadwalSholatHariIni = hasilJadwal.data.jadwal;
                     }
                 } else {
-                    fallbackAladhan(city);
+                    ambilJadwalCadangan(namaKota);
                 }
             } catch(e) {
-                fallbackAladhan(city); 
+                ambilJadwalCadangan(namaKota); 
             }
         }
 
-        async function fallbackAladhan(city) {
+        async function ambilJadwalCadangan(namaKota) {
             try {
-                const response = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=Indonesia&method=11`);
-                const data = await response.json();
+                const respons = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(namaKota)}&country=Indonesia&method=11`);
+                const data = await respons.json();
                 if(data && data.data && data.data.timings) {
-                    jadwalSholatHariIni = {
+                    dataJadwalSholatHariIni = {
                         subuh: data.data.timings.Fajr,
                         dzuhur: data.data.timings.Dhuhr,
                         ashar: data.data.timings.Asr,
@@ -671,234 +708,237 @@
             } catch (e) {}
         }
 
-        function checkWaktuSholatTiba() {
-            if(!jadwalSholatHariIni) return null;
+        function cekWaktuSholatTiba() {
+            if(!dataJadwalSholatHariIni) return null;
             
-            const now = new Date();
-            const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+            const waktuSekarang = new Date();
+            const totalMenitSekarang = (waktuSekarang.getHours() * 60) + waktuSekarang.getMinutes();
             
-            const timesToCheck = {
-                'SUBUH': jadwalSholatHariIni.subuh,
-                'DZUHUR': jadwalSholatHariIni.dzuhur,
-                'ASHAR': jadwalSholatHariIni.ashar,
-                'MAGHRIB': jadwalSholatHariIni.maghrib,
-                'ISYA': jadwalSholatHariIni.isya
+            const daftarWaktuSholat = {
+                'SUBUH': dataJadwalSholatHariIni.subuh,
+                'DZUHUR': dataJadwalSholatHariIni.dzuhur,
+                'ASHAR': dataJadwalSholatHariIni.ashar,
+                'MAGHRIB': dataJadwalSholatHariIni.maghrib,
+                'ISYA': dataJadwalSholatHariIni.isya
             };
 
-            for (const [namaSholat, waktu] of Object.entries(timesToCheck)) {
-                if (!waktu) continue;
-                const [h, m] = waktu.split(':').map(Number);
-                const sholatMinutes = (h * 60) + m;
+            for (const [namaSholat, waktuTeks] of Object.entries(daftarWaktuSholat)) {
+                if (!waktuTeks) continue;
+                const [jam, menit] = waktuTeks.split(':').map(Number);
+                const totalMenitSholat = (jam * 60) + menit;
                 
-                if (currentMinutes >= sholatMinutes && currentMinutes <= (sholatMinutes + 20)) {
-                    const city = window.userCity ? window.userCity.toUpperCase() : "ANDA";
-                    return `<span class="ticker-urgent text-red-600 dark:text-red-400 font-black tracking-widest px-8"><i class="fa-solid fa-mosque mr-3 animate-bounce"></i> PEMBERITAHUAN: SAAT INI TELAH MASUK WAKTU ${namaSholat} UNTUK WILAYAH ${city} DAN SEKITARNYA. SELAMAT MENUNAIKAN IBADAH SHOLAT.</span>`;
+                if (totalMenitSekarang >= totalMenitSholat && totalMenitSekarang <= (totalMenitSholat + 20)) {
+                    const kota = window.userCity ? window.userCity.toUpperCase() : "ANDA";
+                    return `<span class="ticker-urgent text-red-600 dark:text-red-400 font-black tracking-widest px-8"><i class="fa-solid fa-mosque mr-3 animate-bounce"></i> PEMBERITAHUAN: SAAT INI TELAH MASUK WAKTU ${namaSholat} UNTUK WILAYAH ${kota} DAN SEKITARNYA. SELAMAT MENUNAIKAN IBADAH SHOLAT.</span>`;
                 }
             }
             return null;
         }
 
-        function getNextPrayerCountdown() {
-            if(!jadwalSholatHariIni) return null;
+        function hitungMundurSholatBerikutnya() {
+            if(!dataJadwalSholatHariIni) return null;
             
-            const now = new Date();
-            const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+            const waktuSekarang = new Date();
+            const totalMenitSekarang = (waktuSekarang.getHours() * 60) + waktuSekarang.getMinutes();
             
-            const schedule = [
-                { name: 'SUBUH', time: jadwalSholatHariIni.subuh },
-                { name: 'DZUHUR', time: jadwalSholatHariIni.dzuhur },
-                { name: 'ASHAR', time: jadwalSholatHariIni.ashar },
-                { name: 'MAGHRIB', time: jadwalSholatHariIni.maghrib },
-                { name: 'ISYA', time: jadwalSholatHariIni.isya }
+            const urutanSholat = [
+                { nama: 'SUBUH', waktu: dataJadwalSholatHariIni.subuh },
+                { nama: 'DZUHUR', waktu: dataJadwalSholatHariIni.dzuhur },
+                { nama: 'ASHAR', waktu: dataJadwalSholatHariIni.ashar },
+                { nama: 'MAGHRIB', waktu: dataJadwalSholatHariIni.maghrib },
+                { nama: 'ISYA', waktu: dataJadwalSholatHariIni.isya }
             ];
 
-            let nextPrayer = null;
-            let diffMins = 0;
+            let sholatSelanjutnya = null;
+            let selisihMenit = 0;
 
-            for (let i = 0; i < schedule.length; i++) {
-                if (!schedule[i].time) continue;
-                const [h, m] = schedule[i].time.split(':').map(Number);
-                const sholatMinutes = (h * 60) + m;
+            for (let i = 0; i < urutanSholat.length; i++) {
+                if (!urutanSholat[i].waktu) continue;
+                const [jam, menit] = urutanSholat[i].waktu.split(':').map(Number);
+                const totalMenitSholat = (jam * 60) + menit;
                 
-                if (sholatMinutes > currentMinutes) {
-                    nextPrayer = schedule[i].name;
-                    diffMins = sholatMinutes - currentMinutes;
+                if (totalMenitSholat > totalMenitSekarang) {
+                    sholatSelanjutnya = urutanSholat[i].nama;
+                    selisihMenit = totalMenitSholat - totalMenitSekarang;
                     break;
                 }
             }
 
-            if (!nextPrayer && schedule[0].time) {
-                const [h, m] = schedule[0].time.split(':').map(Number);
-                const sholatMinutes = (h * 60) + m + (24 * 60);
-                nextPrayer = schedule[0].name;
-                diffMins = sholatMinutes - currentMinutes;
+            if (!sholatSelanjutnya && urutanSholat[0].waktu) {
+                const [jam, menit] = urutanSholat[0].waktu.split(':').map(Number);
+                const totalMenitSholatBesok = (jam * 60) + menit + (24 * 60);
+                sholatSelanjutnya = urutanSholat[0].nama;
+                selisihMenit = totalMenitSholatBesok - totalMenitSekarang;
             }
 
-            if (nextPrayer) {
-                const hours = Math.floor(diffMins / 60);
-                const mins = diffMins % 60;
-                let timeStr = "";
-                if (hours > 0) timeStr += `${hours} Jam `;
-                timeStr += `${mins} Menit`;
+            if (sholatSelanjutnya) {
+                const sisaJam = Math.floor(selisihMenit / 60);
+                const sisaMenit = selisihMenit % 60;
+                let teksWaktu = "";
+                if (sisaJam > 0) teksWaktu += `${sisaJam} Jam `;
+                teksWaktu += `${sisaMenit} Menit`;
                 
-                return `<span class="text-blue-600 dark:text-blue-400 font-bold"><i class="fa-solid fa-clock mr-2"></i>MENUJU WAKTU ${nextPrayer} DALAM ${timeStr}</span>`;
+                return `<span class="text-blue-600 dark:text-blue-400 font-bold"><i class="fa-solid fa-clock mr-2"></i>MENUJU WAKTU ${sholatSelanjutnya} DALAM ${teksWaktu}</span>`;
             }
             return null;
         }
 
-        function renderTicker() {
-            const alertSholat = checkWaktuSholatTiba();
-            const countdownNext = getNextPrayerCountdown();
-            let items = "";
+        function tampilkanTeksBerjalan() {
+            const peringatanSholat = cekWaktuSholatTiba();
+            const teksHitungMundur = hitungMundurSholatBerikutnya();
+            let teksHtml = "";
             
-            const mobTicker = document.getElementById('unified-ticker-mobile');
-            const deskTicker = document.getElementById('unified-ticker-desktop');
+            const teksPonsel = document.getElementById('unified-ticker-mobile');
+            const teksDesktop = document.getElementById('unified-ticker-desktop');
             
-            if (alertSholat) {
-                items = `<div class="ticker-item">${alertSholat}</div>`.repeat(5);
-                // Kecepatan peringatan 85s
-                if(mobTicker) mobTicker.style.animationDuration = '85s';
-                if(deskTicker) deskTicker.style.animationDuration = '85s';
-            } else {
-                let dynamicNews = cachedNewsData.slice();
+            if (peringatanSholat) {
+                teksHtml = `<div class="ticker-item">${peringatanSholat}</div>`.repeat(5);
                 
-                if(countdownNext) {
-                    dynamicNews.unshift(countdownNext);
+                // Kecepatan darurat tetap di 90s agar informasi sholat terlihat
+                if(teksPonsel) teksPonsel.style.animationDuration = '90s';
+                if(teksDesktop) teksDesktop.style.animationDuration = '90s';
+            } else {
+                let daftarBeritaDinamsi = dataBeritaTersimpan.slice();
+                
+                if(teksHitungMundur) {
+                    daftarBeritaDinamsi.unshift(teksHitungMundur);
                 }
                 
-                items = dynamicNews.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-sm md:text-lg">//</span>`).join('');
-                items = items.repeat(4);
+                teksHtml = daftarBeritaDinamsi.map(berita => `<div class="ticker-item">${berita}</div><span class="opacity-50 font-black inline-flex items-center text-sm md:text-lg">//</span>`).join('');
+                teksHtml = teksHtml.repeat(4);
                 
-                // DIKEMBALIKAN PELAN SEPERTI DULU (510s)
-                if(mobTicker) mobTicker.style.animationDuration = '510s';
-                if(deskTicker) deskTicker.style.animationDuration = '510s';
+                // TERAPKAN VARIABEL KECEPATAN DARI PENGATURAN AKSESIBILITAS
+                if(teksPonsel) teksPonsel.style.animationDuration = durasiTeksBerjalan + 's';
+                if(teksDesktop) teksDesktop.style.animationDuration = durasiTeksBerjalan + 's';
             }
             
-            if(mobTicker && mobTicker.innerHTML !== items) { mobTicker.innerHTML = items; }
-            if(deskTicker && deskTicker.innerHTML !== items) { deskTicker.innerHTML = items; }
+            if(teksPonsel && teksPonsel.innerHTML !== teksHtml) { teksPonsel.innerHTML = teksHtml; }
+            if(teksDesktop && teksDesktop.innerHTML !== teksHtml) { teksDesktop.innerHTML = teksHtml; }
         }
 
-        async function fetchNews() {
+        async function ambilDataBerita() {
             try { 
-                const city = window.userCity || 'Semarang';
-                const res = await fetch('/api/news-ticker?city=' + encodeURIComponent(city)); 
-                cachedNewsData = await res.json(); 
+                const kota = window.userCity || 'Semarang';
+                const respons = await fetch('/api/news-ticker?city=' + encodeURIComponent(kota)); 
+                dataBeritaTersimpan = await respons.json(); 
             } catch {
-                cachedNewsData = [
+                dataBeritaTersimpan = [
                     "<i class='fa-solid fa-circle-info mr-2'></i> Selamat datang di Portal Komunitas TV Digital Indonesia", 
                     "<i class='fa-solid fa-tower-broadcast mr-2'></i> Dapatkan informasi update seputar siaran digital dan infrastruktur jaringan", 
                     "<i class='fa-solid fa-shield-halved mr-2'></i> Tetap waspada terhadap informasi hoaks seputar Analog Switch Off (ASO)"
                 ];
             }
-            renderTicker();
+            tampilkanTeksBerjalan();
         }
 
-        setInterval(fetchNews, 300000); 
-        setInterval(renderTicker, 30000); 
+        setInterval(ambilDataBerita, 300000); 
+        setInterval(tampilkanTeksBerjalan, 30000); 
 
-        // === LOGIKA JAM DENGAN DETIK & FORMAT WIB/WITA/WIT ===
-        function updateClockTick() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
+        function perbaruiJam() {
+            const waktuSekarang = new Date();
+            const teksWaktu = waktuSekarang.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\./g, ':');
             
-            const offset = -(now.getTimezoneOffset() / 60);
-            let tzInfo = "WIB";
-            if (offset === 8) tzInfo = "WITA";
-            if (offset === 9) tzInfo = "WIT";
+            const zonaWaktu = -(waktuSekarang.getTimezoneOffset() / 60);
+            let namaZonaWaktu = "WIB";
+            if (zonaWaktu === 8) namaZonaWaktu = "WITA";
+            if (zonaWaktu === 9) namaZonaWaktu = "WIT";
             
-            const fullClockStr = `${timeString} ${tzInfo}`;
+            const teksJamLengkap = `${teksWaktu} ${namaZonaWaktu}`;
             
-            const deskClock = document.getElementById('clock-desktop');
-            const mobClock = document.getElementById('clock-mobile');
-            if(deskClock) deskClock.innerText = fullClockStr;
-            if(mobClock) mobClock.innerText = fullClockStr;
+            const jamDesktop = document.getElementById('clock-desktop');
+            const jamPonsel = document.getElementById('clock-mobile');
+            if(jamDesktop) jamDesktop.innerText = teksJamLengkap;
+            if(jamPonsel) jamPonsel.innerText = teksJamLengkap;
         }
-        setInterval(updateClockTick, 1000); 
-        updateClockTick();
+        setInterval(perbaruiJam, 1000); 
+        perbaruiJam();
 
-        // === DETEKSI LOKASI DEVICE TERAKURAT ===
-        async function setLocationData(city, fullLocation) {
-            window.userCity = city || 'Semarang';
-            const displayLocation = fullLocation || window.userCity;
+        async function simpanDataLokasi(namaKota, namaLokasiLengkap) {
+            window.userCity = namaKota || 'Semarang';
+            const lokasiDitampilkan = namaLokasiLengkap || window.userCity;
             
-            ['desktop-user-location', 'mobile-user-location'].forEach(id => {
-                const el = document.getElementById(id); if(el) el.innerText = displayLocation;
+            ['desktop-user-location', 'mobile-user-location'].forEach(idElemen => {
+                const elemen = document.getElementById(idElemen); if(elemen) elemen.innerText = lokasiDitampilkan;
             });
             
-            await fetchJadwalSholatReal(window.userCity);
-            fetchNews();
+            await ambilJadwalSholatReal(window.userCity);
+            ambilDataBerita();
         }
 
-        function fetchUserLocation() {
+        function ambilLokasiPengguna() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    async (position) => {
+                    async (posisi) => {
                         try {
-                            const lat = position.coords.latitude;
-                            const lon = position.coords.longitude;
+                            const lintang = posisi.coords.latitude;
+                            const bujur = posisi.coords.longitude;
                             
-                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
-                            const data = await res.json();
-                            const addr = data.address || {};
+                            const respons = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lintang}&lon=${bujur}&zoom=18&addressdetails=1`);
+                            const data = await respons.json();
+                            const alamat = data.address || {};
                             
-                            const kecamatan = addr.city_district || addr.suburb || addr.village || addr.municipality || '';
-                            const kota = addr.city || addr.town || addr.county || addr.state_district || 'Semarang';
-                            const provinsi = addr.state || addr.region || 'Jawa Tengah';
+                            const namaKecamatan = alamat.city_district || alamat.suburb || alamat.village || alamat.municipality || '';
+                            const namaKota = alamat.city || alamat.town || alamat.county || alamat.state_district || 'Semarang';
+                            const namaProvinsi = alamat.state || alamat.region || 'Jawa Tengah';
                             
-                            const locationParts = [kecamatan, kota, provinsi].filter(p => p.trim().length > 0);
-                            const uniqueParts = [...new Set(locationParts)];
+                            const bagianLokasi = [namaKecamatan, namaKota, namaProvinsi].filter(p => p.trim().length > 0);
+                            const lokasiUnik = [...new Set(bagianLokasi)];
                             
-                            setLocationData(kota, uniqueParts.join(', '));
+                            simpanDataLokasi(namaKota, lokasiUnik.join(', '));
                         } catch (e) {
-                            fallbackIpLocation();
+                            ambilLokasiCadanganDariIP();
                         }
                     },
                     (error) => {
-                        fallbackIpLocation();
+                        ambilLokasiCadanganDariIP();
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
                 );
             } else {
-                fallbackIpLocation();
+                ambilLokasiCadanganDariIP();
             }
         }
 
-        async function fallbackIpLocation() {
+        async function ambilLokasiCadanganDariIP() {
             try {
-                const res = await fetch('https://ipapi.co/json/'); 
-                const data = await res.json();
-                window.userIP = data.ip || 'Tidak Terdeteksi';
+                const respons = await fetch('https://ipapi.co/json/'); 
+                const data = await respons.json();
+                window.ipPengguna = data.ip || 'Tidak Terdeteksi';
                 
-                const kota = data.city || 'Semarang';
-                const region = data.region || 'Jawa Tengah';
-                const locationParts = [kota, region].filter(p => p && p.trim().length > 0);
+                const namaKota = data.city || 'Semarang';
+                const namaProvinsi = data.region || 'Jawa Tengah';
+                const bagianLokasi = [namaKota, namaProvinsi].filter(p => p && p.trim().length > 0);
                 
-                setLocationData(kota, locationParts.join(', '));
+                simpanDataLokasi(namaKota, bagianLokasi.join(', '));
             } catch (e) { 
-                setLocationData('Semarang', 'Semarang, Jawa Tengah');
+                simpanDataLokasi('Semarang', 'Semarang, Jawa Tengah');
             }
         }
 
-        fetchUserLocation();
+        ambilLokasiPengguna();
 
-        window.addEventListener('click', function(e){   
-            if (!e.target.closest('.relative.group')) {
+        window.addEventListener('click', function(kejadian){   
+            if (!kejadian.target.closest('.relative.group')) {
                 document.querySelectorAll('.modern-glass-dropdown').forEach(d => d.classList.add('hidden'));
             }
         });
 
-        function checkWidgetSchedule() {
-            const now = new Date();
-            const currentTime = now.getHours() + (now.getMinutes() / 60);
-            const callCenterWidget = document.getElementById('call-center-widget');
+        function cekJadwalPanggilanDarurat() {
+            const waktuSekarang = new Date();
+            const formatWaktuDesimal = waktuSekarang.getHours() + (waktuSekarang.getMinutes() / 60);
+            const tombolDarurat = document.getElementById('call-center-widget');
             
-            if (currentTime >= 20.5 || currentTime < 8) {
-                if(callCenterWidget) { callCenterWidget.classList.remove('hidden'); callCenterWidget.classList.add('flex'); }
+            if (formatWaktuDesimal >= 20.5 || formatWaktuDesimal < 8) {
+                if(tombolDarurat) { tombolDarurat.classList.remove('hidden'); tombolDarurat.classList.add('flex'); }
             } else {
-                if(callCenterWidget) { callCenterWidget.classList.add('hidden'); callCenterWidget.classList.remove('flex'); }
+                if(tombolDarurat) { tombolDarurat.classList.add('hidden'); tombolDarurat.classList.remove('flex'); }
             }
         }
-        window.addEventListener('DOMContentLoaded', () => { checkWidgetSchedule(); setInterval(checkWidgetSchedule, 60000); });
+        
+        window.addEventListener('DOMContentLoaded', () => { 
+            cekJadwalPanggilanDarurat(); 
+            setInterval(cekJadwalPanggilanDarurat, 60000); 
+        });
     </script>
 </body>
 </html>
