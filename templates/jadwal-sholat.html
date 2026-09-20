@@ -3,19 +3,19 @@
 {% block title %}Pojok Religi - KTVDI{% endblock %}
 
 {% block content %}
-
+<!-- Font & Eksternal Library -->
 <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cinzel:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://cdn.tailwindcss.com"></script>
 
+<!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Memaksa loader hilang maksimal dalam 1.5 detik agar halaman tidak mental/stuck
+    // Memaksa loader hilang maksimal dalam 1.5 detik
     setTimeout(() => {
         const loader = document.getElementById('initial-loader');
         if (loader) {
@@ -27,13 +27,14 @@
 
 <style>
     /* =========================================
-       DYNAMIC THEME CONFIGURATION - ISLAMIC FIRM THEME
+       DYNAMIC THEME CONFIGURATION (ISLAMIC THEME)
+       Otomatis menyesuaikan dengan base.html (.light-theme)
        ========================================= */
     :root {
-        /* Warna Deep Forest Green / Navy elegan dengan Pattern Geometris Islami */
+        /* Warna Deep Forest Green / Navy elegan dengan Pattern Geometris Islami (Dark Mode) */
         --theme-bg-gradient: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
         --islamic-pattern: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l15 15h15v15L45 45v15H30L15 45H0V30l15-15V0h15zm0 15l-15 15 15 15 15-15-15-15zm0 10l5 5-5 5-5-5 5-5z' fill='%23d4af37' fill-opacity='0.04' fill-rule='evenodd'/%3E%3C/svg%3E");
-        --theme-card-bg: #064e3b; /* Hijau zamrud pekat, solid */
+        --theme-card-bg: #064e3b;
         --theme-text-main: #ffffff;
         --theme-text-muted: #d1fae5;
         --theme-border: #d4af37;
@@ -42,7 +43,8 @@
         --theme-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
     }
 
-    body.day-mode {
+    /* Override untuk Mode Terang (Light Mode) */
+    .light-theme, html[data-theme="light"] {
         --theme-bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         --islamic-pattern: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l15 15h15v15L45 45v15H30L15 45H0V30l15-15V0h15zm0 15l-15 15 15 15 15-15-15-15zm0 10l5 5-5 5-5-5 5-5z' fill='%23064e3b' fill-opacity='0.04' fill-rule='evenodd'/%3E%3C/svg%3E");
         --theme-card-bg: #ffffff;
@@ -54,31 +56,29 @@
         --theme-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.08);
     }
 
-    /* --- FULL BLEED BREAKOUT --- */
+    /* --- FULL BLEED BREAKOUT --- 
+       Mencegah horizontal scroll akibat nabrak batas layar di Mobile & Windows */
+    #religi-main-wrapper {
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        padding-left: calc(50vw - 50%);
+        padding-right: calc(50vw - 50%);
+        overflow-x: hidden;
+    }
+
     #religi-main-content {
-        width: 100vw !important;
-        max-width: 100vw !important;
         position: relative;
-        left: 50%;
-        right: 50%;
-        margin-left: -50vw !important;
-        margin-right: -50vw !important;
-        /* Menghilangkan sisa padding base.html */
-        margin-top: -3rem;
-        margin-bottom: -3rem;
         padding-top: 3rem;
         padding-bottom: 3rem;
         min-height: calc(100vh - 60px); 
-        
-        /* Memindahkan background theme dari body ke container ini */
         background-image: var(--islamic-pattern), var(--theme-bg-gradient);
         background-attachment: fixed;
         color: var(--theme-text-main);
         font-family: 'Plus Jakarta Sans', sans-serif;
-        transition: background 1s ease, color 0.5s ease;
-        z-index: 10;
+        transition: background 0.8s ease, color 0.5s ease;
         border-top-left-radius: 2rem;
         border-top-right-radius: 2rem;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
     }
 
     @media (min-width: 768px) {
@@ -95,21 +95,21 @@
     .islamic-card {
         background: var(--theme-card-bg);
         border: 2px solid var(--theme-border);
-        border-radius: 8px; 
+        border-radius: 12px; 
         box-shadow: var(--theme-shadow);
         position: relative;
         overflow: hidden;
         transition: transform 0.4s ease, border-color 0.5s ease;
     }
     .islamic-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6);
+        transform: translateY(-4px);
+        box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.2);
     }
 
     .modal-card {
         background: var(--theme-card-bg);
         border: 2px solid var(--theme-border);
-        border-radius: 8px;
+        border-radius: 12px;
     }
 
     .txt-primary { color: var(--theme-text-main); font-weight: 700; transition: color 0.5s ease; }
@@ -122,7 +122,7 @@
         -webkit-text-fill-color: transparent;
         font-weight: 800;
     }
-    body.day-mode .text-gold-gradient {
+    .light-theme .text-gold-gradient {
         background: linear-gradient(to right, #9a7300, #d4af37, #9a7300);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -141,14 +141,13 @@
         border-radius: 8px;
         transition: all 0.3s ease;
     }
-    .prayer-time-box:hover {
-        border-color: var(--theme-gold);
-    }
+    .prayer-time-box:hover { border-color: var(--theme-gold); }
+    
     .prayer-time-box.active {
         background: var(--theme-gold);
         border-color: var(--theme-gold);
         color: #fff;
-        transform: translateY(-5px);
+        transform: translateY(-4px);
         box-shadow: 0 10px 20px -5px rgba(212, 175, 55, 0.5);
     }
     .prayer-time-box.active h4, .prayer-time-box.active p { color: #fff; font-weight: 800; }
@@ -161,7 +160,7 @@
         border-radius: 8px;
         box-shadow: var(--theme-shadow);
         z-index: 9999;
-        transition: right 0.5s ease;
+        transition: right 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
         display: flex; align-items: center; gap: 15px;
         max-width: 90vw;
     }
@@ -172,14 +171,15 @@
         color: var(--theme-text-main);
         border: 2px solid var(--theme-border);
         border-radius: 6px;
-        padding: 8px 12px;
+        padding: 10px 14px;
         cursor: pointer;
         font-weight: 700;
         appearance: auto;
         transition: border-color 0.3s ease, background-color 0.5s ease;
     }
-    #kotaSelect:focus { outline: none; border-color: var(--theme-text-main); }
+    #kotaSelect:focus { outline: none; border-color: var(--theme-gold); }
 
+    /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: var(--theme-input-bg); }
     ::-webkit-scrollbar-thumb { background: var(--theme-gold); border-radius: 4px; }
@@ -190,288 +190,308 @@
     
     .ai-btn-anim:active { transform: scale(0.95); }
     
-    /* Pengecualian Peta */
+    /* Pengecualian Layer Peta Leaflet agar teks tetap terbaca */
     .leaflet-container {
         font-family: 'Plus Jakarta Sans', sans-serif !important;
         background: #e5e7eb;
         border-radius: 6px;
+        z-index: 10;
     }
 </style>
 
-<div id="religi-main-content">
-    <div class="pb-20 px-4 md:px-8 max-w-7xl mx-auto min-h-screen relative z-10">
+<div id="religi-main-wrapper">
+    <div id="religi-main-content">
+        <div class="px-5 md:px-8 max-w-[1200px] mx-auto min-h-screen relative z-10">
 
-        <div id="prayerToast" class="toast-pro">
-            <div class="text-3xl txt-gold"><i class="fa-solid fa-mosque"></i></div>
-            <div>
-                <h4 class="txt-primary font-bold text-sm uppercase tracking-wider mb-1" id="toastTitle">Peringatan Waktu</h4>
-                <p class="txt-secondary text-xs" id="toastMessage">Waktu sholat segera tiba.</p>
-            </div>
-        </div>
-
-        <div id="aiSpeakingIndicator" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-[var(--theme-card-bg)] border-2 border-[var(--theme-gold)] text-white px-5 py-2 rounded-full shadow-lg z-[9999] flex items-center gap-3 hidden">
-            <div class="flex items-center gap-1">
-                <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse"></span>
-                <span class="w-1.5 h-6 bg-[var(--theme-gold)] rounded-full animate-pulse delay-75"></span>
-                <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse delay-150"></span>
-            </div>
-            <span class="text-xs font-bold tracking-widest uppercase txt-gold">AI Sedang Membaca</span>
-            <button onclick="window.stopAIVoice()" class="ml-2 w-6 h-6 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition border border-red-400">
-                <i class="fa-solid fa-stop text-[10px] text-white"></i>
-            </button>
-        </div>
-
-        <div class="flex flex-col lg:flex-row justify-between items-center lg:items-end mb-10 border-b-2 border-[var(--theme-border)] pb-6 gap-6 text-center lg:text-left pt-6">
-            <div>
-                <h1 class="text-4xl md:text-5xl font-luxury txt-primary mb-2 flex flex-col md:flex-row items-center gap-2 md:gap-3 font-bold">
-                    <span class="bg-[var(--theme-gold)]/10 p-2 md:p-3 rounded border-2 border-[var(--theme-gold)] shadow-md">
-                        <i class="fa-solid fa-kaaba txt-gold"></i>
-                    </span>
-                    <span>Pojok <span class="text-gold-gradient">Religi</span></span>
-                </h1>
-                <p class="txt-secondary text-sm font-bold tracking-[0.2em] uppercase pl-1 mt-2">Menyajikan Info Religi yang Akurat</p>
-                <p class="txt-gold text-sm italic mt-1 font-bold">Kedamaian untuk seluruh umat manusia, rahmat bagi semesta alam.</p>
-            </div>
-
-            <div class="w-full lg:w-auto flex flex-col gap-2">
-                <label class="text-[11px] uppercase txt-secondary font-bold tracking-widest lg:text-right hidden lg:block">Sinkronisasi Lokasi GPS</label>
-                <div class="flex items-center w-full lg:w-[320px] transition gap-2">
-                    <div id="gpsIcon" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] flex items-center justify-center txt-gold shrink-0 cursor-pointer hover:bg-[var(--theme-gold)] hover:text-white transition-colors" onclick="window.forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
-                        <i class="fa-solid fa-location-crosshairs"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <select id="kotaSelect" class="w-full text-sm">
-                            <option value="" disabled selected>Pilih Kota/Kabupaten...</option>
-                            {% for kota in daftar_kota %}
-                            <option value="{{ kota.id }}">{{ kota.nama }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+            <!-- Toast Peringatan Waktu Sholat -->
+            <div id="prayerToast" class="toast-pro">
+                <div class="text-3xl txt-gold"><i class="fa-solid fa-mosque"></i></div>
+                <div>
+                    <h4 class="txt-primary font-bold text-sm uppercase tracking-wider mb-1" id="toastTitle">Peringatan Waktu</h4>
+                    <p class="txt-secondary text-xs" id="toastMessage">Waktu sholat segera tiba.</p>
                 </div>
-                <div id="locStatus" class="text-[11px] font-bold lg:text-right text-center txt-gold h-4 italic">Memeriksa ketersediaan GPS...</div>
             </div>
-        </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-            <div class="lg:col-span-8 islamic-card p-6 md:p-8 flex flex-col justify-between min-h-[300px] relative">
-                <div class="absolute top-0 right-0 opacity-[0.05] text-9xl txt-gold transform translate-x-10 -translate-y-10 pointer-events-none">
-                    <i class="fa-solid fa-clock"></i>
+            <!-- Indikator Suara AI -->
+            <div id="aiSpeakingIndicator" class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-[var(--theme-card-bg)] border-2 border-[var(--theme-gold)] text-white px-5 py-2.5 rounded-full shadow-lg z-[9999] flex items-center gap-3 hidden">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse"></span>
+                    <span class="w-1.5 h-6 bg-[var(--theme-gold)] rounded-full animate-pulse delay-75"></span>
+                    <span class="w-1.5 h-4 bg-[var(--theme-gold)] rounded-full animate-pulse delay-150"></span>
+                </div>
+                <span class="text-xs font-bold tracking-widest uppercase txt-gold">AI Sedang Membaca</span>
+                <button onclick="window.stopAIVoice()" class="ml-2 w-7 h-7 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition border border-red-400">
+                    <i class="fa-solid fa-stop text-[10px] text-white"></i>
+                </button>
+            </div>
+
+            <!-- Header Section -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 border-b-2 border-[var(--theme-border)] pb-6 gap-6 pt-2">
+                <div>
+                    <h1 class="text-4xl md:text-5xl font-luxury txt-primary mb-2 flex items-center gap-3 font-bold">
+                        <span class="bg-[var(--theme-gold)]/10 p-2 md:p-3 rounded-lg border-2 border-[var(--theme-gold)] shadow-md">
+                            <i class="fa-solid fa-kaaba txt-gold"></i>
+                        </span>
+                        <span>Pojok <span class="text-gold-gradient">Religi</span></span>
+                    </h1>
+                    <p class="txt-secondary text-sm font-bold tracking-[0.2em] uppercase pl-1 mt-2">Pusat Informasi & Penyejuk Hati</p>
+                    <p class="txt-gold text-sm italic mt-1 font-bold">Kedamaian untuk seluruh umat manusia, rahmat bagi semesta alam.</p>
                 </div>
 
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-start gap-4 z-10 w-full">
-                    <div>
-                        <span class="block txt-secondary text-xs font-bold uppercase tracking-widest mb-1">Waktu & Tanggal Hari Ini</span>
-                        <div class="text-2xl md:text-3xl font-luxury txt-primary font-bold" id="hijriDate">{{ hijri_date }}</div>
-                        
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
-                            <div class="text-sm txt-gold font-bold" id="dateMasehi">...</div>
-                            <div class="hidden sm:block txt-secondary">•</div>
-                            <div class="text-sm txt-primary font-bold bg-[var(--theme-input-bg)] px-3 py-1.5 rounded border-2 border-[var(--theme-border)] inline-flex items-center w-max">
-                                <i class="fa-regular fa-clock txt-gold mr-2"></i>
-                                <span id="realtimeClock" class="tabular-nums tracking-wider">--:--:--</span>
-                                <span id="timezoneLabel" class="ml-1 text-xs txt-secondary">WIB</span>
+                <div class="w-full md:w-auto flex flex-col gap-2">
+                    <label class="text-[11px] uppercase txt-secondary font-bold tracking-widest md:text-right hidden md:block">Lokasi Pengguna</label>
+                    <div class="flex items-center w-full md:w-[320px] transition gap-2">
+                        <div id="gpsIcon" class="w-11 h-11 rounded-lg bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] flex items-center justify-center txt-gold shrink-0 cursor-pointer hover:bg-[var(--theme-gold)] hover:text-white transition-colors shadow-sm" onclick="window.forceGPS()" title="Sinkronkan dengan Lokasi Saat Ini">
+                            <i class="fa-solid fa-location-crosshairs"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <select id="kotaSelect" class="w-full text-sm">
+                                <option value="" disabled selected>Pilih Kota/Kabupaten...</option>
+                                {% for kota in daftar_kota %}
+                                <option value="{{ kota.id }}">{{ kota.nama }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div id="locStatus" class="text-[11px] font-bold md:text-right text-left txt-gold h-4 italic">Mencari sinyal GPS...</div>
+                </div>
+            </div>
+
+            <!-- Main Top Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
+                
+                <!-- Waktu & Countdown Card -->
+                <div class="lg:col-span-8 islamic-card p-6 md:p-8 flex flex-col justify-between min-h-[300px] relative">
+                    <div class="absolute top-0 right-0 opacity-[0.05] text-9xl txt-gold transform translate-x-10 -translate-y-10 pointer-events-none">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row justify-between items-start gap-4 z-10 w-full">
+                        <div>
+                            <span class="block txt-secondary text-xs font-bold uppercase tracking-widest mb-1">Tanggal Hari Ini</span>
+                            <div class="text-2xl md:text-3xl font-luxury txt-primary font-bold" id="hijriDate">{{ hijri_date }}</div>
+                            
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-2 mt-3">
+                                <div class="text-sm txt-gold font-bold" id="dateMasehi">...</div>
+                                <div class="hidden sm:block txt-secondary font-black">•</div>
+                                <div class="text-sm txt-primary font-bold bg-[var(--theme-input-bg)] px-3 py-1.5 rounded-lg border-2 border-[var(--theme-border)] inline-flex items-center w-max shadow-sm">
+                                    <i class="fa-regular fa-clock txt-gold mr-2"></i>
+                                    <span id="realtimeClock" class="tabular-nums tracking-wider">--:--:--</span>
+                                    <span id="timezoneLabel" class="ml-1 text-xs txt-secondary">WIB</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-auto">
+                            <div class="bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded-lg p-3 md:p-4 inline-flex flex-col items-start md:items-end w-full md:w-auto shadow-md">
+                                <span class="block txt-secondary text-[10px] uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-dot txt-gold"></i> Lokasi Saat Ini
+                                </span>
+                                <div class="txt-primary font-bold tracking-wide text-sm md:text-base uppercase" id="currentCityLabel">...</div>
+                                <div class="text-[12px] txt-gold mt-1 hidden font-bold" id="currentKecamatanLabel"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="md:text-right w-full md:w-auto">
-                        <div class="bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded p-3 inline-flex flex-col items-start md:items-end w-full md:w-auto shadow-md">
-                            <span class="block txt-secondary text-[10px] uppercase font-bold tracking-widest mb-1 flex items-center gap-1.5">
-                                <i class="fa-solid fa-location-dot txt-gold"></i> Lokasi Terkunci
-                            </span>
-                            <div class="txt-primary font-bold tracking-wide text-sm md:text-base uppercase" id="currentCityLabel">...</div>
-                            <div class="text-[12px] txt-gold mt-1 hidden font-bold" id="currentKecamatanLabel"></div>
+
+                    <div class="text-center z-10 py-10 min-h-[160px] flex flex-col justify-center items-center">
+                        <p class="txt-secondary text-sm uppercase tracking-[0.2em] mb-4 font-bold">
+                            <span id="prayerLabelText">Menuju Waktu </span>
+                            <span id="nextPrayerName" class="txt-gold text-lg md:text-xl ml-1">...</span>
+                        </p>
+                        <div id="countdown" class="text-6xl md:text-8xl font-bold text-gold-gradient tabular-nums tracking-tight font-luxury transition-all duration-300 drop-shadow-md">--:--:--</div>
+                        
+                        <!-- Pesan Malam Hari -->
+                        <div id="nightReminder" class="hidden mt-8 w-full max-w-2xl bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded-lg p-3 relative shadow-md">
+                            <div class="marquee-wrapper text-sm txt-primary font-bold flex items-center">
+                                <span class="marquee-text inline-flex items-center gap-2" id="nightReminderText">
+                                    <i class="fa-solid fa-moon txt-gold"></i>
+                                    Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan.
+                                    <i class="fa-solid fa-star-and-crescent txt-gold ml-2"></i>
+                                </span>
+                            </div>
+                            <button onclick="window.playAIVoice(document.getElementById('nightReminderText').innerText)" class="absolute -right-3 -top-3 w-8 h-8 rounded-full bg-[var(--theme-gold)] text-white flex items-center justify-center shadow-lg hover:bg-yellow-600 border-2 border-white transition z-20" title="Dengarkan Pesan Malam via AI">
+                                <i class="fa-solid fa-volume-high text-xs"></i>
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- Progress Bar Penanda Waktu -->
+                    <div class="w-full bg-[var(--theme-input-bg)] h-2 rounded-full overflow-hidden mt-4 border border-[var(--theme-border)]">
+                        <div id="timeProgressBar" class="h-full bg-[var(--theme-gold)] w-0 transition-all duration-1000 ease-linear rounded-full"></div>
                     </div>
                 </div>
 
-                <div class="text-center z-10 py-8 min-h-[160px] flex flex-col justify-center items-center">
-                    <p class="txt-secondary text-sm uppercase tracking-[0.2em] mb-4 font-bold">
-                        <span id="prayerLabelText">Menuju Waktu </span>
-                        <span id="nextPrayerName" class="txt-gold text-lg">...</span>
-                    </p>
-                    <div id="countdown" class="text-6xl md:text-8xl font-bold text-gold-gradient tabular-nums tracking-tight font-luxury transition-all duration-300">--:--:--</div>
-                    
-                    <div id="nightReminder" class="hidden mt-6 w-full max-w-2xl bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] rounded p-3 relative shadow-md">
-                        <div class="marquee-wrapper text-sm txt-primary font-bold flex items-center">
-                            <span class="marquee-text inline-flex items-center gap-2" id="nightReminderText">
-                                <i class="fa-solid fa-moon txt-gold"></i>
-                                Malam telah larut. Beristirahatlah yang cukup karena tubuhmu memiliki hak untuk dijaga. Ingatlah firman Allah: "Dan Kami jadikan tidurmu untuk istirahat, dan Kami jadikan malam sebagai pakaian" (QS. An-Naba: 9-10). Semoga Allah selalu menjaga setiap langkah kita dalam ketaatan.
-                                <i class="fa-solid fa-star-and-crescent txt-gold ml-2"></i>
-                            </span>
+                <!-- Asmaul Husna Card -->
+                <div class="lg:col-span-4 islamic-card p-0 flex flex-col h-[400px] lg:h-auto">
+                    <div class="p-4 border-b-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] flex justify-between items-center">
+                        <h3 class="txt-gold font-bold text-sm uppercase tracking-widest">Asmaul Husna (99)</h3>
+                        <i class="fa-solid fa-star-and-crescent txt-secondary"></i>
+                    </div>
+                    <div class="flex-1 flex items-center justify-center p-6 relative">
+                        <div class="swiper asmaulSwiper w-full h-full relative px-6">
+                            <div class="swiper-wrapper" id="asmaulWrapper"></div>
+                            <!-- Swiper Nav -->
+                            <div class="swiper-button-next txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity !right-[-10px]"></div>
+                            <div class="swiper-button-prev txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity !left-[-10px]"></div>
                         </div>
-                        <button onclick="window.playAIVoice(document.getElementById('nightReminderText').innerText)" class="absolute -right-3 -top-3 w-8 h-8 rounded bg-[var(--theme-gold)] text-white flex items-center justify-center shadow-lg hover:bg-yellow-600 border border-white transition z-20" title="Dengarkan Pesan Malam via AI">
-                            <i class="fa-solid fa-volume-high text-xs"></i>
+                        <button onclick="window.readAsmaulHusna()" class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition shadow-md z-20" title="Dengarkan Asmaul Husna via AI">
+                            <i class="fa-solid fa-volume-high text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Jadwal Sholat -->
+            <div class="mb-14">
+                <h3 class="txt-primary font-luxury text-xl md:text-2xl mb-2 border-l-4 border-[var(--theme-gold)] pl-4 flex items-center font-bold">
+                    Jadwal Sholat Hari Ini
+                </h3>
+                <p class="text-sm txt-secondary mb-6 pl-5 italic font-bold">*Waktu setempat. Data bersumber dari Sistem Informasi Bimas Islam Kemenag RI.</p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4" id="prayerGrid">
+                    <div class="col-span-full py-12 text-center txt-secondary">
+                        <i class="fa-solid fa-circle-notch fa-spin text-3xl txt-gold mb-3"></i>
+                        <p class="text-sm uppercase tracking-widest font-bold">Sinkronisasi Waktu...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Radar Masjid -->
+            <div class="islamic-card p-6 md:p-8 mb-14 flex flex-col relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 text-9xl text-emerald-600/10 rotate-12 pointer-events-none">
+                    <i class="fa-solid fa-mosque"></i>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10 w-full mb-6 border-b-2 border-[var(--theme-border)] pb-4">
+                    <div class="flex items-center gap-4">
+                        <button id="radarMasjidBtn" class="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-[var(--theme-input-bg)] border-2 border-emerald-500 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-600 hover:text-white transition-all shadow-md group ai-btn-anim" onclick="window.scanNearbyMosque()" title="Pindai Masjid Terdekat">
+                            <i class="fa-solid fa-mosque relative z-10 text-xl md:text-2xl"></i>
+                        </button>
+                        <div>
+                            <h3 class="txt-primary font-bold text-lg md:text-xl leading-tight">Pencari Masjid Terdekat</h3>
+                            <p class="text-[11px] md:text-xs txt-secondary uppercase tracking-widest mt-1 font-bold">Navigasi Pintar KTVDI</p>
+                        </div>
+                    </div>
+                    
+                    <div id="liveTrackControl" class="hidden flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 border-2 border-red-500 rounded font-bold shadow-sm">
+                            <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
+                            <span class="text-xs text-red-500 tracking-widest uppercase">Live Navigasi</span>
+                        </div>
+                        <button onclick="window.stopLiveTracking()" class="text-xs font-bold bg-[var(--theme-input-bg)] hover:bg-red-600 hover:text-white txt-secondary px-4 py-2 border-2 border-[var(--theme-border)] hover:border-red-600 rounded transition flex items-center gap-2">
+                            <i class="fa-solid fa-power-off"></i> Hentikan Navigasi
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col lg:flex-row gap-6 relative z-10">
+                    <div id="radarResult" class="flex-1 bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] p-5 rounded-lg text-left min-h-[100px] flex flex-col justify-center">
+                        <p class="text-sm txt-secondary italic leading-relaxed font-bold"><i class="fa-solid fa-circle-info text-emerald-500 mr-2 text-lg"></i>Ketuk ikon radar di atas untuk memindai masjid atau mushola terdekat dari posisi Anda. Sistem akan memunculkan peta interaktif dan memandu arah perjalanan Anda secara akurat.</p>
+                    </div>
+                    
+                    <div id="mapContainerWrapper" class="w-full lg:w-1/2 h-[280px] md:h-[320px] hidden rounded-lg border-2 border-[var(--theme-border)] relative overflow-hidden">
+                        <div id="mapContainer" class="w-full h-full z-10 rounded"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Konten Tambahan (Ayat, Hadits, Tasbih) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                <!-- Ayat Pilihan -->
+                <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold shadow-sm">
+                                <i class="fa-solid fa-book-open-reader"></i>
+                            </div>
+                            <h4 class="txt-primary font-bold text-base tracking-wide">Renungan Ayat</h4>
+                        </div>
+                        <button onclick="window.readAyatPilihan()" class="w-10 h-10 rounded-full bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition shadow-sm" title="Dengarkan Ayat via AI">
+                            <i class="fa-solid fa-volume-high text-sm"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="quranContent" class="flex-1 flex flex-col justify-center mb-5 min-h-[160px]">
+                        <div class="animate-pulse flex space-x-4">
+                            <div class="flex-1 space-y-4 py-1">
+                                <div class="h-4 bg-gray-500/30 rounded w-3/4 mx-auto"></div>
+                                <div class="h-4 bg-gray-500/30 rounded w-1/2 mx-auto"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3 mt-auto pt-4 border-t-2 border-[var(--theme-border)]">
+                        <button onclick="window.fetchQuran()" class="flex-1 py-3 rounded-lg border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs uppercase tracking-wide shadow-sm">
+                            <i class="fa-solid fa-refresh mr-1"></i> Ganti Ayat
+                        </button>
+                        <button onclick="window.openYasin()" class="flex-1 py-3 rounded-lg border-2 border-emerald-600 bg-emerald-700/20 text-emerald-500 hover:bg-emerald-600 hover:text-white transition-colors font-bold text-xs uppercase tracking-wide shadow-sm">
+                            <i class="fa-solid fa-book-quran mr-1"></i> Baca Yasin
                         </button>
                     </div>
                 </div>
 
-                <div class="w-full bg-[var(--theme-input-bg)] h-3 rounded-full overflow-hidden mt-4 border border-[var(--theme-border)]">
-                    <div id="timeProgressBar" class="h-full bg-[var(--theme-gold)] w-0 transition-all duration-1000 ease-linear"></div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-4 islamic-card p-0 flex flex-col">
-                <div class="p-4 border-b-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] flex justify-between items-center">
-                    <h3 class="txt-gold font-bold text-sm uppercase tracking-widest">Asmaul Husna (99)</h3>
-                    <i class="fa-solid fa-star-and-crescent txt-secondary"></i>
-                </div>
-                <div class="flex-1 flex items-center justify-center p-6 relative">
-                    <div class="swiper asmaulSwiper w-full h-full">
-                        <div class="swiper-wrapper" id="asmaulWrapper"></div>
-                    </div>
-                    <button onclick="window.readAsmaulHusna()" class="absolute bottom-4 right-4 w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition z-20" title="Baca Asmaul Husna via AI">
-                        <i class="fa-solid fa-volume-high text-sm"></i>
-                    </button>
-                    <div class="swiper-button-next txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
-                    <div class="swiper-button-prev txt-gold scale-50 opacity-50 hover:opacity-100 transition-opacity"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="mb-12">
-            <h3 class="txt-primary font-luxury text-xl md:text-2xl mb-2 border-l-4 border-[var(--theme-gold)] pl-4 flex items-center font-bold">
-                Jadwal Sholat Hari Ini
-            </h3>
-            <p class="text-sm txt-secondary mb-6 pl-5 italic font-bold">*Waktu setempat. Data bersumber dari Sistem Informasi Bimas Islam Kemenag RI.</p>
-            
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" id="prayerGrid">
-                <div class="col-span-full py-12 text-center txt-secondary">
-                    <i class="fa-solid fa-circle-notch fa-spin text-3xl txt-gold mb-3"></i>
-                    <p class="text-sm uppercase tracking-widest font-bold">Sinkronisasi Waktu...</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="islamic-card p-6 mb-12 flex flex-col relative overflow-hidden">
-            <div class="absolute -right-10 -top-10 text-9xl text-emerald-600/10 rotate-12 pointer-events-none">
-                <i class="fa-solid fa-mosque"></i>
-            </div>
-            
-            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10 w-full mb-6 border-b-2 border-[var(--theme-border)] pb-4">
-                <div class="flex items-center gap-4">
-                    <button id="radarMasjidBtn" class="w-16 h-16 rounded bg-[var(--theme-input-bg)] border-2 border-emerald-500 flex items-center justify-center text-emerald-500 shrink-0 cursor-pointer hover:bg-emerald-600 hover:text-white transition shadow-md group ai-btn-anim" onclick="window.scanNearbyMosque()" title="Cari Masjid Terdekat">
-                        <i class="fa-solid fa-mosque relative z-10 text-2xl"></i>
-                    </button>
-                    <div>
-                        <h3 class="txt-primary font-bold text-xl leading-tight">Radar Tempat Ibadah</h3>
-                        <p class="text-xs txt-secondary uppercase tracking-widest mt-1 font-bold">Pencarian & Navigasi Cerdas</p>
-                    </div>
-                </div>
-                
-                <div id="liveTrackControl" class="hidden flex flex-col sm:flex-row items-end sm:items-center gap-3">
-                    <div class="flex items-center gap-2 px-3 py-1.5 bg-red-600/20 border-2 border-red-500 rounded font-bold shadow-sm">
-                        <div class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                        <span class="text-xs text-red-500 tracking-widest uppercase">Live Navigasi</span>
-                    </div>
-                    <button onclick="window.stopLiveTracking()" class="text-xs font-bold bg-[var(--theme-input-bg)] hover:bg-red-600 hover:text-white txt-secondary px-4 py-2 border-2 border-[var(--theme-border)] hover:border-red-600 rounded transition flex items-center gap-2">
-                        <i class="fa-solid fa-power-off"></i> Hentikan Navigasi
-                    </button>
-                </div>
-            </div>
-            
-            <div class="flex flex-col lg:flex-row gap-6 relative z-10">
-                <div id="radarResult" class="flex-1 bg-[var(--theme-input-bg)] border-2 border-[var(--theme-border)] p-5 rounded text-left min-h-[100px] flex flex-col justify-center">
-                    <p class="text-sm txt-secondary italic leading-relaxed font-bold"><i class="fa-solid fa-circle-info text-emerald-500 mr-2"></i>Ketuk ikon radar di atas untuk memindai masjid atau mushola terdekat dari posisi Anda. Sistem akan memunculkan peta interaktif dan memandu arah perjalanan Anda secara akurat.</p>
-                </div>
-                
-                <div id="mapContainerWrapper" class="w-full lg:w-1/2 h-[250px] md:h-[300px] hidden rounded border-2 border-[var(--theme-border)] relative">
-                    <div id="mapContainer" class="w-full h-full z-10 rounded"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            <div class="islamic-card p-6 flex flex-col lg:col-span-1 md:col-span-2 relative">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold">
-                            <i class="fa-solid fa-book-open-reader"></i>
+                <!-- Hadits -->
+                <div class="islamic-card p-6 flex flex-col relative">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold shadow-sm">
+                                <i class="fa-solid fa-feather-pointed"></i>
+                            </div>
+                            <h4 class="txt-primary font-bold text-base tracking-wide">Hadis Pilihan</h4>
                         </div>
-                        <h4 class="txt-primary font-bold text-base tracking-wide">Renungan Ayat Pilihan</h4>
+                        <button onclick="window.readHadits()" class="w-10 h-10 rounded-full bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition shadow-sm" title="Dengarkan Hadis via AI">
+                            <i class="fa-solid fa-volume-high text-sm"></i>
+                        </button>
                     </div>
-                    <button onclick="window.readAyatPilihan()" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition" title="Dengarkan Ayat via AI">
-                        <i class="fa-solid fa-volume-high text-sm"></i>
-                    </button>
-                </div>
-                
-                <div id="quranContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[160px]">
-                    <div class="animate-pulse flex space-x-4">
-                        <div class="flex-1 space-y-4 py-1">
-                            <div class="h-4 bg-gray-500/30 rounded w-3/4 mx-auto"></div>
-                            <div class="h-4 bg-gray-500/30 rounded w-1/2 mx-auto"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex gap-3 mt-auto pt-4 border-t-2 border-[var(--theme-border)]">
-                    <button onclick="window.fetchQuran()" class="flex-1 py-3 rounded border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs uppercase tracking-wide">
-                        <i class="fa-solid fa-refresh mr-1"></i> Acak Ayat
-                    </button>
-                    <button onclick="window.openYasin()" class="flex-1 py-3 rounded border-2 border-emerald-600 bg-emerald-700/20 text-emerald-500 hover:bg-emerald-600 hover:text-white transition-colors font-bold text-xs uppercase tracking-wide">
-                        <i class="fa-solid fa-book-quran mr-1"></i> Baca Yasin
-                    </button>
-                </div>
-            </div>
 
-            <div class="islamic-card p-6 flex flex-col relative">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold">
-                            <i class="fa-solid fa-feather-pointed"></i>
-                        </div>
-                        <h4 class="txt-primary font-bold text-base tracking-wide">Hadits Pilihan</h4>
+                    <div id="haditsContent" class="flex-1 flex flex-col justify-center mb-5 min-h-[120px]">
+                        <p class="text-sm txt-secondary text-center font-bold italic">Memuat hikmah hari ini...</p>
                     </div>
-                    <button onclick="window.readHadits()" class="w-10 h-10 rounded bg-[var(--theme-input-bg)] txt-gold border-2 border-[var(--theme-gold)] flex items-center justify-center hover:bg-[var(--theme-gold)] hover:text-white transition" title="Dengarkan Hadits via AI">
-                        <i class="fa-solid fa-volume-high text-sm"></i>
+                    <button onclick="window.randomHadits()" class="w-full py-3 rounded-lg border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs mt-auto uppercase tracking-wide shadow-sm">
+                        <i class="fa-solid fa-random mr-1"></i> Hadis Lainnya
                     </button>
                 </div>
 
-                <div id="haditsContent" class="flex-1 flex flex-col justify-center mb-4 min-h-[120px]">
-                    <p class="text-sm txt-secondary text-center font-bold italic">Memuat hikmah hari ini...</p>
+                <!-- Tasbih Digital -->
+                <div class="islamic-card p-6 text-center relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform duration-100" onclick="window.countTasbih()">
+                    <div class="absolute inset-0 bg-gradient-to-b from-[var(--theme-gold)]/0 to-[var(--theme-gold)]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <div class="flex items-center justify-center gap-2 mb-2 txt-secondary relative z-10">
+                        <i class="fa-solid fa-fingerprint txt-gold"></i> <span class="text-xs uppercase tracking-widest font-bold">Tasbih Digital</span>
+                    </div>
+                    
+                    <div id="tasbihContainer" class="relative z-10 flex justify-center items-center h-32 my-4">
+                        <div id="tasbihBg" class="absolute w-32 h-32 bg-[var(--theme-gold)] rounded-full scale-0 transition-transform duration-300 opacity-0"></div>
+                        <div id="tasbihCount" class="text-7xl font-bold txt-primary select-none drop-shadow-md transition-all duration-200 font-luxury">0</div>
+                    </div>
+                    
+                    <p class="text-[11px] txt-secondary font-bold italic relative z-10">Ketuk di area kartu ini untuk bertasbih</p>
+                    <button onclick="event.stopPropagation(); window.resetTasbih()" class="absolute top-4 right-4 txt-secondary hover:text-red-500 transition-colors z-20 bg-[var(--theme-input-bg)] p-3 border-2 border-[var(--theme-border)] rounded-full shadow-sm" title="Reset Tasbih">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
                 </div>
-                <button onclick="window.randomHadits()" class="w-full py-3 rounded border-2 border-[var(--theme-border)] bg-[var(--theme-input-bg)] txt-primary hover:bg-[var(--theme-gold)] hover:text-white transition-colors font-bold text-xs mt-auto uppercase tracking-wide">
-                    <i class="fa-solid fa-random mr-1"></i> Ganti Hadits
-                </button>
-            </div>
-
-            <div class="islamic-card p-6 text-center relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform duration-100" onclick="window.countTasbih()">
-                <div class="absolute inset-0 bg-gradient-to-b from-[var(--theme-gold)]/0 to-[var(--theme-gold)]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                
-                <div class="flex items-center justify-center gap-2 mb-2 txt-secondary relative z-10">
-                    <i class="fa-solid fa-fingerprint txt-gold"></i> <span class="text-xs uppercase tracking-widest font-bold">Tasbih Digital</span>
-                </div>
-                
-                <div id="tasbihContainer" class="relative z-10 flex justify-center items-center h-32 my-4">
-                    <div id="tasbihBg" class="absolute w-32 h-32 bg-[var(--theme-gold)] rounded-full scale-0 transition-transform duration-300 opacity-0"></div>
-                    <div id="tasbihCount" class="text-7xl font-bold txt-primary select-none drop-shadow-md transition-all duration-200">0</div>
-                </div>
-                
-                <p class="text-xs txt-secondary font-bold italic relative z-10">Ketuk area kartu untuk bertasbih</p>
-                <button onclick="event.stopPropagation(); window.resetTasbih()" class="absolute top-4 right-4 txt-secondary hover:text-red-500 transition-colors z-20 bg-[var(--theme-input-bg)] p-3 border-2 border-[var(--theme-border)] rounded-full">
-                    <i class="fa-solid fa-rotate-left"></i>
-                </button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Modal Yasin -->
 <div id="yasinModal" class="fixed inset-0 z-[9999] hidden items-center justify-center bg-black/90 p-4 transition-opacity duration-300 opacity-0">
-    <div class="modal-card w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="yasinModalCard">
-        <div class="p-5 border-b-2 border-[var(--theme-border)] flex justify-between items-center bg-[var(--theme-input-bg)]">
+    <div class="modal-card w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="yasinModalCard">
+        <div class="p-4 md:p-5 border-b-2 border-[var(--theme-border)] flex justify-between items-center bg-[var(--theme-input-bg)]">
             <div>
-                <h3 class="txt-primary font-luxury font-bold text-2xl"><i class="fa-solid fa-book-quran txt-gold mr-2"></i> Surat Yasin</h3>
-                <p class="text-xs txt-secondary mt-1 tracking-widest uppercase font-bold">Makkah • 83 Ayat</p>
+                <h3 class="txt-primary font-luxury font-bold text-xl md:text-2xl"><i class="fa-solid fa-book-quran txt-gold mr-2"></i> Surat Yasin</h3>
+                <p class="text-[10px] md:text-xs txt-secondary mt-1 tracking-widest uppercase font-bold">Makkiyah • 83 Ayat</p>
             </div>
-            <div class="flex items-center gap-3">
-                <button onclick="window.readYasinTeksIndo()" class="px-4 py-2 rounded bg-[var(--theme-gold)] text-white text-xs font-bold uppercase flex items-center gap-2 hover:bg-yellow-600 transition border border-white" title="Minta AI Membacakan Terjemahan">
-                    <i class="fa-solid fa-headphones"></i> Baca Terjemahan
+            <div class="flex items-center gap-2 md:gap-3">
+                <button onclick="window.readYasinTeksIndo()" class="px-3 py-2 md:px-4 rounded-lg bg-[var(--theme-gold)] text-white text-[10px] md:text-xs font-bold uppercase flex items-center gap-2 hover:bg-yellow-600 transition shadow-md" title="Minta AI Membacakan Terjemahan">
+                    <i class="fa-solid fa-headphones text-sm"></i> <span class="hidden md:inline">Dengarkan Terjemahan AI</span>
                 </button>
-                <button onclick="window.closeYasin()" class="w-10 h-10 rounded bg-red-600/20 text-red-500 border-2 border-red-500 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors">
+                <button onclick="window.closeYasin()" class="w-10 h-10 rounded-lg bg-red-600/20 text-red-500 border-2 border-red-500 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
         </div>
-        <div id="yasinContent" class="p-6 overflow-y-auto flex-1 scroll-smooth bg-[var(--theme-card-bg)]"></div>
+        <div id="yasinContent" class="p-4 md:p-6 overflow-y-auto flex-1 scroll-smooth bg-[var(--theme-card-bg)]"></div>
     </div>
 </div>
 
@@ -505,12 +525,12 @@
         };
 
         window.readAyatPilihan = function() {
-            let textToRead = "Renungan Ayat Pilihan. " + $('#quranContent').text().replace(/ACAK AYAT|BACA YASIN|PESAN AI/ig, '').trim();
+            let textToRead = "Renungan Ayat Pilihan. " + $('#quranContent').text().replace(/GANTI AYAT|BACA YASIN|PESAN AI/ig, '').trim();
             window.playAIVoice(textToRead);
         };
 
         window.readHadits = function() {
-            let textToRead = "Hadits Pilihan hari ini. " + $('#haditsContent').text().trim();
+            let textToRead = "Hadis Pilihan hari ini. " + $('#haditsContent').text().trim();
             window.playAIVoice(textToRead);
         };
 
@@ -588,7 +608,7 @@
                     <i class="fa-solid fa-circle-notch fa-spin txt-gold text-3xl"></i>
                     <div class="text-left">
                         <p class="text-sm font-bold txt-primary">Memindai satelit radius 3KM...</p>
-                        <p class="text-[11px] font-bold txt-secondary">Menyusun data akurat dari OpenStreetMap</p>
+                        <p class="text-[11px] font-bold txt-secondary">Mengambil data dari OpenStreetMap</p>
                     </div>
                 </div>
             `);
@@ -611,7 +631,7 @@
                     });
 
                     if (nearest) {
-                        let name = nearest.tags.name || "Pusat Ibadah Umat Muslim";
+                        let name = nearest.tags.name || "Masjid/Mushola Umum";
                         if(!name.toLowerCase().includes("masjid") && !name.toLowerCase().includes("mushola") && !name.toLowerCase().includes("langgar")) {
                             name = "Masjid / Mushola " + name;
                         }
@@ -628,7 +648,7 @@
 
                         const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${nearest.plat}&lon=${nearest.plon}&zoom=18&addressdetails=1`);
                         const revData = await revRes.json();
-                        let fullAddress = revData.display_name || "Alamat detail belum terdata di OSM.";
+                        let fullAddress = revData.display_name || "Alamat detail belum terdata di satelit OSM.";
 
                         $('#radarResult').html(`
                             <div class="flex justify-between items-start w-full">
@@ -638,7 +658,7 @@
                                     <p class="text-[12px] txt-secondary mt-2 line-clamp-2 leading-relaxed border-l-4 border-emerald-500 pl-3 py-1 font-bold"><i class="fa-solid fa-map-pin mr-1 text-emerald-500"></i> ${fullAddress}</p>
                                     <p id="liveDistanceText" class="text-sm text-emerald-500 font-bold mt-3 bg-[var(--theme-input-bg)] inline-block px-4 py-2 rounded border-2 border-emerald-500"><i class="fa-solid fa-route mr-1 animate-pulse"></i> Jarak: ${minDist} Meter</p>
                                 </div>
-                                <div class="w-14 h-14 rounded bg-[var(--theme-input-bg)] border-2 border-emerald-500 flex items-center justify-center text-emerald-500 shrink-0">
+                                <div class="w-14 h-14 rounded bg-[var(--theme-input-bg)] border-2 border-emerald-500 flex items-center justify-center text-emerald-500 shrink-0 shadow-sm hidden md:flex">
                                     <i class="fa-solid fa-mosque text-2xl"></i>
                                 </div>
                             </div>
@@ -657,15 +677,19 @@
                         if(mapTargetMarker) leafletMap.removeLayer(mapTargetMarker);
                         if(mapRouteLine) leafletMap.removeLayer(mapRouteLine);
 
-                        mapUserMarker = L.marker([window.currentLat, window.currentLon], {icon: userMapIcon}).addTo(leafletMap).bindPopup("Posisi Anda");
+                        mapUserMarker = L.marker([window.currentLat, window.currentLon], {icon: userMapIcon}).addTo(leafletMap).bindPopup("Posisi Anda Saat Ini");
                         mapTargetMarker = L.marker([nearest.plat, nearest.plon], {icon: mosqueMapIcon}).addTo(leafletMap).bindPopup(`<b>${name}</b>`).openPopup();
                         
                         mapRouteLine = L.polyline([[window.currentLat, window.currentLon], [nearest.plat, nearest.plon]], {color: '#10b981', weight: 4, dashArray: '5, 10'}).addTo(leafletMap);
-                        leafletMap.fitBounds(mapRouteLine.getBounds(), {padding: [30, 30]});
+                        
+                        setTimeout(() => {
+                           leafletMap.invalidateSize();
+                           leafletMap.fitBounds(mapRouteLine.getBounds(), {padding: [30, 30]});
+                        }, 300);
 
                         window.startLiveTracking();
 
-                        let aiText = `Selesai. Tujuan terdekat adalah ${name}, berjarak sekitar ${minDist} meter. Peta navigasi dan pelacak posisi darurat telah diaktifkan untuk memandu Anda.`;
+                        let aiText = `Selesai. Tujuan terdekat adalah ${name}, berjarak sekitar ${minDist} meter. Peta navigasi dan pelacak posisi telah diaktifkan untuk memandu Anda.`;
                         setTimeout(() => window.playAIVoice(aiText), 500);
                     }
                 } else {
@@ -751,7 +775,7 @@
                     <div class="mb-3"><span class="bg-[var(--theme-gold)] text-[var(--theme-card-bg)] border border-[var(--theme-gold)] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">Renungan AI</span></div>
                     <p class="text-2xl font-arab text-right txt-primary leading-loose mb-3" dir="rtl">${arab.text}</p>
                     <p class="text-sm font-bold txt-secondary italic mb-4">"${indo.text}"</p>
-                    <div class="text-xs font-bold txt-gold uppercase text-right tracking-widest border-t-2 border-[var(--theme-border)] pt-3">QS. ${arab.surah.englishName} : ${arab.numberInSurah}</div>
+                    <div class="text-[11px] font-bold txt-gold uppercase text-right tracking-widest border-t-2 border-[var(--theme-border)] pt-3">QS. ${arab.surah.englishName} : ${arab.numberInSurah}</div>
                 `);
             });
         };
@@ -764,7 +788,7 @@
                 "Barangsiapa meniru suatu kaum, maka ia termasuk golongan mereka."
             ];
             const h = hadits[Math.floor(Math.random() * hadits.length)];
-            $('#haditsContent').html(`<div class="flex-1 flex flex-col justify-center"><i class="fa-solid fa-quote-left text-3xl text-[var(--theme-gold)] opacity-50 mb-3"></i><p class="text-base txt-primary font-bold leading-relaxed">"${h}"</p></div>`);
+            $('#haditsContent').html(`<div class="flex-1 flex flex-col justify-center"><i class="fa-solid fa-quote-left text-3xl text-[var(--theme-gold)] opacity-50 mb-3"></i><p class="text-sm md:text-base txt-primary font-bold leading-relaxed">"${h}"</p></div>`);
         };
 
         let tasbih = 0;
@@ -785,9 +809,9 @@
                 $.get('https://api.alquran.cloud/v1/surah/36/editions/quran-uthmani,id.indonesian', function(res) {
                     const arab = res.data[0].ayahs; const indo = res.data[1].ayahs;
                     yasinTranslations = indo.map(item => item.text); 
-                    let html = '<div class="text-center mb-8"><p class="font-arab text-4xl txt-gold mb-2 font-bold">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</p></div>';
+                    let html = '<div class="text-center mb-8 mt-4"><p class="font-arab text-4xl txt-gold mb-2 font-bold">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</p></div>';
                     arab.forEach((ayah, i) => {
-                        html += `<div class="border-b-2 border-[var(--theme-border)] py-6 mb-2 px-2"><div class="flex justify-between items-start mb-4"><div class="w-10 h-10 rounded bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold text-sm font-bold shrink-0">${ayah.numberInSurah}</div><p class="text-3xl font-arab text-right txt-primary leading-loose ml-4" dir="rtl">${ayah.text}</p></div><p class="text-base txt-secondary font-bold italic text-right md:text-left pr-2 leading-relaxed">"${indo[i].text}"</p></div>`;
+                        html += `<div class="border-b-2 border-[var(--theme-border)] py-6 mb-2 px-2"><div class="flex justify-between items-start mb-4"><div class="w-10 h-10 rounded-lg bg-[var(--theme-input-bg)] border-2 border-[var(--theme-gold)] flex items-center justify-center txt-gold text-sm font-bold shrink-0 shadow-sm">${ayah.numberInSurah}</div><p class="text-2xl md:text-3xl font-arab text-right txt-primary leading-loose ml-4" dir="rtl">${ayah.text}</p></div><p class="text-sm md:text-base txt-secondary font-bold italic text-right md:text-left pr-2 leading-relaxed">"${indo[i].text}"</p></div>`;
                     });
                     $('#yasinContent').html(html);
                 });
@@ -803,12 +827,12 @@
         function renderPrayerGrid(t) {
             const prayers = [
                 {id:'Fajr', n:'Subuh', t:t.subuh}, {id:'Terbit', n:'Terbit', t:t.terbit},
-                {id:'Dhuhr', n:'Dzuhur', t:t.dzuhur}, {id:'Asr', n:'Ashar', t:t.ashar},
-                {id:'Maghrib', n:'Maghrib', t:t.maghrib}, {id:'Isha', n:'Isya', t:t.isya}
+                {id:'Dhuhr', n:'Zuhur', t:t.dzuhur}, {id:'Asr', n:'Asar', t:t.ashar},
+                {id:'Maghrib', n:'Magrib', t:t.maghrib}, {id:'Isha', n:'Isya', t:t.isya}
             ];
             let html = '';
             prayers.forEach(p => {
-                html += `<div id="card-${p.id}" class="prayer-time-box p-4 flex flex-col items-center justify-center text-center group cursor-default"><h4 class="text-xs font-bold uppercase tracking-widest txt-secondary group-hover:txt-gold transition-colors mb-2">${p.n}</h4><p class="text-2xl font-luxury txt-primary group-hover:scale-110 transition-transform">${p.t}</p></div>`;
+                html += `<div id="card-${p.id}" class="prayer-time-box p-3 md:p-4 flex flex-col items-center justify-center text-center group cursor-default"><h4 class="text-[11px] md:text-xs font-bold uppercase tracking-widest txt-secondary group-hover:txt-gold transition-colors mb-2">${p.n}</h4><p class="text-xl sm:text-2xl font-luxury txt-primary group-hover:scale-110 transition-transform">${p.t}</p></div>`;
             });
             $('#prayerGrid').html(html);
         }
@@ -817,8 +841,8 @@
             if(timerInterval) clearInterval(timerInterval);
             const prayersRaw = [
                 {name:'Subuh', time:timings.subuh, id:'Fajr'}, {name:'Terbit', time:timings.terbit, id:'Terbit'},
-                {name:'Dzuhur', time:timings.dzuhur, id:'Dhuhr'}, {name:'Ashar', time:timings.ashar, id:'Asr'},
-                {name:'Maghrib', time:timings.maghrib, id:'Maghrib'}, {name:'Isya', time:timings.isya, id:'Isha'}
+                {name:'Zuhur', time:timings.dzuhur, id:'Dhuhr'}, {name:'Asar', time:timings.ashar, id:'Asr'},
+                {name:'Magrib', time:timings.maghrib, id:'Maghrib'}, {name:'Isya', time:timings.isya, id:'Isha'}
             ];
 
             timerInterval = setInterval(() => {
@@ -883,7 +907,7 @@
         };
 
         window.forceGPS = function(autoScanAfter = false) {
-            $('#locStatus').text("Mencari GPS...").addClass("animate-pulse").css('color', 'var(--theme-gold)');
+            $('#locStatus').text("Mencari sinyal GPS...").addClass("animate-pulse").css('color', 'var(--theme-gold)');
             $('#gpsIcon').addClass("animate-spin txt-primary").removeClass("txt-gold text-emerald-500 bg-[var(--theme-gold)] text-white");
 
             if (navigator.geolocation) {
@@ -893,7 +917,6 @@
                         let addr = data.address || {};
                         let userKecamatan = addr.city_district || addr.village || addr.suburb || '';
 
-                        // Perbaikan Logika Deteksi Kab/Kota secara Akurat
                         let qCity = (addr.city || addr.town || addr.municipality || "").toLowerCase();
                         let qCounty = (addr.county || "").toLowerCase();
 
@@ -903,7 +926,6 @@
                             let optText = $(this).text().toLowerCase();
                             let score = 0;
                             
-                            // Untuk daerah rawan ganda (Pekalongan, Semarang, Tegal, dll)
                             let isAmbigous = optText.includes('semarang') || optText.includes('pekalongan') || optText.includes('tegal') || optText.includes('magelang') || optText.includes('kediri') || optText.includes('blitar') || optText.includes('malang') || optText.includes('mojokerto') || optText.includes('pasuruan');
 
                             if (isAmbigous) {
@@ -911,7 +933,6 @@
                                     if (qCity && optText.includes(qCity.replace('kota', '').trim())) score += 50;
                                 } else if (optText.includes('kab.')) {
                                     if (qCounty && optText.includes(qCounty.replace('kabupaten', 'kab.').trim())) score += 50;
-                                    // Fallback Nominatim jika digabung
                                     if (qCity.includes('kabupaten') && optText.includes(qCity.replace('kabupaten', 'kab.').trim())) score += 50;
                                 }
                             } else {
@@ -920,7 +941,7 @@
                             }
 
                             if (score > highestScore && score > 0) {
-                                highestScore = score; matchId = $(this).val(); matchName = $(this).text();
+                                highestScore = score; matchId = $(this).val(); matchName =$(this).text();
                             }
                         });
 
@@ -953,18 +974,13 @@
 
         // START ALL
         $(document).ready(function() {
-            const now = new Date();
-            const timeValue = now.getHours() + (now.getMinutes() / 60);
-            if (timeValue >= 5.516 && timeValue < 18) document.body.classList.add('day-mode');
-            else document.body.classList.remove('day-mode');
-
             // --- FULL 99 ASMAUL HUSNA ---
             const asmaulHusna = [
                 { Arab: "الرَّحْمَنُ", Latin: "Ar Rahman", Arti: "Yang Maha Pengasih" }, { Arab: "الرَّحِيمُ", Latin: "Ar Rahiim", Arti: "Yang Maha Penyayang" }, { Arab: "الْمَلِكُ", Latin: "Al Malik", Arti: "Yang Maha Merajai" }, { Arab: "الْقُدُّوسُ", Latin: "Al Quddus", Arti: "Yang Maha Suci" }, { Arab: "السَّلاَمُ", Latin: "As Salaam", Arti: "Yang Maha Memberi Kesejahteraan" }, { Arab: "الْمُؤْمِنُ", Latin: "Al Mu'min", Arti: "Yang Maha Memberi Keamanan" }, { Arab: "الْمُهَيْمِنُ", Latin: "Al Muhaimin", Arti: "Yang Maha Pemelihara" }, { Arab: "الْعَزِيزُ", Latin: "Al 'Aziz", Arti: "Yang Maha Perkasa" }, { Arab: "الْجَبَّارُ", Latin: "Al Jabbar", Arti: "Yang Memiliki Mutlak Kegagahan" }, { Arab: "الْمُتَكَبِّرُ", Latin: "Al Mutakabbir", Arti: "Yang Maha Megah" }, { Arab: "الْخَالِقُ", Latin: "Al Khaliq", Arti: "Yang Maha Pencipta" }, { Arab: "الْبَارِئُ", Latin: "Al Baari'", Arti: "Yang Maha Melepaskan" }, { Arab: "الْمُصَوِّرُ", Latin: "Al Mushawwir", Arti: "Yang Maha Membentuk Rupa" }, { Arab: "الْغَفَّارُ", Latin: "Al Ghaffaar", Arti: "Yang Maha Pengampun" }, { Arab: "الْقَهَّارُ", Latin: "Al Qahhaar", Arti: "Yang Maha Memaksa" }, { Arab: "الْوَهَّابُ", Latin: "Al Wahhaab", Arti: "Yang Maha Pemberi Karunia" }, { Arab: "الرَّزَّاقُ", Latin: "Ar Razzaaq", Arti: "Yang Maha Pemberi Rezeki" }, { Arab: "الْفَتَّاحُ", Latin: "Al Fattaah", Arti: "Yang Maha Pembuka Rahmat" }, { Arab: "الْعَلِيمُ", Latin: "Al 'Aliim", Arti: "Yang Maha Mengetahui" }, { Arab: "الْقَابِضُ", Latin: "Al Qaabidh", Arti: "Yang Maha Menyempitkan" }, { Arab: "الْبَاسِطُ", Latin: "Al Baasith", Arti: "Yang Maha Melapangkan" }, { Arab: "الْخَافِضُ", Latin: "Al Khaafidh", Arti: "Yang Maha Merendahkan" }, { Arab: "الرَّافِعُ", Latin: "Ar Raafi'", Arti: "Yang Maha Meninggikan" }, { Arab: "الْمُعِزُّ", Latin: "Al Mu'izz", Arti: "Yang Maha Memuliakan" }, { Arab: "الْمُذِلُّ", Latin: "Al Mudzil", Arti: "Yang Maha Menghinakan" }, { Arab: "السَّمِيعُ", Latin: "As Samii'", Arti: "Yang Maha Mendengar" }, { Arab: "الْبَصِيرُ", Latin: "Al Bashiir", Arti: "Yang Maha Melihat" }, { Arab: "الْحَكَمُ", Latin: "Al Hakam", Arti: "Yang Maha Menetapkan" }, { Arab: "الْعَدْلُ", Latin: "Al 'Adl", Arti: "Yang Maha Adil" }, { Arab: "اللَّطِيفُ", Latin: "Al Lathiif", Arti: "Yang Maha Lembut" }, { Arab: "الْخَبِيرُ", Latin: "Al Khabiir", Arti: "Yang Maha Mengenal" }, { Arab: "الْحَلِيمُ", Latin: "Al Haliim", Arti: "Yang Maha Penyantun" }, { Arab: "الْعَظِيمُ", Latin: "Al 'Azhiim", Arti: "Yang Maha Agung" }, { Arab: "الْغَفُورُ", Latin: "Al Ghafuur", Arti: "Yang Maha Pengampun" }, { Arab: "الشَّكُورُ", Latin: "Asy Syakuur", Arti: "Yang Maha Pembalas Budi" }, { Arab: "الْعَلِيُّ", Latin: "Al 'Aliy", Arti: "Yang Maha Tinggi" }, { Arab: "الْكَبِيرُ", Latin: "Al Kabiir", Arti: "Yang Maha Besar" }, { Arab: "الْحَفِيظُ", Latin: "Al Hafizh", Arti: "Yang Maha Memelihara" }, { Arab: "الْمُقِيتُ", Latin: "Al Muqiit", Arti: "Yang Maha Pemberi Kecukupan" }, { Arab: "الْحَسِيبُ", Latin: "Al Hasiib", Arti: "Yang Maha Membuat Perhitungan" }, { Arab: "الْجَلِيلُ", Latin: "Al Jaliil", Arti: "Yang Maha Luhur" }, { Arab: "الْكَرِيمُ", Latin: "Al Kariim", Arti: "Yang Maha Mulia" }, { Arab: "الرَّقِيبُ", Latin: "Ar Raqiib", Arti: "Yang Maha Mengawasi" }, { Arab: "الْمُجِيبُ", Latin: "Al Mujiib", Arti: "Yang Maha Mengabulkan" }, { Arab: "الْوَاسِعُ", Latin: "Al Waasi'", Arti: "Yang Maha Luas" }, { Arab: "الْحَكِيمُ", Latin: "Al Hakiim", Arti: "Yang Maha Bijaksana" }, { Arab: "الْوَدُودُ", Latin: "Al Waduud", Arti: "Yang Maha Mengasihi" }, { Arab: "الْمَجِيدُ", Latin: "Al Majiid", Arti: "Yang Maha Mulia" }, { Arab: "الْبَاعِثُ", Latin: "Al Baa'its", Arti: "Yang Maha Membangkitkan" }, { Arab: "الشَّهِيدُ", Latin: "Asy Syahiid", Arti: "Yang Maha Menyaksikan" }, { Arab: "الْحَقُّ", Latin: "Al Haqq", Arti: "Yang Maha Benar" }, { Arab: "الْوَكِيلُ", Latin: "Al Wakiil", Arti: "Yang Maha Memelihara" }, { Arab: "الْقَوِيُّ", Latin: "Al Qawiyyu", Arti: "Yang Maha Kuat" }, { Arab: "الْمَتِينُ", Latin: "Al Matiin", Arti: "Yang Maha Kokoh" }, { Arab: "الْوَلِيُّ", Latin: "Al Waliyy", Arti: "Yang Maha Melindungi" }, { Arab: "الْحَمِيدُ", Latin: "Al Hamiid", Arti: "Yang Maha Terpuji" }, { Arab: "الْمُحْصِي", Latin: "Al Muhshii", Arti: "Yang Maha Menghitung" }, { Arab: "الْمُبْدِئُ", Latin: "Al Mubdi'", Arti: "Yang Maha Memulai" }, { Arab: "الْمُعِيدُ", Latin: "Al Mu'iid", Arti: "Yang Maha Mengembalikan Kehidupan" }, { Arab: "الْمُحْيِي", Latin: "Al Muhyii", Arti: "Yang Maha Menghidupkan" }, { Arab: "الْمُمِيتُ", Latin: "Al Mumiitu", Arti: "Yang Maha Mematikan" }, { Arab: "الْحَيُّ", Latin: "Al Hayyu", Arti: "Yang Maha Hidup" }, { Arab: "الْقَيُّومُ", Latin: "Al Qayyuum", Arti: "Yang Maha Mandiri" }, { Arab: "الْوَاجِدُ", Latin: "Al Waajid", Arti: "Yang Maha Penemu" }, { Arab: "الْمَاجِدُ", Latin: "Al Maajid", Arti: "Yang Maha Mulia" }, { Arab: "الْوَاحِدُ", Latin: "Al Waahid", Arti: "Yang Maha Tunggal" }, { Arab: "الأَحَدُ", Latin: "Al Ahad", Arti: "Yang Maha Esa" }, { Arab: "الصَّمَدُ", Latin: "Ash Shamad", Arti: "Yang Maha Dibutuhkan" }, { Arab: "الْقَادِرُ", Latin: "Al Qaadir", Arti: "Yang Maha Menentukan" }, { Arab: "الْمُقْتَدِرُ", Latin: "Al Muqtadir", Arti: "Yang Maha Berkuasa" }, { Arab: "الْمُقَدِّمُ", Latin: "Al Muqaddim", Arti: "Yang Maha Mendahulukan" }, { Arab: "الْمُؤَخِّرُ", Latin: "Al Mu'akkhir", Arti: "Yang Maha Mengakhirkan" }, { Arab: "الأَوَّلُ", Latin: "Al Awwal", Arti: "Yang Maha Awal" }, { Arab: "الآخِرُ", Latin: "Al Aakhir", Arti: "Yang Maha Akhir" }, { Arab: "الظَّاهِرُ", Latin: "Azh Zhaahir", Arti: "Yang Maha Nyata" }, { Arab: "الْبَاطِنُ", Latin: "Al Baathin", Arti: "Yang Maha Ghaib" }, { Arab: "الْوَالِي", Latin: "Al Waali", Arti: "Yang Maha Memerintah" }, { Arab: "الْمُتَعَالِي", Latin: "Al Muta'aalii", Arti: "Yang Maha Tinggi" }, { Arab: "الْبَرُّ", Latin: "Al Barru", Arti: "Yang Maha Penderma" }, { Arab: "التَّوَّابُ", Latin: "At Tawwaab", Arti: "Yang Maha Penerima Taubat" }, { Arab: "الْمُنْتَقِمُ", Latin: "Al Muntaqim", Arti: "Yang Maha Pemberi Balasan" }, { Arab: "العَفُوُّ", Latin: "Al Afuww", Arti: "Yang Maha Pemaaf" }, { Arab: "الرَّؤُوفُ", Latin: "Ar Ra'uuf", Arti: "Yang Maha Pengasuh" }, { Arab: "مَالِكُ الْمُلْكِ", Latin: "Malikul Mulk", Arti: "Yang Maha Penguasa Kerajaan" }, { Arab: "ذُوالْجَلاَلِ وَالإِكْرَامِ", Latin: "Dzul Jalaali Wal Ikraam", Arti: "Yang Maha Pemilik Kebesaran dan Kemuliaan" }, { Arab: "الْمُقْسِطُ", Latin: "Al Muqsith", Arti: "Yang Maha Pemberi Keadilan" }, { Arab: "الْجَامِعُ", Latin: "Al Jaami'", Arti: "Yang Maha Mengumpulkan" }, { Arab: "الْغَنِيُّ", Latin: "Al Ghaniyy", Arti: "Yang Maha Kaya" }, { Arab: "الْمُغْنِي", Latin: "Al Mughnii", Arti: "Yang Maha Pemberi Kekayaan" }, { Arab: "الْمَانِعُ", Latin: "Al Maani'", Arti: "Yang Maha Mencegah" }, { Arab: "الضَّارُّ", Latin: "Adh Dhaar", Arti: "Yang Maha Penimpa Kemudharatan" }, { Arab: "النَّافِعُ", Latin: "An Naafi'", Arti: "Yang Maha Memberi Manfaat" }, { Arab: "النُّورُ", Latin: "An Nuur", Arti: "Yang Maha Bercahaya" }, { Arab: "الْهَادِي", Latin: "Al Haadii", Arti: "Yang Maha Pemberi Petunjuk" }, { Arab: "الْبَدِيعُ", Latin: "Al Badii'", Arti: "Yang Maha Pencipta Tiada Bandingannya" }, { Arab: "الْبَاقِي", Latin: "Al Baaqii", Arti: "Yang Maha Kekal" }, { Arab: "الْوَارِثُ", Latin: "Al Waarits", Arti: "Yang Maha Pewaris" }, { Arab: "الرَّشِيدُ", Latin: "Ar Rasyiid", Arti: "Yang Maha Pandai" }, { Arab: "الصَّبُورُ", Latin: "Ash Shabuur", Arti: "Yang Maha Sabar" }
             ];
             let asmaulHtml = '';
             asmaulHusna.forEach(a => {
-                asmaulHtml += `<div class="swiper-slide flex flex-col items-center justify-center text-center px-4"><div class="text-4xl md:text-5xl font-arab txt-primary mb-3 drop-shadow-md cursor-default font-bold">${a.Arab}</div><div class="text-base font-bold txt-gold tracking-wide">${a.Latin}</div><div class="text-xs txt-secondary font-bold italic mt-1">"${a.Arti}"</div></div>`;
+                asmaulHtml += `<div class="swiper-slide flex flex-col items-center justify-center text-center px-4 w-full h-full"><div class="text-3xl md:text-5xl font-arab txt-primary mb-3 drop-shadow-md cursor-default font-bold">${a.Arab}</div><div class="text-sm md:text-base font-bold txt-gold tracking-wide">${a.Latin}</div><div class="text-[11px] md:text-xs txt-secondary font-bold italic mt-1">"${a.Arti}"</div></div>`;
             });
             $('#asmaulWrapper').html(asmaulHtml);
             new Swiper(".asmaulSwiper", { navigation: { nextEl: ".swiper-button-next", prevEl: ".swiper-button-prev" }, autoplay: { delay: 3500, disableOnInteraction: false }, loop: true, effect: "fade", fadeEffect: { crossFade: true } });
@@ -980,7 +996,7 @@
             });
 
             let uId = localStorage.getItem('userCityId') || '1301'; 
-            let uName = localStorage.getItem('userCityName') || 'Kota Jakarta';
+            let uName = localStorage.getItem('userCityName') || 'Kota Jakarta Raya';
             let uKec = localStorage.getItem('userKecamatan') || '';
 
             $('#kotaSelect').val(uId);
@@ -991,7 +1007,7 @@
             window.forceGPS();
 
             $('#kotaSelect').on('change', function() {
-                let sId = $(this).val(); let sName = $("#kotaSelect option:selected").text();
+                let sId = $(this).val(); let sName =$("#kotaSelect option:selected").text();
                 localStorage.setItem('userCityId', sId); localStorage.setItem('userCityName', sName); localStorage.setItem('userKecamatan', "");
                 $('#currentCityLabel').text(sName); $('#currentKecamatanLabel').addClass('hidden');
                 $('#locStatus').text("Lokasi Diset Manual").removeClass("animate-pulse").css('color', 'var(--theme-text-muted)');
