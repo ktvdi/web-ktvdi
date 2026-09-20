@@ -151,7 +151,7 @@
             background: rgba(0, 0, 0, 0.95); border: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 10px 40px -10px rgba(255, 255, 255, 0.05);
         }
-        .ios-dock-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 480px; z-index: 60; }
+        .ios-dock-container { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 480px; z-index: 60; }
         .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; transition: all 0.3s; height: 100%; width: 100%; border-radius: 20px; }
         .dark .nav-item { color: #888888; }
         .nav-item i { font-size: 1.4rem; margin-bottom: 3px; transition: transform 0.2s; z-index: 2; }
@@ -170,20 +170,40 @@
         .glass-ticker-floating {
             background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(30, 58, 138, 0.15); 
             backdrop-filter: blur(12px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); border-radius: 18px; 
-            width: calc(100% - 32px); max-width: 480px; height: 38px; display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 115px; left: 50%; transform: translateX(-50%); z-index: 50; 
+            width: calc(100% - 32px); max-width: 480px; height: 38px; display: flex; align-items: center; overflow: hidden; position: fixed; bottom: 125px; left: 50%; transform: translateX(-50%); z-index: 50; 
         }
         .dark .glass-ticker-floating {
             background: rgba(0, 0, 0, 0.95); border: 1px solid rgba(255, 255, 255, 0.25); 
             box-shadow: 0 8px 30px rgba(255, 255, 255, 0.05);
         }
 
-        .desktop-bottom-bar { background: #ffffff; border-top: 1px solid rgba(30,58,138,0.15); height: 40px; width: 100%; position: fixed; bottom: 0; z-index: 40; display: none; }
-        .dark .desktop-bottom-bar { background: #000000; border-top: 1px solid rgba(255, 255, 255, 0.2); }
+        /* Desktop Bottom Bar (Head-Unit Safe) */
+        .desktop-bottom-bar { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(30,58,138,0.15); 
+            height: 44px; 
+            width: calc(100% - 40px); 
+            max-width: 1920px;
+            position: fixed; 
+            bottom: 20px; 
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 16px;
+            z-index: 40; 
+            display: none; 
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.15);
+        }
+        .dark .desktop-bottom-bar { 
+            background: rgba(0, 0, 0, 0.95); 
+            border: 1px solid rgba(255, 255, 255, 0.2); 
+            box-shadow: 0 10px 30px -10px rgba(255,255,255,0.05);
+        }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
-        /* Ticker Berita Bawah Dinamis (Kecepatan dikontrol JS) */
+        /* Ticker Berita Bawah Dinamis (Kecepatan dikontrol JS, default pelan) */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 80s linear infinite; }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 300s linear infinite; }
         .ticker-move:hover { animation-play-state: paused; }
         .ticker-item { display: inline-block; padding: 0 2rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
@@ -216,7 +236,7 @@
         body.high-contrast-mode * { border-color: #ff0 !important; }
     </style>
 </head>
-<body class="bg-white dark:bg-black text-blue-900 dark:text-white flex flex-col min-h-screen relative pb-[180px] lg:pb-0 font-sans z-0 selection:bg-blue-600 dark:selection:bg-white selection:text-white dark:selection:text-black transition-colors duration-300">
+<body class="bg-white dark:bg-black text-blue-900 dark:text-white flex flex-col min-h-screen relative pb-[180px] lg:pb-[80px] font-sans z-0 selection:bg-blue-600 dark:selection:bg-white selection:text-white dark:selection:text-black transition-colors duration-300">
 
     <audio id="security-audio" src="https://server.radioimeldafm.co.id:8040/gajahmadafm?_ic2=1776620223945" loop preload="none"></audio>
 
@@ -472,7 +492,7 @@
         </div>
     </div>
 
-    <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none max-w-[1920px] mx-auto transition-all duration-300">
+    <div class="desktop-bottom-bar items-center px-4 shadow-sm select-none transition-all duration-300">
         <div class="bg-blue-600 dark:bg-white h-6 flex items-center px-3 rounded-md z-20 shrink-0 text-white dark:text-black text-[10px] font-black uppercase tracking-widest gap-2 mr-4">
             <span class="w-1.5 h-1.5 bg-white dark:bg-black rounded-full animate-pulse"></span> UPDATE TERKINI
         </div>
@@ -525,15 +545,12 @@
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 (position) => {
-                    // Pengetatan akurasi untuk presisi tinggi (di bawah 30 meter)
                     if (position.coords.accuracy < 30) {
                         let speedMs = position.coords.speed;
                         
                         if (speedMs !== null) {
-                            // Filter deadzone untuk mengatasi GPS drift saat posisi diam
                             if (speedMs < 0.5) speedMs = 0; 
                             
-                            // Menerapkan Moving Average Filter untuk melembutkan angka
                             speedBuffer.push(speedMs);
                             if (speedBuffer.length > 4) speedBuffer.shift();
                             
@@ -654,7 +671,6 @@
             } catch (e) {}
         }
 
-        // Fungsi Cek Sholat (Saat Ini)
         function checkWaktuSholatTiba() {
             if(!jadwalSholatHariIni) return null;
             
@@ -682,7 +698,6 @@
             return null;
         }
 
-        // Fungsi Countdown Next Sholat (Tanpa Menimpa)
         function getNextPrayerCountdown() {
             if(!jadwalSholatHariIni) return null;
             
@@ -712,7 +727,6 @@
                 }
             }
 
-            // Jika semua jadwal hari ini sudah lewat, next-nya adalah subuh besok
             if (!nextPrayer && schedule[0].time) {
                 const [h, m] = schedule[0].time.split(':').map(Number);
                 const sholatMinutes = (h * 60) + m + (24 * 60);
@@ -742,13 +756,12 @@
             
             if (alertSholat) {
                 items = `<div class="ticker-item">${alertSholat}</div>`.repeat(5);
-                // Mempercepat teks darurat sholat
-                if(mobTicker) mobTicker.style.animationDuration = '30s';
-                if(deskTicker) deskTicker.style.animationDuration = '30s';
+                // Kecepatan peringatan 80s
+                if(mobTicker) mobTicker.style.animationDuration = '80s';
+                if(deskTicker) deskTicker.style.animationDuration = '80s';
             } else {
                 let dynamicNews = cachedNewsData.slice();
                 
-                // Menyisipkan countdown jika tersedia
                 if(countdownNext) {
                     dynamicNews.unshift(countdownNext);
                 }
@@ -756,9 +769,9 @@
                 items = dynamicNews.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-sm md:text-lg">//</span>`).join('');
                 items = items.repeat(4);
                 
-                // Kecepatan normal tetapi sedikit lebih cepat (60s) dari sebelumnya
-                if(mobTicker) mobTicker.style.animationDuration = '60s';
-                if(deskTicker) deskTicker.style.animationDuration = '60s';
+                // DIKEMBALIKAN PELAN SEPERTI DULU (300s)
+                if(mobTicker) mobTicker.style.animationDuration = '300s';
+                if(deskTicker) deskTicker.style.animationDuration = '300s';
             }
             
             if(mobTicker && mobTicker.innerHTML !== items) { mobTicker.innerHTML = items; }
@@ -781,7 +794,7 @@
         }
 
         setInterval(fetchNews, 300000); 
-        setInterval(renderTicker, 30000); // Re-render tiap 30 detik untuk update hitung mundur
+        setInterval(renderTicker, 30000); 
 
         // === LOGIKA JAM DENGAN DETIK & FORMAT WIB/WITA/WIT ===
         function updateClockTick() {
@@ -816,7 +829,6 @@
             fetchNews();
         }
 
-        // 1. Coba deteksi menggunakan GPS Device (Paling Akurat melalui Nominatim OpenStreetMap)
         function fetchUserLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -825,7 +837,6 @@
                             const lat = position.coords.latitude;
                             const lon = position.coords.longitude;
                             
-                            // Ekstraksi data akurat: Kecamatan, Kota/Kabupaten, Provinsi
                             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
                             const data = await res.json();
                             const addr = data.address || {};
@@ -835,7 +846,7 @@
                             const provinsi = addr.state || addr.region || 'Jawa Tengah';
                             
                             const locationParts = [kecamatan, kota, provinsi].filter(p => p.trim().length > 0);
-                            const uniqueParts = [...new Set(locationParts)]; // Hapus duplikasi jika Kecamatan = Kota
+                            const uniqueParts = [...new Set(locationParts)];
                             
                             setLocationData(kota, uniqueParts.join(', '));
                         } catch (e) {
@@ -852,7 +863,6 @@
             }
         }
 
-        // 2. Fallback deteksi menggunakan IP
         async function fallbackIpLocation() {
             try {
                 const res = await fetch('https://ipapi.co/json/'); 
