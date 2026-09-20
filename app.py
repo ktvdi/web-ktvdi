@@ -37,8 +37,8 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 86400 # 24 Jam
 # ==========================================
 # 2. SISTEM AUTO-MAINTENANCE
 # ==========================================
-MAINTENANCE_START_DATE = datetime(2026, 9, 19, 23, 31, 0)
-MAINTENANCE_END_DATE = datetime(2026, 9, 20, 7, 0, 0) 
+MAINTENANCE_START_DATE = datetime(2026, 9, 20, 14, 08, 0)
+MAINTENANCE_END_DATE = datetime(2026, 9, 20, 15, 30, 0) 
 
 @app.before_request
 def maintenance_interceptor():
