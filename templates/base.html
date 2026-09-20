@@ -181,10 +181,10 @@
         .dark .desktop-bottom-bar { background: #000000; border-top: 1px solid rgba(255, 255, 255, 0.2); }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
-        /* Ticker Berita Bawah - Telah Disesuaikan Presisinya (840s) */
+        /* Ticker Berita Bawah Dinamis (Kecepatan dikontrol JS) */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 840s linear infinite; }
-        .ticker-move:hover { animation-play-state: paused; } /* Berhenti saat disorot */
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 80s linear infinite; }
+        .ticker-move:hover { animation-play-state: paused; }
         .ticker-item { display: inline-block; padding: 0 2rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
@@ -520,26 +520,39 @@
 
         // === LOGIKA SPEEDOMETER BERKENDARA (Akurat & Filter GPS Drift) ===
         let currentSpeedKmh = "0.0";
+        let speedBuffer = [];
+        
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(
                 (position) => {
-                    // Hanya memproses jika akurasi lokasi di bawah radius 50 meter (Sinyal Baik)
-                    if (position.coords.accuracy < 50) {
+                    // Pengetatan akurasi untuk presisi tinggi (di bawah 30 meter)
+                    if (position.coords.accuracy < 30) {
                         let speedMs = position.coords.speed;
-                        // Mencegah GPS drift saat diam (Filter kecepatan di bawah ~3.6 km/jam atau 1 m/s)
-                        if (speedMs !== null && speedMs > 1.0) {
-                            currentSpeedKmh = (speedMs * 3.6).toFixed(1);
-                        } else {
-                            currentSpeedKmh = "0.0";
+                        
+                        if (speedMs !== null) {
+                            // Filter deadzone untuk mengatasi GPS drift saat posisi diam
+                            if (speedMs < 0.5) speedMs = 0; 
+                            
+                            // Menerapkan Moving Average Filter untuk melembutkan angka
+                            speedBuffer.push(speedMs);
+                            if (speedBuffer.length > 4) speedBuffer.shift();
+                            
+                            const avgSpeedMs = speedBuffer.reduce((a, b) => a + b, 0) / speedBuffer.length;
+                            
+                            if (avgSpeedMs > 0.5) {
+                                currentSpeedKmh = (avgSpeedMs * 3.6).toFixed(1);
+                            } else {
+                                currentSpeedKmh = "0.0";
+                            }
                         }
                     }
                 },
-                (error) => { console.log("Akses GPS Speedometer tidak optimal", error); },
+                (error) => { console.log("Akses GPS Speedometer tidak optimal", error.message); },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
             );
         }
 
-        // === ROTASI HEADER DINAMIS: TICKER (16s) <--> SPEEDOMETER (15s) ===
+        // === ROTASI HEADER DINAMIS: TICKER (15s) <--> SPEEDOMETER (5s) ===
         let isShowingTicker = true;
         
         function startHeaderRotation() {
@@ -567,14 +580,14 @@
                 setTimeout(() => {
                     isShowingTicker = false;
                     startHeaderRotation();
-                }, 12000);
+                }, 15000); // Tampil 15 detik
             } else {
                 if(deskContainer) deskContainer.innerHTML = speedHTML;
                 if(mobContainer) mobContainer.innerHTML = speedHTML;
                 setTimeout(() => {
                     isShowingTicker = true;
                     startHeaderRotation();
-                }, 15000);
+                }, 5000); // Tampil 5 detik
             }
         }
         
@@ -641,6 +654,7 @@
             } catch (e) {}
         }
 
+        // Fungsi Cek Sholat (Saat Ini)
         function checkWaktuSholatTiba() {
             if(!jadwalSholatHariIni) return null;
             
@@ -668,19 +682,84 @@
             return null;
         }
 
+        // Fungsi Countdown Next Sholat (Tanpa Menimpa)
+        function getNextPrayerCountdown() {
+            if(!jadwalSholatHariIni) return null;
+            
+            const now = new Date();
+            const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+            
+            const schedule = [
+                { name: 'SUBUH', time: jadwalSholatHariIni.subuh },
+                { name: 'DZUHUR', time: jadwalSholatHariIni.dzuhur },
+                { name: 'ASHAR', time: jadwalSholatHariIni.ashar },
+                { name: 'MAGHRIB', time: jadwalSholatHariIni.maghrib },
+                { name: 'ISYA', time: jadwalSholatHariIni.isya }
+            ];
+
+            let nextPrayer = null;
+            let diffMins = 0;
+
+            for (let i = 0; i < schedule.length; i++) {
+                if (!schedule[i].time) continue;
+                const [h, m] = schedule[i].time.split(':').map(Number);
+                const sholatMinutes = (h * 60) + m;
+                
+                if (sholatMinutes > currentMinutes) {
+                    nextPrayer = schedule[i].name;
+                    diffMins = sholatMinutes - currentMinutes;
+                    break;
+                }
+            }
+
+            // Jika semua jadwal hari ini sudah lewat, next-nya adalah subuh besok
+            if (!nextPrayer && schedule[0].time) {
+                const [h, m] = schedule[0].time.split(':').map(Number);
+                const sholatMinutes = (h * 60) + m + (24 * 60);
+                nextPrayer = schedule[0].name;
+                diffMins = sholatMinutes - currentMinutes;
+            }
+
+            if (nextPrayer) {
+                const hours = Math.floor(diffMins / 60);
+                const mins = diffMins % 60;
+                let timeStr = "";
+                if (hours > 0) timeStr += `${hours} Jam `;
+                timeStr += `${mins} Menit`;
+                
+                return `<span class="text-blue-600 dark:text-blue-400 font-bold"><i class="fa-solid fa-clock mr-2"></i>MENUJU WAKTU ${nextPrayer} DALAM ${timeStr}</span>`;
+            }
+            return null;
+        }
+
         function renderTicker() {
             const alertSholat = checkWaktuSholatTiba();
+            const countdownNext = getNextPrayerCountdown();
             let items = "";
-            
-            if (alertSholat) {
-                items = `<div class="ticker-item">${alertSholat}</div>`.repeat(5); 
-            } else {
-                items = cachedNewsData.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-sm md:text-lg">//</span>`).join('');
-                items = items.repeat(3); // Diulang agar terus bergulir mulus
-            }
             
             const mobTicker = document.getElementById('unified-ticker-mobile');
             const deskTicker = document.getElementById('unified-ticker-desktop');
+            
+            if (alertSholat) {
+                items = `<div class="ticker-item">${alertSholat}</div>`.repeat(5);
+                // Mempercepat teks darurat sholat
+                if(mobTicker) mobTicker.style.animationDuration = '30s';
+                if(deskTicker) deskTicker.style.animationDuration = '30s';
+            } else {
+                let dynamicNews = cachedNewsData.slice();
+                
+                // Menyisipkan countdown jika tersedia
+                if(countdownNext) {
+                    dynamicNews.unshift(countdownNext);
+                }
+                
+                items = dynamicNews.map(n => `<div class="ticker-item">${n}</div><span class="opacity-50 font-black inline-flex items-center text-sm md:text-lg">//</span>`).join('');
+                items = items.repeat(4);
+                
+                // Kecepatan normal tetapi sedikit lebih cepat (60s) dari sebelumnya
+                if(mobTicker) mobTicker.style.animationDuration = '60s';
+                if(deskTicker) deskTicker.style.animationDuration = '60s';
+            }
             
             if(mobTicker && mobTicker.innerHTML !== items) { mobTicker.innerHTML = items; }
             if(deskTicker && deskTicker.innerHTML !== items) { deskTicker.innerHTML = items; }
@@ -692,7 +771,6 @@
                 const res = await fetch('/api/news-ticker?city=' + encodeURIComponent(city)); 
                 cachedNewsData = await res.json(); 
             } catch {
-                // Teks fallback bebas emoji
                 cachedNewsData = [
                     "<i class='fa-solid fa-circle-info mr-2'></i> Selamat datang di Portal Komunitas TV Digital Indonesia", 
                     "<i class='fa-solid fa-tower-broadcast mr-2'></i> Dapatkan informasi update seputar siaran digital dan infrastruktur jaringan", 
@@ -703,7 +781,7 @@
         }
 
         setInterval(fetchNews, 300000); 
-        setInterval(renderTicker, 30000); 
+        setInterval(renderTicker, 30000); // Re-render tiap 30 detik untuk update hitung mundur
 
         // === LOGIKA JAM DENGAN DETIK & FORMAT WIB/WITA/WIT ===
         function updateClockTick() {
@@ -726,19 +804,19 @@
         updateClockTick();
 
         // === DETEKSI LOKASI DEVICE TERAKURAT ===
-        async function setLocationData(city, region) {
+        async function setLocationData(city, fullLocation) {
             window.userCity = city || 'Semarang';
-            const locString = region ? `${window.userCity}, ${region}` : window.userCity;
+            const displayLocation = fullLocation || window.userCity;
             
             ['desktop-user-location', 'mobile-user-location'].forEach(id => {
-                const el = document.getElementById(id); if(el) el.innerText = locString;
+                const el = document.getElementById(id); if(el) el.innerText = displayLocation;
             });
             
             await fetchJadwalSholatReal(window.userCity);
             fetchNews();
         }
 
-        // 1. Coba deteksi menggunakan GPS Device (Paling Akurat)
+        // 1. Coba deteksi menggunakan GPS Device (Paling Akurat melalui Nominatim OpenStreetMap)
         function fetchUserLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -746,19 +824,26 @@
                         try {
                             const lat = position.coords.latitude;
                             const lon = position.coords.longitude;
-                            // Reverse geocoding gratis menggunakan BigDataCloud API
-                            const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
-                            const data = await res.json();
                             
-                            const detectedCity = data.city || data.locality || 'Semarang';
-                            const detectedRegion = data.principalSubdivision || 'Jawa Tengah';
-                            setLocationData(detectedCity, detectedRegion);
+                            // Ekstraksi data akurat: Kecamatan, Kota/Kabupaten, Provinsi
+                            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+                            const data = await res.json();
+                            const addr = data.address || {};
+                            
+                            const kecamatan = addr.city_district || addr.suburb || addr.village || addr.municipality || '';
+                            const kota = addr.city || addr.town || addr.county || addr.state_district || 'Semarang';
+                            const provinsi = addr.state || addr.region || 'Jawa Tengah';
+                            
+                            const locationParts = [kecamatan, kota, provinsi].filter(p => p.trim().length > 0);
+                            const uniqueParts = [...new Set(locationParts)]; // Hapus duplikasi jika Kecamatan = Kota
+                            
+                            setLocationData(kota, uniqueParts.join(', '));
                         } catch (e) {
                             fallbackIpLocation();
                         }
                     },
                     (error) => {
-                        fallbackIpLocation(); // Jika akses GPS ditolak user
+                        fallbackIpLocation();
                     },
                     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
                 );
@@ -773,9 +858,14 @@
                 const res = await fetch('https://ipapi.co/json/'); 
                 const data = await res.json();
                 window.userIP = data.ip || 'Tidak Terdeteksi';
-                setLocationData(data.city, data.region);
+                
+                const kota = data.city || 'Semarang';
+                const region = data.region || 'Jawa Tengah';
+                const locationParts = [kota, region].filter(p => p && p.trim().length > 0);
+                
+                setLocationData(kota, locationParts.join(', '));
             } catch (e) { 
-                setLocationData('Semarang', 'Jawa Tengah');
+                setLocationData('Semarang', 'Semarang, Jawa Tengah');
             }
         }
 
