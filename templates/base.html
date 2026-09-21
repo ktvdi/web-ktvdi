@@ -194,17 +194,36 @@
         }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
-        /* DURASI DEFAULT TICKER BERITA DIUBAH MENJADI 790s (NORMAL) */
+        /* DURASI DEFAULT TICKER BERITA DIUBAH MENJADI 890s (NORMAL) */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 790s linear infinite; transition: transform 0.3s ease; }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 890s linear infinite; transition: transform 0.3s ease; }
         .ticker-move:hover { animation-play-state: paused; }
         .ticker-item { display: inline-block; padding: 0 2rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
         @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
         
-        /* CLASS TAMBAHAN UNTUK FITUR FLIP (AKSEBILITAS) */
-        .text-flip-mode .ticker-move { transform: scaleX(-1); direction: rtl; }
-        .text-flip-mode .ticker-item { transform: scaleX(-1); display: inline-block; }
+        /* CLASS TAMBAHAN UNTUK FITUR NAIK TURUN (AKSEBILITAS) */
+        .text-vertical-mode .ticker-move { 
+            display: flex; 
+            flex-direction: column; 
+            white-space: normal;
+            animation: ticker-vertical 25s linear infinite alternate !important;
+            padding: 10px 0;
+            width: 100%;
+        }
+        .text-vertical-mode .ticker-item { 
+            display: block; 
+            width: 100%; 
+            white-space: normal;
+            margin-bottom: 8px;
+            text-align: left;
+            padding: 0.5rem 2rem;
+        }
+        .text-vertical-mode span.opacity-50 { display: none; } /* sembunyikan separator // */
+        @keyframes ticker-vertical {
+            0% { transform: translateY(10%); }
+            100% { transform: translateY(-100%); }
+        }
 
         .ticker-urgent { font-weight: 900; animation: pulse-text 2s infinite; display: inline-block; padding: 0 2rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
         @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -246,8 +265,8 @@
                 <i class="fa-solid fa-gauge-high w-5 text-center"></i> <span id="label-kecepatan-teks">Teks: Normal</span>
             </button>
 
-            <button onclick="toggleFlipTeks()" class="w-full flex items-center gap-3 text-left text-sm font-semibold text-blue-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-white/10 p-2.5 rounded-lg transition active:bg-blue-100 dark:active:bg-white/20">
-                <i class="fa-solid fa-arrows-rotate w-5 text-center"></i> Teks Flip (Cermin)
+            <button onclick="toggleVertikalTeks()" class="w-full flex items-center gap-3 text-left text-sm font-semibold text-blue-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-white/10 p-2.5 rounded-lg transition active:bg-blue-100 dark:active:bg-white/20">
+                <i class="fa-solid fa-arrows-up-down w-5 text-center"></i> Teks Naik Turun
             </button>
 
             <button id="btn-driving-ai" onclick="toggleDrivingAI()" class="w-full flex items-center gap-3 text-left text-sm font-semibold text-blue-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-white/10 p-2.5 rounded-lg transition active:bg-blue-100 dark:active:bg-white/20">
@@ -529,8 +548,8 @@
 
     <script>
         // === VARIABEL GLOBAL UNTUK KECEPATAN TICKER ===
-        // REVISI: Normal(790s), Cepat(400s), Lambat(996s)
-        let durasiTeksBerjalan = 790; 
+        // REVISI: Normal(890s), Cepat(520s), Lambat(1050s)
+        let durasiTeksBerjalan = 890; 
         let modeKecepatan = 1; 
 
         // === FUNGSI UBAH KECEPATAN TEKS BERJALAN ===
@@ -541,25 +560,25 @@
             const labelKecepatan = document.getElementById('label-kecepatan-teks');
             
             if (modeKecepatan === 1) {
-                durasiTeksBerjalan = 790;
+                durasiTeksBerjalan = 890;
                 if(labelKecepatan) labelKecepatan.innerText = "Teks: Normal";
             } else if (modeKecepatan === 2) {
-                durasiTeksBerjalan = 400;
+                durasiTeksBerjalan = 520;
                 if(labelKecepatan) labelKecepatan.innerText = "Teks: Cepat";
             } else if (modeKecepatan === 3) {
-                durasiTeksBerjalan = 996;
+                durasiTeksBerjalan = 1050;
                 if(labelKecepatan) labelKecepatan.innerText = "Teks: Lambat";
             }
             
             tampilkanTeksBerjalan();
         }
 
-        // === FUNGSI TOGGLE TEKS FLIP (CERMIN) ===
-        function toggleFlipTeks() {
+        // === FUNGSI TOGGLE TEKS NAIK TURUN ===
+        function toggleVertikalTeks() {
             const wrapMobile = document.getElementById('ticker-wrap-mobile');
             const wrapDesktop = document.getElementById('ticker-wrap-desktop');
-            if (wrapMobile) wrapMobile.classList.toggle('text-flip-mode');
-            if (wrapDesktop) wrapDesktop.classList.toggle('text-flip-mode');
+            if (wrapMobile) wrapMobile.classList.toggle('text-vertical-mode');
+            if (wrapDesktop) wrapDesktop.classList.toggle('text-vertical-mode');
         }
 
         // === FUNGSI AI BERKENDARA (VOICE ASSISTANT) ===
