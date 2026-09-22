@@ -194,9 +194,9 @@
         }
         @media (min-width: 1024px) { .desktop-bottom-bar { display: flex; } .glass-ticker-floating { display: none; } .ios-dock-container { display: none; } }
 
-        /* DURASI DEFAULT TICKER BERITA DIUBAH MENJADI 920s (NORMAL) */
+        /* DURASI DEFAULT TICKER BERITA DIUBAH MENJADI 950s (NORMAL) */
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
-        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 920s linear infinite; transition: transform 0.3s ease; }
+        .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 950s linear infinite; transition: transform 0.3s ease; }
         .ticker-move:hover { animation-play-state: paused; }
         .ticker-item { display: inline-block; padding: 0 2rem; color: #1e3a8a; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; } 
         .dark .ticker-item { color: #ffffff; }
@@ -207,8 +207,8 @@
             display: flex; 
             flex-direction: column; 
             white-space: normal;
-            /* DIUBAH MENJADI LEBIH LAMBAT: 60s */
-            animation: ticker-vertical 60s linear infinite alternate !important;
+            /* DIUBAH MENJADI DIPERLAMBAT SEKALI: 180s */
+            animation: ticker-vertical 180s linear infinite alternate !important;
             padding: 10px 0;
             width: 100%;
         }
@@ -224,6 +224,25 @@
         @keyframes ticker-vertical {
             0% { transform: translateY(10%); }
             100% { transform: translateY(-100%); }
+        }
+
+        /* ANIMASI JAM MENGHILANG UNTUK MOBILE */
+        #clock-wrapper-mobile {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: right center;
+            overflow: hidden;
+        }
+        .hide-clock-mobile {
+            opacity: 0 !important;
+            max-width: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            border-width: 0 !important;
+            transform: scaleX(0);
+            pointer-events: none;
+        }
+        .hide-clock-mobile #clock-mobile {
+            min-width: 0 !important;
         }
 
         .ticker-urgent { font-weight: 900; animation: pulse-text 2s infinite; display: inline-block; padding: 0 2rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -515,7 +534,7 @@
             <span class="w-1.5 h-1.5 bg-white dark:bg-black rounded-full animate-pulse"></span> INFO
         </div>
         <div class="ticker-wrap relative flex-1" id="ticker-wrap-mobile"><div id="unified-ticker-mobile" class="ticker-move"></div></div>
-        <div class="bg-white/70 dark:bg-black/70 backdrop-blur-md h-full px-2 z-20 shrink-0 flex items-center border-l border-blue-200 dark:border-white/20">
+        <div id="clock-wrapper-mobile" class="bg-white/70 dark:bg-black/70 backdrop-blur-md h-full px-2 z-20 shrink-0 flex items-center border-l border-blue-200 dark:border-white/20">
             <div id="clock-mobile" class="clock-container text-[10px] md:text-[11px] min-w-[65px] md:min-w-[75px] text-center">00:00:00 WIB</div>
         </div>
     </div>
@@ -549,8 +568,8 @@
 
     <script>
         // === VARIABEL GLOBAL UNTUK KECEPATAN TICKER ===
-        // REVISI: Normal(920s), Cepat(650s), Lambat(1100s)
-        let durasiTeksBerjalan = 920; 
+        // REVISI: Normal(950s), Cepat(700s), Lambat(1150s)
+        let durasiTeksBerjalan = 950; 
         let modeKecepatan = 1; 
 
         // === FUNGSI UBAH KECEPATAN TEKS BERJALAN ===
@@ -561,13 +580,13 @@
             const labelKecepatan = document.getElementById('label-kecepatan-teks');
             
             if (modeKecepatan === 1) {
-                durasiTeksBerjalan = 920;
+                durasiTeksBerjalan = 950;
                 if(labelKecepatan) labelKecepatan.innerText = "Teks: Normal";
             } else if (modeKecepatan === 2) {
-                durasiTeksBerjalan = 650;
+                durasiTeksBerjalan = 700;
                 if(labelKecepatan) labelKecepatan.innerText = "Teks: Cepat";
             } else if (modeKecepatan === 3) {
-                durasiTeksBerjalan = 1100;
+                durasiTeksBerjalan = 1150;
                 if(labelKecepatan) labelKecepatan.innerText = "Teks: Lambat";
             }
             
@@ -578,8 +597,19 @@
         function toggleVertikalTeks() {
             const wrapMobile = document.getElementById('ticker-wrap-mobile');
             const wrapDesktop = document.getElementById('ticker-wrap-desktop');
+            const clockWrapperMobile = document.getElementById('clock-wrapper-mobile');
+            
             if (wrapMobile) wrapMobile.classList.toggle('text-vertical-mode');
             if (wrapDesktop) wrapDesktop.classList.toggle('text-vertical-mode');
+            
+            // Animasi sembunyikan jam di perangkat mobile saat fitur teks naik turun aktif
+            if (clockWrapperMobile) {
+                if (wrapMobile && wrapMobile.classList.contains('text-vertical-mode')) {
+                    clockWrapperMobile.classList.add('hide-clock-mobile');
+                } else {
+                    clockWrapperMobile.classList.remove('hide-clock-mobile');
+                }
+            }
         }
 
         // === FUNGSI AI BERKENDARA (VOICE ASSISTANT) ===
