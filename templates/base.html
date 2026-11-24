@@ -25,14 +25,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        // INISIALISASI TEMA GELAP/TERANG (SUDUT KOTA LOGIC — BAWAAN GELAP)
+        // INISIALISASI TEMA GELAP/TERANG (BAWAAN GELAP)
         if (localStorage.getItem('ktvdi-theme') !== 'light') {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
         }
 
-        // PENGATURAN TAILWIND CSS (GABUNGAN KTVDI & SUDUT KOTA)
+        // PENGATURAN TAILWIND CSS
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -128,7 +128,17 @@
         }
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
-        /* Background Mesh Khas Sudut Kota */
+        /* Logo KTVDI Otomatis Gelap di Mode Terang, Kembali Normal di Mode Gelap */
+        html:not(.dark) .ktvdi-logo-adaptive {
+            filter: brightness(0) saturate(100%) invert(9%) sepia(34%) saturate(2450%) hue-rotate(202deg) brightness(92%) contrast(98%);
+            transition: filter 0.3s ease;
+        }
+        .dark .ktvdi-logo-adaptive {
+            filter: none;
+            transition: filter 0.3s ease;
+        }
+
+        /* Background Mesh */
         .bg-mesh {
             background-color: #f1f5f9;
             background-image:
@@ -146,7 +156,7 @@
             background-attachment: fixed;
         }
 
-        /* Canvas Three.js Background */
+        /* Canvas Three.js Background (Distrik & Menara Pemancar TV) */
         #ktvdi-three-canvas {
             position: fixed;
             inset: 0;
@@ -169,7 +179,7 @@
         /* Privacy Blur */
         .privacy-blur > *:not(#penalty-overlay) { filter: blur(30px) grayscale(100%); pointer-events: none; opacity: 0.1; transition: 0s; }
 
-        /* Glassmorphism Classes (Sudut Kota Style) */
+        /* Glassmorphism Classes */
         .glass-header {
             background: rgba(255, 255, 255, 0.86);
             backdrop-filter: blur(22px);
@@ -196,6 +206,20 @@
             box-shadow: 0 14px 40px -12px rgba(0, 0, 0, 0.5);
         }
 
+        /* Kartu Sapaan ala Alfagift */
+        .alfagift-greeting-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.94) 0%, rgba(239, 246, 255, 0.92) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(37, 99, 235, 0.16);
+            box-shadow: 0 10px 28px -10px rgba(37, 99, 235, 0.14);
+        }
+        .dark .alfagift-greeting-card {
+            background: linear-gradient(135deg, rgba(13, 25, 58, 0.88) 0%, rgba(8, 16, 40, 0.9) 100%);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.55);
+        }
+
         .sk-pill-bar {
             background: rgba(241, 245, 249, 0.9);
             border: 1px solid rgba(15, 23, 42, 0.08);
@@ -208,7 +232,7 @@
         .btn-press { transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1); }
         .btn-press:active { transform: scale(0.96); }
 
-        /* Nav Active State (Sudut Kota Tab Glow) */
+        /* Nav Active State */
         .nav-item {
             transition: all 0.2s ease;
         }
@@ -233,7 +257,7 @@
         }
         @keyframes sheetPop { 0% { opacity: 0; transform: scale(0.95) translateY(-6px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
 
-        /* Ticker Animations (KTVDI) */
+        /* Ticker Animations */
         .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; display: block; position: relative; }
         .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 15s linear infinite; padding-left: 100%; }
         @keyframes runningText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
@@ -268,7 +292,7 @@
         body.high-contrast-mode { background-color: #000 !important; color: #ff0 !important; }
         body.high-contrast-mode * { border-color: #ff0 !important; }
 
-        /* Mobile Floating Ticker — Posisinya tepat di atas tombol CCTV melayang agar tidak nabrak */
+        /* Mobile Floating Ticker */
         .glass-ticker-floating {
             background: rgba(255, 255, 255, 0.94);
             border: 1px solid rgba(37, 99, 235, 0.22);
@@ -294,7 +318,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
         }
 
-        /* Desktop Bottom Bar — Muncul hanya >= 1024px (lg) sejalan dengan hilangnya Mobile Dock */
+        /* Desktop Bottom Bar */
         .desktop-bottom-bar { 
             background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(20px);
@@ -329,13 +353,13 @@
 </head>
 <body class="sk-root bg-mesh font-sans antialiased min-h-screen flex flex-col text-slate-900 dark:text-slate-100 selection:bg-blue-600 selection:text-white pt-[calc(76px+var(--sat))]">
 
-    <!-- CANVAS THREE.JS 3D DIGITAL BROADCAST MESH -->
+    <!-- CANVAS THREE.JS 3D DISTRIK & MENARA PEMANCAR TV DIGITAL -->
     <div id="ktvdi-three-canvas" aria-hidden="true"></div>
 
     <!-- AUDIO EMERGENCY -->
     <audio id="security-audio" src="https://server.radioimeldafm.co.id:8040/gajahmadafm?_ic2=1776620223945" loop preload="none"></audio>
 
-    <!-- PRELOADER DINAMIS (SUDUT KOTA STYLE) -->
+    <!-- PRELOADER DINAMIS -->
     <div id="preloader" class="fixed inset-0 z-[9999] bg-[#030718] flex flex-col items-center justify-center transition-opacity duration-700">
         <div class="relative flex items-center justify-center w-full h-full px-6 text-center">
             <div class="absolute w-72 h-72 bg-blue-600/25 rounded-full blur-3xl animate-pulse pointer-events-none"></div>
@@ -361,7 +385,7 @@
         </div>
     </div>
 
-    <!-- PANEL AKSESIBILITAS (TIDAK MENGHALANGI LAYAR SAAT TERTUTUP) -->
+    <!-- PANEL AKSESIBILITAS -->
     <div class="fixed top-1/2 right-0 -translate-y-1/2 z-[1000] flex flex-col items-end pointer-events-none drop-shadow-2xl">
         <button type="button" onclick="toggleA11yPanel()" class="pointer-events-auto bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-l-2xl shadow-[0_0_20px_rgba(37,99,235,0.45)] border border-r-0 border-blue-400/60 transition-transform hover:scale-105 active:scale-95" aria-label="Buka Menu Aksesibilitas">
             <i class="fa-solid fa-universal-access text-lg"></i>
@@ -384,7 +408,7 @@
                 <i class="fa-solid fa-car-side w-5 text-center text-blue-600 dark:text-sky-400"></i> AI Perjalanan: OFF
             </button>
             <button type="button" id="btn-three-bg" onclick="toggleThreeBackground()" class="w-full flex items-center gap-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-600/10 p-2.5 rounded-xl transition active:scale-95">
-                <i class="fa-solid fa-cube w-5 text-center text-emerald-500"></i> Latar 3D: ON
+                <i class="fa-solid fa-tower-broadcast w-5 text-center text-emerald-500"></i> Distrik 3D: ON
             </button>
             <button type="button" onclick="document.body.classList.toggle('text-large')" class="w-full flex items-center gap-3 text-left text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-blue-600/10 p-2.5 rounded-xl transition active:scale-95">
                 <i class="fa-solid fa-magnifying-glass-plus w-5 text-center text-blue-600 dark:text-sky-400"></i> Perbesar Teks
@@ -404,7 +428,7 @@
     <!-- PENALTY OVERLAY -->
     <div id="penalty-overlay" class="fixed inset-0 z-[100005] bg-white/95 dark:bg-[#030718]/95 backdrop-blur-xl text-slate-900 dark:text-white hidden flex-col items-center justify-center p-6 text-center">
         <div class="w-24 h-24 rounded-3xl bg-red-500/10 border border-red-500/30 p-4 mb-6 flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.25)]">
-            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-full w-full object-contain animate-pulse" alt="KTVDI Logo">
+            <img src="{{ url_for('static', filename='icons/icon-192.png') }}" class="h-full w-full object-contain animate-pulse ktvdi-logo-adaptive" alt="KTVDI Logo">
         </div>
         <h1 class="text-2xl md:text-4xl font-heading font-black text-red-600 dark:text-red-500 uppercase drop-shadow-md mb-3 tracking-wider">Akses Ditolak</h1>
         <p class="text-slate-600 dark:text-slate-300 max-w-lg mx-auto mb-6 text-sm md:text-base font-medium leading-relaxed">
@@ -416,14 +440,14 @@
         <button type="button" onclick="window.location.reload()" class="mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs uppercase tracking-widest rounded-xl font-black shadow-[0_0_20px_rgba(37,99,235,0.45)] transition-all active:scale-95">Muat Ulang Halaman</button>
     </div>
 
-    <!-- TOP HEADER NAVBAR (SUDUT KOTA STYLE) -->
+    <!-- TOP HEADER NAVBAR -->
     <header class="fixed top-0 left-0 right-0 z-[100] glass-header pt-[var(--sat)] transition-colors duration-300">
         <div class="max-w-[1440px] mx-auto px-4 md:px-6 h-[76px] flex items-center justify-between gap-3">
             
-            <!-- Logo & Brand -->
+            <!-- Logo & Brand (Otomatis gelap saat mode terang) -->
             <a href="{{ url_for('home') }}" class="flex items-center gap-3 shrink-0 btn-press cursor-pointer">
                 <div class="w-11 h-11 rounded-2xl bg-blue-600/10 dark:bg-blue-500/15 border border-blue-500/25 flex items-center justify-center p-1.5 shadow-[0_0_15px_rgba(37,99,235,0.2)]">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="w-full h-full object-contain">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI" class="w-full h-full object-contain ktvdi-logo-adaptive">
                 </div>
                 <div class="flex flex-col">
                     <span class="font-heading font-black text-base sm:text-[17px] tracking-tight text-slate-900 dark:text-white leading-none">KTVDI</span>
@@ -431,7 +455,7 @@
                 </div>
             </a>
 
-            <!-- Navigasi Utama Desktop (Gaya Tab Kapsul Sudut Kota — >= 1024px) -->
+            <!-- Navigasi Utama Desktop -->
             <nav aria-label="Navigasi Utama" class="hidden lg:flex items-center gap-1 sk-pill-bar rounded-2xl p-1 mx-2">
                 <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %} px-3 xl:px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="house" class="w-3.5 h-3.5"></i> Beranda
@@ -455,7 +479,7 @@
 
             <!-- Ticker Rotasi Header & Auth -->
             <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
-                <!-- Slot Mobile/Tablet (< 1024px) — tidak pernah tampil bersamaan dengan slot desktop -->
+                <!-- Slot Mobile/Tablet (< 1024px) -->
                 <div class="lg:hidden flex items-center min-w-0">
                     {% if session.get('user') %}
                         <div class="flex flex-col justify-center min-w-0 max-w-[105px] sm:max-w-[145px] pr-1">
@@ -520,9 +544,71 @@
     </header>
 
     <!-- KONTEN UTAMA -->
-    <main class="flex-grow z-10 relative pt-6 md:pt-8 pb-8">
+    <main class="flex-grow z-10 relative pt-5 md:pt-7 pb-8">
+        <!-- BAR SAPAAN ALA LAYOUT ALFAGIFT -->
+        <div class="w-full max-w-[1280px] mx-auto px-4 md:px-6 mb-4">
+            <div class="alfagift-greeting-card rounded-2xl px-4 py-3.5 md:px-5 md:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3.5 min-w-0">
+                    {% if session.get('user') %}
+                        <div class="w-11 h-11 rounded-2xl overflow-hidden border-2 border-blue-500/40 shadow-sm shrink-0 bg-blue-600">
+                            <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'User') | urlencode }}&background=1D4ED8&color=fff&bold=true" alt="Profil Member" class="w-full h-full object-cover">
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-sm md:text-base font-heading font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
+                                    <span id="alfagift-time-greeting" class="text-blue-600 dark:text-sky-400">Halo,</span> {{ session.get('nama', 'Member KTVDI') }}!
+                                </h2>
+                                <span class="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider inline-flex items-center gap-1 shrink-0">
+                                    <i class="fa-solid fa-crown text-[8px]"></i> Member KTVDI
+                                </span>
+                            </div>
+                            <p class="text-[11px] md:text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5 truncate">
+                                Selamat menjelajahi kanal siaran TV Digital &amp; pantauan frekuensi terkini.
+                            </p>
+                        </div>
+                    {% else %}
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 text-white flex items-center justify-center shadow-[0_6px_18px_rgba(37,99,235,0.32)] shrink-0">
+                            <i class="fa-solid fa-tower-broadcast text-lg"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-sm md:text-base font-heading font-extrabold text-slate-900 dark:text-white tracking-tight truncate">
+                                    <span id="alfagift-time-greeting" class="text-blue-600 dark:text-sky-400">Halo,</span> Sobat TV Digital!
+                                </h2>
+                                <span class="px-2 py-0.5 rounded-full bg-blue-600/10 dark:bg-sky-400/15 border border-blue-500/25 text-[9px] font-black text-blue-600 dark:text-sky-300 uppercase tracking-wider shrink-0">
+                                    DVB-T2 Indonesia
+                                </span>
+                            </div>
+                            <p class="text-[11px] md:text-xs text-slate-600 dark:text-slate-300 font-medium mt-0.5 truncate">
+                                Cek frekuensi mux, jadwal siaran, &amp; CCTV lalu lintas secara gratis.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Status Lokasi & Pintasan Cepat ala Alfagift -->
+                <div class="flex items-center justify-between sm:justify-end gap-2 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-200/70 dark:border-white/10 shrink-0">
+                    <a href="/lokasi" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:border-blue-500/40 transition btn-press max-w-[200px]">
+                        <i class="fa-solid fa-location-dot text-red-500 shrink-0"></i>
+                        <span id="alfagift-user-location" class="truncate">Semarang, Jawa Tengah</span>
+                    </a>
+                    {% if session.get('user') %}
+                        <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black uppercase tracking-wider shadow-sm transition btn-press shrink-0">
+                            <i class="fa-solid fa-tv text-[10px]"></i>
+                            <span>Panel Saya</span>
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black uppercase tracking-wider shadow-sm transition btn-press shrink-0">
+                            <i class="fa-solid fa-right-to-bracket text-[10px]"></i>
+                            <span>Masuk Akun</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
         <div class="w-full max-w-[1280px] mx-auto px-4 md:px-6 mb-6">
-            <!-- Banner Promo dengan Bingkai Glass Sudut Kota -->
+            <!-- Banner Promo dengan Bingkai Glass -->
             <div class="glass-card-premium p-2 rounded-2xl overflow-hidden">
                 <img src="https://redaktur.tvrinews.com/storage/images/upload/76429b76-ff9d-40cb-a517-6a8eb3bd48f0.gif" alt="Banner Piala Dunia U-17" class="w-full h-auto object-cover rounded-xl max-h-[120px] md:max-h-[240px] lg:max-h-[280px]">
             </div>
@@ -534,13 +620,13 @@
         </div>
     </main>
 
-    <!-- FOOTER (SUDUT KOTA STYLE — PADDING BAWAH AMAN DARI DOCK & TICKER) -->
+    <!-- FOOTER -->
     <footer class="border-t border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-[#060c1f]/90 backdrop-blur-xl px-6 pt-12 pb-[calc(180px+var(--sab))] lg:pb-24 transition-colors duration-300 relative z-10">
         <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-8">
             <div class="space-y-4">
                 <div class="flex items-center gap-3">
                     <div class="w-11 h-11 rounded-2xl bg-blue-600/10 dark:bg-blue-500/15 border border-blue-500/25 p-1.5 flex items-center justify-center">
-                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI" class="w-full h-full object-contain">
+                        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI" class="w-full h-full object-contain ktvdi-logo-adaptive">
                     </div>
                     <div>
                         <h4 class="text-lg font-heading font-black text-slate-900 dark:text-white tracking-tight leading-none">KTVDI</h4>
@@ -594,7 +680,7 @@
         </div>
     </footer>
 
-    <!-- WIDGET DARURAT (112 / 110) — DITEMPATKAN DI ATAS TICKER MOBILE & DESKTOP BAR -->
+    <!-- WIDGET DARURAT (112 / 110) -->
     <div id="call-center-widget" class="hidden fixed bottom-[calc(164px+var(--sab))] lg:bottom-[74px] left-4 lg:left-5 z-[95] flex-col gap-2.5">
         <a href="tel:112" class="group flex items-center justify-center w-10 h-10 md:w-11 md:h-11 bg-red-600 hover:bg-red-500 text-white rounded-2xl shadow-[0_8px_24px_rgba(220,38,38,0.45)] border border-red-400/70 hover:scale-105 transition relative">
             <i class="fa-solid fa-truck-medical text-sm md:text-base animate-pulse"></i>
@@ -606,7 +692,7 @@
         </a>
     </div>
 
-    <!-- TICKER BERITA BAWAH (MOBILE < 1024px: DI ATAS DOCK TANPA MENABRAK TOMBOL CCTV) -->
+    <!-- TICKER BERITA BAWAH (MOBILE < 1024px) -->
     <div class="glass-ticker-floating lg:hidden transition-all duration-300">
         <div class="bg-blue-600 h-full flex items-center px-2.5 z-20 shrink-0 text-white text-[9px] font-black uppercase tracking-widest gap-1.5">
             <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span> INFO
@@ -637,7 +723,7 @@
         </div>
     </div>
 
-    <!-- BOTTOM NAVIGATION MOBILE (< 1024px — SUDUT KOTA STYLE) -->
+    <!-- BOTTOM NAVIGATION MOBILE (< 1024px) -->
     <nav aria-label="Navigasi Bawah" class="lg:hidden fixed bottom-[calc(14px+var(--sab))] left-4 right-4 z-[100]">
         <div class="max-w-[540px] mx-auto glass-header rounded-[26px] shadow-[0_14px_36px_rgba(0,0,0,0.2)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.65)] flex justify-around items-center h-[72px] px-2 border border-slate-200/80 dark:border-white/10">
             <a href="{{ url_for('home') }}" class="mobile-nav-item {% if request.endpoint == 'home' %}active{% endif %} flex flex-col items-center justify-center w-[58px] gap-1 btn-press text-slate-500 dark:text-slate-400">
@@ -677,11 +763,11 @@
         </div>
     </nav>
 
-    <!-- SKRIP JS BAWAAN KTVDI + THREE.JS -->
+    <!-- SKRIP JS BAWAAN KTVDI + THREE.JS DISTRIK & PEMANCAR TV -->
     <script>
         lucide.createIcons();
 
-        // TOGGLE PANEL AKSESIBILITAS (AMAN DARI OVERLAP & KLIK TAK DISENGAJA)
+        // TOGGLE PANEL AKSESIBILITAS
         function toggleA11yPanel() {
             const panel = document.getElementById('a11y-panel');
             if (!panel) return;
@@ -837,6 +923,9 @@
             
             const elemenSalam = document.getElementById('mobile-greeting');
             if(elemenSalam) elemenSalam.innerText = teksSalam;
+
+            const elemenSalamAlfagift = document.getElementById('alfagift-time-greeting');
+            if(elemenSalamAlfagift) elemenSalamAlfagift.innerText = teksSalam;
         }
         perbaruiSalamPonsel();
 
@@ -1119,7 +1208,7 @@
             window.userCity = namaKota || 'Semarang';
             const lokasiDitampilkan = namaLokasiLengkap || window.userCity;
             
-            ['desktop-user-location'].forEach(idElemen => {
+            ['desktop-user-location', 'alfagift-user-location'].forEach(idElemen => {
                 const elemen = document.getElementById(idElemen); if(elemen) elemen.innerText = lokasiDitampilkan;
             });
             
@@ -1193,7 +1282,7 @@
             setInterval(cekJadwalPanggilanDarurat, 60000); 
         });
 
-        // === THREE.JS: 3D DIGITAL BROADCAST & FREQUENCY NETWORK ===
+        // === THREE.JS: 3D DISTRIK PERKOTAAN & MENARA PEMANCAR TV DIGITAL ===
         (function initKtvdiThreeScene() {
             if (typeof THREE === 'undefined') return;
             const container = document.getElementById('ktvdi-three-canvas');
@@ -1204,8 +1293,9 @@
 
             try {
                 const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.z = 32;
+                const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(0, 15, 36);
+                camera.lookAt(0, 7, 0);
 
                 const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
                 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1214,69 +1304,235 @@
 
                 const isDarkMode = () => document.documentElement.classList.contains('dark');
 
-                // Grup Utama Node Pemancar Digital
-                const broadcastGroup = new THREE.Group();
-                broadcastGroup.position.set(window.innerWidth >= 1024 ? 10 : 0, 2, -6);
-                scene.add(broadcastGroup);
+                // Grup Utama Distrik Teknologi Pertelevisian
+                const districtGroup = new THREE.Group();
+                districtGroup.position.set(window.innerWidth >= 1024 ? 7 : 0, -2, -4);
+                scene.add(districtGroup);
 
-                // 1. Bola Jaringan Frekuensi (Icosahedron Wireframe)
-                const coreGeo = new THREE.IcosahedronGeometry(7.5, 2);
-                const coreMat = new THREE.MeshBasicMaterial({
-                    color: isDarkMode() ? 0x38bdf8 : 0x2563eb,
+                // 1. Grid Jalan & Kawasan Distrik
+                const gridHelper = new THREE.GridHelper(64, 32, isDarkMode() ? 0x0ea5e9 : 0x2563eb, isDarkMode() ? 0x1e293b : 0xcbd5e1);
+                gridHelper.material.transparent = true;
+                gridHelper.material.opacity = isDarkMode() ? 0.25 : 0.32;
+                districtGroup.add(gridHelper);
+
+                // 2. Gedung-gedung Distrik & Perumahan Penerima Siaran TV Digital
+                const buildingFillMat = new THREE.MeshBasicMaterial({
+                    color: isDarkMode() ? 0x0b1736 : 0xe2e8f0,
+                    transparent: true,
+                    opacity: isDarkMode() ? 0.55 : 0.65
+                });
+                const buildingEdgeMat = new THREE.LineBasicMaterial({
+                    color: isDarkMode() ? 0x38bdf8 : 0x1d4ed8,
+                    transparent: true,
+                    opacity: isDarkMode() ? 0.28 : 0.24
+                });
+                const antennaMat = new THREE.LineBasicMaterial({
+                    color: isDarkMode() ? 0x22d3ee : 0x0284c7,
+                    transparent: true,
+                    opacity: isDarkMode() ? 0.65 : 0.55
+                });
+
+                const buildingSpecs = [
+                    // Gedung Stasiun TV Utama (Fondasi Menara)
+                    { x: 0, z: 0, w: 5.4, h: 4.5, d: 5.4, isStation: true },
+                    // Gedung-gedung Distrik Sekitar
+                    { x: -9, z: -4, w: 3.4, h: 7.5, d: 3.4, antenna: true },
+                    { x: -15, z: 3, w: 4.2, h: 5.2, d: 3.8, antenna: true },
+                    { x: -8, z: 7, w: 3.0, h: 4.0, d: 3.0, antenna: true },
+                    { x: -13, z: -10, w: 3.8, h: 8.8, d: 3.8, antenna: false },
+                    { x: -4, z: -11, w: 4.4, h: 6.2, d: 3.6, antenna: true },
+                    { x: 7, z: -9, w: 3.6, h: 8.0, d: 3.6, antenna: true },
+                    { x: 13, z: -4, w: 4.0, h: 5.8, d: 4.0, antenna: true },
+                    { x: 10, z: 6, w: 3.5, h: 4.8, d: 3.5, antenna: true },
+                    { x: 16, z: 4, w: 3.2, h: 6.8, d: 3.2, antenna: false },
+                    { x: 4, z: 9, w: 3.2, h: 3.4, d: 2.8, antenna: true },
+                    { x: -19, z: -5, w: 3.5, h: 6.4, d: 3.5, antenna: true },
+                    { x: 18, z: -10, w: 4.0, h: 7.2, d: 4.0, antenna: false }
+                ];
+
+                const rooftopTargets = [];
+
+                buildingSpecs.forEach(b => {
+                    const geo = new THREE.BoxGeometry(b.w, b.h, b.d);
+                    const mesh = new THREE.Mesh(geo, buildingFillMat);
+                    mesh.position.set(b.x, b.h / 2, b.z);
+                    districtGroup.add(mesh);
+
+                    const edges = new THREE.EdgesGeometry(geo);
+                    const line = new THREE.LineSegments(edges, buildingEdgeMat);
+                    line.position.copy(mesh.position);
+                    districtGroup.add(line);
+
+                    // Antena TV UHF atap gedung distrik
+                    if (b.antenna) {
+                        const antPts = [
+                            new THREE.Vector3(b.x, b.h, b.z),
+                            new THREE.Vector3(b.x, b.h + 1.4, b.z),
+                            new THREE.Vector3(b.x - 0.5, b.h + 1.2, b.z),
+                            new THREE.Vector3(b.x + 0.5, b.h + 1.2, b.z),
+                            new THREE.Vector3(b.x - 0.35, b.h + 1.4, b.z),
+                            new THREE.Vector3(b.x + 0.35, b.h + 1.4, b.z)
+                        ];
+                        const antGeo = new THREE.BufferGeometry().setFromPoints(antPts);
+                        districtGroup.add(new THREE.LineSegments(antGeo, antennaMat));
+                        rooftopTargets.push(new THREE.Vector3(b.x, b.h + 1.3, b.z));
+                    }
+                });
+
+                // 3. Menara Pemancar TV Digital Utama (Lattice Broadcast Tower)
+                const towerGroup = new THREE.Group();
+                towerGroup.position.set(0, 4.5, 0); // Berdiri di atas atap Stasiun TV
+                districtGroup.add(towerGroup);
+
+                const towerSteelMat = new THREE.LineBasicMaterial({
+                    color: isDarkMode() ? 0x38bdf8 : 0x1d4ed8,
+                    transparent: true,
+                    opacity: isDarkMode() ? 0.72 : 0.65
+                });
+
+                const segments = 8;
+                const towerHeight = 14.5;
+                const baseRadius = 1.65;
+                const topRadius = 0.28;
+                const towerPoints = [];
+
+                for (let i = 0; i < segments; i++) {
+                    const y0 = (i / segments) * towerHeight;
+                    const y1 = ((i + 1) / segments) * towerHeight;
+                    const r0 = baseRadius - (baseRadius - topRadius) * (i / segments);
+                    const r1 = baseRadius - (baseRadius - topRadius) * ((i + 1) / segments);
+
+                    const c0 = [
+                        new THREE.Vector3(-r0, y0, -r0),
+                        new THREE.Vector3(r0, y0, -r0),
+                        new THREE.Vector3(r0, y0, r0),
+                        new THREE.Vector3(-r0, y0, r0)
+                    ];
+                    const c1 = [
+                        new THREE.Vector3(-r1, y1, -r1),
+                        new THREE.Vector3(r1, y1, -r1),
+                        new THREE.Vector3(r1, y1, r1),
+                        new THREE.Vector3(-r1, y1, r1)
+                    ];
+
+                    for (let side = 0; side < 4; side++) {
+                        const next = (side + 1) % 4;
+                        // Tiang vertikal miring
+                        towerPoints.push(c0[side], c1[side]);
+                        // Palang horizontal
+                        towerPoints.push(c1[side], c1[next]);
+                        // Rangka silang X-bracing
+                        towerPoints.push(c0[side], c1[next]);
+                        towerPoints.push(c0[next], c1[side]);
+                    }
+                }
+
+                // Tiang Antena Pemancar UHF Puncak (Spire)
+                const spireBaseY = towerHeight;
+                const spireTopY = towerHeight + 3.4;
+                towerPoints.push(new THREE.Vector3(0, spireBaseY, 0), new THREE.Vector3(0, spireTopY, 0));
+                for (let p = 0; p < 4; p++) {
+                    const py = spireBaseY + 0.6 + p * 0.65;
+                    towerPoints.push(new THREE.Vector3(-0.35, py, 0), new THREE.Vector3(0.35, py, 0));
+                    towerPoints.push(new THREE.Vector3(0, py, -0.35), new THREE.Vector3(0, py, 0.35));
+                }
+
+                const towerGeo = new THREE.BufferGeometry().setFromPoints(towerPoints);
+                towerGroup.add(new THREE.LineSegments(towerGeo, towerSteelMat));
+
+                // Antena Parabola Microwave STL (Studio-to-Transmitter Link) pada Menara
+                const dishGeo = new THREE.SphereGeometry(0.65, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.45);
+                const dishMat = new THREE.MeshBasicMaterial({
+                    color: isDarkMode() ? 0x06b6d4 : 0x2563eb,
                     wireframe: true,
                     transparent: true,
-                    opacity: isDarkMode() ? 0.14 : 0.10
+                    opacity: 0.65
                 });
-                const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-                broadcastGroup.add(coreMesh);
+                const dish1 = new THREE.Mesh(dishGeo, dishMat);
+                dish1.position.set(0.95, 7.2, 0);
+                dish1.rotation.z = -Math.PI / 2;
+                towerGroup.add(dish1);
 
-                // 2. Cincin Orbit Gelombang Sinyal UHF/DVB-T2
-                const ringMat1 = new THREE.MeshBasicMaterial({
-                    color: isDarkMode() ? 0x06b6d4 : 0x1d4ed8,
-                    side: THREE.DoubleSide,
+                const dish2 = new THREE.Mesh(dishGeo, dishMat);
+                dish2.position.set(-0.75, 10.5, 0.4);
+                dish2.rotation.z = Math.PI / 2.2;
+                towerGroup.add(dish2);
+
+                // Lampu Suar Merah Penerbangan (Aviation Warning Beacon) di Puncak Menara
+                const beaconMat = new THREE.MeshBasicMaterial({
+                    color: 0xef4444,
                     transparent: true,
-                    opacity: isDarkMode() ? 0.24 : 0.16
+                    opacity: 0.95
                 });
-                const ring1 = new THREE.Mesh(new THREE.RingGeometry(9.6, 9.78, 96), ringMat1);
-                ring1.rotation.x = Math.PI / 2.6;
-                ring1.rotation.y = Math.PI / 8;
-                broadcastGroup.add(ring1);
+                const topBeacon = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 12), beaconMat);
+                topBeacon.position.set(0, spireTopY + 0.15, 0);
+                towerGroup.add(topBeacon);
 
-                const ringMat2 = new THREE.MeshBasicMaterial({
-                    color: isDarkMode() ? 0x3b82f6 : 0x0284c7,
-                    side: THREE.DoubleSide,
-                    transparent: true,
-                    opacity: isDarkMode() ? 0.18 : 0.12
-                });
-                const ring2 = new THREE.Mesh(new THREE.RingGeometry(12.2, 12.35, 96), ringMat2);
-                ring2.rotation.x = -Math.PI / 3;
-                ring2.rotation.y = -Math.PI / 6;
-                broadcastGroup.add(ring2);
+                const midBeacon = new THREE.Mesh(new THREE.SphereGeometry(0.18, 10, 10), beaconMat);
+                midBeacon.position.set(0, towerHeight * 0.55, 0);
+                towerGroup.add(midBeacon);
 
-                // 3. Partikel Data Digital Melayang
-                const particleCount = window.innerWidth < 768 ? 90 : 180;
-                const positions = new Float32Array(particleCount * 3);
-                for (let i = 0; i < particleCount * 3; i += 3) {
-                    positions[i] = (Math.random() - 0.5) * 65;
-                    positions[i + 1] = (Math.random() - 0.5) * 45;
-                    positions[i + 2] = (Math.random() - 0.5) * 35;
+                // 4. Gelombang Sinyal TV Digital (Expanding UHF Broadcast Waves)
+                const waveCenterY = 4.5 + spireTopY - 0.5;
+                const broadcastWaves = [];
+                for (let w = 0; w < 4; w++) {
+                    const waveGeo = new THREE.RingGeometry(0.95, 1.04, 64);
+                    const waveMat = new THREE.MeshBasicMaterial({
+                        color: isDarkMode() ? 0x38bdf8 : 0x2563eb,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.5
+                    });
+                    const waveMesh = new THREE.Mesh(waveGeo, waveMat);
+                    waveMesh.rotation.x = Math.PI / 2;
+                    waveMesh.position.set(0, waveCenterY, 0);
+                    districtGroup.add(waveMesh);
+                    broadcastWaves.push({ mesh: waveMesh, mat: waveMat, phase: w * 0.25 });
                 }
-                const particleGeo = new THREE.BufferGeometry();
-                particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-                const particleMat = new THREE.PointsMaterial({
-                    color: isDarkMode() ? 0x38bdf8 : 0x1d4ed8,
-                    size: 0.28,
+
+                // 5. Paket Sinyal Siaran Mengalir dari Menara ke Antena Gedung Distrik
+                const signalPulses = [];
+                const pulseGeo = new THREE.SphereGeometry(0.16, 8, 8);
+                const pulseMat = new THREE.MeshBasicMaterial({
+                    color: isDarkMode() ? 0x22d3ee : 0x1d4ed8,
                     transparent: true,
-                    opacity: isDarkMode() ? 0.55 : 0.35
+                    opacity: 0.85
                 });
-                const particles = new THREE.Points(particleGeo, particleMat);
-                scene.add(particles);
+
+                rooftopTargets.forEach((target, idx) => {
+                    const start = new THREE.Vector3(0, waveCenterY, 0);
+                    const mid = new THREE.Vector3(
+                        target.x * 0.5,
+                        Math.max(waveCenterY, target.y) + 2.2,
+                        target.z * 0.5
+                    );
+                    const curve = new THREE.QuadraticBezierCurve3(start, mid, target);
+
+                    // Garis lintasan sinyal halus
+                    const beamPoints = curve.getPoints(24);
+                    const beamGeo = new THREE.BufferGeometry().setFromPoints(beamPoints);
+                    const beamMat = new THREE.LineBasicMaterial({
+                        color: isDarkMode() ? 0x38bdf8 : 0x3b82f6,
+                        transparent: true,
+                        opacity: isDarkMode() ? 0.14 : 0.12
+                    });
+                    districtGroup.add(new THREE.Line(beamGeo, beamMat));
+
+                    const pulseMesh = new THREE.Mesh(pulseGeo, pulseMat);
+                    districtGroup.add(pulseMesh);
+                    signalPulses.push({
+                        mesh: pulseMesh,
+                        curve,
+                        offset: (idx * 0.17) % 1,
+                        speed: 0.28 + (idx % 3) * 0.06
+                    });
+                });
 
                 // Interaksi Kursor & Scroll Halus
                 let targetMouseX = 0, targetMouseY = 0;
                 window.addEventListener('mousemove', (e) => {
-                    targetMouseX = (e.clientX / window.innerWidth - 0.5) * 1.4;
-                    targetMouseY = (e.clientY / window.innerHeight - 0.5) * 1.4;
+                    targetMouseX = (e.clientX / window.innerWidth - 0.5) * 1.2;
+                    targetMouseY = (e.clientY / window.innerHeight - 0.5) * 0.8;
                 }, { passive: true });
 
                 // Responsif Ukuran Layar
@@ -1284,19 +1540,24 @@
                     camera.aspect = window.innerWidth / window.innerHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
-                    broadcastGroup.position.x = window.innerWidth >= 1024 ? 10 : 0;
+                    districtGroup.position.x = window.innerWidth >= 1024 ? 7 : 0;
                 });
 
                 // Sinkronisasi Warna Tema Gelap/Terang
                 function updateTheme(dark) {
-                    coreMat.color.setHex(dark ? 0x38bdf8 : 0x2563eb);
-                    coreMat.opacity = dark ? 0.14 : 0.10;
-                    ringMat1.color.setHex(dark ? 0x06b6d4 : 0x1d4ed8);
-                    ringMat1.opacity = dark ? 0.24 : 0.16;
-                    ringMat2.color.setHex(dark ? 0x3b82f6 : 0x0284c7);
-                    ringMat2.opacity = dark ? 0.18 : 0.12;
-                    particleMat.color.setHex(dark ? 0x38bdf8 : 0x1d4ed8);
-                    particleMat.opacity = dark ? 0.55 : 0.35;
+                    gridHelper.material.color.setHex(dark ? 0x1e293b : 0xcbd5e1);
+                    gridHelper.material.opacity = dark ? 0.25 : 0.32;
+                    buildingFillMat.color.setHex(dark ? 0x0b1736 : 0xe2e8f0);
+                    buildingFillMat.opacity = dark ? 0.55 : 0.65;
+                    buildingEdgeMat.color.setHex(dark ? 0x38bdf8 : 0x1d4ed8);
+                    buildingEdgeMat.opacity = dark ? 0.28 : 0.24;
+                    antennaMat.color.setHex(dark ? 0x22d3ee : 0x0284c7);
+                    towerSteelMat.color.setHex(dark ? 0x38bdf8 : 0x1d4ed8);
+                    dishMat.color.setHex(dark ? 0x06b6d4 : 0x2563eb);
+                    pulseMat.color.setHex(dark ? 0x22d3ee : 0x1d4ed8);
+                    broadcastWaves.forEach(w => {
+                        w.mat.color.setHex(dark ? 0x38bdf8 : 0x2563eb);
+                    });
                 }
 
                 // Loop Animasi
@@ -1307,32 +1568,48 @@
                     if (document.hidden) return;
 
                     const elapsed = clock.getElapsedTime();
-                    const scrollOffset = window.scrollY * 0.0015;
+                    const scrollOffset = window.scrollY * 0.002;
 
-                    coreMesh.rotation.y = elapsed * 0.14 + targetMouseX * 0.35;
-                    coreMesh.rotation.x = elapsed * 0.08 + targetMouseY * 0.35 + scrollOffset;
+                    // Rotasi panorama distrik yang tenang & mengikuti kursor
+                    districtGroup.rotation.y = Math.sin(elapsed * 0.12) * 0.22 + targetMouseX * 0.28;
+                    camera.position.y = 15 - scrollOffset * 3.5 - targetMouseY * 2.2;
+                    camera.lookAt(districtGroup.position.x * 0.35, 7.5 - scrollOffset * 2, 0);
 
-                    ring1.rotation.z = elapsed * 0.25;
-                    ring2.rotation.z = -elapsed * 0.18;
+                    // Kedipan Lampu Suar Menara Pemancar TV
+                    const blink = (Math.sin(elapsed * 4.5) + 1) * 0.5;
+                    beaconMat.opacity = 0.25 + blink * 0.75;
+                    topBeacon.scale.setScalar(0.85 + blink * 0.35);
 
-                    particles.rotation.y = elapsed * 0.03 + targetMouseX * 0.12;
-                    particles.rotation.x = targetMouseY * 0.12 - scrollOffset * 0.5;
+                    // Ekspansi Gelombang Siaran UHF dari Puncak Menara
+                    broadcastWaves.forEach(w => {
+                        const progress = (elapsed * 0.32 + w.phase) % 1;
+                        const scale = 1 + progress * 22;
+                        w.mesh.scale.set(scale, scale, 1);
+                        w.mat.opacity = (1 - progress) * (isDarkMode() ? 0.42 : 0.32);
+                    });
+
+                    // Aliran Sinyal Digital ke Antena Gedung Distrik
+                    signalPulses.forEach(p => {
+                        const t = (elapsed * p.speed + p.offset) % 1;
+                        const pos = p.curve.getPoint(t);
+                        p.mesh.position.copy(pos);
+                    });
 
                     renderer.render(scene, camera);
                 }
 
-                // Kontrol Toggle Aksesibilitas Latar 3D
+                // Kontrol Toggle Aksesibilitas Distrik 3D
                 function applyThreeState() {
                     const btn = document.getElementById('btn-three-bg');
                     if (isThreeActive) {
                         container.style.opacity = '1';
                         container.style.display = 'block';
-                        if (btn) btn.innerHTML = `<i class="fa-solid fa-cube w-5 text-center text-emerald-500"></i> Latar 3D: ON`;
+                        if (btn) btn.innerHTML = `<i class="fa-solid fa-tower-broadcast w-5 text-center text-emerald-500"></i> Distrik 3D: ON`;
                         if (!animationFrameId) animate();
                     } else {
                         container.style.opacity = '0';
                         container.style.display = 'none';
-                        if (btn) btn.innerHTML = `<i class="fa-solid fa-cube w-5 text-center text-slate-400"></i> Latar 3D: OFF`;
+                        if (btn) btn.innerHTML = `<i class="fa-solid fa-tower-broadcast w-5 text-center text-slate-400"></i> Distrik 3D: OFF`;
                         if (animationFrameId) {
                             cancelAnimationFrame(animationFrameId);
                             animationFrameId = null;
@@ -1350,7 +1627,7 @@
                     scene,
                     camera,
                     renderer,
-                    broadcastGroup,
+                    districtGroup,
                     updateTheme
                 };
 
