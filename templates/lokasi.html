@@ -1,9 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}KTVDI MAPS 3D — Head Unit Cockpit{% endblock %}
+{% block title %}KTVDI MAPS 3D — TRIAL{% endblock %}
 
 {% block content %}
 <link href="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css" rel="stylesheet" />
 <script src="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 
 <style>
     /* === INNOVA ZENIX INFOTAINMENT HEAD UNIT (LIGHTWEIGHT & GPU-SAFE) === */
@@ -92,7 +93,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 10px;
+        flex-wrap: wrap;
     }
 
     /* Dock Vertikal ala CarPlay / Toyota Multimedia */
@@ -133,7 +135,7 @@
         color: #ffffff;
     }
 
-    /* Card Panel (Solid Gradient Tanpa Blur Berat) */
+    /* Card Panel */
     .hu-card {
         background: linear-gradient(165deg, #0f172a 0%, #070b16 100%);
         border: 1px solid var(--hu-border);
@@ -146,7 +148,7 @@
     .hu-card-header {
         background: #0b1222;
         border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-        padding: 10px 14px;
+        padding: 9px 14px;
         font-size: 0.7rem;
         font-weight: 800;
         letter-spacing: 0.08em;
@@ -157,6 +159,21 @@
         color: #cbd5e1;
     }
 
+    /* Viewport Three.js 3D Vehicle Telemetry */
+    #zenix-three-box {
+        width: 100%;
+        height: 118px;
+        position: relative;
+        background: radial-gradient(circle at 50% 60%, rgba(14, 165, 233, 0.16) 0%, #050914 80%);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        overflow: hidden;
+    }
+    #zenix-three-box canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block;
+    }
+
     /* Speedometer Digital MID Zenix */
     .mid-cluster {
         position: relative;
@@ -164,13 +181,13 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 1.25rem 1rem;
-        background: radial-gradient(circle at 50% 35%, rgba(14, 165, 233, 0.1) 0%, #060a14 75%);
+        padding: 1rem;
+        background: #060a14;
     }
 
     .mid-speed-value {
         font-family: 'Montserrat', 'Inter', sans-serif;
-        font-size: 4.15rem;
+        font-size: 3.75rem;
         font-weight: 900;
         line-height: 0.95;
         letter-spacing: -2px;
@@ -180,12 +197,17 @@
 
     .mid-speed-value.overspeed {
         color: #ef4444 !important;
+        animation: zenixSpeedPulse 0.6s infinite alternate;
+    }
+    @keyframes zenixSpeedPulse {
+        from { transform: scale(1); }
+        to { transform: scale(1.04); }
     }
 
     /* Bar Hybrid System Indicator (CHG / ECO / POWER) */
     .hybrid-meter-track {
         width: 100%;
-        height: 10px;
+        height: 9px;
         border-radius: 999px;
         background: #090e1c;
         border: 1px solid rgba(148, 163, 184, 0.22);
@@ -199,15 +221,15 @@
         transition: width 0.3s ease;
     }
 
-    /* HUD Alerts */
+    /* HUD Alerts (Speed Tinggi & Rem Dadakan) */
     .hu-alert {
         position: absolute;
-        top: 12px;
-        left: 12px;
-        right: 12px;
-        padding: 9px 12px;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        padding: 8px 10px;
         border-radius: 12px;
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         font-weight: 800;
         text-align: center;
         text-transform: uppercase;
@@ -215,27 +237,37 @@
         z-index: 35;
         display: none;
     }
-    .hu-alert-brake {
+    .hu-alert-speed {
         background: #dc2626;
         color: #ffffff;
         border: 1px solid #fca5a5;
     }
-    .hu-alert-jam {
-        background: #ea580c;
-        color: #ffffff;
-        border: 1px solid #fdba74;
+
+    /* Overlay Deteksi Tabrakan (Crash Detection Modal) */
+    #crash-alert-modal {
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        background: rgba(127, 29, 29, 0.95);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        text-align: center;
+        border: 3px solid #ef4444;
     }
 
     /* Peta 3D Container */
     #map-container {
         position: relative;
         width: 100%;
-        height: 420px;
+        height: 430px;
         background: #060a14;
     }
     @media (min-width: 1024px) {
         #map-container {
-            height: 550px;
+            height: 580px;
         }
     }
     #map {
@@ -345,7 +377,7 @@
         border-radius: 2px;
     }
 
-    /* Scrollbar Halus untuk Radar Lokasi */
+    /* Scrollbar Halus */
     .hu-scroll::-webkit-scrollbar { width: 4px; }
     .hu-scroll::-webkit-scrollbar-track { background: #060a14; }
     .hu-scroll::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.35); border-radius: 4px; }
@@ -370,6 +402,28 @@
         <!-- GARIS AMBIENT LIGHT KOKPIT -->
         <div class="zenix-ambient-bar"></div>
 
+        <!-- OVERLAY DETEKSI TABRAKAN (CRASH DETECTION) -->
+        <div id="crash-alert-modal">
+            <div class="w-16 h-16 rounded-full bg-red-600 border-2 border-white flex items-center justify-center text-white text-3xl mb-3 animate-bounce">
+                <i class="fa-solid fa-car-burst"></i>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-black/50 text-amber-300 text-[10px] font-black uppercase tracking-widest mb-2">
+                IMPACT SENSOR • G-FORCE SPIKE
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight mb-2">
+                DETEKSI TABRAKAN!
+            </h2>
+            <p id="crash-detail-text" class="text-red-100 text-xs sm:text-sm max-w-md mb-4">
+                Terdeteksi benturan keras / perlambatan ekstrem. Koordinat lokasi kendaraan telah dikunci untuk bantuan darurat.
+            </p>
+            <div class="px-4 py-2 rounded-xl bg-black/60 border border-red-400/40 text-xs font-mono text-white mb-5" id="crash-coord-box">
+                LAT: -6.9826 • LON: 110.4092
+            </div>
+            <button type="button" onclick="dismissCrashAlert()" class="px-6 py-3 rounded-2xl bg-white text-red-700 font-black text-xs uppercase tracking-wider shadow-lg hover:bg-slate-100 transition active:scale-95">
+                <i class="fa-solid fa-shield-check mr-1.5"></i> Saya Aman — Matikan Alarm
+            </button>
+        </div>
+
         <!-- TOP INFOTAINMENT STATUS BAR -->
         <div class="hu-topbar">
             <div class="flex items-center gap-3 min-w-0">
@@ -385,13 +439,24 @@
                 </div>
             </div>
 
-            <!-- Status Sinyal, Jam Digital Head Unit & Fullscreen -->
-            <div class="flex items-center gap-2.5 sm:gap-4 shrink-0">
+            <!-- Widget Cuaca Real-Time, GPS, Jam & Fullscreen -->
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <!-- CUACA REAL-TIME -->
+                <div id="hu-weather-pill" class="px-2.5 py-1 rounded-xl bg-slate-900 border border-sky-400/25 text-[10px] font-bold text-slate-200 flex items-center gap-2">
+                    <i id="weather-icon" class="fa-solid fa-cloud-sun text-amber-400 text-xs"></i>
+                    <div class="leading-tight">
+                        <span id="weather-temp" class="text-white font-black tabular-nums">--°C</span>
+                        <span id="weather-desc" class="hidden md:inline text-slate-400 ml-1">Memuat Cuaca</span>
+                    </div>
+                </div>
+
+                <!-- STATUS GPS -->
                 <div id="gps-status" class="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700/80 text-[10px] font-bold text-amber-400 flex items-center gap-1.5">
                     <i class="fa-solid fa-satellite fa-spin"></i>
                     <span class="hidden sm:inline">Mencari GPS</span>
                 </div>
 
+                <!-- JAM DIGITAL -->
                 <div class="hidden md:flex flex-col items-end leading-tight border-l border-slate-800 pl-3">
                     <span id="hu-clock" class="text-sm font-black text-white tabular-nums tracking-wide">--:--</span>
                     <span id="hu-date" class="text-[10px] text-slate-400 font-semibold">---</span>
@@ -409,7 +474,7 @@
             
             <!-- SIDEBAR DOCK ALA CARPLAY / ZENIX MULTIMEDIA -->
             <aside class="hu-dock p-2.5 lg:py-4 lg:px-2.5 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-2.5 overflow-x-auto">
-                <a href="/" title="Kembali ke Beranda & Live TV" class="hu-dock-btn">
+                <a href="/" title="Kembali ke Beranda" class="hu-dock-btn">
                     <i class="fa-solid fa-house text-sm"></i>
                     <span class="text-[8px] font-extrabold uppercase">Home</span>
                 </a>
@@ -438,34 +503,42 @@
                     <i class="fa-solid fa-crosshairs text-sm text-sky-400"></i>
                     <span class="text-[8px] font-extrabold uppercase">Fokus</span>
                 </button>
+
+                <button type="button" onclick="triggerCrashAlert('Simulasi Uji Sensor Benturan (Manual Test)')" title="Uji Sensor Deteksi Tabrakan" class="hu-dock-btn border-red-500/40 text-red-400 hover:bg-red-600 hover:text-white">
+                    <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+                    <span class="text-[8px] font-extrabold uppercase">Uji SOS</span>
+                </button>
             </aside>
 
             <!-- KONTEN SPLIT-SCREEN HEAD UNIT -->
             <div class="flex-1 p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
                 
-                <!-- KOLOM KIRI (3 KOLOM): DIGITAL MID SPEEDOMETER & HYBRID METER -->
+                <!-- KOLOM KIRI (3 KOLOM): THREE.JS 3D VEHICLE, SPEEDOMETER & DETEKSI TABRAKAN -->
                 <div class="lg:col-span-3 flex flex-col gap-4">
                     <div class="hu-card flex-1">
                         <div class="hu-card-header">
-                            <span class="flex items-center gap-2"><i class="fa-solid fa-gauge-high text-sky-400"></i> Digital MID</span>
-                            <span id="drive-mode-badge" class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[9px] font-black">NORMAL</span>
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-gauge-high text-sky-400"></i> 3D MID &amp; Safety</span>
+                            <span id="gforce-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-black tabular-nums">1.0 G SAFE</span>
+                        </div>
+
+                        <!-- KANVAS THREE.JS: MODEL MOBIL 3D & JALAN TELEMETRI -->
+                        <div id="zenix-three-box">
+                            <span class="absolute top-2 left-2.5 z-10 text-[9px] font-black uppercase tracking-widest text-sky-400/80">3D TELEMETRY</span>
+                            <span id="three-status-tag" class="absolute top-2 right-2.5 z-10 text-[9px] font-bold uppercase text-slate-400">READY</span>
                         </div>
 
                         <div class="mid-cluster flex-1">
-                            <!-- HUD WARNINGS -->
-                            <div id="hudHardBrake" class="hu-alert hu-alert-brake">
-                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> PERINGATAN: REM DADAKAN!
-                            </div>
-                            <div id="hudTrafficJam" class="hu-alert hu-alert-jam">
-                                <i class="fa-solid fa-car-burst mr-1"></i> LALU LINTAS PADAT
+                            <!-- HUD WARNING SPEED TINGGI -->
+                            <div id="hudSpeedAlert" class="hu-alert hu-alert-speed">
+                                <i class="fa-solid fa-gauge-max mr-1"></i> PERINGATAN: KECEPATAN TINGGI!
                             </div>
 
                             <div class="mid-speed-value" id="speedVal">0</div>
-                            <div class="text-[11px] text-slate-400 font-black uppercase tracking-[0.22em] mt-1.5">KM / JAM</div>
-                            <div id="driveMode" class="text-xs font-extrabold tracking-widest mt-2 text-slate-400 uppercase">STANDBY</div>
+                            <div class="text-[11px] text-slate-400 font-black uppercase tracking-[0.22em] mt-1">KM / JAM</div>
+                            <div id="driveMode" class="text-xs font-extrabold tracking-widest mt-1.5 text-slate-400 uppercase">STANDBY</div>
 
                             <!-- HYBRID SYSTEM INDICATOR (CHG / ECO / POWER) -->
-                            <div class="w-full mt-5">
+                            <div class="w-full mt-4">
                                 <div class="flex justify-between text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
                                     <span class="text-cyan-400">CHG</span>
                                     <span class="text-emerald-400">ECO</span>
@@ -476,15 +549,26 @@
                                 </div>
                             </div>
 
+                            <!-- BATAS DETEKSI SPEED TINGGI & DRIVE MODE -->
+                            <div class="w-full flex items-center justify-between gap-2 mt-3 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px]">
+                                <span class="text-slate-400 font-bold uppercase">Batas Speed:</span>
+                                <select id="speed-limit-select" onchange="updateSpeedLimit(this.value)" aria-label="Batas Kecepatan Tinggi" class="bg-transparent text-sky-400 font-black focus:outline-none cursor-pointer">
+                                    <option value="60" class="bg-slate-900">60 km/h (Kota)</option>
+                                    <option value="80" selected class="bg-slate-900">80 km/h (Arteri)</option>
+                                    <option value="100" class="bg-slate-900">100 km/h (Tol)</option>
+                                    <option value="120" class="bg-slate-900">120 km/h (Sport)</option>
+                                </select>
+                            </div>
+
                             <!-- DRIVE MODE SELECTOR BUTTONS -->
-                            <div class="grid grid-cols-3 gap-1.5 w-full mt-4">
+                            <div class="grid grid-cols-3 gap-1.5 w-full mt-3">
                                 <button type="button" onclick="setDriveMode('eco', this)" class="mode-pill py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-white transition">ECO</button>
                                 <button type="button" onclick="setDriveMode('normal', this)" class="mode-pill py-1.5 rounded-xl bg-sky-600 border border-sky-400 text-[10px] font-black uppercase tracking-wider text-white transition">NORMAL</button>
                                 <button type="button" onclick="setDriveMode('pwr', this)" class="mode-pill py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-white transition">PWR</button>
                             </div>
 
                             <!-- TELEMETRI TRIP & ELEVASI -->
-                            <div class="w-full grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-800/90 text-[11px]">
+                            <div class="w-full grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-slate-800/90 text-[11px]">
                                 <div class="bg-slate-900/90 p-2 rounded-xl border border-slate-800 text-center">
                                     <span class="block text-[9px] text-slate-400 font-bold uppercase">Trip A</span>
                                     <span id="tripVal" class="text-white font-black tabular-nums">0.0 km</span>
@@ -524,16 +608,16 @@
                                 <div class="map-hud-pill">
                                     <div class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs font-black" id="compass-dir">N</div>
                                     <div>
-                                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Status Rute</div>
+                                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Tujuan Aktif</div>
                                         <div id="route-target-label" class="text-xs font-extrabold text-white truncate max-w-[170px] sm:max-w-[250px]">Jelajah Bebas (Free Drive)</div>
                                     </div>
                                 </div>
 
-                                <!-- Preset Kota Cepat (Jika GPS Indoor Belum Terkunci) -->
+                                <!-- Preset Kota Cepat -->
                                 <div class="map-hud-pill">
                                     <i class="fa-solid fa-map-pin text-sky-400 text-xs"></i>
                                     <select id="city-preset-select" onchange="jumpToPreset(this.value)" aria-label="Pilih Lokasi Cepat" class="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer">
-                                        <option value="" class="bg-slate-900">Lokasi Cepat...</option>
+                                        <option value="" class="bg-slate-900">Pindah Kota...</option>
                                         <option value="-6.9826,110.4092,Semarang (Simpang Lima)" class="bg-slate-900">Semarang</option>
                                         <option value="-6.8898,109.6746,Pekalongan (Alun-Alun)" class="bg-slate-900">Pekalongan</option>
                                         <option value="-6.1754,106.8272,Jakarta (Monas)" class="bg-slate-900">Jakarta</option>
@@ -562,36 +646,26 @@
                     </div>
                 </div>
 
-                <!-- KOLOM KANAN (3 KOLOM): RADAR PEMANCAR MUX & CHECKPOINT (OFFLINE-FIRST) -->
+                <!-- KOLOM KANAN (3 KOLOM): LOKASI TEMPAT TERBAIK & RADAR GEMPA BMKG -->
                 <div class="lg:col-span-3 flex flex-col gap-4">
                     
-                    <!-- Radar Pemancar MUX DVB-T2 Terdekat -->
-                    <div class="hu-card flex-1 max-h-[320px]">
+                    <!-- Lokasi Tempat Terbaik Terdekat -->
+                    <div class="hu-card flex-1 max-h-[305px]">
                         <div class="hu-card-header">
-                            <span class="flex items-center gap-2"><i class="fa-solid fa-tower-broadcast text-sky-400"></i> Radar Pemancar MUX</span>
-                            <span class="text-[9px] text-emerald-400 font-black">OFFLINE READY</span>
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-star text-amber-400"></i> Lokasi Tempat Terbaik</span>
+                            <span class="text-[9px] text-sky-400 font-black">REKOMENDASI</span>
                         </div>
-                        <div class="flex-1 overflow-y-auto hu-scroll" id="mux-radar-list"></div>
+                        <div class="flex-1 overflow-y-auto hu-scroll" id="best-places-list"></div>
                     </div>
 
-                    <!-- Shortcut Infotainment KTVDI di Head Unit -->
-                    <div class="hu-card">
+                    <!-- Radar Gempa Terkini (API BMKG) -->
+                    <div class="hu-card flex-1 max-h-[295px]">
                         <div class="hu-card-header">
-                            <span class="flex items-center gap-2"><i class="fa-solid fa-tv text-cyan-400"></i> Media &amp; Siaran</span>
-                            <span class="text-[9px] text-slate-400 font-bold">KTVDI</span>
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-house-crack text-red-500"></i> Radar Gempa (BMKG)</span>
+                            <span class="text-[9px] text-emerald-400 font-black">LIVE TEWS</span>
                         </div>
-                        <div class="p-3.5 space-y-2.5">
-                            <p class="text-[11px] text-slate-300 leading-relaxed">
-                                Cek kanal UHF wilayah tujuan perjalanan atau putar streaming TV Digital langsung dari dasbor.
-                            </p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <a href="/daftar-siaran" class="py-2.5 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600 border border-sky-400/30 text-sky-300 hover:text-white text-[10px] font-black uppercase tracking-wider text-center transition">
-                                    <i class="fa-solid fa-satellite-dish mr-1"></i> Frekuensi
-                                </a>
-                                <a href="/#live-tv-section" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition">
-                                    <i class="fa-solid fa-play mr-1 text-red-400"></i> Live TV
-                                </a>
-                            </div>
+                        <div class="flex-1 overflow-y-auto hu-scroll" id="bmkg-list">
+                            <div class="p-6 text-center text-xs text-slate-400 font-medium">Menghubungkan ke BMKG...</div>
                         </div>
                     </div>
 
@@ -603,18 +677,18 @@
 </div>
 
 <script>
-    // Dataset Terintegrasi: Pemancar MUX TV Digital Nusantara (100% Offline Tanpa Web API)
-    const builtInMuxNodes = [
-        { name: "MUX TVRI & Swasta Pekalongan", area: "Jawa Tengah - 3 (Plat G)", lat: -6.8965, lon: 109.6712, freq: "UHF 30 / 33 / 36" },
-        { name: "MUX Gombel & Bukit Sari Semarang", area: "Jawa Tengah - 1", lat: -7.0398, lon: 110.4215, freq: "UHF 29 / 32 / 36" },
-        { name: "MUX Joglo & Kebon Jeruk Jakarta", area: "Jabodetabek", lat: -6.2155, lon: 106.7324, freq: "UHF 24 / 28 / 34" },
-        { name: "MUX Bukit Bandung / Cimenyan", area: "Jawa Barat - 1", lat: -6.8682, lon: 107.6634, freq: "UHF 29 / 32 / 35" },
-        { name: "MUX Patuk Gunungkidul / Jogja", area: "DIY & Solo Raya", lat: -7.8485, lon: 110.4832, freq: "UHF 29 / 32 / 35" },
-        { name: "MUX Dukuh Kupang Surabaya", area: "Jawa Timur - 1", lat: -7.2854, lon: 112.7186, freq: "UHF 29 / 32 / 35" },
-        { name: "MUX Tegal & Brebes Pantura", area: "Jawa Tengah - 3", lat: -6.8797, lon: 109.1256, freq: "UHF 30 / 33 / 36" },
-        { name: "MUX Cirebon / Gunung Ciremai", area: "Jawa Barat - 7", lat: -6.7320, lon: 108.5523, freq: "UHF 29 / 32 / 35" },
-        { name: "MUX Bandar Baru Medan", area: "Sumatera Utara - 1", lat: 3.5897, lon: 98.6738, freq: "UHF 28 / 31 / 34" },
-        { name: "MUX Makassar / Gowa", area: "Sulawesi Selatan - 1", lat: -5.1477, lon: 119.4327, freq: "UHF 28 / 31 / 34" }
+    // Dataset Lokasi Tempat Terbaik (Destinasi Wisata, Landmark & Rest Area Tol)
+    const bestPlacesData = [
+        { name: "Kota Lama Semarang", category: "Wisata Sejarah & Kuliner", lat: -6.9683, lon: 110.4281, rating: "4.8" },
+        { name: "Lawang Sewu & Tugu Muda", category: "Landmark Ikonik", lat: -6.9839, lon: 110.4105, rating: "4.8" },
+        { name: "Rest Area KM 379A Batang", category: "Rest Area Tol Trans Jawa", lat: -6.9589, lon: 109.9614, rating: "4.7" },
+        { name: "Museum Batik & Jetayu Pekalongan", category: "Wisata Budaya", lat: -6.8837, lon: 109.6754, rating: "4.7" },
+        { name: "Pantai Pasir Kencana Pekalongan", category: "Wisata Bahari", lat: -6.8548, lon: 109.6836, rating: "4.6" },
+        { name: "Rest Area Heritage KM 260B Brebes", category: "Rest Area & Kuliner", lat: -6.9324, lon: 109.0235, rating: "4.8" },
+        { name: "Jalan Malioboro & Titik Nol", category: "Pusat Wisata Yogyakarta", lat: -7.7926, lon: 110.3658, rating: "4.9" },
+        { name: "Kawasan Braga & Asia Afrika", category: "Wisata Kota Bandung", lat: -6.9178, lon: 107.6095, rating: "4.8" },
+        { name: "Monumen Nasional & Thamrin", category: "Landmark Jakarta", lat: -6.1754, lon: 106.8272, rating: "4.8" },
+        { name: "Tunjungan & Balai Pemuda", category: "Pusat Kota Surabaya", lat: -7.2625, lon: 112.7412, rating: "4.8" }
     ];
 
     const MAP_STYLES = {
@@ -633,14 +707,20 @@
     let mapTheme = 'dark';
     let is3DPitch = true;
     let currentHeading = 0;
+    let currentSpeed = 0;
+    let speedLimitThreshold = 80;
     let isBraking = false;
+    let isCrashActive = false;
 
     let lastSpeed = 0;
     let lastSpeedTime = Date.now();
-    let slowDuration = 0;
     let totalTripKm = 0;
     let maxSpeedKmh = 0;
     let lastTripCoord = null;
+    let lastWeatherFetch = null;
+
+    // Variabel Three.js 3D Vehicle Telemetry
+    let threeScene, threeCamera, threeRenderer, threeCarGroup, threeRoadLines = [], threeBrakeLightMat;
 
     function updateHeadUnitClock() {
         const now = new Date();
@@ -672,13 +752,269 @@
         return dirs[Math.round(((deg % 360) / 45)) % 8];
     }
 
+    // === INISIALISASI THREE.JS 3D VEHICLE TELEMETRY ===
+    function initThreeVehicleTelemetry() {
+        const container = document.getElementById('zenix-three-box');
+        if (!container || typeof THREE === 'undefined') return;
+
+        const width = container.clientWidth || 300;
+        const height = container.clientHeight || 118;
+
+        threeScene = new THREE.Scene();
+        threeCamera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+        threeCamera.position.set(2.9, 1.85, 3.4);
+        threeCamera.lookAt(0, 0.35, 0);
+
+        threeRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'low-power' });
+        threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        threeRenderer.setSize(width, height);
+        container.appendChild(threeRenderer.domElement);
+
+        // Pencahayaan Ringan
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+        threeScene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
+        dirLight.position.set(4, 6, 4);
+        threeScene.add(dirLight);
+
+        // Grup Kendaraan 3D (Gaya MPV Crossover Zenix)
+        threeCarGroup = new THREE.Group();
+
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.6, roughness: 0.3 });
+        const wireMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.45 });
+        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.2 });
+
+        // Bodi Bawah
+        const lowerChassis = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.42, 2.35), bodyMat);
+        lowerChassis.position.y = 0.42;
+        threeCarGroup.add(lowerChassis);
+
+        const lowerWire = new THREE.Mesh(new THREE.BoxGeometry(1.17, 0.44, 2.37), wireMat);
+        lowerWire.position.y = 0.42;
+        threeCarGroup.add(lowerWire);
+
+        // Kabin Atas
+        const upperCabin = new THREE.Mesh(new THREE.BoxGeometry(1.02, 0.36, 1.45), cabinMat);
+        upperCabin.position.set(0, 0.8, -0.15);
+        threeCarGroup.add(upperCabin);
+
+        // Lampu Depan LED
+        const headLightMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
+        const headLight = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.08, 0.05), headLightMat);
+        headLight.position.set(0, 0.46, 1.18);
+        threeCarGroup.add(headLight);
+
+        // Lampu Rem Belakang (Menyala Terang Saat Ngerem / Tabrakan)
+        threeBrakeLightMat = new THREE.MeshBasicMaterial({ color: 0x7f1d1d });
+        const tailLight = new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.09, 0.05), threeBrakeLightMat);
+        tailLight.position.set(0, 0.48, -1.18);
+        threeCarGroup.add(tailLight);
+
+        // 4 Roda
+        const wheelGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.16, 12);
+        wheelGeo.rotateZ(Math.PI / 2);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x020617, roughness: 0.8 });
+        const wheelPositions = [
+            [-0.6, 0.24, 0.72],
+            [0.6, 0.24, 0.72],
+            [-0.6, 0.24, -0.72],
+            [0.6, 0.24, -0.72]
+        ];
+        wheelPositions.forEach(pos => {
+            const w = new THREE.Mesh(wheelGeo, wheelMat);
+            w.position.set(pos[0], pos[1], pos[2]);
+            threeCarGroup.add(w);
+        });
+
+        threeScene.add(threeCarGroup);
+
+        // Garis Lajur Jalan 3D Bergerak
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.35 });
+        for (let i = -2; i <= 2; i++) {
+            const dash = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.7), lineMat);
+            dash.position.set(0, 0.01, i * 1.6);
+            threeScene.add(dash);
+            threeRoadLines.push(dash);
+        }
+
+        // Loop Animasi Three.js Ringan (30 FPS Cap untuk Hemat Baterai & GPU Head Unit)
+        let lastFrameTime = 0;
+        function animateThree(now) {
+            requestAnimationFrame(animateThree);
+            if (now - lastFrameTime < 33) return;
+            lastFrameTime = now;
+
+            const speedFactor = Math.max(0.015, currentSpeed * 0.004);
+            threeRoadLines.forEach(dash => {
+                dash.position.z -= speedFactor;
+                if (dash.position.z < -4.0) dash.position.z = 4.0;
+            });
+
+            if (threeCarGroup) {
+                threeCarGroup.rotation.y = Math.sin(now * 0.0008) * 0.14;
+                threeCarGroup.position.y = Math.sin(now * 0.006) * (currentSpeed > 5 ? 0.015 : 0.004);
+            }
+
+            if (threeBrakeLightMat) {
+                threeBrakeLightMat.color.setHex((isBraking || isCrashActive) ? 0xff1e1e : 0x7f1d1d);
+            }
+
+            threeRenderer.render(threeScene, threeCamera);
+        }
+        requestAnimationFrame(animateThree);
+
+        window.addEventListener('resize', () => {
+            if (!container || !threeRenderer || !threeCamera) return;
+            const w = container.clientWidth || 300;
+            const h = container.clientHeight || 118;
+            threeCamera.aspect = w / h;
+            threeCamera.updateProjectionMatrix();
+            threeRenderer.setSize(w, h);
+        });
+    }
+
+    // === DETEKSI TABRAKAN (ACCELEROMETER G-FORCE & GPS DECELERATION) ===
+    function initCrashDetectionSensor() {
+        if ('DeviceMotionEvent' in window) {
+            window.addEventListener('devicemotion', (event) => {
+                const acc = event.accelerationIncludingGravity || event.acceleration;
+                if (!acc || acc.x === null) return;
+
+                const totalAccel = Math.sqrt((acc.x * acc.x) + (acc.y * acc.y) + (acc.z * acc.z));
+                const gForce = totalAccel / 9.80665;
+
+                const gBadge = document.getElementById('gforce-badge');
+                if (gBadge && !isCrashActive) {
+                    gBadge.innerText = `${gForce.toFixed(1)} G SAFE`;
+                }
+
+                // Ambang batas benturan keras kendaraan (> 3.2 G)
+                if (gForce > 3.2 && !isCrashActive) {
+                    triggerCrashAlert(`Benturan Keras Terdeteksi (${gForce.toFixed(1)} G)`);
+                }
+            });
+        }
+    }
+
+    function triggerCrashAlert(reasonText) {
+        isCrashActive = true;
+        const modal = document.getElementById('crash-alert-modal');
+        const detail = document.getElementById('crash-detail-text');
+        const coordBox = document.getElementById('crash-coord-box');
+        const gBadge = document.getElementById('gforce-badge');
+
+        if (detail) detail.innerText = `${reasonText}. Koordinat lokasi kendaraan telah dikunci.`;
+        if (coordBox) coordBox.innerText = `LAT: ${myLat.toFixed(5)} • LON: ${myLon.toFixed(5)}`;
+        if (gBadge) {
+            gBadge.innerText = 'CRASH ALERT';
+            gBadge.className = 'px-2 py-0.5 rounded bg-red-600 text-white text-[9px] font-black animate-pulse';
+        }
+        if (modal) modal.style.display = 'flex';
+    }
+
+    function dismissCrashAlert() {
+        isCrashActive = false;
+        const modal = document.getElementById('crash-alert-modal');
+        const gBadge = document.getElementById('gforce-badge');
+        if (modal) modal.style.display = 'none';
+        if (gBadge) {
+            gBadge.innerText = '1.0 G SAFE';
+            gBadge.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-black tabular-nums';
+        }
+    }
+
+    // === CUACA REAL-TIME (OPEN-METEO) ===
+    async function fetchLiveWeather(lat, lon) {
+        if (lastWeatherFetch && getDistKm(lat, lon, lastWeatherFetch.lat, lastWeatherFetch.lon) < 5 && (Date.now() - lastWeatherFetch.time < 600000)) {
+            return;
+        }
+        lastWeatherFetch = { lat, lon, time: Date.now() };
+
+        try {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&current_weather=true`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data && data.current_weather) {
+                const temp = Math.round(data.current_weather.temperature);
+                const code = data.current_weather.weathercode;
+                const wind = Math.round(data.current_weather.windspeed);
+
+                const tempEl = document.getElementById('weather-temp');
+                const descEl = document.getElementById('weather-desc');
+                const iconEl = document.getElementById('weather-icon');
+
+                let label = 'Cerah';
+                let iconClass = 'fa-solid fa-sun text-amber-400 text-xs';
+
+                if (code >= 1 && code <= 3) {
+                    label = 'Berawan';
+                    iconClass = 'fa-solid fa-cloud-sun text-amber-300 text-xs';
+                } else if (code >= 45 && code <= 48) {
+                    label = 'Berkabut';
+                    iconClass = 'fa-solid fa-smog text-slate-300 text-xs';
+                } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+                    label = 'Hujan';
+                    iconClass = 'fa-solid fa-cloud-rain text-sky-400 text-xs';
+                } else if (code >= 95) {
+                    label = 'Badai Petir';
+                    iconClass = 'fa-solid fa-cloud-bolt text-rose-400 text-xs';
+                }
+
+                if (tempEl) tempEl.innerText = `${temp}°C`;
+                if (descEl) descEl.innerText = `${label} • ${wind} km/j`;
+                if (iconEl) iconEl.className = iconClass;
+            }
+        } catch (e) {
+            const descEl = document.getElementById('weather-desc');
+            if (descEl) descEl.innerText = 'Cuaca Lokal';
+        }
+    }
+
+    // === RADAR GEMPA API BMKG ===
+    async function fetchBMKG() {
+        const listEl = document.getElementById('bmkg-list');
+        if (!listEl) return;
+
+        try {
+            const res = await fetch('https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json');
+            const data = await res.json();
+            const list = data.Infogempa.gempa || [];
+            let html = '';
+
+            for (let i = 0; i < Math.min(list.length, 6); i++) {
+                const g = list[i];
+                const coords = g.Coordinates.split(',');
+                const gLat = parseFloat(coords[0]);
+                const gLon = parseFloat(coords[1]);
+
+                html += `
+                    <div class="radar-row flex-col items-start gap-1" onclick="focusLocationOnMap(${gLat}, ${gLon}, 'Gempa M${g.Magnitude} - ${g.Wilayah.replace(/'/g, "\\'")}', '#ef4444')">
+                        <div class="flex justify-between w-full text-[10px] font-bold">
+                            <span class="text-red-400 font-black">MAG ${g.Magnitude} • ${g.Kedalaman}</span>
+                            <span class="text-slate-400 tabular-nums">${g.Jam}</span>
+                        </div>
+                        <p class="font-bold text-slate-200 text-xs leading-snug">${g.Wilayah}</p>
+                    </div>
+                `;
+            }
+            listEl.innerHTML = html || '<div class="p-4 text-center text-xs text-slate-400">Tidak ada data gempa terbaru.</div>';
+        } catch (e) {
+            listEl.innerHTML = '<div class="p-4 text-center text-xs text-amber-400">Gagal memuat feed BMKG (Periksa koneksi).</div>';
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-        // Sembunyikan kanvas 3D latar belakang agar RAM & GPU Head Unit 100% fokus ke Peta
-        const threeCanvas = document.getElementById('ktvdi-three-canvas');
-        if (threeCanvas) threeCanvas.style.display = 'none';
+        // Sembunyikan kanvas 3D latar belakang base.html agar GPU fokus ke Peta & 3D Vehicle MID
+        const bgThreeCanvas = document.getElementById('ktvdi-three-canvas');
+        if (bgThreeCanvas) bgThreeCanvas.style.display = 'none';
+
+        initThreeVehicleTelemetry();
+        initCrashDetectionSensor();
+        fetchBMKG();
+        fetchLiveWeather(myLat, myLon);
 
         if (typeof maplibregl === 'undefined') {
-            document.getElementById('map').innerHTML = '<div class="p-6 text-center text-xs text-slate-400">Gagal memuat pustaka peta. Periksa koneksi internet Anda.</div>';
+            document.getElementById('map').innerHTML = '<div class="p-6 text-center text-xs text-slate-400">Gagal memuat pustaka peta.</div>';
             return;
         }
 
@@ -696,7 +1032,7 @@
             autoCenter = false;
         });
 
-        renderMuxRadar(myLat, myLon);
+        renderBestPlaces(myLat, myLon);
         updateVehicleMarker();
 
         if ("geolocation" in navigator) {
@@ -720,7 +1056,7 @@
     });
 
     function getMarkerHTML() {
-        const brakeClass = isBraking ? 'is-braking' : '';
+        const brakeClass = (isBraking || isCrashActive) ? 'is-braking' : '';
         const icon = vehicleType === 'car' ? 'fa-car-side' : 'fa-motorcycle';
         return `
             <div class="zenix-vehicle-marker" style="transform: rotate(${currentHeading}deg);">
@@ -742,6 +1078,10 @@
             .addTo(mapInstance);
     }
 
+    function updateSpeedLimit(val) {
+        speedLimitThreshold = parseInt(val, 10) || 80;
+    }
+
     function processTelemetry(lat, lon, speedKmh, heading, alt, isLiveGps) {
         if (isLiveGps) hasRealFix = true;
 
@@ -757,6 +1097,7 @@
 
         myLat = lat;
         myLon = lon;
+        currentSpeed = speedKmh;
         if (heading !== null && !isNaN(heading)) currentHeading = heading;
 
         const speedValEl = document.getElementById('speedVal');
@@ -768,6 +1109,8 @@
         const hybridFill = document.getElementById('hybridMeterFill');
         const coordBadge = document.getElementById('coord-badge');
         const compassDir = document.getElementById('compass-dir');
+        const hudSpeed = document.getElementById('hudSpeedAlert');
+        const threeStatus = document.getElementById('three-status-tag');
 
         if (speedValEl) speedValEl.innerText = speedKmh;
         if (tripValEl) tripValEl.innerText = totalTripKm.toFixed(1) + ' km';
@@ -782,49 +1125,41 @@
             hybridFill.style.width = pct + '%';
         }
 
-        if (speedKmh > 80) {
+        // DETEKSI SPEED TINGGI
+        if (speedKmh > speedLimitThreshold) {
             speedValEl.className = "mid-speed-value overspeed";
-            driveModeEl.innerText = "HIGH SPEED ALERT";
+            driveModeEl.innerText = `OVER LIMIT (> ${speedLimitThreshold} KM/H)`;
             driveModeEl.style.color = "#ef4444";
+            if (hudSpeed) hudSpeed.style.display = 'block';
+            if (threeStatus) { threeStatus.innerText = 'OVERSPEED'; threeStatus.className = 'absolute top-2 right-2.5 z-10 text-[9px] font-black uppercase text-red-400'; }
         } else if (speedKmh >= 40) {
             speedValEl.className = "mid-speed-value";
             driveModeEl.innerText = "CRUISING • ECO";
             driveModeEl.style.color = "#10b981";
+            if (hudSpeed) hudSpeed.style.display = 'none';
+            if (threeStatus) { threeStatus.innerText = 'CRUISING'; threeStatus.className = 'absolute top-2 right-2.5 z-10 text-[9px] font-bold uppercase text-emerald-400'; }
         } else if (speedKmh > 5) {
             speedValEl.className = "mid-speed-value";
             driveModeEl.innerText = "CITY DRIVE";
             driveModeEl.style.color = "#38bdf8";
+            if (hudSpeed) hudSpeed.style.display = 'none';
+            if (threeStatus) { threeStatus.innerText = 'MOVING'; threeStatus.className = 'absolute top-2 right-2.5 z-10 text-[9px] font-bold uppercase text-sky-400'; }
         } else {
             speedValEl.className = "mid-speed-value";
             driveModeEl.innerText = "READY • EV";
             driveModeEl.style.color = "#94a3b8";
+            if (hudSpeed) hudSpeed.style.display = 'none';
+            if (threeStatus) { threeStatus.innerText = 'STANDBY'; threeStatus.className = 'absolute top-2 right-2.5 z-10 text-[9px] font-bold uppercase text-slate-400'; }
         }
 
+        // DETEKSI PERLAmBATAN EKSTREM (TABRAKAN BERBASIS GPS) & LAMPU REM
         const now = Date.now();
         const dt = (now - lastSpeedTime) / 1000;
         const drop = lastSpeed - speedKmh;
-        const hudBrake = document.getElementById('hudHardBrake');
-        const hudJam = document.getElementById('hudTrafficJam');
 
-        isBraking = false;
-        if (dt > 0 && drop > 15 && lastSpeed > 30) {
-            isBraking = true;
-            if (hudBrake) {
-                hudBrake.style.display = 'block';
-                setTimeout(() => { hudBrake.style.display = 'none'; }, 2400);
-            }
-        } else if (drop > 4) {
-            isBraking = true;
-        }
-
-        if (speedKmh > 0 && speedKmh < 15) {
-            slowDuration += dt;
-        } else if (speedKmh >= 15) {
-            slowDuration = 0;
-            if (hudJam) hudJam.style.display = 'none';
-        }
-        if (slowDuration > 12 && hudJam) {
-            hudJam.style.display = 'block';
+        isBraking = drop > 4;
+        if (dt > 0 && dt <= 2.5 && drop > 35 && lastSpeed > 45 && !isCrashActive) {
+            triggerCrashAlert(`Perlambatan Ekstrem Terdeteksi (${lastSpeed} ke ${speedKmh} km/h)`);
         }
 
         lastSpeed = speedKmh;
@@ -834,11 +1169,12 @@
         const locSubtitle = document.getElementById('hu-location-subtitle');
         if (isLiveGps) {
             if (gpsStatus) gpsStatus.innerHTML = '<i class="fa-solid fa-satellite text-emerald-400"></i><span class="hidden sm:inline text-emerald-400">GPS 3D Aktif</span>';
-            if (locSubtitle) locSubtitle.innerText = 'Telemetri Satelit Aktif • Akurasi Tinggi';
+            if (locSubtitle) locSubtitle.innerText = 'Telemetri Satelit Aktif • Cuaca & Radar Tersinkron';
         }
 
         updateVehicleMarker();
-        renderMuxRadar(lat, lon);
+        renderBestPlaces(lat, lon);
+        fetchLiveWeather(lat, lon);
 
         if (autoCenter && mapInstance) {
             mapInstance.easeTo({
@@ -851,20 +1187,24 @@
         }
     }
 
-    function renderMuxRadar(lat, lon) {
-        const container = document.getElementById('mux-radar-list');
+    // Render Lokasi Tempat Terbaik Terdekat
+    function renderBestPlaces(lat, lon) {
+        const container = document.getElementById('best-places-list');
         if (!container) return;
 
-        const sorted = builtInMuxNodes.map(node => ({
-            ...node,
-            dist: getDistKm(lat, lon, node.lat, node.lon)
+        const sorted = bestPlacesData.map(place => ({
+            ...place,
+            dist: getDistKm(lat, lon, place.lat, place.lon)
         })).sort((a, b) => a.dist - b.dist);
 
         container.innerHTML = sorted.map(item => `
-            <div class="radar-row" onclick="focusMuxNode(${item.lat}, ${item.lon}, '${item.name.replace(/'/g, "\\'")}')">
+            <div class="radar-row" onclick="focusLocationOnMap(${item.lat}, ${item.lon}, '${item.name.replace(/'/g, "\\'")}', '#38bdf8')">
                 <div class="min-w-0 pr-1">
-                    <p class="text-xs font-extrabold text-white truncate">${item.name}</p>
-                    <p class="text-[10px] text-slate-400 font-semibold truncate">${item.area} • <span class="text-sky-400">${item.freq}</span></p>
+                    <div class="flex items-center gap-1.5">
+                        <p class="text-xs font-extrabold text-white truncate">${item.name}</p>
+                        <span class="text-[9px] text-amber-400 font-black shrink-0"><i class="fa-solid fa-star"></i> ${item.rating}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 font-semibold truncate">${item.category}</p>
                 </div>
                 <span class="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-400/25 text-sky-300 text-[10px] font-black tabular-nums shrink-0">
                     ${item.dist < 1 ? Math.round(item.dist * 1000) + ' m' : item.dist.toFixed(1) + ' km'}
@@ -873,14 +1213,14 @@
         `).join('');
     }
 
-    function focusMuxNode(lat, lon, title) {
+    function focusLocationOnMap(lat, lon, title, markerColor = '#38bdf8') {
         if (!mapInstance) return;
         autoCenter = false;
         const label = document.getElementById('route-target-label');
         if (label) label.innerText = title;
 
         if (targetMarker) targetMarker.remove();
-        targetMarker = new maplibregl.Marker({ color: '#38bdf8' })
+        targetMarker = new maplibregl.Marker({ color: markerColor })
             .setLngLat([lon, lat])
             .addTo(mapInstance);
 
@@ -913,7 +1253,6 @@
 
     function setDriveMode(mode, btnEl) {
         const shell = document.getElementById('zenix-shell');
-        const badge = document.getElementById('drive-mode-badge');
         if (shell) shell.setAttribute('data-drive-mode', mode);
 
         document.querySelectorAll('.mode-pill').forEach(btn => {
@@ -923,13 +1262,10 @@
         if (btnEl) {
             if (mode === 'eco') {
                 btnEl.className = 'mode-pill py-1.5 rounded-xl bg-emerald-600 border border-emerald-400 text-[10px] font-black uppercase tracking-wider text-white transition';
-                if (badge) { badge.innerText = 'ECO MODE'; badge.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-black'; }
             } else if (mode === 'pwr') {
                 btnEl.className = 'mode-pill py-1.5 rounded-xl bg-rose-600 border border-rose-400 text-[10px] font-black uppercase tracking-wider text-white transition';
-                if (badge) { badge.innerText = 'POWER MODE'; badge.className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[9px] font-black'; }
             } else {
                 btnEl.className = 'mode-pill py-1.5 rounded-xl bg-sky-600 border border-sky-400 text-[10px] font-black uppercase tracking-wider text-white transition';
-                if (badge) { badge.innerText = 'NORMAL'; badge.className = 'px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[9px] font-black'; }
             }
         }
     }
