@@ -1,547 +1,1121 @@
 {% extends 'base.html' %}
-{% block title %}KTVDI MAPS CITY 3D{% endblock %}
+{% block title %}KTVDI MAPS 3D — Head Unit Cockpit{% endblock %}
 
 {% block content %}
 <link href="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.css" rel="stylesheet" />
 <script src="https://unpkg.com/maplibre-gl@3.3.1/dist/maplibre-gl.js"></script>
 
 <style>
-    /* === THEME: RACING TELEMETRY & AUTOMOTIVE ROBUST === */
-    .maps-city-wrapper {
-        background-color: #07090e;
-        background-image: 
-            radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
-            url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h3v3H0V0zm3 3h3v3H3V3z' fill='%23ffffff' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
-        min-height: 100vh;
-        color: #f1f5f9;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        padding: 2rem 1rem 4rem 1rem;
-        overflow-x: hidden;
+    /* === INNOVA ZENIX INFOTAINMENT HEAD UNIT THEME === */
+    .zenix-cockpit-shell {
+        --hu-accent: #38bdf8;
+        --hu-accent-strong: #0284c7;
+        --hu-accent-glow: rgba(56, 189, 248, 0.35);
+        --hu-surface: rgba(8, 13, 26, 0.92);
+        --hu-panel: linear-gradient(160deg, rgba(15, 23, 42, 0.95) 0%, rgba(6, 10, 20, 0.98) 100%);
+        --hu-border: rgba(56, 189, 248, 0.22);
+
+        font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #f8fafc;
+        position: relative;
+        width: 100%;
+        max-width: 1480px;
+        margin: 0 auto;
+        padding-bottom: 2rem;
     }
 
-    @media (min-width: 768px) {
-        .maps-city-wrapper {
-            padding: 2.5rem 2rem 5rem 2rem;
+    /* Variasi Drive Mode Zenix Ambient Light */
+    .zenix-cockpit-shell[data-drive-mode="eco"] {
+        --hu-accent: #10b981;
+        --hu-accent-strong: #059669;
+        --hu-accent-glow: rgba(16, 185, 129, 0.35);
+        --hu-border: rgba(16, 185, 129, 0.28);
+    }
+    .zenix-cockpit-shell[data-drive-mode="pwr"] {
+        --hu-accent: #f43f5e;
+        --hu-accent-strong: #e11d48;
+        --hu-accent-glow: rgba(244, 63, 94, 0.38);
+        --hu-border: rgba(244, 63, 94, 0.3);
+    }
+
+    /* Bezel Utama Head Unit 10-Inch Panoramic */
+    .zenix-bezel {
+        background: #050811;
+        border: 1.5px solid rgba(148, 163, 184, 0.22);
+        border-radius: 28px;
+        box-shadow:
+            0 25px 60px -15px rgba(0, 0, 0, 0.85),
+            0 0 0 1px rgba(56, 189, 248, 0.12),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+        overflow: hidden;
+        position: relative;
+        transition: border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    /* Garis Ambient Light Horizontal ala Dashboard Zenix */
+    .zenix-ambient-bar {
+        height: 3px;
+        width: 100%;
+        background: linear-gradient(90deg, transparent 0%, var(--hu-accent-strong) 25%, var(--hu-accent) 50%, var(--hu-accent-strong) 75%, transparent 100%);
+        box-shadow: 0 0 18px var(--hu-accent-glow);
+        transition: all 0.35s ease;
+    }
+
+    /* Mode Fullscreen Khusus Layar Head Unit Mobil */
+    .zenix-bezel.hu-fullscreen-mode,
+    .zenix-bezel:fullscreen,
+    .zenix-bezel:-webkit-full-screen {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+        z-index: 2147483647 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        background: #04070f !important;
+    }
+    .zenix-bezel.hu-fullscreen-mode .hu-main-grid,
+    .zenix-bezel:fullscreen .hu-main-grid,
+    .zenix-bezel:-webkit-full-screen .hu-main-grid {
+        flex: 1 !important;
+        height: calc(100dvh - 54px) !important;
+        overflow-y: auto !important;
+    }
+    .zenix-bezel.hu-fullscreen-mode #map-container,
+    .zenix-bezel:fullscreen #map-container,
+    .zenix-bezel:-webkit-full-screen #map-container {
+        height: 100% !important;
+        min-height: 360px !important;
+    }
+
+    /* Top Status Bar Head Unit */
+    .hu-topbar {
+        background: linear-gradient(180deg, #0d1426 0%, #080d1a 100%);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    /* Dock Vertikal ala CarPlay / Toyota Multimedia */
+    .hu-dock {
+        background: linear-gradient(180deg, #0a1020 0%, #060a14 100%);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    }
+    @media (min-width: 1024px) {
+        .hu-dock {
+            border-bottom: none;
+            border-right: 1px solid rgba(148, 163, 184, 0.14);
         }
     }
 
-    .premium-scroll::-webkit-scrollbar { width: 4px; }
-    .premium-scroll::-webkit-scrollbar-track { background: #0b0f19; }
-    .premium-scroll::-webkit-scrollbar-thumb { background-color: #334155; border-radius: 4px; }
+    .hu-dock-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: rgba(30, 41, 59, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        color: #94a3b8;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .hu-dock-btn:hover {
+        background: rgba(51, 65, 85, 0.75);
+        color: #ffffff;
+    }
+    .hu-dock-btn.active {
+        background: var(--hu-accent-strong);
+        border-color: var(--hu-accent);
+        color: #ffffff;
+        box-shadow: 0 0 18px var(--hu-accent-glow);
+    }
 
-    /* === RACING DASHBOARD PANELS === */
-    .dash-panel {
-        background: linear-gradient(145deg, #111827 0%, #0b0f19 100%);
-        border: 1px solid #1f2937;
-        border-top: 2px solid #38bdf8;
-        border-radius: 14px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+    /* Card Panel di dalam Head Unit */
+    .hu-card {
+        background: var(--hu-panel);
+        border: 1px solid var(--hu-border);
+        border-radius: 20px;
+        box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.65);
         overflow: hidden;
         display: flex;
         flex-direction: column;
+        transition: border-color 0.35s ease;
     }
 
-    .panel-header {
-        background: #0f172a;
-        border-bottom: 1px solid #1e293b;
+    .hu-card-header {
+        background: rgba(15, 23, 42, 0.72);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
         padding: 10px 14px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         display: flex;
         align-items: center;
-        gap: 8px;
+        justify-content: space-between;
         color: #cbd5e1;
     }
 
-    /* === U17 PROMO BANNER === */
-    .u17-banner {
-        background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 60%, #090d16 100%);
-        border: 1px solid #ef4444;
-        border-radius: 14px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 8px 20px rgba(185, 28, 28, 0.3);
-    }
-
-    /* === SPEEDOMETER & RACING GAUGES === */
-    .speedo-box {
+    /* Speedometer Digital MID Zenix */
+    .mid-cluster {
         position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 2rem 1rem;
-        background: radial-gradient(circle at center, #111827 0%, #07090e 85%);
-        text-align: center;
+        padding: 1.25rem 1rem;
+        background: radial-gradient(circle at 50% 38%, rgba(14, 165, 233, 0.12) 0%, rgba(5, 8, 17, 0.96) 74%);
     }
 
-    .digital-speed {
-        font-family: 'Courier New', Courier, monospace;
-        font-size: 5rem;
-        font-weight: 800;
-        line-height: 1;
+    .mid-speed-value {
+        font-family: 'Montserrat', 'Inter', sans-serif;
+        font-size: 4.25rem;
+        font-weight: 900;
+        line-height: 0.95;
         letter-spacing: -2px;
-        transition: color 0.3s ease, text-shadow 0.3s ease;
-    }
-
-    .speed-normal {
+        font-variant-numeric: tabular-nums;
         color: #ffffff;
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        text-shadow: 0 0 24px var(--hu-accent-glow);
+        transition: color 0.25s ease, text-shadow 0.25s ease;
     }
 
-    .speed-danger {
+    .mid-speed-value.overspeed {
         color: #ef4444 !important;
-        text-shadow: 0 0 25px rgba(239, 68, 68, 0.8), 0 0 10px rgba(239, 68, 68, 0.5) !important;
-        animation: pulse-danger 0.8s infinite alternate;
+        text-shadow: 0 0 28px rgba(239, 68, 68, 0.85) !important;
+        animation: zenixPulse 0.75s infinite alternate;
     }
 
-    @keyframes pulse-danger {
-        0% { transform: scale(1); }
-        100% { transform: scale(1.03); }
+    @keyframes zenixPulse {
+        from { transform: scale(1); }
+        to { transform: scale(1.04); }
     }
 
-    /* === HUD WARNINGS === */
-    .hud-alert {
+    /* Bar Hybrid System Indicator (CHG / ECO / POWER) */
+    .hybrid-meter-track {
+        width: 100%;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        overflow: hidden;
+        display: flex;
+        padding: 1px;
+        gap: 2px;
+    }
+    .hybrid-meter-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #06b6d4 0%, #10b981 48%, #38bdf8 78%, #f43f5e 100%);
+        transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* HUD Alerts */
+    .hu-alert {
         position: absolute;
-        top: 12px; left: 12px; right: 12px;
-        padding: 10px;
-        border-radius: 8px;
-        font-size: 0.65rem;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        font-size: 0.7rem;
         font-weight: 800;
         text-align: center;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
-        z-index: 20;
+        letter-spacing: 0.06em;
+        z-index: 35;
         display: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
     }
-    .alert-brake { background: #dc2626; color: #fff; border: 1px solid #f87171; }
-    .alert-jam { background: #ea580c; color: #fff; border: 1px solid #fdba74; }
+    .hu-alert-brake {
+        background: rgba(220, 38, 38, 0.92);
+        color: #ffffff;
+        border: 1px solid #fca5a5;
+    }
+    .hu-alert-jam {
+        background: rgba(234, 88, 12, 0.92);
+        color: #ffffff;
+        border: 1px solid #fdba74;
+    }
 
-    /* === MOBILE OPTIMIZED 3D MAP === */
+    /* Peta 3D Container */
     #map-container {
         position: relative;
         width: 100%;
-        height: 420px;
+        height: 430px;
+        background: #060a14;
     }
     @media (min-width: 1024px) {
-        #map-container { height: 550px; }
+        #map-container {
+            height: 560px;
+        }
     }
     #map {
         width: 100%;
         height: 100%;
-        background-color: #0b0f19;
     }
 
-    /* Vehicle Switcher Bar */
-    .vehicle-switcher {
+    /* Floating Telemetry Bar di Atas Peta */
+    .map-top-hud {
         position: absolute;
-        top: 12px; left: 12px;
-        z-index: 30;
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        z-index: 25;
         display: flex;
-        background: #0f172a;
-        border-radius: 8px;
-        border: 1px solid #334155;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        pointer-events: none;
     }
-    .v-btn {
-        padding: 6px 12px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: #94a3b8;
+    .map-hud-pill {
+        pointer-events: auto;
+        background: rgba(7, 12, 24, 0.84);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 14px;
+        padding: 7px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+
+    /* Tombol Kontrol Sentuh Besar di Peta */
+    .map-touch-controls {
+        position: absolute;
+        right: 12px;
+        bottom: 16px;
+        z-index: 25;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .map-touch-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: rgba(7, 12, 24, 0.88);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
         cursor: pointer;
-        transition: all 0.2s;
-        display: flex; align-items: center; gap: 6px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+        transition: all 0.2s ease;
     }
-    .v-btn.active { background: #0284c7; color: #fff; }
-    .v-btn:not(.active):hover { background: #1e293b; color: #f1f5f9; }
+    .map-touch-btn:hover, .map-touch-btn:active {
+        background: var(--hu-accent-strong);
+        border-color: var(--hu-accent);
+        color: #ffffff;
+    }
 
-    /* Racing 3D Markers */
-    .racing-marker {
-        display: flex; justify-content: center; align-items: center;
-        width: 44px; height: 44px; transition: transform 0.3s ease;
+    /* Marker Kendaraan 3D ala Crossover Zenix */
+    .zenix-vehicle-marker {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .racer-body {
-        width: 28px; height: 48px; background: #0f172a;
-        border: 2px solid #38bdf8; border-radius: 6px; position: relative;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    .zenix-radar-ring {
+        position: absolute;
+        inset: 4px;
+        border-radius: 9999px;
+        border: 2px solid var(--hu-accent);
+        background: radial-gradient(circle, var(--hu-accent-glow) 0%, transparent 72%);
+        animation: radarPulse 2.2s infinite ease-out;
     }
-    .racer-body.is-braking {
+    @keyframes radarPulse {
+        0% { transform: scale(0.85); opacity: 0.9; }
+        100% { transform: scale(1.35); opacity: 0; }
+    }
+    .zenix-car-chassis {
+        width: 26px;
+        height: 44px;
+        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        border: 2px solid var(--hu-accent);
+        border-radius: 8px;
+        position: relative;
+        z-index: 2;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    /* Sorot Lampu Depan LED */
+    .zenix-car-chassis::before {
+        content: '';
+        position: absolute;
+        top: -12px;
+        left: 2px;
+        right: 2px;
+        height: 12px;
+        background: linear-gradient(to top, rgba(224, 242, 254, 0.65), transparent);
+        clip-path: polygon(15% 100%, 85% 100%, 100% 0%, 0% 0%);
+        pointer-events: none;
+    }
+    /* Lampu Rem Belakang */
+    .zenix-car-chassis.is-braking {
         border-color: #ef4444;
-        box-shadow: 0 0 15px #ef4444;
+        box-shadow: 0 0 18px rgba(239, 68, 68, 0.9);
     }
-    .racer-body.is-braking::after {
-        content: ''; position: absolute; bottom: 2px; left: 2px; right: 2px; height: 4px;
-        background: #ef4444; box-shadow: 0 0 8px #ef4444; border-radius: 1px;
+    .zenix-car-chassis.is-braking::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 2px;
+        right: 2px;
+        height: 4px;
+        background: #ef4444;
+        box-shadow: 0 0 10px #ef4444;
+        border-radius: 2px;
     }
 
-    .btn-center-map {
-        position: absolute; bottom: 15px; right: 15px; z-index: 30;
-        background: #1e293b; border: 1px solid #475569; color: #f1f5f9;
-        padding: 8px 14px; border-radius: 6px; font-size: 0.75rem; font-weight: 700;
-        cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: background 0.2s;
-    }
-    .btn-center-map:hover { background: #334155; }
+    /* Scrollbar Halus untuk Radar Lokasi */
+    .hu-scroll::-webkit-scrollbar { width: 4px; }
+    .hu-scroll::-webkit-scrollbar-track { background: rgba(6, 10, 20, 0.8); }
+    .hu-scroll::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.35); border-radius: 4px; }
 
-    .list-item-custom {
+    .radar-row {
         padding: 10px 14px;
-        border-bottom: 1px solid #1e293b;
-        display: flex; justify-content: space-between; align-items: center;
-        background: #0b0f19;
-        font-size: 0.8rem;
-        transition: background 0.15s;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        cursor: pointer;
+        transition: background 0.18s ease;
     }
-    .list-item-custom:hover { background: #111827; }
+    .radar-row:hover {
+        background: rgba(56, 189, 248, 0.1);
+    }
 </style>
 
-<div class="maps-city-wrapper">
-    <div class="max-w-[1700px] mx-auto space-y-6">
+<div id="zenix-shell" class="zenix-cockpit-shell" data-drive-mode="normal">
+    <div id="zenix-headunit-bezel" class="zenix-bezel">
         
-        <!-- PROMO EVENT U-17 -->
-        <div class="u17-banner p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-4 z-10">
-                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center border-2 border-red-400 shrink-0 shadow-md">
-                    <i class="fa-solid fa-futbol text-xl text-red-700"></i>
+        <!-- GARIS AMBIENT LIGHT KOKPIT -->
+        <div class="zenix-ambient-bar"></div>
+
+        <!-- TOP INFOTAINMENT STATUS BAR -->
+        <div class="hu-topbar">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
+                    <i class="fa-solid fa-compass text-base"></i>
                 </div>
-                <div>
-                    <span class="bg-black/40 text-amber-300 text-[9px] font-bold px-2 py-0.5 rounded border border-amber-400/30 uppercase">Highlight Event</span>
-                    <h2 class="text-xl md:text-2xl font-extrabold text-white tracking-wide uppercase mt-0.5">TIMNAS U-17 WORLD CUP</h2>
-                    <p class="text-red-100 text-xs font-medium">Pantau rute telemetri, hindari hambatan jalan, dan dukung Garuda Muda.</p>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs sm:text-sm font-black tracking-wider uppercase text-white truncate">KTVDI MAPS 3D</span>
+                        <span class="px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-400/30 text-sky-300 text-[9px] font-black uppercase tracking-widest hidden sm:inline-block">ZENIX COCKPIT</span>
+                    </div>
+                    <p id="hu-location-subtitle" class="text-[11px] text-slate-400 font-medium truncate">Menunggu kunci satelit GPS perangkat...</p>
                 </div>
             </div>
-            <div class="z-10 w-full md:w-auto">
-                <button onclick="document.getElementById('map-container').scrollIntoView({behavior: 'smooth'})" class="w-full md:w-auto bg-white text-red-700 px-5 py-2.5 rounded-lg font-bold text-xs uppercase hover:bg-slate-100 transition shadow">
-                    <i class="fa-solid fa-location-arrow mr-1.5"></i> Fokus Peta 3D
+
+            <!-- Status Sinyal, Jam Digital Head Unit & Fullscreen -->
+            <div class="flex items-center gap-2.5 sm:gap-4 shrink-0">
+                <div id="gps-status" class="px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 text-[10px] font-bold text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-satellite fa-spin"></i>
+                    <span class="hidden sm:inline">Mencari GPS</span>
+                </div>
+
+                <div class="hidden md:flex flex-col items-end leading-tight border-l border-slate-800 pl-3">
+                    <span id="hu-clock" class="text-sm font-black text-white tabular-nums tracking-wide">--:--</span>
+                    <span id="hu-date" class="text-[10px] text-slate-400 font-semibold">---</span>
+                </div>
+
+                <button type="button" id="btn-hu-fullscreen" onclick="toggleHeadUnitFullScreen()" title="Mode Layar Penuh Head Unit" class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-[0_0_16px_rgba(2,132,199,0.45)] transition active:scale-95">
+                    <i class="fa-solid fa-expand"></i>
+                    <span class="hidden sm:inline">Headunit Penuh</span>
                 </button>
             </div>
         </div>
 
-        <!-- HEADER TITLE -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-800 pb-3">
-            <div>
-                <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-sky-400 text-[9px] font-bold uppercase tracking-wider mb-1">
-                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span> Live Telemetry Active
-                </div>
-                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight uppercase text-white">
-                    KTVDI <span class="text-slate-400">MAPS</span> <span class="text-red-500">3D</span>
-                </h1>
-            </div>
-            <a href="/" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition flex items-center gap-2 border border-slate-700">
-                <i class="fa-solid fa-gauge"></i> Dasbor Utama
-            </a>
-        </div>
-
-        <!-- MAIN GRID DASHBOARD -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- AREA UTAMA HEAD UNIT (DOCK + 3-COLUMN SPLIT COCKPIT) -->
+        <div class="hu-main-grid flex flex-col lg:flex-row">
             
-            <!-- KOLOM KIRI: SPEEDOMETER & HUD -->
-            <div class="lg:col-span-3 flex flex-col gap-5">
-                <div class="dash-panel flex-1">
-                    <div class="panel-header"><i class="fa-solid fa-gauge-high text-sky-400"></i> Telemetri Berkendara</div>
-                    <div class="speedo-box flex-1">
-                        
-                        <!-- HUD WARNINGS -->
-                        <div id="hudHardBrake" class="hud-alert alert-brake">
-                            <i class="fa-solid fa-triangle-exclamation mb-1 text-sm"></i><br>PERINGATAN: REM DADAKAN!
-                        </div>
-                        <div id="hudTrafficJam" class="hud-alert alert-jam">
-                            <i class="fa-solid fa-car-burst mb-1 text-sm"></i><br>KONDISI: LALU LINTAS PADAT
+            <!-- SIDEBAR DOCK ALA CARPLAY / ZENIX MULTIMEDIA -->
+            <aside class="hu-dock p-2.5 lg:py-4 lg:px-2.5 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-2.5 overflow-x-auto">
+                <a href="{{ url_for('index') if url_for else '/' }}" title="Kembali ke Beranda & Live TV" class="hu-dock-btn">
+                    <i class="fa-solid fa-house text-sm"></i>
+                    <span class="text-[8px] font-extrabold uppercase">Home</span>
+                </a>
+
+                <button type="button" id="dock-car" onclick="setVehicleType('car')" title="Mode Mobil / SUV" class="hu-dock-btn active">
+                    <i class="fa-solid fa-car-side text-sm"></i>
+                    <span class="text-[8px] font-extrabold uppercase">Mobil</span>
+                </button>
+
+                <button type="button" id="dock-motor" onclick="setVehicleType('motor')" title="Mode Sepeda Motor" class="hu-dock-btn">
+                    <i class="fa-solid fa-motorcycle text-sm"></i>
+                    <span class="text-[8px] font-extrabold uppercase">Motor</span>
+                </button>
+
+                <button type="button" id="dock-map-theme" onclick="toggleMapTheme()" title="Ganti Peta Malam / Siang" class="hu-dock-btn">
+                    <i class="fa-solid fa-moon text-sm"></i>
+                    <span class="text-[8px] font-extrabold uppercase">Malam</span>
+                </button>
+
+                <button type="button" id="dock-pitch" onclick="toggle3DPitch()" title="Toggle Sudut 3D / 2D" class="hu-dock-btn active">
+                    <i class="fa-solid fa-cube text-sm"></i>
+                    <span class="text-[8px] font-extrabold uppercase">3D View</span>
+                </button>
+
+                <button type="button" onclick="recenterMap()" title="Fokus Posisi Kendaraan" class="hu-dock-btn">
+                    <i class="fa-solid fa-crosshairs text-sm text-sky-400"></i>
+                    <span class="text-[8px] font-extrabold uppercase">Fokus</span>
+                </button>
+            </aside>
+
+            <!-- KONTEN SPLIT-SCREEN HEAD UNIT -->
+            <div class="flex-1 p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+                
+                <!-- KOLOM KIRI (3 KOLOM): DIGITAL MID SPEEDOMETER & HYBRID METER -->
+                <div class="lg:col-span-3 flex flex-col gap-4">
+                    <div class="hu-card flex-1">
+                        <div class="hu-card-header">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-gauge-high text-sky-400"></i> Digital MID</span>
+                            <span id="drive-mode-badge" class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[9px] font-black">NORMAL</span>
                         </div>
 
-                        <div class="digital-speed speed-normal" id="speedVal">0</div>
-                        <div class="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">KM / JAM</div>
-                        <div id="driveMode" class="text-sm font-bold tracking-wider mt-3 text-slate-400 uppercase">DIAM</div>
-
-                        <div class="w-full grid grid-cols-2 gap-2 mt-6 pt-3 border-t border-slate-800 text-[11px] text-slate-400 font-semibold">
-                            <div class="bg-slate-900/80 p-2 rounded border border-slate-800/80 text-center">
-                                <span class="block text-[9px] text-slate-500 uppercase">Elevasi</span>
-                                <span id="altVal" class="text-white">---</span>
+                        <div class="mid-cluster flex-1">
+                            <!-- HUD WARNINGS -->
+                            <div id="hudHardBrake" class="hu-alert hu-alert-brake">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> PERINGATAN: REM DADAKAN!
                             </div>
-                            <div class="bg-slate-900/80 p-2 rounded border border-slate-800/80 text-center">
-                                <span class="block text-[9px] text-slate-500 uppercase">Arah</span>
-                                <span id="headingVal" class="text-white">---</span>
+                            <div id="hudTrafficJam" class="hu-alert hu-alert-jam">
+                                <i class="fa-solid fa-car-burst mr-1"></i> LALU LINTAS PADAT
+                            </div>
+
+                            <div class="mid-speed-value" id="speedVal">0</div>
+                            <div class="text-[11px] text-slate-400 font-black uppercase tracking-[0.22em] mt-1.5">KM / JAM</div>
+                            <div id="driveMode" class="text-xs font-extrabold tracking-widest mt-2 text-slate-400 uppercase">STANDBY</div>
+
+                            <!-- HYBRID SYSTEM INDICATOR (CHG / ECO / POWER) -->
+                            <div class="w-full mt-5">
+                                <div class="flex justify-between text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                                    <span class="text-cyan-400">CHG</span>
+                                    <span class="text-emerald-400">ECO</span>
+                                    <span class="text-rose-400">POWER</span>
+                                </div>
+                                <div class="hybrid-meter-track">
+                                    <div id="hybridMeterFill" class="hybrid-meter-fill" style="width: 14%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- DRIVE MODE SELECTOR BUTTONS -->
+                            <div class="grid grid-cols-3 gap-1.5 w-full mt-4">
+                                <button type="button" onclick="setDriveMode('eco', this)" class="mode-pill py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-white transition">ECO</button>
+                                <button type="button" onclick="setDriveMode('normal', this)" class="mode-pill py-1.5 rounded-xl bg-sky-600 border border-sky-400 text-[10px] font-black uppercase tracking-wider text-white transition">NORMAL</button>
+                                <button type="button" onclick="setDriveMode('pwr', this)" class="mode-pill py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-white transition">PWR</button>
+                            </div>
+
+                            <!-- TELEMETRI TRIP & ELEVASI -->
+                            <div class="w-full grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-800/90 text-[11px]">
+                                <div class="bg-slate-900/75 p-2 rounded-xl border border-slate-800 text-center">
+                                    <span class="block text-[9px] text-slate-400 font-bold uppercase">Trip A</span>
+                                    <span id="tripVal" class="text-white font-black tabular-nums">0.0 km</span>
+                                </div>
+                                <div class="bg-slate-900/75 p-2 rounded-xl border border-slate-800 text-center">
+                                    <span class="block text-[9px] text-slate-400 font-bold uppercase">Max Speed</span>
+                                    <span id="maxSpeedVal" class="text-white font-black tabular-nums">0 km/h</span>
+                                </div>
+                                <div class="bg-slate-900/75 p-2 rounded-xl border border-slate-800 text-center">
+                                    <span class="block text-[9px] text-slate-400 font-bold uppercase">Elevasi</span>
+                                    <span id="altVal" class="text-white font-black tabular-nums">---</span>
+                                </div>
+                                <div class="bg-slate-900/75 p-2 rounded-xl border border-slate-800 text-center">
+                                    <span class="block text-[9px] text-slate-400 font-bold uppercase">Arah Kompas</span>
+                                    <span id="headingVal" class="text-white font-black tabular-nums">---</span>
+                                </div>
+                            </div>
+
+                            <button type="button" onclick="resetTripStats()" class="mt-2.5 text-[10px] font-bold text-slate-400 hover:text-sky-400 uppercase tracking-wider transition">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Reset Trip &amp; Max
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KOLOM TENGAH (6 KOLOM): PETA NAVIGASI 3D PANORAMIC -->
+                <div class="lg:col-span-6">
+                    <div class="hu-card h-full">
+                        <div class="hu-card-header">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-location-arrow text-sky-400"></i> Navigasi 3D Panoramic</span>
+                            <span id="coord-badge" class="text-[10px] font-mono text-slate-400 tabular-nums">LAT -- • LON --</span>
+                        </div>
+
+                        <div id="map-container">
+                            <!-- Floating Top HUD di Atas Peta -->
+                            <div class="map-top-hud">
+                                <div class="map-hud-pill">
+                                    <div class="w-7 h-7 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs font-black" id="compass-dir">N</div>
+                                    <div>
+                                        <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Status Rute</div>
+                                        <div id="route-target-label" class="text-xs font-extrabold text-white truncate max-w-[180px] sm:max-w-[260px]">Jelajah Bebas (Free Drive)</div>
+                                    </div>
+                                </div>
+
+                                <!-- Preset Kota Cepat (Jika GPS Indoor Belum Terkunci) -->
+                                <div class="map-hud-pill">
+                                    <i class="fa-solid fa-map-pin text-sky-400 text-xs"></i>
+                                    <select id="city-preset-select" onchange="jumpToPreset(this.value)" aria-label="Pilih Lokasi Cepat" class="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer">
+                                        <option value="" class="bg-slate-900">Lokasi Cepat...</option>
+                                        <option value="-6.9826,110.4092,Semarang (Simpang Lima)" class="bg-slate-900">Semarang</option>
+                                        <option value="-6.8898,109.6746,Pekalongan (Alun-Alun)" class="bg-slate-900">Pekalongan</option>
+                                        <option value="-6.1754,106.8272,Jakarta (Monas)" class="bg-slate-900">Jakarta</option>
+                                        <option value="-6.9175,107.6191,Bandung (Gedung Sate)" class="bg-slate-900">Bandung</option>
+                                        <option value="-7.7956,110.3695,Yogyakarta (Tugu)" class="bg-slate-900">Yogyakarta</option>
+                                        <option value="-7.2575,112.7521,Surabaya (Tunjungan)" class="bg-slate-900">Surabaya</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="map"></div>
+
+                            <!-- Kontrol Sentuh Kanan Bawah -->
+                            <div class="map-touch-controls">
+                                <button type="button" onclick="zoomMap(1)" title="Perbesar Peta" class="map-touch-btn">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                                <button type="button" onclick="zoomMap(-1)" title="Perkecil Peta" class="map-touch-btn">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+                                <button type="button" onclick="recenterMap()" title="Fokus Kamera ke Kendaraan" class="map-touch-btn border-sky-400/50 text-sky-400">
+                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- KOLOM TENGAH: PETA 3D MAPLIBRE (OPTIMIZED MOBILE) -->
-            <div class="lg:col-span-6">
-                <div class="dash-panel h-full">
-                    <div class="panel-header justify-between">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-cube text-sky-400"></i> Navigasi 3D Realtime</span>
-                        <div id="gps-status" class="text-[10px] text-amber-400 font-semibold flex items-center gap-1.5">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Mencari Satelit...
+                <!-- KOLOM KANAN (3 KOLOM): RADAR PEMANCAR MUX & CHECKPOINT (OFFLINE-FIRST) -->
+                <div class="lg:col-span-3 flex flex-col gap-4">
+                    
+                    <!-- Radar Pemancar MUX DVB-T2 Terdekat -->
+                    <div class="hu-card flex-1 max-h-[320px]">
+                        <div class="hu-card-header">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-tower-broadcast text-sky-400"></i> Radar Pemancar MUX</span>
+                            <span class="text-[9px] text-emerald-400 font-black">OFFLINE READY</span>
+                        </div>
+                        <div class="flex-1 overflow-y-auto hu-scroll" id="mux-radar-list"></div>
+                    </div>
+
+                    <!-- Shortcut Infotainment KTVDI di Head Unit -->
+                    <div class="hu-card">
+                        <div class="hu-card-header">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-tv text-cyan-400"></i> Media &amp; Siaran</span>
+                            <span class="text-[9px] text-slate-400 font-bold">KTVDI</span>
+                        </div>
+                        <div class="p-3.5 space-y-2.5">
+                            <p class="text-[11px] text-slate-300 leading-relaxed">
+                                Cek kanal UHF wilayah tujuan perjalanan atau putar streaming TV Digital langsung dari dasbor.
+                            </p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <a href="{{ url_for('daftar_siaran') if url_for else '/daftar-siaran' }}" class="py-2.5 px-3 rounded-xl bg-sky-600/20 hover:bg-sky-600 border border-sky-400/30 text-sky-300 hover:text-white text-[10px] font-black uppercase tracking-wider text-center transition">
+                                    <i class="fa-solid fa-satellite-dish mr-1"></i> Frekuensi
+                                </a>
+                                <a href="/#live-tv-section" class="py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 text-[10px] font-black uppercase tracking-wider text-center transition">
+                                    <i class="fa-solid fa-play mr-1 text-red-400"></i> Live TV
+                                </a>
+                            </div>
                         </div>
                     </div>
-                    <div id="map-container">
-                        <!-- Vehicle Switcher -->
-                        <div class="vehicle-switcher">
-                            <div id="btn-car" class="v-btn active" onclick="setVehicleType('car')"><i class="fa-solid fa-car"></i> Mobil</div>
-                            <div id="btn-motor" class="v-btn" onclick="setVehicleType('motor')"><i class="fa-solid fa-motorcycle"></i> Motor</div>
-                        </div>
-                        <div id="map"></div>
-                        <button class="btn-center-map" onclick="recenterMap()"><i class="fa-solid fa-crosshairs mr-1"></i> Fokus Kamera</button>
-                    </div>
+
                 </div>
+
             </div>
-
-            <!-- KOLOM KANAN: RADAR LOKAL & BMKG -->
-            <div class="lg:col-span-3 flex flex-col gap-5">
-                <div class="dash-panel max-h-[280px]">
-                    <div class="panel-header"><i class="fa-solid fa-house-crack text-red-500"></i> Radar Gempa (BMKG)</div>
-                    <div class="flex-1 overflow-y-auto premium-scroll" id="bmkg-list">
-                        <div class="p-6 text-center text-xs text-slate-500 font-medium">Sinkronisasi data...</div>
-                    </div>
-                </div>
-
-                <div class="dash-panel flex-1 max-h-[300px]">
-                    <div class="panel-header justify-between">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-radar text-amber-400"></i> Radar Sekitar (10KM)</span>
-                    </div>
-                    <div class="flex-1 overflow-y-auto premium-scroll" id="poi-list">
-                        <div class="p-6 text-center text-xs text-slate-500 font-medium">Menunggu koordinat GPS...</div>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </div>
 </div>
 
 <script>
+    // Dataset Terintegrasi: Pemancar MUX TV Digital & Titik Utama Nusantara (Tanpa External Web API)
+    const builtInMuxNodes = [
+        { name: "MUX TVRI & Swasta Pekalongan", area: "Jawa Tengah - 3 (Plat G)", lat: -6.8965, lon: 109.6712, freq: "UHF 30 / 33 / 36" },
+        { name: "MUX Gombel & Bukit Sari Semarang", area: "Jawa Tengah - 1", lat: -7.0398, lon: 110.4215, freq: "UHF 29 / 32 / 36" },
+        { name: "MUX Joglo & Kebon Jeruk Jakarta", area: "Jabodetabek", lat: -6.2155, lon: 106.7324, freq: "UHF 24 / 28 / 34" },
+        { name: "MUX Bukit Bandung / Cimenyan", area: "Jawa Barat - 1", lat: -6.8682, lon: 107.6634, freq: "UHF 29 / 32 / 35" },
+        { name: "MUX Patuk Gunungkidul / Jogja", area: "DIY & Solo Raya", lat: -7.8485, lon: 110.4832, freq: "UHF 29 / 32 / 35" },
+        { name: "MUX Dukuh Kupang Surabaya", area: "Jawa Timur - 1", lat: -7.2854, lon: 112.7186, freq: "UHF 29 / 32 / 35" },
+        { name: "MUX Tegal & Brebes Pantura", area: "Jawa Tengah - 3", lat: -6.8797, lon: 109.1256, freq: "UHF 30 / 33 / 36" },
+        { name: "MUX Cirebon / Gunung Ciremai", area: "Jawa Barat - 7", lat: -6.7320, lon: 108.5523, freq: "UHF 29 / 32 / 35" },
+        { name: "MUX Bandar Baru Medan", area: "Sumatera Utara - 1", lat: 3.5897, lon: 98.6738, freq: "UHF 28 / 31 / 34" },
+        { name: "MUX Makassar / Gowa", area: "Sulawesi Selatan - 1", lat: -5.1477, lon: 119.4327, freq: "UHF 28 / 31 / 34" }
+    ];
+
+    const MAP_STYLES = {
+        dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+        light: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+    };
+
+    let mapInstance = null;
+    let userMarker = null;
+    let targetMarker = null;
+    let myLat = -6.9826;
+    let myLon = 110.4092;
+    let hasRealFix = false;
+    let autoCenter = true;
+    let vehicleType = 'car';
+    let mapTheme = 'dark';
+    let is3DPitch = true;
+    let currentHeading = 0;
+    let isBraking = false;
+
+    let lastSpeed = 0;
+    let lastSpeedTime = Date.now();
+    let slowDuration = 0;
+    let totalTripKm = 0;
+    let maxSpeedKmh = 0;
+    let lastTripCoord = null;
+
+    // Update Jam Digital Head Unit
+    function updateHeadUnitClock() {
+        const now = new Date();
+        const clockEl = document.getElementById('hu-clock');
+        const dateEl = document.getElementById('hu-date');
+        if (clockEl) {
+            clockEl.innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+        }
+        if (dateEl) {
+            dateEl.innerText = now.toLocaleDateString('id-ID', { weekday: 'short', day: '2-digit', month: 'short' });
+        }
+    }
+    setInterval(updateHeadUnitClock, 1000);
+    updateHeadUnitClock();
+
+    function getDistKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function getCardinalDirection(deg) {
+        if (deg === null || isNaN(deg)) return 'N';
+        const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        return dirs[Math.round(((deg % 360) / 45)) % 8];
+    }
+
+    // Ekstrusi Bangunan 3D Opsional pada MapLibre
+    function add3DBuildingsLayer(map) {
+        try {
+            const style = map.getStyle();
+            if (!style || !style.sources) return;
+            const vectorSourceKey = Object.keys(style.sources).find(k => style.sources[k].type === 'vector');
+            if (!vectorSourceKey || map.getLayer('zenix-3d-buildings')) return;
+
+            map.addLayer({
+                id: 'zenix-3d-buildings',
+                source: vectorSourceKey,
+                'source-layer': 'building',
+                type: 'fill-extrusion',
+                minzoom: 14,
+                paint: {
+                    'fill-extrusion-color': mapTheme === 'dark' ? '#1e293b' : '#cbd5e1',
+                    'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 14],
+                    'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+                    'fill-extrusion-opacity': 0.65
+                }
+            });
+        } catch (e) {
+            // Aman diabaikan jika source layer berbeda
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
-        // Inisialisasi MapLibre GL dengan pengaturan ringan (Mobile Optimized)
-        const map = new maplibregl.Map({
+        mapInstance = new maplibregl.Map({
             container: 'map',
-            style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-            center: [118.0, -2.5],
-            zoom: 5,
-            pitch: 55,
+            style: MAP_STYLES.dark,
+            center: [myLon, myLat],
+            zoom: 14.5,
+            pitch: 60,
             bearing: 0,
-            antialias: false // Menghemat performa HP agar tidak lag
+            antialias: false
         });
 
-        let userMarker = null;
-        let myLat = null; 
-        let myLon = null;
-        let autoCenter = true;
-        let vehicleType = 'car';
-        let currentHeading = 0;
-        let currentSpeed = 0;
-        let isBraking = false;
+        mapInstance.on('style.load', () => {
+            add3DBuildingsLayer(mapInstance);
+        });
 
-        let lastSpeed = 0;
-        let lastSpeedTime = Date.now();
-        let slowDuration = 0;
-        let poiMarkers = [];
+        mapInstance.on('dragstart', () => {
+            autoCenter = false;
+        });
 
-        map.on('dragstart', function() { autoCenter = false; });
+        renderMuxRadar(myLat, myLon);
+        updateVehicleMarker();
 
-        window.recenterMap = function() {
-            if(myLat && myLon) {
-                map.flyTo({ center: [myLon, myLat], zoom: 16, pitch: 55, bearing: currentHeading, speed: 1.2 });
-                autoCenter = true;
-            } else {
-                alert("Posisi GPS belum terkunci.");
-            }
-        };
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition((pos) => {
+                const sKmh = (pos.coords.speed && pos.coords.speed > 0) ? Math.round(pos.coords.speed * 3.6) : 0;
+                processTelemetry(
+                    pos.coords.latitude,
+                    pos.coords.longitude,
+                    sKmh,
+                    pos.coords.heading !== null ? pos.coords.heading : currentHeading,
+                    pos.coords.altitude,
+                    true
+                );
+            }, () => {
+                const gpsStatus = document.getElementById('gps-status');
+                if (gpsStatus && !hasRealFix) {
+                    gpsStatus.innerHTML = '<i class="fa-solid fa-location-dot text-sky-400"></i><span class="hidden sm:inline text-sky-300">Mode Simulasi / Preset</span>';
+                }
+            }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 8000 });
+        }
+    });
 
-        window.setVehicleType = function(type) {
-            vehicleType = type;
-            document.getElementById('btn-car').classList.toggle('active', type === 'car');
-            document.getElementById('btn-motor').classList.toggle('active', type === 'motor');
-            updateVehicleMarker();
-        };
-
-        function getMarkerHTML() {
-            let brakeClass = isBraking ? 'is-braking' : '';
-            let icon = vehicleType === 'car' ? 'fa-car-side' : 'fa-motorcycle';
-            return `
-                <div class="racing-marker" style="transform: rotate(${currentHeading}deg);">
-                    <div class="racer-body ${brakeClass} flex items-center justify-center text-sky-400 text-xs">
-                        <i class="fa-solid ${icon}"></i>
-                    </div>
+    function getMarkerHTML() {
+        const brakeClass = isBraking ? 'is-braking' : '';
+        const icon = vehicleType === 'car' ? 'fa-car-side' : 'fa-motorcycle';
+        return `
+            <div class="zenix-vehicle-marker" style="transform: rotate(${currentHeading}deg);">
+                <div class="zenix-radar-ring"></div>
+                <div class="zenix-car-chassis ${brakeClass} text-sky-300 text-xs">
+                    <i class="fa-solid ${icon}"></i>
                 </div>
-            `;
-        }
+            </div>
+        `;
+    }
 
-        function updateVehicleMarker() {
-            if(!myLat || !myLon) return;
-            const el = document.createElement('div');
-            el.innerHTML = getMarkerHTML();
-            
-            if(userMarker) userMarker.remove();
-            userMarker = new maplibregl.Marker({ element: el.firstElementChild })
-                .setLngLat([myLon, myLat])
-                .addTo(map);
+    function updateVehicleMarker() {
+        if (!mapInstance) return;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = getMarkerHTML();
+
+        if (userMarker) userMarker.remove();
+        userMarker = new maplibregl.Marker({ element: wrapper.firstElementChild })
+            .setLngLat([myLon, myLat])
+            .addTo(mapInstance);
+    }
+
+    function processTelemetry(lat, lon, speedKmh, heading, alt, isLiveGps) {
+        if (isLiveGps) hasRealFix = true;
+
+        // Hitung jarak tempuh Trip A (filter noise GPS < 5 meter)
+        if (lastTripCoord && isLiveGps) {
+            const stepKm = getDistKm(lastTripCoord.lat, lastTripCoord.lon, lat, lon);
+            if (stepKm > 0.005 && stepKm < 2.0) {
+                totalTripKm += stepKm;
+            }
         }
+        if (isLiveGps) lastTripCoord = { lat, lon };
+
+        if (speedKmh > maxSpeedKmh) maxSpeedKmh = speedKmh;
+
+        myLat = lat;
+        myLon = lon;
+        if (heading !== null && !isNaN(heading)) currentHeading = heading;
 
         const speedValEl = document.getElementById('speedVal');
         const headingValEl = document.getElementById('headingVal');
         const altValEl = document.getElementById('altVal');
         const driveModeEl = document.getElementById('driveMode');
-        const gpsStatus = document.getElementById('gps-status');
+        const tripValEl = document.getElementById('tripVal');
+        const maxSpeedEl = document.getElementById('maxSpeedVal');
+        const hybridFill = document.getElementById('hybridMeterFill');
+        const coordBadge = document.getElementById('coord-badge');
+        const compassDir = document.getElementById('compass-dir');
+
+        if (speedValEl) speedValEl.innerText = speedKmh;
+        if (tripValEl) tripValEl.innerText = totalTripKm.toFixed(1) + ' km';
+        if (maxSpeedEl) maxSpeedEl.innerText = maxSpeedKmh + ' km/h';
+        if (headingValEl) headingValEl.innerText = (heading !== null && !isNaN(heading)) ? `${Math.round(heading)}°` : '0°';
+        if (altValEl) altValEl.innerText = (alt !== null && !isNaN(alt)) ? `${Math.round(alt)} m` : '---';
+        if (coordBadge) coordBadge.innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        if (compassDir) compassDir.innerText = getCardinalDirection(currentHeading);
+
+        // Update Hybrid Power Bar (CHG / ECO / POWER)
+        if (hybridFill) {
+            const pct = Math.min(100, Math.max(12, Math.round((speedKmh / 120) * 100)));
+            hybridFill.style.width = pct + '%';
+        }
+
+        // Kontrol Warna Speedometer & Status Kecepatan
+        if (speedKmh > 80) {
+            speedValEl.className = "mid-speed-value overspeed";
+            driveModeEl.innerText = "HIGH SPEED ALERT";
+            driveModeEl.style.color = "#ef4444";
+        } else if (speedKmh >= 40) {
+            speedValEl.className = "mid-speed-value";
+            driveModeEl.innerText = "CRUISING • ECO";
+            driveModeEl.style.color = "#10b981";
+        } else if (speedKmh > 5) {
+            speedValEl.className = "mid-speed-value";
+            driveModeEl.innerText = "CITY DRIVE";
+            driveModeEl.style.color = "#38bdf8";
+        } else {
+            speedValEl.className = "mid-speed-value";
+            driveModeEl.innerText = "READY • EV";
+            driveModeEl.style.color = "#94a3b8";
+        }
+
+        // Deteksi Rem Dadakan & Kemacetan
+        const now = Date.now();
+        const dt = (now - lastSpeedTime) / 1000;
+        const drop = lastSpeed - speedKmh;
         const hudBrake = document.getElementById('hudHardBrake');
         const hudJam = document.getElementById('hudTrafficJam');
 
-        function processTelemetry(lat, lon, speedKmh, heading, alt, source) {
-            myLat = lat; myLon = lon; currentSpeed = speedKmh;
-            if(heading !== null && !isNaN(heading)) currentHeading = heading;
-
-            speedValEl.innerText = speedKmh;
-            headingValEl.innerText = (heading !== null && !isNaN(heading)) ? `${Math.round(heading)}°` : "N/A";
-            altValEl.innerText = (alt !== null && !isNaN(alt)) ? Math.round(alt) + " MDPL" : "N/A";
-
-            // --- KONTROL WARNA SPEEDOMETER & REM DADAKAN (> 80 KM/H MENJADI MERAH) ---
-            if (speedKmh > 80) {
-                speedValEl.className = "digital-speed speed-danger";
-                driveModeEl.innerText = "HIGH SPEED";
-                driveModeEl.style.color = "#ef4444";
-            } else if (speedKmh >= 40) {
-                speedValEl.className = "digital-speed speed-normal";
-                driveModeEl.innerText = "LANCAR";
-                driveModeEl.style.color = "#10b981";
-            } else if (speedKmh > 5) {
-                speedValEl.className = "digital-speed speed-normal";
-                driveModeEl.innerText = "SEDANG";
-                driveModeEl.style.color = "#38bdf8";
-            } else {
-                speedValEl.className = "digital-speed speed-normal";
-                driveModeEl.innerText = "DIAM";
-                driveModeEl.style.color = "#64748b";
-            }
-
-            // --- AI DETECTOR: REM DADAKAN & KEMACETAN ---
-            let now = Date.now();
-            let dt = (now - lastSpeedTime) / 1000;
-            let drop = lastSpeed - speedKmh;
-
-            isBraking = false;
-            hudBrake.style.display = 'none';
-
-            if (dt > 0 && drop > 15 && lastSpeed > 30) {
-                isBraking = true;
+        isBraking = false;
+        if (dt > 0 && drop > 15 && lastSpeed > 30) {
+            isBraking = true;
+            if (hudBrake) {
                 hudBrake.style.display = 'block';
-                setTimeout(() => { hudBrake.style.display = 'none'; }, 2000);
-            } else if (drop > 4) {
-                isBraking = true; // Rem biasa (lampu menyala)
+                setTimeout(() => { hudBrake.style.display = 'none'; }, 2400);
             }
-
-            if (speedKmh > 0 && speedKmh < 15) {
-                slowDuration += dt;
-            } else if (speedKmh >= 15) {
-                slowDuration = 0;
-                hudJam.style.display = 'none';
-            }
-
-            if (slowDuration > 12) {
-                hudJam.style.display = 'block';
-            }
-
-            lastSpeed = speedKmh;
-            lastSpeedTime = now;
-
-            gpsStatus.innerHTML = source === 'GPS' ? 
-                '<span class="text-emerald-400"><i class="fa-solid fa-卫星 mr-1"></i>GPS 3D Fix</span>' : 
-                '<span class="text-amber-400">Jaringan IP/BTS</span>';
-
-            updateVehicleMarker();
-
-            if(autoCenter) {
-                map.easeTo({ center: [lon, lat], zoom: 16, bearing: currentHeading, pitch: 55, duration: 800 });
-            }
-
-            if(!window.lastFetch || getDist(lat, lon, window.lastFetch.lat, window.lastFetch.lon) > 4) {
-                fetchPOIs(lat, lon);
-                window.lastFetch = {lat, lon};
-            }
+        } else if (drop > 4) {
+            isBraking = true;
         }
 
-        if ("geolocation" in navigator) {
-            navigator.geolocation.watchPosition((pos) => {
-                let sKmh = (pos.coords.speed && pos.coords.speed > 0) ? Math.round(pos.coords.speed * 3.6) : 0;
-                processTelemetry(pos.coords.latitude, pos.coords.longitude, sKmh, pos.coords.heading || currentHeading, pos.coords.altitude, 'GPS');
-            }, () => { fallbackIP(); }, { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 });
-        } else {
-            fallbackIP();
+        if (speedKmh > 0 && speedKmh < 15) {
+            slowDuration += dt;
+        } else if (speedKmh >= 15) {
+            slowDuration = 0;
+            if (hudJam) hudJam.style.display = 'none';
+        }
+        if (slowDuration > 12 && hudJam) {
+            hudJam.style.display = 'block';
         }
 
-        function fallbackIP() {
-            if(myLat !== null) return;
-            fetch('https://ipapi.co/json/')
-                .then(res => res.json())
-                .then(data => {
-                    if(data.latitude && data.longitude) {
-                        processTelemetry(data.latitude, data.longitude, 0, 0, null, 'IP');
-                        map.flyTo({ center: [data.longitude, data.latitude], zoom: 14 });
-                    }
+        lastSpeed = speedKmh;
+        lastSpeedTime = now;
+
+        const gpsStatus = document.getElementById('gps-status');
+        const locSubtitle = document.getElementById('hu-location-subtitle');
+        if (isLiveGps) {
+            if (gpsStatus) gpsStatus.innerHTML = '<i class="fa-solid fa-satellite text-emerald-400"></i><span class="hidden sm:inline text-emerald-400">GPS 3D Aktif</span>';
+            if (locSubtitle) locSubtitle.innerText = `Telemetri Satelit Aktif • Akurasi Tinggi`;
+        }
+
+        updateVehicleMarker();
+        renderMuxRadar(lat, lon);
+
+        if (autoCenter && mapInstance) {
+            mapInstance.easeTo({
+                center: [lon, lat],
+                zoom: 16,
+                bearing: currentHeading,
+                pitch: is3DPitch ? 60 : 0,
+                duration: 750
+            });
+        }
+    }
+
+    // Render Radar Pemancar MUX Terdekat (100% Offline Tanpa Web API)
+    function renderMuxRadar(lat, lon) {
+        const container = document.getElementById('mux-radar-list');
+        if (!container) return;
+
+        const sorted = builtInMuxNodes.map(node => ({
+            ...node,
+            dist: getDistKm(lat, lon, node.lat, node.lon)
+        })).sort((a, b) => a.dist - b.dist);
+
+        container.innerHTML = sorted.map(item => `
+            <div class="radar-row" onclick="focusMuxNode(${item.lat}, ${item.lon}, '${item.name.replace(/'/g, "\\'")}')">
+                <div class="min-w-0 pr-1">
+                    <p class="text-xs font-extrabold text-white truncate">${item.name}</p>
+                    <p class="text-[10px] text-slate-400 font-semibold truncate">${item.area} • <span class="text-sky-400">${item.freq}</span></p>
+                </div>
+                <span class="px-2 py-1 rounded-lg bg-sky-500/15 border border-sky-400/25 text-sky-300 text-[10px] font-black tabular-nums shrink-0">
+                    ${item.dist < 1 ? Math.round(item.dist * 1000) + ' m' : item.dist.toFixed(1) + ' km'}
+                </span>
+            </div>
+        `).join('');
+    }
+
+    function focusMuxNode(lat, lon, title) {
+        if (!mapInstance) return;
+        autoCenter = false;
+        const label = document.getElementById('route-target-label');
+        if (label) label.innerText = title;
+
+        if (targetMarker) targetMarker.remove();
+        targetMarker = new maplibregl.Marker({ color: '#38bdf8' })
+            .setLngLat([lon, lat])
+            .addTo(mapInstance);
+
+        mapInstance.flyTo({
+            center: [lon, lat],
+            zoom: 14.5,
+            pitch: is3DPitch ? 60 : 0,
+            speed: 1.2
+        });
+    }
+
+    function jumpToPreset(val) {
+        if (!val) return;
+        const parts = val.split(',');
+        const lat = parseFloat(parts[0]);
+        const lon = parseFloat(parts[1]);
+        const label = parts[2] || 'Lokasi Terpilih';
+
+        autoCenter = true;
+        document.getElementById('hu-location-subtitle').innerText = `Lokasi Preset: ${label}`;
+        processTelemetry(lat, lon, 0, currentHeading, 15, false);
+    }
+
+    function setVehicleType(type) {
+        vehicleType = type;
+        document.getElementById('dock-car').classList.toggle('active', type === 'car');
+        document.getElementById('dock-motor').classList.toggle('active', type === 'motor');
+        updateVehicleMarker();
+    }
+
+    function setDriveMode(mode, btnEl) {
+        const shell = document.getElementById('zenix-shell');
+        const badge = document.getElementById('drive-mode-badge');
+        if (shell) shell.setAttribute('data-drive-mode', mode);
+
+        document.querySelectorAll('.mode-pill').forEach(btn => {
+            btn.className = 'mode-pill py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-white transition';
+        });
+
+        if (btnEl) {
+            if (mode === 'eco') {
+                btnEl.className = 'mode-pill py-1.5 rounded-xl bg-emerald-600 border border-emerald-400 text-[10px] font-black uppercase tracking-wider text-white transition';
+                if (badge) { badge.innerText = 'ECO MODE'; badge.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-black'; }
+            } else if (mode === 'pwr') {
+                btnEl.className = 'mode-pill py-1.5 rounded-xl bg-rose-600 border border-rose-400 text-[10px] font-black uppercase tracking-wider text-white transition';
+                if (badge) { badge.innerText = 'POWER MODE'; badge.className = 'px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 text-[9px] font-black'; }
+            } else {
+                btnEl.className = 'mode-pill py-1.5 rounded-xl bg-sky-600 border border-sky-400 text-[10px] font-black uppercase tracking-wider text-white transition';
+                if (badge) { badge.innerText = 'NORMAL'; badge.className = 'px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[9px] font-black'; }
+            }
+        }
+    }
+
+    function toggleMapTheme() {
+        if (!mapInstance) return;
+        mapTheme = mapTheme === 'dark' ? 'light' : 'dark';
+        mapInstance.setStyle(MAP_STYLES[mapTheme]);
+
+        const btn = document.getElementById('dock-map-theme');
+        if (btn) {
+            btn.innerHTML = mapTheme === 'dark'
+                ? '<i class="fa-solid fa-moon text-sm"></i><span class="text-[8px] font-extrabold uppercase">Malam</span>'
+                : '<i class="fa-solid fa-sun text-sm text-amber-400"></i><span class="text-[8px] font-extrabold uppercase">Siang</span>';
+        }
+    }
+
+    function toggle3DPitch() {
+        if (!mapInstance) return;
+        is3DPitch = !is3DPitch;
+        const btn = document.getElementById('dock-pitch');
+        if (btn) {
+            btn.classList.toggle('active', is3DPitch);
+            btn.innerHTML = is3DPitch
+                ? '<i class="fa-solid fa-cube text-sm"></i><span class="text-[8px] font-extrabold uppercase">3D View</span>'
+                : '<i class="fa-solid fa-map text-sm"></i><span class="text-[8px] font-extrabold uppercase">2D Top</span>';
+        }
+        mapInstance.easeTo({ pitch: is3DPitch ? 60 : 0, duration: 500 });
+    }
+
+    function zoomMap(delta) {
+        if (!mapInstance) return;
+        mapInstance.zoomTo(mapInstance.getZoom() + delta, { duration: 300 });
+    }
+
+    function recenterMap() {
+        if (!mapInstance) return;
+        autoCenter = true;
+        document.getElementById('route-target-label').innerText = 'Jelajah Bebas (Free Drive)';
+        mapInstance.flyTo({
+            center: [myLon, myLat],
+            zoom: 16,
+            pitch: is3DPitch ? 60 : 0,
+            bearing: currentHeading,
+            speed: 1.2
+        });
+    }
+
+    function resetTripStats() {
+        totalTripKm = 0;
+        maxSpeedKmh = 0;
+        document.getElementById('tripVal').innerText = '0.0 km';
+        document.getElementById('maxSpeedVal').innerText = '0 km/h';
+    }
+
+    // Mode Layar Penuh Head Unit (Android Car Head Unit, iOS & PC)
+    function syncBackgroundCanvas(hide) {
+        const threeCanvas = document.getElementById('ktvdi-three-canvas');
+        if (threeCanvas) threeCanvas.style.visibility = hide ? 'hidden' : 'visible';
+    }
+
+    function toggleHeadUnitFullScreen() {
+        const bezel = document.getElementById('zenix-headunit-bezel');
+        const btn = document.getElementById('btn-hu-fullscreen');
+        if (!bezel) return;
+
+        if (bezel.classList.contains('hu-fullscreen-mode')) {
+            bezel.classList.remove('hu-fullscreen-mode');
+            document.body.style.overflow = '';
+            syncBackgroundCanvas(false);
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-expand"></i><span class="hidden sm:inline">Headunit Penuh</span>';
+            if (mapInstance) setTimeout(() => mapInstance.resize(), 150);
+            return;
+        }
+
+        const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!fsEl) {
+            const reqFs = bezel.requestFullscreen || bezel.webkitRequestFullscreen;
+            if (reqFs) {
+                reqFs.call(bezel).then(() => {
+                    syncBackgroundCanvas(true);
+                    if (btn) btn.innerHTML = '<i class="fa-solid fa-compress"></i><span class="hidden sm:inline">Keluar</span>';
+                    if (mapInstance) setTimeout(() => mapInstance.resize(), 150);
+                }).catch(() => {
+                    bezel.classList.add('hu-fullscreen-mode');
+                    document.body.style.overflow = 'hidden';
+                    syncBackgroundCanvas(true);
+                    if (btn) btn.innerHTML = '<i class="fa-solid fa-compress"></i><span class="hidden sm:inline">Keluar</span>';
+                    if (mapInstance) setTimeout(() => mapInstance.resize(), 150);
                 });
-        }
-
-        function getDist(lat1, lon1, lat2, lon2) {
-            let R = 6371; let dLat = (lat2-lat1)*Math.PI/180; let dLon = (lon2-lon1)*Math.PI/180;
-            let a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        async function fetchPOIs(lat, lon) {
-            const query = `[out:json][timeout:10];(node["amenity"~"restaurant|cafe|fuel"](around:5000,${lat},${lon}););out tags center 20;`;
-            try {
-                const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-                const data = await res.json();
-                poiMarkers.forEach(m => m.remove());
-                poiMarkers = [];
-                let html = '';
-
-                if(data && data.elements) {
-                    data.elements.forEach(el => {
-                        if(el.tags && el.tags.name) {
-                            let dist = getDist(lat, lon, el.lat, el.lon);
-                            html += `
-                                <div class="list-item-custom">
-                                    <div class="truncate pr-2">
-                                        <p class="font-bold text-slate-200 truncate">${el.tags.name}</p>
-                                        <p class="text-[10px] text-slate-400 uppercase">${el.tags.amenity || 'Fasilitas'}</p>
-                                    </div>
-                                    <span class="text-xs font-semibold bg-slate-800 text-sky-400 px-2 py-0.5 rounded border border-slate-700 whitespace-nowrap">${dist < 1 ? Math.round(dist*1000)+'m' : dist.toFixed(1)+'km'}</span>
-                                </div>
-                            `;
-                        }
-                    });
-                }
-                document.getElementById('poi-list').innerHTML = html || '<div class="p-4 text-center text-xs text-slate-500">Tidak ada objek sekitar.</div>';
-            } catch(e) { console.error(e); }
-        }
-
-        async function fetchBMKG() {
-            try {
-                const res = await fetch('https://data.bmkg.go.id/DataMKG/TEWS/gempaterkini.json');
-                const data = await res.json();
-                const list = data.Infogempa.gempa;
-                let html = '';
-                for(let i=0; i<Math.min(list.length, 5); i++) {
-                    let g = list[i];
-                    html += `
-                        <div class="list-item-custom flex-col items-start gap-1 cursor-pointer" onclick="map.flyTo({center: [${g.Coordinates.split(',')[1]}, ${g.Coordinates.split(',')[0]}], zoom: 7})">
-                            <div class="flex justify-between w-full text-[10px] text-slate-400 font-bold">
-                                <span class="text-red-400 font-extrabold">MAG ${g.Magnitude}</span>
-                                <span>${g.Jam}</span>
-                            </div>
-                            <p class="font-semibold text-slate-200 text-xs">${g.Wilayah}</p>
-                        </div>
-                    `;
-                }
-                document.getElementById('bmkg-list').innerHTML = html;
-            } catch(e) {
-                document.getElementById('bmkg-list').innerHTML = '<div class="p-4 text-center text-xs text-red-400">Gagal memuat data BMKG.</div>';
+            } else {
+                bezel.classList.add('hu-fullscreen-mode');
+                document.body.style.overflow = 'hidden';
+                syncBackgroundCanvas(true);
+                if (btn) btn.innerHTML = '<i class="fa-solid fa-compress"></i><span class="hidden sm:inline">Keluar</span>';
+                if (mapInstance) setTimeout(() => mapInstance.resize(), 150);
             }
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         }
-        fetchBMKG();
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+        const btn = document.getElementById('btn-hu-fullscreen');
+        syncBackgroundCanvas(Boolean(fsEl));
+        if (!fsEl && btn) {
+            btn.innerHTML = '<i class="fa-solid fa-expand"></i><span class="hidden sm:inline">Headunit Penuh</span>';
+        }
+        if (mapInstance) setTimeout(() => mapInstance.resize(), 150);
     });
 </script>
 {% endblock %}
