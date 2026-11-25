@@ -13,11 +13,12 @@ import concurrent.futures
 import base64  
 import json
 from firebase_admin import credentials, db
-from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory
+from flask import Flask, request, render_template, redirect, url_for, session, flash, jsonify, send_from_directory, Response, abort, stream_with_context
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_mail import Mail, Message
 from datetime import datetime, timedelta, date
+from urllib.parse import urljoin, urlparse, quote
 import urllib3
 
 # ==========================================
@@ -991,6 +992,74 @@ def network_data_api():
         "upload_mbps": 0,
         "devices": []
     })
+
+# ==========================================
+# 12. PROXY STREAM LIVE TV (HTTPS RELAY)
+# ==========================================
+ALLOWED_STREAM_HOSTS = {
+    "103.79.90.150",  # Temanggung TV
+    "36.94.24.229",   # Semarang TV
+}
+
+@app.route('/proxy_stream')
+def proxy_stream():
+    target_url = request.args.get('url', '').strip()
+    parsed = urlparse(target_url)
+
+    if parsed.scheme not in ('http', 'https') or parsed.hostname not in ALLOWED_STREAM_HOSTS:
+        abort(403)
+
+    try:
+        upstream = requests.get(
+            target_url,
+            stream=True,
+            timeout=(5, 12),
+            verify=False,
+            headers={"User-Agent": "KTVDI-StreamRelay/1.0"}
+        )
+    except requests.RequestException:
+        return Response("Upstream stream unreachable", status=502)
+
+    content_type = upstream.headers.get("Content-Type", "application/octet-stream")
+
+    if "mpegurl" in content_type.lower() or parsed.path.lower().endswith(".m3u8"):
+        rewritten_lines = []
+        for line in upstream.text.splitlines():
+            stripped = line.strip()
+            if stripped and not stripped.startswith("#"):
+                abs_seg_url = urljoin(target_url, stripped)
+                rewritten_lines.append(f"/proxy_stream?url={quote(abs_seg_url, safe='')}")
+            elif 'URI="' in stripped:
+                rewritten_lines.append(
+                    re.sub(
+                        r'URI="([^"]+)"',
+                        lambda m: f'URI="/proxy_stream?url={quote(urljoin(target_url, m.group(1)), safe="")}"',
+                        line
+                    )
+                )
+            else:
+                rewritten_lines.append(line)
+
+        upstream.close()
+        resp = Response("\n".join(rewritten_lines), status=upstream.status_code)
+        resp.headers["Content-Type"] = "application/vnd.apple.mpegurl"
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Cache-Control"] = "no-cache, no-store"
+        return resp
+
+    def generate():
+        try:
+            for chunk in upstream.iter_content(chunk_size=32768):
+                if chunk:
+                    yield chunk
+        finally:
+            upstream.close()
+
+    resp = Response(stream_with_context(generate()), status=upstream.status_code)
+    resp.headers["Content-Type"] = content_type
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Cache-Control"] = "no-cache, no-store"
+    return resp
 
 if __name__ == '__main__':
     app.run(debug=True)
