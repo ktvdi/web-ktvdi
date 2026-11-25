@@ -994,12 +994,66 @@ def network_data_api():
     })
 
 # ==========================================
-# 12. PROXY STREAM LIVE TV (HTTPS RELAY)
+# 12. PROXY & DETEKSI STREAM LIVE TV (HTTPS RELAY)
 # ==========================================
 ALLOWED_STREAM_HOSTS = {
     "103.79.90.150",  # Temanggung TV
     "36.94.24.229",   # Semarang TV
 }
+
+STREAM_HEADERS = {
+    "User-Agent": "VLC/3.0.20 LibVLC/3.0.20",
+    "Accept": "*/*",
+    "Connection": "keep-alive",
+}
+
+@app.route('/api/check_stream')
+def check_stream():
+    target_url = request.args.get('url', '').strip()
+    parsed = urlparse(target_url)
+
+    if parsed.scheme not in ('http', 'https') or parsed.hostname not in ALLOWED_STREAM_HOSTS:
+        return jsonify({"ok": False, "reason": "Host tidak diizinkan"}), 403
+
+    try:
+        r = requests.get(
+            target_url,
+            stream=True,
+            timeout=(4, 5),
+            verify=False,
+            allow_redirects=True,
+            headers=STREAM_HEADERS
+        )
+        if r.status_code >= 400:
+            r.close()
+            return jsonify({"ok": False, "status": r.status_code, "reason": f"HTTP {r.status_code}"})
+
+        first_chunk = b""
+        for chunk in r.iter_content(chunk_size=512):
+            if chunk:
+                first_chunk = chunk
+                break
+        r.close()
+
+        if not first_chunk:
+            return jsonify({"ok": False, "reason": "Stream kosong (0 byte)"})
+
+        if b"#EXTM3U" in first_chunk:
+            stream_type = "hls"
+        else:
+            stream_type = "mpegts"
+
+        return jsonify({
+            "ok": True,
+            "type": stream_type,
+            "status": r.status_code
+        })
+    except requests.exceptions.ConnectTimeout:
+        return jsonify({"ok": False, "reason": "Timeout: IP 103.79.90.150:5320 tidak merespons server (diblokir firewall/ISP atau offline)"})
+    except requests.exceptions.ConnectionError:
+        return jsonify({"ok": False, "reason": "Connection Refused: Port 5320 tertutup atau encoder mati"})
+    except Exception as e:
+        return jsonify({"ok": False, "reason": f"Galat koneksi: {type(e).__name__}"})
 
 @app.route('/proxy_stream')
 def proxy_stream():
@@ -1015,7 +1069,8 @@ def proxy_stream():
             stream=True,
             timeout=(5, 12),
             verify=False,
-            headers={"User-Agent": "KTVDI-StreamRelay/1.0"}
+            allow_redirects=True,
+            headers=STREAM_HEADERS
         )
     except requests.RequestException:
         return Response("Upstream stream unreachable", status=502)
@@ -1027,13 +1082,13 @@ def proxy_stream():
         for line in upstream.text.splitlines():
             stripped = line.strip()
             if stripped and not stripped.startswith("#"):
-                abs_seg_url = urljoin(target_url, stripped)
+                abs_seg_url = urljoin(upstream.url, stripped)
                 rewritten_lines.append(f"/proxy_stream?url={quote(abs_seg_url, safe='')}")
             elif 'URI="' in stripped:
                 rewritten_lines.append(
                     re.sub(
                         r'URI="([^"]+)"',
-                        lambda m: f'URI="/proxy_stream?url={quote(urljoin(target_url, m.group(1)), safe="")}"',
+                        lambda m: f'URI="/proxy_stream?url={quote(urljoin(upstream.url, m.group(1)), safe="")}"',
                         line
                     )
                 )
@@ -1045,20 +1100,22 @@ def proxy_stream():
         resp.headers["Content-Type"] = "application/vnd.apple.mpegurl"
         resp.headers["Access-Control-Allow-Origin"] = "*"
         resp.headers["Cache-Control"] = "no-cache, no-store"
+        resp.headers["X-Accel-Buffering"] = "no"
         return resp
 
     def generate():
         try:
-            for chunk in upstream.iter_content(chunk_size=32768):
+            for chunk in upstream.iter_content(chunk_size=8192):
                 if chunk:
                     yield chunk
         finally:
             upstream.close()
 
     resp = Response(stream_with_context(generate()), status=upstream.status_code)
-    resp.headers["Content-Type"] = content_type
+    resp.headers["Content-Type"] = "video/mp2t" if content_type == "application/octet-stream" else content_type
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Cache-Control"] = "no-cache, no-store"
+    resp.headers["X-Accel-Buffering"] = "no"
     return resp
 
 if __name__ == '__main__':
