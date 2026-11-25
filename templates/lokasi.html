@@ -70,7 +70,7 @@
 
     /* HUD Glass Pill */
     .hud-glass {
-        background: rgba(4, 10, 28, 0.62);
+        background: rgba(4, 10, 28, 0.64);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         border: 1px solid rgba(56, 189, 248, 0.24);
@@ -101,11 +101,11 @@
     }
 
     @keyframes pulseDangerBorder {
-        0%, 100% { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.7), 0 0 35px rgba(239, 68, 68, 0.35); }
-        50% { box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 1), 0 0 55px rgba(239, 68, 68, 0.65); }
+        0%, 100% { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.75), 0 0 35px rgba(239, 68, 68, 0.4); }
+        50% { box-shadow: inset 0 0 0 5px rgba(239, 68, 68, 1), 0 0 60px rgba(239, 68, 68, 0.75); }
     }
     .stage-danger-alert {
-        animation: pulseDangerBorder 0.9s infinite;
+        animation: pulseDangerBorder 0.8s infinite;
     }
 </style>
 
@@ -122,9 +122,9 @@
         <!-- Radial Vignette Halus agar Angka HUD Tajam -->
         <div class="absolute inset-0 z-[2] pointer-events-none bg-gradient-to-b from-[#03081a]/75 via-transparent to-[#03081a]/88"></div>
 
-        <!-- BARIS ATAS HUD: Status GPS, Radar Jarak, Lokasi Terkini + Suhu & Fullscreen -->
+        <!-- BARIS ATAS HUD: Status GPS, Deteksi Laka / Radar, Lokasi Terkini + Suhu & Fullscreen -->
         <div class="relative z-10 flex flex-wrap items-center justify-between gap-2">
-            <!-- Kiri: Status Sinyal GPS & Radar Jarak -->
+            <!-- Kiri: Status Sinyal GPS & Deteksi Risiko / Laka -->
             <div class="flex flex-wrap items-center gap-2">
                 <div class="hud-glass px-3 py-2 rounded-2xl flex items-center gap-2.5">
                     <span id="signal-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
@@ -134,12 +134,12 @@
                     </div>
                 </div>
 
-                <!-- Sensor Jarak / Deteksi Risiko Pengereman & Kecepatan Tinggi -->
-                <div id="collision-badge" class="hud-glass px-3 py-2 rounded-2xl flex items-center gap-2 border-emerald-500/30">
+                <!-- Sensor Pengereman & Deteksi Kemungkinan Laka -->
+                <div id="collision-badge" class="hud-glass px-3 py-2 rounded-2xl flex items-center gap-2 border-emerald-500/30 transition-colors">
                     <i id="collision-icon" class="fa-solid fa-shield-halved text-emerald-400 text-sm"></i>
                     <div>
-                        <div class="text-[9px] font-black uppercase tracking-widest text-slate-300 leading-none">Radar Jarak</div>
-                        <div id="collision-status-text" class="text-[11px] font-extrabold text-emerald-400 mt-0.5">AMAN • Jarak Optimal</div>
+                        <div class="text-[9px] font-black uppercase tracking-widest text-slate-300 leading-none">Status Keselamatan</div>
+                        <div id="collision-status-text" class="text-[11px] font-extrabold text-emerald-400 mt-0.5">AMAN • Berkendara Normal</div>
                     </div>
                 </div>
             </div>
@@ -147,9 +147,9 @@
             <!-- Kanan: Lokasi Terkini + Suhu Terdekat & Layar Penuh -->
             <div class="flex items-center gap-2 ml-auto sm:ml-0">
                 <div class="hud-glass px-3 py-2 rounded-2xl flex items-center gap-2.5">
-                    <i id="weather-icon" class="fa-solid fa-location-crosshairs text-sky-400 text-sm sm:text-base"></i>
+                    <i id="weather-icon" class="fa-solid fa-location-dot text-sky-400 text-sm sm:text-base"></i>
                     <div>
-                        <div id="weather-loc" class="text-[10px] font-black uppercase tracking-wider text-sky-300 leading-none truncate max-w-[140px] sm:max-w-[210px]">Mendeteksi Lokasi...</div>
+                        <div id="weather-loc" class="text-[10px] font-black uppercase tracking-wider text-sky-300 leading-none truncate max-w-[160px] sm:max-w-[240px]">Mencari Lokasi Terkini...</div>
                         <div id="weather-desc" class="text-[11px] font-bold text-white mt-0.5 tabular-nums">--°C • Memuat Cuaca</div>
                     </div>
                 </div>
@@ -161,13 +161,31 @@
             </div>
         </div>
 
-        <!-- TENGAH HUD: SPIDOMETER DIGITAL UTAMA BESAR + RING SVG -->
+        <!-- TENGAH HUD: NOTIFIKASI SEMENTARA (HELM / SABUK / LAKA) & SPIDOMETER UTAMA -->
         <div class="relative z-10 flex-1 flex flex-col items-center justify-between py-2 pointer-events-none">
             
-            <!-- Peringatan Banner Kecepatan Tinggi / Bahaya -->
-            <div id="highspeed-banner" class="opacity-0 transform -translate-y-2 transition-all duration-300 px-4 py-1.5 rounded-full bg-red-600/90 border border-red-300/60 text-white text-[11px] sm:text-xs font-black uppercase tracking-[0.18em] flex items-center gap-2 shadow-[0_0_25px_rgba(239,68,68,0.75)]">
-                <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
-                <span id="highspeed-banner-text">PERINGATAN: KECEPATAN TINGGI!</span>
+            <!-- Kotak Peringatan / Pengingat Sementara -->
+            <div class="w-full flex flex-col items-center gap-2 px-2">
+                <!-- Banner Bahaya / Rem Mendadak (Kemungkinan Laka) / Kecepatan Tinggi -->
+                <div id="highspeed-banner" class="hidden px-4 py-2 rounded-2xl bg-red-600/95 border border-red-200/70 text-white text-xs sm:text-sm font-black uppercase tracking-[0.12em] flex items-center gap-2.5 shadow-[0_0_30px_rgba(239,68,68,0.85)] text-center">
+                    <i class="fa-solid fa-triangle-exclamation animate-bounce text-base"></i>
+                    <span id="highspeed-banner-text">PERINGATAN: KEMUNGKINAN LAKA!</span>
+                </div>
+
+                <!-- Toast Pengingat Sementara (Helm >= 20 km/jam Motor | Sabuk >= 25 km/jam Mobil) -->
+                <div id="safety-reminder-toast" class="hidden max-w-xl w-full sm:w-auto px-5 py-3 rounded-2xl bg-amber-500/95 border border-amber-200 text-slate-950 shadow-[0_12px_35px_rgba(245,158,11,0.55)] backdrop-blur-md transition-all duration-300">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-slate-950/15 flex items-center justify-center shrink-0">
+                            <i id="safety-toast-icon" class="fa-solid fa-helmet-safety text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <div id="safety-toast-title" class="text-[10px] font-black uppercase tracking-[0.16em] opacity-80">Pengingat Keselamatan</div>
+                            <div id="safety-toast-msg" class="text-xs sm:text-sm font-black leading-snug">
+                                JANGAN LUPA UNTUK menggunakan Helm ketika berkendara
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Kluster Angka Kecepatan Raksasa -->
@@ -205,7 +223,7 @@
                 </div>
             </div>
 
-            <!-- Baris Bawah di dalam Layar 85%: 3 Telemetri GPS Murni (Tanpa Putaran Mesin) -->
+            <!-- Baris Bawah di dalam Layar 85%: 3 Telemetri GPS Murni -->
             <div class="w-full max-w-3xl grid grid-cols-3 gap-2 sm:gap-3">
                 <div class="hud-glass px-3 py-2.5 rounded-2xl text-center">
                     <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Kecepatan Puncak</div>
@@ -240,10 +258,10 @@
             </div>
         </div>
 
-        <!-- Tengah: Koordinat GPS Terkini -->
-        <div class="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-200/70 dark:bg-white/5 border border-slate-300/60 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums">
-            <i class="fa-solid fa-satellite text-blue-600 dark:text-sky-400"></i>
-            <span id="live-coord-text">Koordinat: Menunggu sinyal GPS...</span>
+        <!-- Tengah: Lokasi Terkini Real-Time -->
+        <div class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-200/70 dark:bg-white/5 border border-slate-300/60 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-200 max-w-full sm:max-w-md lg:max-w-lg truncate">
+            <i class="fa-solid fa-location-crosshairs text-blue-600 dark:text-sky-400 shrink-0"></i>
+            <span id="live-location-text" class="truncate">Lokasi Terkini: Mendeteksi posisi GPS...</span>
         </div>
 
         <!-- Kanan: Suara AI & Reset Trip -->
@@ -272,15 +290,26 @@
     let tripDistanceKm = 0;
     let lastTickTime = performance.now();
     let lastVoiceWarnTime = 0;
-    let gpsSpeedBuffer = [];
 
+    // State GPS & Pergerakan
     let lastFix = null; // { lat, lon, time }
+    let lastGpsUpdateMs = 0;
     let lastEnvFetch = null; // { lat, lon, time }
+    let currentHeadingDeg = 0;
+    let targetSteerAngle = 0;
+
+    // State Pengingat Sementara (Helm / Sabuk) & Deteksi Kemungkinan Laka
+    let helmetReminderShown = false;
+    let seatbeltReminderShown = false;
+    let stoppedSinceMs = null;
+    let safetyToastTimeout = null;
+    let lakaAlertUntilMs = 0;
+    let speedHistory = []; // [{ time, speed }]
 
     const SPEED_LIMIT_WARN = 100;
     const SPEED_LIMIT_DANGER = 130;
 
-    // === HELPER JARAK HAVERSINE (KM) & ARAH KOMPAS ===
+    // === HELPER GEODESI: JARAK HAVERSINE (KM) & ARAH BEARING ===
     function calcHaversineKm(lat1, lon1, lat2, lon2) {
         const R = 6371;
         const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -291,6 +320,15 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
+    function calcBearingDeg(lat1, lon1, lat2, lon2) {
+        const phi1 = lat1 * Math.PI / 180;
+        const phi2 = lat2 * Math.PI / 180;
+        const dLambda = (lon2 - lon1) * Math.PI / 180;
+        const y = Math.sin(dLambda) * Math.cos(phi2);
+        const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLambda);
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
     function headingToCardinal(deg) {
         if (deg === null || isNaN(deg)) return '--°';
         const dirs = ['U', 'TL', 'T', 'TG', 'S', 'BD', 'B', 'BL'];
@@ -298,11 +336,11 @@
         return `${Math.round(deg)}° ${dirs[idx]}`;
     }
 
-    // === AUDIO / SUARA PERINGATAN AI ===
+    // === SUARA PERINGATAN AI ===
     function speakAlert(message, force = false) {
         if (!voiceAssistEnabled || !('speechSynthesis' in window)) return;
         const now = Date.now();
-        if (!force && now - lastVoiceWarnTime < 9000) return;
+        if (!force && now - lastVoiceWarnTime < 7500) return;
         if (force) window.speechSynthesis.cancel();
         lastVoiceWarnTime = now;
 
@@ -313,12 +351,38 @@
         window.speechSynthesis.speak(utter);
     }
 
+    // === TOAST PENGINGAT SEMENTARA (HELM / SABUK KESELAMATAN) ===
+    function showTemporarySafetyReminder(title, message, iconClass) {
+        const toast = document.getElementById('safety-reminder-toast');
+        const titleEl = document.getElementById('safety-toast-title');
+        const msgEl = document.getElementById('safety-toast-msg');
+        const iconEl = document.getElementById('safety-toast-icon');
+        if (!toast) return;
+
+        if (titleEl) titleEl.innerText = title;
+        if (msgEl) msgEl.innerText = message;
+        if (iconEl) iconEl.className = `${iconClass} text-lg`;
+
+        toast.classList.remove('hidden');
+        clearTimeout(safetyToastTimeout);
+        safetyToastTimeout = setTimeout(() => {
+            toast.classList.add('hidden');
+        }, 6500);
+    }
+
     // === KONTROL UI ===
+    let carGroup = null;
+    let motorGroup = null;
+
     window.setVehicleMode = function(mode) {
         vehicleMode = mode;
         const btnCar = document.getElementById('btn-mode-car');
         const btnMotor = document.getElementById('btn-mode-motor');
         const badge = document.getElementById('active-vehicle-badge');
+
+        // Reset flag pengingat saat ganti kendaraan agar langsung mengecek batas kecepatan mode baru
+        helmetReminderShown = false;
+        seatbeltReminderShown = false;
 
         if (mode === 'car') {
             btnCar.className = "px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer";
@@ -357,6 +421,9 @@
     window.resetTripStats = function() {
         maxSpeedKmh = Math.round(currentSpeedKmh);
         tripDistanceKm = 0;
+        helmetReminderShown = false;
+        seatbeltReminderShown = false;
+        lakaAlertUntilMs = 0;
         document.getElementById('stat-max-speed').innerText = maxSpeedKmh;
         document.getElementById('stat-trip-km').innerText = "0.00";
     };
@@ -378,7 +445,7 @@
             if (btn) btn.innerHTML = `<i class="fa-solid fa-expand text-sky-400"></i><span class="hidden md:inline">Layar Penuh</span>`;
             if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
         }
-        setTimeout(resizeThreeScene, 80);
+        setTimeout(() => { if (typeof window.__resizeKtvdiThree === 'function') window.__resizeKtvdiThree(); }, 80);
     };
 
     document.addEventListener('fullscreenchange', () => {
@@ -388,7 +455,7 @@
             root.classList.remove('cockpit-fullscreen');
             document.body.style.overflow = '';
             if (btn) btn.innerHTML = `<i class="fa-solid fa-expand text-sky-400"></i><span class="hidden md:inline">Layar Penuh</span>`;
-            setTimeout(resizeThreeScene, 80);
+            setTimeout(() => { if (typeof window.__resizeKtvdiThree === 'function') window.__resizeKtvdiThree(); }, 80);
         }
     });
 
@@ -397,31 +464,53 @@
         const now = Date.now();
         if (lastEnvFetch) {
             const movedKm = calcHaversineKm(lastEnvFetch.lat, lastEnvFetch.lon, lat, lon);
-            // Perbarui ulang jika berpindah > 1.2 km atau sudah > 5 menit
-            if (movedKm < 1.2 && (now - lastEnvFetch.time) < 300000) return;
+            // Perbarui setiap perpindahan > 400 meter atau setiap 2 menit
+            if (movedKm < 0.4 && (now - lastEnvFetch.time) < 120000) return;
         }
         lastEnvFetch = { lat, lon, time: now };
 
-        const locEl = document.getElementById('weather-loc');
+        const locTopEl = document.getElementById('weather-loc');
+        const locBottomEl = document.getElementById('live-location-text');
         const descEl = document.getElementById('weather-desc');
         const iconEl = document.getElementById('weather-icon');
 
-        // 1. Reverse Geocoding Lokasi Terkini
+        let resolvedPlace = "";
+
+        // 1. Reverse Geocoding Detail Jalan / Kelurahan / Kecamatan / Kota (Nominatim OSM + BigDataCloud Fallback)
         try {
-            const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
-            const geoData = await geoRes.json();
-            const area = geoData.locality || geoData.city || geoData.principalSubdivision || '';
-            const city = geoData.city && geoData.city !== area ? `, ${geoData.city}` : '';
-            if (locEl && area) {
-                locEl.innerText = `${area}${city}`;
-            } else if (locEl) {
-                locEl.innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1`, {
+                headers: { 'Accept-Language': 'id' }
+            });
+            const osmData = await osmRes.json();
+            if (osmData && osmData.address) {
+                const a = osmData.address;
+                const road = a.road || a.pedestrian || a.residential || '';
+                const suburb = a.suburb || a.village || a.neighbourhood || a.city_district || '';
+                const city = a.city || a.town || a.regency || a.county || '';
+                const parts = [road, suburb, city].filter(Boolean);
+                resolvedPlace = parts.slice(0, 3).join(', ');
             }
-        } catch (e) {
-            if (locEl) locEl.innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        } catch (e) {}
+
+        if (!resolvedPlace) {
+            try {
+                const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
+                const geoData = await geoRes.json();
+                const area = geoData.locality || geoData.city || '';
+                const city = geoData.city && geoData.city !== area ? geoData.city : (geoData.principalSubdivision || '');
+                resolvedPlace = [area, city].filter(Boolean).join(', ');
+            } catch (e) {}
         }
 
-        // 2. Suhu & Cuaca Koordinat Terdekat Real-Time
+        if (resolvedPlace) {
+            if (locTopEl) locTopEl.innerText = resolvedPlace;
+            if (locBottomEl) locBottomEl.innerText = `Lokasi Terkini: ${resolvedPlace}`;
+        } else {
+            if (locTopEl) locTopEl.innerText = "Area Terdeteksi";
+            if (locBottomEl) locBottomEl.innerText = "Lokasi Terkini: Sinyal GPS Aktif";
+        }
+
+        // 2. Suhu & Kondisi Cuaca Koordinat Terdekat Real-Time
         try {
             const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`);
             const wData = await wRes.json();
@@ -457,612 +546,671 @@
         } catch (e) {}
     }
 
-    // === GPS REAL-TIME DEVICE WATCHER ===
+    // === PROSES POSISI GPS PERANGKAT (AKURAT & ANTI-MACET) ===
+    function handlePositionSuccess(pos) {
+        const { latitude, longitude, accuracy, speed, heading } = pos.coords;
+        const nowMs = pos.timestamp || Date.now();
+        lastGpsUpdateMs = Date.now();
+
+        const signalDot = document.getElementById('signal-dot');
+        const sourceLabel = document.getElementById('speed-source-label');
+        const gpsAccEl = document.getElementById('stat-gps-acc');
+        const headingEl = document.getElementById('heading-badge');
+
+        if (signalDot) signalDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+        if (sourceLabel) sourceLabel.innerText = "GPS Perangkat Aktif";
+        if (gpsAccEl) gpsAccEl.innerText = accuracy ? `±${Math.round(accuracy)}m` : 'Akurat';
+
+        // Perbarui Lokasi Terkini & Suhu Terdekat
+        updateLocationAndWeather(latitude, longitude);
+
+        // Hitung Jarak & Kecepatan dari Perpindahan GPS
+        let distKm = 0;
+        let dtSec = 0;
+        let computedBearing = null;
+
+        if (lastFix) {
+            dtSec = (nowMs - lastFix.time) / 1000;
+            distKm = calcHaversineKm(lastFix.lat, lastFix.lon, latitude, longitude);
+            if (distKm * 1000 > 2.5) {
+                computedBearing = calcBearingDeg(lastFix.lat, lastFix.lon, latitude, longitude);
+            }
+        }
+
+        // Tentukan Arah & Kemiringan Belok 3D
+        const activeHeading = (heading !== null && !isNaN(heading)) ? heading : computedBearing;
+        if (activeHeading !== null && !isNaN(activeHeading)) {
+            let diff = activeHeading - currentHeadingDeg;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            targetSteerAngle = Math.max(-0.22, Math.min(0.22, diff * 0.012));
+            currentHeadingDeg = activeHeading;
+            if (headingEl) headingEl.innerText = `ARAH ${headingToCardinal(activeHeading)}`;
+        } else {
+            targetSteerAngle = 0;
+        }
+
+        // Hitung Kecepatan Real-Time (Prioritas sensor speed Doppler, fallback Haversine)
+        let measuredKmh = 0;
+        if (speed !== null && !isNaN(speed) && speed >= 0) {
+            measuredKmh = speed < 0.3 ? 0 : speed * 3.6;
+        } else if (lastFix && dtSec > 0.2 && accuracy <= 120) {
+            const distMeters = distKm * 1000;
+            // Filter drift GPS saat diam (minimal gerak 2.2 meter)
+            if (distMeters >= 2.2) {
+                const rawKmh = (distKm / (dtSec / 3600));
+                measuredKmh = rawKmh > 250 ? currentSpeedKmh : rawKmh;
+            } else {
+                measuredKmh = 0;
+            }
+        }
+
+        // Akumulasi Jarak Tempuh Nyata
+        if (lastFix && accuracy <= 100 && distKm > 0.002 && distKm < 1.5 && measuredKmh > 1.0) {
+            tripDistanceKm += distKm;
+        }
+
+        lastFix = { lat: latitude, lon: longitude, time: nowMs };
+        targetSpeedKmh = measuredKmh < 0.8 ? 0 : Math.min(250, measuredKmh);
+
+        // Simpan histori kecepatan untuk deteksi rem mendadak (kemungkinan laka)
+        const clockNow = Date.now();
+        speedHistory.push({ time: clockNow, speed: targetSpeedKmh });
+        speedHistory = speedHistory.filter(item => (clockNow - item.time) <= 2200);
+
+        if (speedHistory.length >= 2) {
+            const oldest = speedHistory[0];
+            const elapsedSec = (clockNow - oldest.time) / 1000;
+            const speedDrop = oldest.speed - targetSpeedKmh;
+            // Jika turun drastis >= 14 km/jam dalam <= 1.5 detik dari kecepatan minimal 20 km/jam -> kemungkinan laka
+            if (elapsedSec > 0.15 && elapsedSec <= 1.6 && oldest.speed >= 20 && speedDrop >= 14) {
+                lakaAlertUntilMs = clockNow + 5500;
+                speakAlert("Peringatan! Rem mendadak terdeteksi, kemungkinan laka!", true);
+            }
+        }
+    }
+
+    function handlePositionError() {
+        const signalDot = document.getElementById('signal-dot');
+        const sourceLabel = document.getElementById('speed-source-label');
+        const gpsAccEl = document.getElementById('stat-gps-acc');
+        if (signalDot) signalDot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
+        if (sourceLabel) sourceLabel.innerText = "Aktifkan GPS Perangkat";
+        if (gpsAccEl) gpsAccEl.innerText = "GPS Off";
+    }
+
     if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(
-            (pos) => {
-                const { latitude, longitude, accuracy, speed, heading } = pos.coords;
-                const nowMs = pos.timestamp || Date.now();
+        navigator.geolocation.watchPosition(handlePositionSuccess, handlePositionError, {
+            enableHighAccuracy: true,
+            maximumAge: 1000,
+            timeout: 8000
+        });
 
-                const signalDot = document.getElementById('signal-dot');
-                const sourceLabel = document.getElementById('speed-source-label');
-                const gpsAccEl = document.getElementById('stat-gps-acc');
-                const headingEl = document.getElementById('heading-badge');
-                const coordTextEl = document.getElementById('live-coord-text');
-
-                if (signalDot) signalDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
-                if (sourceLabel) sourceLabel.innerText = "GPS Perangkat Aktif";
-                if (gpsAccEl) gpsAccEl.innerText = accuracy ? `±${Math.round(accuracy)}m` : 'Akurat';
-                if (headingEl) headingEl.innerText = `ARAH ${headingToCardinal(heading)}`;
-                if (coordTextEl) coordTextEl.innerText = `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-
-                // Perbarui Lokasi & Suhu Terdekat sesuai koordinat GPS
-                updateLocationAndWeather(latitude, longitude);
-
-                // Hitung kecepatan murni dari GPS perangkat (dengan fallback Haversine jika speed null)
-                let measuredKmh = 0;
-                if (speed !== null && !isNaN(speed) && speed >= 0) {
-                    measuredKmh = speed < 0.35 ? 0 : speed * 3.6;
-                } else if (lastFix && accuracy <= 40) {
-                    const dtHours = (nowMs - lastFix.time) / 3600000;
-                    if (dtHours > 0) {
-                        const distKm = calcHaversineKm(lastFix.lat, lastFix.lon, latitude, longitude);
-                        const calcSpeed = distKm / dtHours;
-                        measuredKmh = calcSpeed < 1.5 ? 0 : Math.min(240, calcSpeed);
-                    }
-                }
-
-                // Akumulasi jarak tempuh GPS nyata jika akurasi baik
-                if (lastFix && accuracy <= 45) {
-                    const stepKm = calcHaversineKm(lastFix.lat, lastFix.lon, latitude, longitude);
-                    if (stepKm > 0.002 && stepKm < 1.0 && measuredKmh > 1.2) {
-                        tripDistanceKm += stepKm;
-                    }
-                }
-                lastFix = { lat: latitude, lon: longitude, time: nowMs };
-
-                // Smoothing 3 sampel agar responsif tapi bebas lonjakan GPS diam
-                gpsSpeedBuffer.push(measuredKmh);
-                if (gpsSpeedBuffer.length > 3) gpsSpeedBuffer.shift();
-                const avgKmh = gpsSpeedBuffer.reduce((a, b) => a + b, 0) / gpsSpeedBuffer.length;
-                targetSpeedKmh = avgKmh < 1.0 ? 0 : Math.min(250, avgKmh);
-            },
-            (err) => {
-                const signalDot = document.getElementById('signal-dot');
-                const sourceLabel = document.getElementById('speed-source-label');
-                const gpsAccEl = document.getElementById('stat-gps-acc');
-                if (signalDot) signalDot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
-                if (sourceLabel) sourceLabel.innerText = "Izin Lokasi Dibutuhkan";
-                if (gpsAccEl) gpsAccEl.innerText = "GPS Off";
-            },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-        );
+        // Backup polling setiap 2 detik jika browser HP menunda watchPosition
+        setInterval(() => {
+            if (Date.now() - lastGpsUpdateMs > 2200) {
+                navigator.geolocation.getCurrentPosition(handlePositionSuccess, () => {}, {
+                    enableHighAccuracy: true,
+                    maximumAge: 1000,
+                    timeout: 5000
+                });
+            }
+        }, 2000);
     }
 
     // =========================================================================
-    // THREE.JS 3D MOBIL & MOTOR + LOGO KTVDI DI LINTASAN
+    // ENGINE THREE.JS 3D MOBIL & MOTOR + LOGO KTVDI DI LINTASAN
     // =========================================================================
-    const mount = document.getElementById('vehicle-three-mount');
-    if (!mount || typeof THREE === 'undefined') return;
+    function startThreeEngine() {
+        const mount = document.getElementById('vehicle-three-mount');
+        if (!mount || typeof THREE === 'undefined') return;
 
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x050b1f, 0.015);
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050b1f, 0.015);
 
-    const camera = new THREE.PerspectiveCamera(50, mount.clientWidth / mount.clientHeight, 0.1, 300);
-    camera.position.set(0, 2.75, 6.4);
-    camera.lookAt(0, 0.9, -6);
+        const camera = new THREE.PerspectiveCamera(50, Math.max(1, mount.clientWidth) / Math.max(1, mount.clientHeight), 0.1, 300);
+        camera.position.set(0, 2.75, 6.4);
+        camera.lookAt(0, 0.9, -6);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-    renderer.setSize(mount.clientWidth, mount.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.18;
-    mount.appendChild(renderer.domElement);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        renderer.setSize(mount.clientWidth, mount.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.18;
+        mount.appendChild(renderer.domElement);
 
-    // Pencahayaan Arena
-    scene.add(new THREE.HemisphereLight(0x7dd3fc, 0x091126, 1.15));
+        scene.add(new THREE.HemisphereLight(0x7dd3fc, 0x091126, 1.15));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
-    keyLight.position.set(6, 14, 10);
-    scene.add(keyLight);
+        const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
+        keyLight.position.set(6, 14, 10);
+        scene.add(keyLight);
 
-    const rimLight = new THREE.PointLight(0x38bdf8, 2.5, 25);
-    rimLight.position.set(0, 3.5, -3);
-    scene.add(rimLight);
+        const rimLight = new THREE.PointLight(0x38bdf8, 2.5, 25);
+        rimLight.position.set(0, 3.5, -3);
+        scene.add(rimLight);
 
-    // === GENERATOR TEKSTUR LOGO KTVDI RESOLUSI TINGGI UNTUK LINTASAN ===
-    function createKtvdiTrackTexture(isAsphaltMark = false) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1024;
-        canvas.height = 320;
-        const ctx = canvas.getContext('2d');
+        // === GENERATOR TEKSTUR LOGO KTVDI UNTUK LINTASAN ===
+        function createKtvdiTrackTexture(isAsphaltMark = false) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 320;
+            const ctx = canvas.getContext('2d');
 
-        if (!isAsphaltMark) {
-            // Banner Gantry / Papan Sisi Lintasan KTVDI
-            const bgGrad = ctx.createLinearGradient(0, 0, 1024, 320);
-            bgGrad.addColorStop(0, '#06122e');
-            bgGrad.addColorStop(0.5, '#0c2459');
-            bgGrad.addColorStop(1, '#06122e');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(0, 0, 1024, 320);
+            if (!isAsphaltMark) {
+                const bgGrad = ctx.createLinearGradient(0, 0, 1024, 320);
+                bgGrad.addColorStop(0, '#06122e');
+                bgGrad.addColorStop(0.5, '#0c2459');
+                bgGrad.addColorStop(1, '#06122e');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(0, 0, 1024, 320);
 
-            // Bingkai Neon Biru-Cyan
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 10;
-            ctx.strokeRect(12, 12, 1000, 296);
-        } else {
-            ctx.clearRect(0, 0, 1024, 320);
-        }
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 10;
+                ctx.strokeRect(12, 12, 1000, 296);
+            } else {
+                ctx.clearRect(0, 0, 1024, 320);
+            }
 
-        const alpha = isAsphaltMark ? 0.55 : 1.0;
-        ctx.save();
-        ctx.globalAlpha = alpha;
+            ctx.save();
+            ctx.globalAlpha = isAsphaltMark ? 0.6 : 1.0;
 
-        // Ikon Menara Pemancar & Gelombang TV Digital di sisi kiri logo
-        const cx = 185;
-        const cy = 165;
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 10;
-        ctx.lineCap = 'round';
+            const cx = 185;
+            const cy = 165;
+            ctx.lineCap = 'round';
 
-        // Gelombang sinyal kiri & kanan
-        [36, 62, 88].forEach((r, idx) => {
-            ctx.strokeStyle = idx === 1 ? '#22d3ee' : '#38bdf8';
+            [36, 62, 88].forEach((r, idx) => {
+                ctx.strokeStyle = idx === 1 ? '#22d3ee' : '#38bdf8';
+                ctx.lineWidth = 10;
+                ctx.beginPath();
+                ctx.arc(cx, cy - 35, r, Math.PI * 1.15, Math.PI * 1.85);
+                ctx.stroke();
+            });
+
+            ctx.strokeStyle = '#f8fafc';
+            ctx.lineWidth = 9;
             ctx.beginPath();
-            ctx.arc(cx, cy - 35, r, Math.PI * 1.15, Math.PI * 1.85);
+            ctx.moveTo(cx, cy - 32);
+            ctx.lineTo(cx - 34, cy + 75);
+            ctx.moveTo(cx, cy - 32);
+            ctx.lineTo(cx + 34, cy + 75);
+            ctx.moveTo(cx - 22, cy + 36);
+            ctx.lineTo(cx + 22, cy + 36);
             ctx.stroke();
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(cx, cy - 36, 11, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '900 132px Montserrat, Arial, sans-serif';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('KTVDI', 310, 138);
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = '800 31px Inter, Arial, sans-serif';
+            ctx.fillText('KOMUNITAS TV DIGITAL INDONESIA', 314, 232);
+
+            ctx.restore();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = 8;
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        const ktvdiBannerTex = createKtvdiTrackTexture(false);
+        const ktvdiAsphaltTex = createKtvdiTrackTexture(true);
+
+        // === LINTASAN 3D & LOGO KTVDI ===
+        const roadGroup = new THREE.Group();
+        scene.add(roadGroup);
+
+        const roadMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(16, 280),
+            new THREE.MeshStandardMaterial({ color: 0x0b1224, roughness: 0.78, metalness: 0.18 })
+        );
+        roadMesh.rotation.x = -Math.PI / 2;
+        roadMesh.position.z = -110;
+        roadGroup.add(roadMesh);
+
+        const edgeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        [-5.6, 5.6].forEach(xPos => {
+            const edge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 280), edgeMat);
+            edge.position.set(xPos, 0.02, -110);
+            roadGroup.add(edge);
         });
 
-        // Tiang menara segitiga
-        ctx.strokeStyle = '#f8fafc';
-        ctx.lineWidth = 9;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy - 32);
-        ctx.lineTo(cx - 34, cy + 75);
-        ctx.moveTo(cx, cy - 32);
-        ctx.lineTo(cx + 34, cy + 75);
-        ctx.moveTo(cx - 22, cy + 36);
-        ctx.lineTo(cx + 22, cy + 36);
-        ctx.stroke();
+        const laneDashes = [];
+        const dashGeo = new THREE.BoxGeometry(0.18, 0.03, 3.4);
+        const dashMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+        for (let i = 0; i < 28; i++) {
+            [-2.2, 2.2].forEach(lx => {
+                const dash = new THREE.Mesh(dashGeo, dashMat);
+                dash.position.set(lx, 0.02, 12 - i * 9);
+                roadGroup.add(dash);
+                laneDashes.push(dash);
+            });
+        }
 
-        // Titik pemancar merah ON-AIR
-        ctx.fillStyle = '#ef4444';
-        ctx.beginPath();
-        ctx.arc(cx, cy - 36, 11, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Teks Utama "KTVDI"
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 132px Montserrat, Arial, sans-serif';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('KTVDI', 310, 138);
-
-        // Subjudul "KOMUNITAS TV DIGITAL INDONESIA"
-        ctx.fillStyle = '#38bdf8';
-        ctx.font = '800 31px Inter, Arial, sans-serif';
-        ctx.fillText('KOMUNITAS TV DIGITAL INDONESIA', 314, 232);
-
-        ctx.restore();
-
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.anisotropy = 8;
-        tex.needsUpdate = true;
-        return tex;
-    }
-
-    const ktvdiBannerTex = createKtvdiTrackTexture(false);
-    const ktvdiAsphaltTex = createKtvdiTrackTexture(true);
-
-    // === JALAN RAYA 3D, MARKA & LOGO KTVDI DI LINTASAN ===
-    const roadGroup = new THREE.Group();
-    scene.add(roadGroup);
-
-    const asphaltMat = new THREE.MeshStandardMaterial({
-        color: 0x0b1224,
-        roughness: 0.78,
-        metalness: 0.18
-    });
-    const roadMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 280), asphaltMat);
-    roadMesh.rotation.x = -Math.PI / 2;
-    roadMesh.position.z = -110;
-    roadGroup.add(roadMesh);
-
-    // Garis Bahu Lintasan Neon Cyan
-    const edgeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-    [-5.6, 5.6].forEach(xPos => {
-        const edge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 280), edgeMat);
-        edge.position.set(xPos, 0.02, -110);
-        roadGroup.add(edge);
-    });
-
-    // Marka Jalan Putus-Putus
-    const laneDashes = [];
-    const dashGeo = new THREE.BoxGeometry(0.18, 0.03, 3.4);
-    const dashMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
-    for (let i = 0; i < 28; i++) {
-        [-2.2, 2.2].forEach(lx => {
-            const dash = new THREE.Mesh(dashGeo, dashMat);
-            dash.position.set(lx, 0.02, 12 - i * 9);
-            roadGroup.add(dash);
-            laneDashes.push(dash);
+        // Logo KTVDI Tercetak di Aspal Lintasan
+        const roadLogoDecals = [];
+        const asphaltDecalGeo = new THREE.PlaneGeometry(4.3, 1.35);
+        const asphaltDecalMat = new THREE.MeshBasicMaterial({
+            map: ktvdiAsphaltTex,
+            transparent: true,
+            depthWrite: false
         });
-    }
+        for (let i = 0; i < 4; i++) {
+            const decal = new THREE.Mesh(asphaltDecalGeo, asphaltDecalMat);
+            decal.rotation.x = -Math.PI / 2;
+            decal.position.set(0, 0.026, -16 - i * 65);
+            roadGroup.add(decal);
+            roadLogoDecals.push(decal);
+        }
 
-    // 1. LOGO KTVDI TERCETAK LANGSUNG DI ASPAL LINTASAN (ROAD DECALS)
-    const roadLogoDecals = [];
-    const asphaltDecalGeo = new THREE.PlaneGeometry(4.2, 1.32);
-    const asphaltDecalMat = new THREE.MeshBasicMaterial({
-        map: ktvdiAsphaltTex,
-        transparent: true,
-        depthWrite: false
-    });
-    for (let i = 0; i < 4; i++) {
-        const decal = new THREE.Mesh(asphaltDecalGeo, asphaltDecalMat);
-        decal.rotation.x = -Math.PI / 2;
-        decal.position.set(0, 0.026, -18 - i * 65);
-        roadGroup.add(decal);
-        roadLogoDecals.push(decal);
-    }
+        // Gapura Portal Lintasan Logo KTVDI
+        const ktvdiGantries = [];
+        const trussMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75, roughness: 0.25 });
+        const gantryBoardMat = new THREE.MeshBasicMaterial({ map: ktvdiBannerTex, side: THREE.DoubleSide });
 
-    // 2. GAPURA PORTAL LINTASAN 3D DENGAN PAPAN LOGO KTVDI DI ATAS JALAN
-    const ktvdiGantries = [];
-    const trussMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75, roughness: 0.25 });
-    const gantryBoardMat = new THREE.MeshBasicMaterial({ map: ktvdiBannerTex, side: THREE.DoubleSide });
+        for (let i = 0; i < 3; i++) {
+            const gantry = new THREE.Group();
+            [-6.1, 6.1].forEach(gx => {
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 5.2, 0.28), trussMat);
+                pillar.position.set(gx, 2.6, 0);
+                gantry.add(pillar);
+            });
+            const beam = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.25, 0.25), trussMat);
+            beam.position.set(0, 5.15, 0);
+            gantry.add(beam);
 
-    for (let i = 0; i < 3; i++) {
-        const gantry = new THREE.Group();
+            const signBoard = new THREE.Mesh(new THREE.PlaneGeometry(5.8, 1.8), gantryBoardMat);
+            signBoard.position.set(0, 4.35, 0.02);
+            gantry.add(signBoard);
 
-        // Tiang Kiri & Kanan Gapura
-        [-6.1, 6.1].forEach(gx => {
-            const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 5.2, 0.28), trussMat);
-            pillar.position.set(gx, 2.6, 0);
-            gantry.add(pillar);
-        });
+            const neonTrim = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.07, 0.14), edgeMat);
+            neonTrim.position.set(0, 3.43, 0.02);
+            gantry.add(neonTrim);
 
-        // Palang Atas Melintang Lintasan
-        const beam = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.25, 0.25), trussMat);
-        beam.position.set(0, 5.15, 0);
-        gantry.add(beam);
+            gantry.position.set(0, 0, -40 - i * 90);
+            roadGroup.add(gantry);
+            ktvdiGantries.push(gantry);
+        }
 
-        // Papan Utama Logo KTVDI di Tengah Gapura Lintasan
-        const signBoard = new THREE.Mesh(new THREE.PlaneGeometry(5.8, 1.8), gantryBoardMat);
-        signBoard.position.set(0, 4.35, 0.02);
-        gantry.add(signBoard);
+        // Tiang Lampu & Papan Sisi Lintasan KTVDI
+        const roadPoles = [];
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.3 });
+        const lampMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        const sideBoardGeo = new THREE.PlaneGeometry(2.6, 0.82);
 
-        // Bingkai Neon Bawah Papan
-        const neonTrim = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.07, 0.14), edgeMat);
-        neonTrim.position.set(0, 3.43, 0.02);
-        gantry.add(neonTrim);
+        for (let i = 0; i < 16; i++) {
+            [-6.6, 6.6].forEach(px => {
+                const pGroup = new THREE.Group();
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.4, 8), poleMat);
+                post.position.y = 2.2;
+                pGroup.add(post);
 
-        gantry.position.set(0, 0, -45 - i * 90);
-        roadGroup.add(gantry);
-        ktvdiGantries.push(gantry);
-    }
+                const arm = new THREE.Mesh(new THREE.BoxGeometry(px < 0 ? 1.2 : -1.2, 0.07, 0.07), poleMat);
+                arm.position.set(px < 0 ? 0.55 : -0.55, 4.35, 0);
+                pGroup.add(arm);
 
-    // 3. TIANG LAMPU & PAPAN PEMBATAS LOGO KTVDI DI SISI LINTASAN
-    const roadPoles = [];
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.3 });
-    const lampMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-    const sideBoardGeo = new THREE.PlaneGeometry(2.6, 0.82);
+                const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.08, 0.16), lampMat);
+                bulb.position.set(px < 0 ? 1.05 : -1.05, 4.3, 0);
+                pGroup.add(bulb);
 
-    for (let i = 0; i < 16; i++) {
-        [-6.6, 6.6].forEach((px, sideIdx) => {
-            const pGroup = new THREE.Group();
-            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.4, 8), poleMat);
-            post.position.y = 2.2;
-            pGroup.add(post);
+                if (i % 2 === 0) {
+                    const sideSign = new THREE.Mesh(sideBoardGeo, gantryBoardMat);
+                    sideSign.position.set(px < 0 ? 0.55 : -0.55, 0.72, 0);
+                    sideSign.rotation.y = px < 0 ? Math.PI / 2.4 : -Math.PI / 2.4;
+                    pGroup.add(sideSign);
+                }
 
-            const arm = new THREE.Mesh(new THREE.BoxGeometry(px < 0 ? 1.2 : -1.2, 0.07, 0.07), poleMat);
-            arm.position.set(px < 0 ? 0.55 : -0.55, 4.35, 0);
-            pGroup.add(arm);
+                pGroup.position.set(px, 0, 15 - i * 15);
+                roadGroup.add(pGroup);
+                roadPoles.push(pGroup);
+            });
+        }
 
-            const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.08, 0.16), lampMat);
-            bulb.position.set(px < 0 ? 1.05 : -1.05, 4.3, 0);
-            pGroup.add(bulb);
+        // Garis Angin / Speed Streaks
+        const speedLines = [];
+        const streakGeo = new THREE.BoxGeometry(0.035, 0.035, 2.8);
+        const streakMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0 });
+        for (let i = 0; i < 42; i++) {
+            const sMesh = new THREE.Mesh(streakGeo, streakMat);
+            sMesh.position.set((Math.random() - 0.5) * 13, 0.4 + Math.random() * 4.5, -Math.random() * 110);
+            scene.add(sMesh);
+            speedLines.push(sMesh);
+        }
 
-            // Pasang Papan Logo KTVDI setiap 2 tiang di sisi lintasan
-            if (i % 2 === 0) {
-                const sideSign = new THREE.Mesh(sideBoardGeo, gantryBoardMat);
-                sideSign.position.set(px < 0 ? 0.55 : -0.55, 0.72, 0);
-                sideSign.rotation.y = px < 0 ? Math.PI / 2.4 : -Math.PI / 2.4;
-                pGroup.add(sideSign);
+        function createWheel(radius, width) {
+            const wGroup = new THREE.Group();
+            const tire = new THREE.Mesh(
+                new THREE.CylinderGeometry(radius, radius, width, 24),
+                new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85 })
+            );
+            tire.rotation.z = Math.PI / 2;
+            wGroup.add(tire);
+
+            const rim = new THREE.Mesh(
+                new THREE.CylinderGeometry(radius * 0.62, radius * 0.62, width + 0.02, 16),
+                new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.8, roughness: 0.2 })
+            );
+            rim.rotation.z = Math.PI / 2;
+            wGroup.add(rim);
+
+            const spoke = new THREE.Mesh(
+                new THREE.BoxGeometry(width + 0.04, radius * 1.1, 0.06),
+                new THREE.MeshBasicMaterial({ color: 0xf8fafc })
+            );
+            wGroup.add(spoke);
+            return wGroup;
+        }
+
+        // === MODEL 3D MOBIL ===
+        carGroup = new THREE.Group();
+        const carWheels = [];
+        let carTailLightMat = null;
+
+        (function buildCar() {
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, metalness: 0.65, roughness: 0.22 });
+            const darkGlassMat = new THREE.MeshStandardMaterial({ color: 0x04091a, metalness: 0.9, roughness: 0.1 });
+
+            const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.56, 4.25), bodyMat);
+            chassis.position.set(0, 0.56, 0);
+            carGroup.add(chassis);
+
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.54, 0.52, 2.25), darkGlassMat);
+            cabin.position.set(0, 1.05, -0.15);
+            carGroup.add(cabin);
+
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.08, 1.95), bodyMat);
+            roof.position.set(0, 1.32, -0.15);
+            carGroup.add(roof);
+
+            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
+            [-0.65, 0.65].forEach(hx => {
+                const hl = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.08), headLightMat);
+                hl.position.set(hx, 0.62, -2.13);
+                carGroup.add(hl);
+            });
+
+            carTailLightMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
+            const tailBar = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.13, 0.08), carTailLightMat);
+            tailBar.position.set(0, 0.68, 2.13);
+            carGroup.add(tailBar);
+
+            [[-0.95, 0.36, -1.32], [0.95, 0.36, -1.32], [-0.95, 0.36, 1.32], [0.95, 0.36, 1.32]].forEach(([wx, wy, wz]) => {
+                const w = createWheel(0.36, 0.26);
+                w.position.set(wx, wy, wz);
+                carGroup.add(w);
+                carWheels.push(w);
+            });
+        })();
+        carGroup.visible = (vehicleMode === 'car');
+        scene.add(carGroup);
+
+        // === MODEL 3D MOTOR ===
+        motorGroup = new THREE.Group();
+        const motorWheels = [];
+        let motorTailMat = null;
+
+        (function buildMotor() {
+            const fairingMat = new THREE.MeshStandardMaterial({ color: 0x0ea5e9, metalness: 0.7, roughness: 0.2 });
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.48, 1.65), fairingMat);
+            body.position.set(0, 0.78, 0);
+            motorGroup.add(body);
+
+            const shield = new THREE.Mesh(
+                new THREE.BoxGeometry(0.42, 0.36, 0.45),
+                new THREE.MeshStandardMaterial({ color: 0x04091a, metalness: 0.9, roughness: 0.1 })
+            );
+            shield.position.set(0, 1.12, -0.62);
+            shield.rotation.x = 0.45;
+            motorGroup.add(shield);
+
+            const handle = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.06, 0.08), frameMat);
+            handle.position.set(0, 1.05, -0.52);
+            motorGroup.add(handle);
+
+            const mHead = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.08), new THREE.MeshBasicMaterial({ color: 0xe0f2fe }));
+            mHead.position.set(0, 0.85, -0.84);
+            motorGroup.add(mHead);
+
+            motorTailMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const mTail = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.08), motorTailMat);
+            mTail.position.set(0, 0.88, 0.84);
+            motorGroup.add(mTail);
+
+            [[0, 0.38, -0.85], [0, 0.38, 0.85]].forEach(([wx, wy, wz]) => {
+                const w = createWheel(0.38, 0.2);
+                w.position.set(wx, wy, wz);
+                motorGroup.add(w);
+                motorWheels.push(w);
+            });
+        })();
+        motorGroup.visible = (vehicleMode === 'motor');
+        scene.add(motorGroup);
+
+        window.__resizeKtvdiThree = function() {
+            if (!mount) return;
+            const w = mount.clientWidth;
+            const h = mount.clientHeight;
+            if (w === 0 || h === 0) return;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        };
+        window.addEventListener('resize', window.__resizeKtvdiThree, { passive: true });
+
+        // === ELEMEN HUD ===
+        const speedValEl = document.getElementById('main-speed-value');
+        const speedArcEl = document.getElementById('speed-arc-path');
+        const maxSpeedEl = document.getElementById('stat-max-speed');
+        const tripEl = document.getElementById('stat-trip-km');
+        const stageEl = document.getElementById('speedo-stage');
+        const highBannerEl = document.getElementById('highspeed-banner');
+        const highBannerTextEl = document.getElementById('highspeed-banner-text');
+        const collisionIconEl = document.getElementById('collision-icon');
+        const collisionTextEl = document.getElementById('collision-status-text');
+
+        function updateTelemetryHUD(speed, accelDelta) {
+            const roundedSpeed = Math.round(speed);
+            const now = Date.now();
+
+            // Reset pengingat helm/sabuk jika kendaraan berhenti > 15 detik
+            if (roundedSpeed < 3) {
+                if (!stoppedSinceMs) stoppedSinceMs = now;
+                else if (now - stoppedSinceMs > 15000) {
+                    helmetReminderShown = false;
+                    seatbeltReminderShown = false;
+                }
+            } else {
+                stoppedSinceMs = null;
             }
 
-            pGroup.position.set(px, 0, 15 - i * 15);
-            roadGroup.add(pGroup);
-            roadPoles.push(pGroup);
-        });
-    }
+            // 1. Pengingat Sementara Motor >= 20 km/jam
+            if (vehicleMode === 'motor' && roundedSpeed >= 20 && !helmetReminderShown) {
+                helmetReminderShown = true;
+                showTemporarySafetyReminder(
+                    "Keselamatan Pengendara Motor",
+                    "JANGAN LUPA UNTUK menggunakan Helm ketika berkendara",
+                    "fa-solid fa-helmet-safety"
+                );
+                speakAlert("Jangan lupa untuk menggunakan helm ketika berkendara.", true);
+            }
 
-    // Garis Angin / Speed Streaks
-    const speedLines = [];
-    const streakGeo = new THREE.BoxGeometry(0.035, 0.035, 2.8);
-    const streakMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0 });
-    for (let i = 0; i < 42; i++) {
-        const sMesh = new THREE.Mesh(streakGeo, streakMat);
-        sMesh.position.set(
-            (Math.random() - 0.5) * 13,
-            0.4 + Math.random() * 4.5,
-            -Math.random() * 110
-        );
-        scene.add(sMesh);
-        speedLines.push(sMesh);
-    }
+            // 2. Pengingat Sementara Mobil >= 25 km/jam
+            if (vehicleMode === 'car' && roundedSpeed >= 25 && !seatbeltReminderShown) {
+                seatbeltReminderShown = true;
+                showTemporarySafetyReminder(
+                    "Keselamatan Pengemudi Mobil",
+                    "Jangan Lupa gunakan sabuk keselamatan ketika berkendara",
+                    "fa-solid fa-user-shield"
+                );
+                speakAlert("Jangan lupa gunakan sabuk keselamatan ketika berkendara.", true);
+            }
 
-    // === HELPER RODA 3D ===
-    function createWheel(radius, width) {
-        const wGroup = new THREE.Group();
-        const tire = new THREE.Mesh(
-            new THREE.CylinderGeometry(radius, radius, width, 24),
-            new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85 })
-        );
-        tire.rotation.z = Math.PI / 2;
-        wGroup.add(tire);
+            // Angka & Glow Kecepatan
+            if (speedValEl) {
+                speedValEl.innerText = roundedSpeed;
+                speedValEl.classList.remove('speed-readout-glow', 'speed-warn-glow', 'speed-danger-glow', 'text-white', 'text-amber-300', 'text-red-400');
+                if (speed >= SPEED_LIMIT_DANGER || now < lakaAlertUntilMs) {
+                    speedValEl.classList.add('speed-danger-glow', 'text-red-400');
+                } else if (speed >= SPEED_LIMIT_WARN) {
+                    speedValEl.classList.add('speed-warn-glow', 'text-amber-300');
+                } else {
+                    speedValEl.classList.add('speed-readout-glow', 'text-white');
+                }
+            }
 
-        const rim = new THREE.Mesh(
-            new THREE.CylinderGeometry(radius * 0.62, radius * 0.62, width + 0.02, 16),
-            new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.8, roughness: 0.2 })
-        );
-        rim.rotation.z = Math.PI / 2;
-        wGroup.add(rim);
+            if (speedArcEl) {
+                const ratio = Math.min(1, speed / 220);
+                speedArcEl.style.strokeDashoffset = (518 * (1 - ratio)).toFixed(1);
+            }
 
-        const spoke = new THREE.Mesh(
-            new THREE.BoxGeometry(width + 0.04, radius * 1.1, 0.06),
-            new THREE.MeshBasicMaterial({ color: 0xf8fafc })
-        );
-        wGroup.add(spoke);
+            if (roundedSpeed > maxSpeedKmh) {
+                maxSpeedKmh = roundedSpeed;
+                if (maxSpeedEl) maxSpeedEl.innerText = maxSpeedKmh;
+            }
+            if (tripEl) tripEl.innerText = tripDistanceKm.toFixed(2);
 
-        return wGroup;
-    }
+            // Deteksi Rem Mendadak (Kemungkinan Laka)
+            if (accelDelta < -15 && prevSpeedKmh >= 18) {
+                lakaAlertUntilMs = now + 5500;
+                speakAlert("Peringatan! Rem mendadak terdeteksi, kemungkinan laka!", true);
+            }
 
-    // === 1. MODEL 3D MOBIL ===
-    const carGroup = new THREE.Group();
-    const carWheels = [];
-    let carTailLightMat = null;
+            const isLakaAlert = now < lakaAlertUntilMs;
 
-    (function buildCar() {
-        const bodyMat = new THREE.MeshStandardMaterial({
-            color: 0x1d4ed8,
-            metalness: 0.65,
-            roughness: 0.22
-        });
-        const darkGlassMat = new THREE.MeshStandardMaterial({
-            color: 0x04091a,
-            metalness: 0.9,
-            roughness: 0.1
-        });
-
-        const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.56, 4.25), bodyMat);
-        chassis.position.set(0, 0.56, 0);
-        carGroup.add(chassis);
-
-        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.54, 0.52, 2.25), darkGlassMat);
-        cabin.position.set(0, 1.05, -0.15);
-        carGroup.add(cabin);
-
-        const roof = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.08, 1.95), bodyMat);
-        roof.position.set(0, 1.32, -0.15);
-        carGroup.add(roof);
-
-        const headLightMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
-        [-0.65, 0.65].forEach(hx => {
-            const hl = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.08), headLightMat);
-            hl.position.set(hx, 0.62, -2.13);
-            carGroup.add(hl);
-        });
-
-        carTailLightMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
-        const tailBar = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.13, 0.08), carTailLightMat);
-        tailBar.position.set(0, 0.68, 2.13);
-        carGroup.add(tailBar);
-
-        [
-            [-0.95, 0.36, -1.32],
-            [0.95, 0.36, -1.32],
-            [-0.95, 0.36, 1.32],
-            [0.95, 0.36, 1.32]
-        ].forEach(([wx, wy, wz]) => {
-            const w = createWheel(0.36, 0.26);
-            w.position.set(wx, wy, wz);
-            carGroup.add(w);
-            carWheels.push(w);
-        });
-    })();
-    scene.add(carGroup);
-
-    // === 2. MODEL 3D MOTOR ===
-    const motorGroup = new THREE.Group();
-    const motorWheels = [];
-    let motorTailMat = null;
-
-    (function buildMotor() {
-        const fairingMat = new THREE.MeshStandardMaterial({
-            color: 0x0ea5e9,
-            metalness: 0.7,
-            roughness: 0.2
-        });
-        const frameMat = new THREE.MeshStandardMaterial({
-            color: 0x1e293b,
-            metalness: 0.6,
-            roughness: 0.4
-        });
-
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.48, 1.65), fairingMat);
-        body.position.set(0, 0.78, 0);
-        motorGroup.add(body);
-
-        const shield = new THREE.Mesh(
-            new THREE.BoxGeometry(0.42, 0.36, 0.45),
-            new THREE.MeshStandardMaterial({ color: 0x04091a, metalness: 0.9, roughness: 0.1 })
-        );
-        shield.position.set(0, 1.12, -0.62);
-        shield.rotation.x = 0.45;
-        motorGroup.add(shield);
-
-        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.06, 0.08), frameMat);
-        handle.position.set(0, 1.05, -0.52);
-        motorGroup.add(handle);
-
-        const mHead = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.08), new THREE.MeshBasicMaterial({ color: 0xe0f2fe }));
-        mHead.position.set(0, 0.85, -0.84);
-        motorGroup.add(mHead);
-
-        motorTailMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
-        const mTail = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.1, 0.08), motorTailMat);
-        mTail.position.set(0, 0.88, 0.84);
-        motorGroup.add(mTail);
-
-        [[0, 0.38, -0.85], [0, 0.38, 0.85]].forEach(([wx, wy, wz]) => {
-            const w = createWheel(0.38, 0.2);
-            w.position.set(wx, wy, wz);
-            motorGroup.add(w);
-            motorWheels.push(w);
-        });
-    })();
-    motorGroup.visible = false;
-    scene.add(motorGroup);
-
-    // === RESIZE HANDLER ===
-    function resizeThreeScene() {
-        if (!mount) return;
-        const w = mount.clientWidth;
-        const h = mount.clientHeight;
-        if (w === 0 || h === 0) return;
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
-    }
-    window.addEventListener('resize', resizeThreeScene, { passive: true });
-
-    // === UPDATE HUD & LOOP ANIMASI ===
-    const speedValEl = document.getElementById('main-speed-value');
-    const speedArcEl = document.getElementById('speed-arc-path');
-    const maxSpeedEl = document.getElementById('stat-max-speed');
-    const tripEl = document.getElementById('stat-trip-km');
-    const stageEl = document.getElementById('speedo-stage');
-    const highBannerEl = document.getElementById('highspeed-banner');
-    const highBannerTextEl = document.getElementById('highspeed-banner-text');
-    const collisionIconEl = document.getElementById('collision-icon');
-    const collisionTextEl = document.getElementById('collision-status-text');
-
-    function updateTelemetryHUD(speed, accelDelta) {
-        const roundedSpeed = Math.round(speed);
-        if (speedValEl) {
-            speedValEl.innerText = roundedSpeed;
-            speedValEl.classList.remove('speed-readout-glow', 'speed-warn-glow', 'speed-danger-glow', 'text-white', 'text-amber-300', 'text-red-400');
-            if (speed >= SPEED_LIMIT_DANGER) {
-                speedValEl.classList.add('speed-danger-glow', 'text-red-400');
+            if (isLakaAlert) {
+                stageEl.classList.add('stage-danger-alert');
+                highBannerEl.classList.remove('hidden');
+                highBannerTextEl.innerText = "REM MENDADAK • KEMUNGKINAN LAKA TERDETEKSI!";
+                collisionIconEl.className = "fa-solid fa-car-burst text-red-400 text-sm animate-ping";
+                collisionTextEl.className = "text-[11px] font-extrabold text-red-400 mt-0.5";
+                collisionTextEl.innerText = "KEMUNGKINAN LAKA • Rem Mendadak!";
+            } else if (speed >= SPEED_LIMIT_DANGER) {
+                stageEl.classList.add('stage-danger-alert');
+                highBannerEl.classList.remove('hidden');
+                highBannerTextEl.innerText = `BAHAYA: ${roundedSpeed} KM/H • KURANGI KECEPATAN!`;
+                collisionIconEl.className = "fa-solid fa-triangle-exclamation text-red-400 text-sm animate-ping";
+                collisionTextEl.className = "text-[11px] font-extrabold text-red-400 mt-0.5";
+                collisionTextEl.innerText = "RISIKO TINGGI • Kecepatan Ekstrem!";
+                speakAlert(`Peringatan! Kecepatan ${roundedSpeed} kilometer per jam. Kurangi kecepatan Anda.`);
             } else if (speed >= SPEED_LIMIT_WARN) {
-                speedValEl.classList.add('speed-warn-glow', 'text-amber-300');
-            } else {
-                speedValEl.classList.add('speed-readout-glow', 'text-white');
-            }
-        }
-
-        if (speedArcEl) {
-            const ratio = Math.min(1, speed / 220);
-            speedArcEl.style.strokeDashoffset = (518 * (1 - ratio)).toFixed(1);
-        }
-
-        if (roundedSpeed > maxSpeedKmh) {
-            maxSpeedKmh = roundedSpeed;
-            if (maxSpeedEl) maxSpeedEl.innerText = maxSpeedKmh;
-        }
-        if (tripEl) tripEl.innerText = tripDistanceKm.toFixed(2);
-
-        if (speed >= SPEED_LIMIT_DANGER) {
-            stageEl.classList.add('stage-danger-alert');
-            highBannerEl.classList.remove('opacity-0', '-translate-y-2');
-            highBannerTextEl.innerText = `BAHAYA: ${roundedSpeed} KM/H • KURANGI KECEPATAN!`;
-            collisionIconEl.className = "fa-solid fa-triangle-exclamation text-red-400 text-sm animate-ping";
-            collisionTextEl.className = "text-[11px] font-extrabold text-red-400 mt-0.5";
-            collisionTextEl.innerText = "RISIKO TINGGI • Jaga Jarak!";
-            speakAlert(`Peringatan! Kecepatan ${roundedSpeed} kilometer per jam. Kurangi kecepatan Anda.`);
-        } else if (speed >= SPEED_LIMIT_WARN) {
-            stageEl.classList.remove('stage-danger-alert');
-            highBannerEl.classList.remove('opacity-0', '-translate-y-2');
-            highBannerTextEl.innerText = `WASPADA KECEPATAN TINGGI (${roundedSpeed} KM/H)`;
-            collisionIconEl.className = "fa-solid fa-shield-virus text-amber-400 text-sm";
-            collisionTextEl.className = "text-[11px] font-extrabold text-amber-300 mt-0.5";
-            collisionTextEl.innerText = "WASPADA • Jarak Pengereman Panjang";
-        } else {
-            stageEl.classList.remove('stage-danger-alert');
-            highBannerEl.classList.add('opacity-0', '-translate-y-2');
-            if (accelDelta < -18) {
-                collisionIconEl.className = "fa-solid fa-car-burst text-amber-400 text-sm animate-pulse";
+                stageEl.classList.remove('stage-danger-alert');
+                highBannerEl.classList.remove('hidden');
+                highBannerTextEl.innerText = `WASPADA KECEPATAN TINGGI (${roundedSpeed} KM/H)`;
+                collisionIconEl.className = "fa-solid fa-shield-virus text-amber-400 text-sm";
                 collisionTextEl.className = "text-[11px] font-extrabold text-amber-300 mt-0.5";
-                collisionTextEl.innerText = "PENGEREMAN MENDADAK";
+                collisionTextEl.innerText = "WASPADA • Jaga Jarak Aman";
             } else {
+                stageEl.classList.remove('stage-danger-alert');
+                highBannerEl.classList.add('hidden');
                 collisionIconEl.className = "fa-solid fa-shield-halved text-emerald-400 text-sm";
                 collisionTextEl.className = "text-[11px] font-extrabold text-emerald-400 mt-0.5";
-                collisionTextEl.innerText = "AMAN • Jarak Optimal";
+                collisionTextEl.innerText = "AMAN • Berkendara Normal";
             }
         }
-    }
 
-    function animateCockpit(now) {
+        function animateCockpit(now) {
+            requestAnimationFrame(animateCockpit);
+            const dt = Math.min(0.05, (now - lastTickTime) / 1000);
+            lastTickTime = now;
+
+            prevSpeedKmh = currentSpeedKmh;
+            currentSpeedKmh += (targetSpeedKmh - currentSpeedKmh) * Math.min(1, dt * 6.5);
+            if (Math.abs(targetSpeedKmh - currentSpeedKmh) < 0.05) currentSpeedKmh = targetSpeedKmh;
+
+            const accelDelta = (currentSpeedKmh - prevSpeedKmh) / Math.max(dt, 0.001);
+            const speedMs = currentSpeedKmh / 3.6;
+            const speedRatio = Math.min(1, currentSpeedKmh / 200);
+
+            // Lintasan, Marka, Gapura & Logo KTVDI Melesat Mengikuti Kecepatan GPS
+            const worldTravel = (speedMs * 1.45) * dt;
+            laneDashes.forEach(d => {
+                d.position.z += worldTravel;
+                if (d.position.z > 16) d.position.z -= 252;
+            });
+            roadLogoDecals.forEach(decal => {
+                decal.position.z += worldTravel;
+                if (decal.position.z > 14) decal.position.z -= 260;
+            });
+            ktvdiGantries.forEach(g => {
+                g.position.z += worldTravel;
+                if (g.position.z > 16) g.position.z -= 270;
+            });
+            roadPoles.forEach(p => {
+                p.position.z += worldTravel;
+                if (p.position.z > 18) p.position.z -= 240;
+            });
+
+            // Garis Angin / Speed Streaks
+            streakMat.opacity = speedRatio > 0.12 ? Math.min(0.75, (speedRatio - 0.12) * 0.95) : 0;
+            speedLines.forEach(s => {
+                s.scale.z = 0.6 + speedRatio * 3.8;
+                s.position.z += (worldTravel * 1.65 + (speedRatio > 0.02 ? 4 * dt : 0));
+                if (s.position.z > 10) {
+                    s.position.z = -110 - Math.random() * 20;
+                    s.position.x = (Math.random() - 0.5) * 13;
+                }
+            });
+
+            // Putaran Roda & Dinamika Bodi Mobil / Motor
+            const wheelSpin = (speedMs / 0.36) * dt;
+            const isBraking = accelDelta < -8 || Date.now() < lakaAlertUntilMs;
+
+            if (vehicleMode === 'car') {
+                carWheels.forEach(w => { w.rotation.x -= wheelSpin; });
+                const targetPitch = Math.max(-0.045, Math.min(0.045, accelDelta * 0.0008));
+                carGroup.rotation.x += (targetPitch - carGroup.rotation.x) * 0.15;
+                carGroup.rotation.y += (-targetSteerAngle - carGroup.rotation.y) * 0.1;
+                carGroup.position.y = speedRatio > 0.45 ? Math.sin(now * 0.06) * 0.012 * speedRatio : 0;
+                if (carTailLightMat) {
+                    carTailLightMat.color.setHex(isBraking ? 0xff4d4d : 0x991b1b);
+                }
+            } else {
+                motorWheels.forEach(w => { w.rotation.x -= wheelSpin; });
+                const targetPitch = Math.max(-0.06, Math.min(0.05, accelDelta * 0.001));
+                motorGroup.rotation.x += (targetPitch - motorGroup.rotation.x) * 0.15;
+                motorGroup.rotation.z += (-targetSteerAngle * 1.6 - motorGroup.rotation.z) * 0.1;
+                motorGroup.position.y = speedRatio > 0.4 ? Math.sin(now * 0.07) * 0.015 * speedRatio : 0;
+                if (motorTailMat) {
+                    motorTailMat.color.setHex(isBraking ? 0xff5555 : 0xb91c1c);
+                }
+            }
+
+            // Kamera Dinamis
+            const targetFov = 48 + speedRatio * 24;
+            camera.fov += (targetFov - camera.fov) * 0.1;
+            camera.updateProjectionMatrix();
+
+            const shakeX = speedRatio > 0.55 ? (Math.random() - 0.5) * 0.035 * speedRatio : 0;
+            const shakeY = speedRatio > 0.55 ? (Math.random() - 0.5) * 0.03 * speedRatio : 0;
+            camera.position.set(shakeX, 2.55 - speedRatio * 0.35 + shakeY, 5.8 + speedRatio * 1.1);
+            camera.lookAt(0, 0.85, -7);
+
+            rimLight.color.setHex((currentSpeedKmh >= SPEED_LIMIT_DANGER || Date.now() < lakaAlertUntilMs) ? 0xef4444 : (currentSpeedKmh >= SPEED_LIMIT_WARN ? 0xf59e0b : 0x38bdf8));
+
+            updateTelemetryHUD(currentSpeedKmh, accelDelta);
+            renderer.render(scene, camera);
+        }
+
         requestAnimationFrame(animateCockpit);
-        const dt = Math.min(0.05, (now - lastTickTime) / 1000);
-        lastTickTime = now;
-
-        prevSpeedKmh = currentSpeedKmh;
-        currentSpeedKmh += (targetSpeedKmh - currentSpeedKmh) * Math.min(1, dt * 6.5);
-        if (Math.abs(targetSpeedKmh - currentSpeedKmh) < 0.05) currentSpeedKmh = targetSpeedKmh;
-
-        const accelDelta = (currentSpeedKmh - prevSpeedKmh) / Math.max(dt, 0.001);
-        const speedMs = currentSpeedKmh / 3.6;
-        const speedRatio = Math.min(1, currentSpeedKmh / 200);
-
-        // 1. Kecepatan Lintasan, Marka, Gapura & Logo KTVDI Mengikuti Kecepatan GPS
-        const worldTravel = (speedMs * 1.45) * dt;
-        laneDashes.forEach(d => {
-            d.position.z += worldTravel;
-            if (d.position.z > 16) d.position.z -= 252;
-        });
-        roadLogoDecals.forEach(decal => {
-            decal.position.z += worldTravel;
-            if (decal.position.z > 14) decal.position.z -= 260;
-        });
-        ktvdiGantries.forEach(g => {
-            g.position.z += worldTravel;
-            if (g.position.z > 16) g.position.z -= 270;
-        });
-        roadPoles.forEach(p => {
-            p.position.z += worldTravel;
-            if (p.position.z > 18) p.position.z -= 240;
-        });
-
-        // 2. Garis Angin / Speed Streaks
-        streakMat.opacity = speedRatio > 0.15 ? Math.min(0.75, (speedRatio - 0.15) * 0.95) : 0;
-        speedLines.forEach(s => {
-            s.scale.z = 0.6 + speedRatio * 3.8;
-            s.position.z += (worldTravel * 1.65 + 4 * dt);
-            if (s.position.z > 10) {
-                s.position.z = -110 - Math.random() * 20;
-                s.position.x = (Math.random() - 0.5) * 13;
-            }
-        });
-
-        // 3. Putaran Roda & Dinamika Bodi Mobil / Motor
-        const wheelSpin = (speedMs / 0.36) * dt;
-        const isBraking = accelDelta < -8;
-
-        if (vehicleMode === 'car') {
-            carWheels.forEach(w => { w.rotation.x -= wheelSpin; });
-            const targetPitch = Math.max(-0.045, Math.min(0.045, accelDelta * 0.0008));
-            carGroup.rotation.x += (targetPitch - carGroup.rotation.x) * 0.15;
-            carGroup.position.y = speedRatio > 0.45 ? Math.sin(now * 0.06) * 0.012 * speedRatio : 0;
-            if (carTailLightMat) {
-                carTailLightMat.color.setHex(isBraking ? 0xff4d4d : 0x991b1b);
-            }
-        } else {
-            motorWheels.forEach(w => { w.rotation.x -= wheelSpin; });
-            const targetPitch = Math.max(-0.06, Math.min(0.05, accelDelta * 0.001));
-            motorGroup.rotation.x += (targetPitch - motorGroup.rotation.x) * 0.15;
-            motorGroup.rotation.z = Math.sin(now * 0.0022) * (0.03 + speedRatio * 0.07);
-            motorGroup.position.y = speedRatio > 0.4 ? Math.sin(now * 0.07) * 0.015 * speedRatio : 0;
-            if (motorTailMat) {
-                motorTailMat.color.setHex(isBraking ? 0xff5555 : 0xb91c1c);
-            }
-        }
-
-        // 4. Kamera Dinamis (FOV melebar otomatis saat makin ngebut)
-        const targetFov = 48 + speedRatio * 24;
-        camera.fov += (targetFov - camera.fov) * 0.1;
-        camera.updateProjectionMatrix();
-
-        const shakeX = speedRatio > 0.55 ? (Math.random() - 0.5) * 0.035 * speedRatio : 0;
-        const shakeY = speedRatio > 0.55 ? (Math.random() - 0.5) * 0.03 * speedRatio : 0;
-        camera.position.set(shakeX, 2.55 - speedRatio * 0.35 + shakeY, 5.8 + speedRatio * 1.1);
-        camera.lookAt(0, 0.85, -7);
-
-        rimLight.color.setHex(currentSpeedKmh >= SPEED_LIMIT_DANGER ? 0xef4444 : (currentSpeedKmh >= SPEED_LIMIT_WARN ? 0xf59e0b : 0x38bdf8));
-
-        updateTelemetryHUD(currentSpeedKmh, accelDelta);
-        renderer.render(scene, camera);
     }
 
-    requestAnimationFrame(animateCockpit);
+    // Pastikan Three.js tersedia (pakai yang ada di base.html atau muat otomatis dari CDN)
+    if (typeof THREE !== 'undefined') {
+        startThreeEngine();
+    } else {
+        const threeScript = document.createElement('script');
+        threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+        threeScript.onload = startThreeEngine;
+        document.head.appendChild(threeScript);
+    }
 })();
 </script>
 {% endblock %}
