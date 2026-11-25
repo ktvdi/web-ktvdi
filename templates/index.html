@@ -442,7 +442,7 @@
     </section>
 </div>
 
-<!-- SCRIPTS: PLAYER YOUTUBE STYLE (FULLSCREEN HP & PC) & KUIS -->
+<!-- SCRIPTS: PLAYER YOUTUBE STYLE (FULLSCREEN HP & PC), AUTO-PROXY HTTPS/MPEG-TS & KUIS -->
 <script>
     // Logo SVG Vektor Khusus Temanggung TV
     const temanggungTvLogo = "data:image/svg+xml;utf8," + encodeURIComponent(
@@ -476,15 +476,17 @@
         {name: "Nusantara TV", category: "nasional", url: "https://nusantaratv.siar.us/nusantaratv/live/playlist.m3u8", logo: "https://iili.io/f8YIZPt.jpg"},
         {name: "Berita Satu", category: "nasional", url: "https://beritasatu.secureswiftcontent.com/han/beritasatu/bsatu10008/srtoutput/manifest.m3u8", logo: "https://iili.io/f878bP2.jpg"},
         {name: "Matrix TV", category: "daerah", url: "https://stream.matrixtv.id/hls/stream.m3u8", logo: "https://iili.io/f87LXWX.md.png"},
-        {name: "Semarang TV", category: "daerah", url: "http://36.94.24.229/0.m3u8", logo: "https://iili.io/f87yF6P.png"},
+        {name: "Semarang TV", category: "daerah", url: "http://36.94.24.229/0.m3u8", useProxyOnHttps: true, logo: "https://iili.io/f87yF6P.png"},
         {
             name: "Temanggung TV",
             category: "daerah",
             url: "http://103.79.90.150:5320/hls/stream.m3u8",
+            useProxyOnHttps: true,
             fallbackUrls: [
                 "http://103.79.90.150:5320/hls/index.m3u8",
                 "http://103.79.90.150:5320/live/stream.m3u8",
-                "http://103.79.90.150:5320/0.m3u8"
+                "http://103.79.90.150:5320/0.m3u8",
+                "http://103.79.90.150:5320/"
             ],
             logo: temanggungTvLogo
         },
@@ -560,7 +562,7 @@
                     <div id="error-${idx}" class="absolute inset-0 z-40 bg-[#04091a]/95 backdrop-blur-md hidden flex-col items-center justify-center text-center p-4 border-b-2 border-red-600">
                         <i class="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-3 animate-pulse"></i>
                         <h4 class="text-white font-black uppercase text-xs tracking-wider mb-1">Siaran Terputus</h4>
-                        <p id="error-hint-${idx}" class="text-slate-400 text-[11px] max-w-xs hidden mt-1"></p>
+                        <p id="error-hint-${idx}" class="text-slate-300 text-[11px] max-w-xs hidden mt-1 leading-relaxed"></p>
                         <div class="flex items-center gap-2 mt-4">
                             <button type="button" onclick="retryVideo('${idx}', '${ch.url}')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-2 transition">
                                 <i class="fa-solid fa-rotate-right"></i> Muat Ulang
@@ -664,7 +666,7 @@
         });
     });
 
-    // Langsung putar & masuk Fullscreen secara sinkron (tanpa setTimeout agar diizinkan browser HP)
+    // Langsung putar & masuk Fullscreen secara sinkron
     function playAndFullScreen(url, idx) {
         const cover = document.getElementById(`cover-${idx}`);
         const video = document.getElementById(`vid-${idx}`);
@@ -676,8 +678,50 @@
         toggleFullScreen(idx, true);
     }
 
-    // HLS Logic dengan Auto-Fallback Path (untuk server IP:Port kustom)
-    function loadHLS(cover, url, idx, candidateIdx = 0) {
+    function destroyPlayers(vidId) {
+        if (window['hls_' + vidId]) {
+            try { window['hls_' + vidId].destroy(); } catch (e) {}
+            delete window['hls_' + vidId];
+        }
+        if (window['mpegts_' + vidId]) {
+            try {
+                window['mpegts_' + vidId].pause();
+                window['mpegts_' + vidId].unload();
+                window['mpegts_' + vidId].detachMediaElement();
+                window['mpegts_' + vidId].destroy();
+            } catch (e) {}
+            delete window['mpegts_' + vidId];
+        }
+    }
+
+    function ensureMpegtsLibrary(callback) {
+        if (typeof mpegts !== 'undefined') {
+            callback(true);
+            return;
+        }
+        const existing = document.getElementById('ktvdi-mpegts-cdn');
+        if (existing) {
+            existing.addEventListener('load', () => callback(typeof mpegts !== 'undefined'), { once: true });
+            existing.addEventListener('error', () => callback(false), { once: true });
+            return;
+        }
+        const s = document.createElement('script');
+        s.id = 'ktvdi-mpegts-cdn';
+        s.src = 'https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js';
+        s.onload = () => callback(typeof mpegts !== 'undefined');
+        s.onerror = () => callback(false);
+        document.head.appendChild(s);
+    }
+
+    function resolveStreamUrl(rawUrl, forceProxy) {
+        if (forceProxy && rawUrl.startsWith('http://')) {
+            return `/proxy_stream?url=${encodeURIComponent(rawUrl)}`;
+        }
+        return rawUrl;
+    }
+
+    // HLS + Raw MPEG-TS + Auto HTTPS Proxy Logic
+    function loadHLS(cover, url, idx, candidateIdx = 0, useProxy = null) {
         const vidId = `vid-${idx}`;
         const video = document.getElementById(vidId);
         const spinner = cover.nextElementSibling;
@@ -690,7 +734,13 @@
 
         const channelData = channels[Number(idx)] || {};
         const urlCandidates = [url, ...(channelData.fallbackUrls || [])];
-        const activeUrl = urlCandidates[candidateIdx] || url;
+        const rawTargetUrl = urlCandidates[candidateIdx] || url;
+
+        // Otomatis gunakan endpoint /proxy_stream jika halaman HTTPS memutar stream HTTP
+        const shouldProxy = (useProxy !== null)
+            ? useProxy
+            : (window.location.protocol === 'https:' && rawTargetUrl.startsWith('http://'));
+        const activeUrl = resolveStreamUrl(rawTargetUrl, shouldProxy);
         
         cover.style.display = 'none';
         spinner.classList.remove('hidden');
@@ -708,58 +758,120 @@
             resetPlayerIdle(idx);
         }
 
-        function handlePlayError() {
-            if (candidateIdx + 1 < urlCandidates.length) {
-                loadHLS(cover, url, idx, candidateIdx + 1);
-                return;
-            }
+        function showFinalError(reasonMsg) {
+            destroyPlayers(vidId);
             spinner.classList.add('hidden');
             video.style.display = 'none';
             customControls.classList.remove('flex'); customControls.classList.add('hidden');
             errorOverlay.classList.remove('hidden'); errorOverlay.classList.add('flex');
-            if (errorHint && activeUrl.startsWith('http://') && window.location.protocol === 'https:') {
-                errorHint.textContent = 'Stream menggunakan HTTP langsung (aktifkan izin Insecure Content pada browser jika diblokir).';
+            if (errorHint && reasonMsg) {
+                errorHint.textContent = reasonMsg;
                 errorHint.classList.remove('hidden');
             }
-            resText.innerText = "Error"; resText.classList.remove('animate-pulse');
+            resText.innerText = "Offline";
+            resText.classList.remove('animate-pulse');
             bitText.innerText = "-- kbps";
         }
 
-        if(typeof Hls !== 'undefined' && Hls.isSupported()) {
-            if(window['hls_'+vidId]) { window['hls_'+vidId].destroy(); }
-            const hls = new Hls({ timeout: 10000 });
-            hls.loadSource(activeUrl); 
+        function tryNextCandidate(lastReason) {
+            // Jika tadi belum pakai proxy dan URL masih HTTP (misal kena blokir CORS), coba ulang via /proxy_stream
+            if (!shouldProxy && rawTargetUrl.startsWith('http://')) {
+                loadHLS(cover, url, idx, candidateIdx, true);
+                return;
+            }
+            if (candidateIdx + 1 < urlCandidates.length) {
+                loadHLS(cover, url, idx, candidateIdx + 1, null);
+                return;
+            }
+            showFinalError(lastReason);
+        }
+
+        function playRawMpegTs(streamUrl) {
+            ensureMpegtsLibrary((loaded) => {
+                if (!loaded || !mpegts.getFeatureList().mseLivePlayback) {
+                    tryNextCandidate('Server encoder mengirim raw MPEG-TS dan tidak didukung browser ini.');
+                    return;
+                }
+                destroyPlayers(vidId);
+                const player = mpegts.createPlayer({
+                    type: 'mpegts',
+                    isLive: true,
+                    url: streamUrl
+                }, {
+                    enableWorker: true,
+                    liveBufferLatencyChasing: true
+                });
+                window['mpegts_' + vidId] = player;
+                player.attachMediaElement(video);
+                player.load();
+
+                player.on(mpegts.Events.MEDIA_INFO, (info) => {
+                    resText.classList.remove('animate-pulse');
+                    resText.innerText = info.height ? `${info.height}p` : 'MPEG-TS';
+                    bitText.innerText = info.videoDataRate ? `${Math.round(info.videoDataRate)} kbps` : 'Live TS';
+                });
+
+                player.on(mpegts.Events.ERROR, () => {
+                    tryNextCandidate('Server encoder 103.79.90.150:5320 tidak merespons atau sedang offline.');
+                });
+
+                video.play().then(handlePlaySuccess).catch(() => {
+                    tryNextCandidate('Gagal memutar aliran MPEG-TS dari server encoder.');
+                });
+            });
+        }
+
+        destroyPlayers(vidId);
+
+        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+            const hls = new Hls({
+                manifestLoadingTimeOut: 9000,
+                manifestLoadingMaxRetry: 1,
+                levelLoadingTimeOut: 9000
+            });
+            window['hls_' + vidId] = hls;
+            hls.loadSource(activeUrl);
             hls.attachMedia(video);
             
             hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
                 const level = hls.levels[data.level];
-                if(level) {
+                if (level) {
                     resText.classList.remove('animate-pulse');
                     resText.innerText = (level.height ? level.height + 'p' : 'Auto');
                     bitText.innerText = (level.bitrate ? Math.round(level.bitrate / 1000) + ' kbps' : 'Auto');
                 }
             });
 
-            hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-                video.play().then(handlePlaySuccess).catch(handlePlayError);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().then(handlePlaySuccess).catch(() => {
+                    tryNextCandidate('Browser menolak pemutaran stream.');
+                });
             });
             
             hls.on(Hls.Events.ERROR, function (event, data) {
                 if (data.fatal) {
-                    hls.destroy();
-                    handlePlayError();
+                    // Jika server mengirim binary MPEG-TS langsung (bukan #EXTM3U), otomatis pindah ke mpegts.js
+                    if (data.details === Hls.ErrorDetails.MANIFEST_PARSING_ERROR) {
+                        playRawMpegTs(activeUrl);
+                        return;
+                    }
+                    const hint = shouldProxy
+                        ? 'Pastikan route /proxy_stream aktif di Flask & encoder 103.79.90.150:5320 sedang online.'
+                        : 'Koneksi ke 103.79.90.150:5320 ditolak (CORS/Timeout).';
+                    tryNextCandidate(hint);
                 }
             });
-            window['hls_'+vidId] = hls;
 
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = activeUrl; 
-            video.addEventListener('loadedmetadata', () => { 
+            video.src = activeUrl;
+            video.addEventListener('loadedmetadata', () => {
                 resText.classList.remove('animate-pulse');
                 resText.innerText = video.videoHeight ? video.videoHeight + 'p' : 'Auto';
-                video.play().then(handlePlaySuccess).catch(handlePlayError);
+                video.play().then(handlePlaySuccess).catch(() => tryNextCandidate('Gagal memutar stream di Safari.'));
             }, { once: true });
-            video.addEventListener('error', handlePlayError, { once: true });
+            video.addEventListener('error', () => {
+                tryNextCandidate('Server 103.79.90.150:5320 tidak merespons.');
+            }, { once: true });
         }
     }
 
@@ -767,7 +879,6 @@
         return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     }
 
-    // Ketuk layar video: di HP tampilkan kontrol dulu jika tersembunyi; di PC langsung Play/Pause
     function handleVideoClick(idx) {
         const wrapper = document.getElementById(`player-wrap-${idx}`);
         if (isTouchDevice() && wrapper && wrapper.classList.contains('player-idle-hide')) {
@@ -817,7 +928,7 @@
 
     function retryVideo(idx, url) {
         const cover = document.getElementById(`cover-${idx}`);
-        loadHLS(cover, url, idx, 0);
+        loadHLS(cover, url, idx, 0, null);
     }
 
     function stopVideo(idx) {
@@ -837,6 +948,7 @@
         document.getElementById(`res-${idx}`).innerText = "Auto";
         document.getElementById(`bitrate-${idx}`).innerText = "-- kbps";
 
+        destroyPlayers(vidId);
         v.pause(); v.removeAttribute('src'); v.load();
         v.style.display = 'none';
         
@@ -846,8 +958,6 @@
         
         const errorOverlay = document.getElementById(`error-${idx}`);
         errorOverlay.classList.add('hidden'); errorOverlay.classList.remove('flex');
-        
-        if(window['hls_'+vidId]) { window['hls_'+vidId].destroy(); delete window['hls_'+vidId]; }
     }
 
     // === SISTEM FULLSCREEN MULTI-PLATFORM (HP ANDROID, iOS SAFARI & PC) ===
