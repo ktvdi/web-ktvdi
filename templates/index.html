@@ -279,7 +279,7 @@
             <!-- Filter Kategori & Mode Tampilan Grid -->
             <div class="flex flex-wrap items-center gap-2 self-start lg:self-end max-w-full">
                 <div class="flex items-center gap-1.5 sk-pill-bar p-1 rounded-2xl overflow-x-auto max-w-full backdrop-blur-md">
-                    <button type="button" onclick="filterChannels('all', this)" class="tv-filter-btn active px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 whitespace-nowrap">Semua (12)</button>
+                    <button type="button" id="filter-btn-all" onclick="filterChannels('all', this)" class="tv-filter-btn active px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 whitespace-nowrap">Semua (13)</button>
                     <button type="button" onclick="filterChannels('nasional', this)" class="tv-filter-btn px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 whitespace-nowrap">Nasional &amp; Berita</button>
                     <button type="button" onclick="filterChannels('daerah', this)" class="tv-filter-btn px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 whitespace-nowrap">TV Daerah</button>
                 </div>
@@ -444,7 +444,29 @@
 
 <!-- SCRIPTS: PLAYER YOUTUBE STYLE (FULLSCREEN HP & PC) & KUIS -->
 <script>
-    // Data 12 Channel Utuh
+    // Logo SVG Vektor Khusus Temanggung TV
+    const temanggungTvLogo = "data:image/svg+xml;utf8," + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
+            <defs>
+                <linearGradient id="tmgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0f172a"/>
+                    <stop offset="100%" stop-color="#1e3a8a"/>
+                </linearGradient>
+                <linearGradient id="tmgAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#10b981"/>
+                    <stop offset="100%" stop-color="#38bdf8"/>
+                </linearGradient>
+            </defs>
+            <rect width="240" height="80" rx="14" fill="url(#tmgGrad)"/>
+            <path d="M18 56 L36 32 L48 46 L62 26 L80 56 Z" fill="url(#tmgAccent)" opacity="0.9"/>
+            <text x="92" y="38" fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="16" letter-spacing="0.5">TEMANGGUNG</text>
+            <rect x="92" y="45" width="38" height="18" rx="4" fill="#10b981"/>
+            <text x="111" y="58" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-weight="900" font-size="12">TV</text>
+            <text x="137" y="58" fill="#93c5fd" font-family="Arial, sans-serif" font-weight="700" font-size="10">JATENG</text>
+        </svg>`
+    );
+
+    // Data 13 Channel Utuh
     const channels = [
         {name: "TVRI Nasional", category: "nasional", url: "https://pildun.cob.web.id/hls/index.m3u8", logo: "https://iili.io/f87NRoB.md.png"},
         {name: "TVRI Sport HD", category: "nasional", url: "https://tvri.cob.web.id/hls/index.m3u8", logo: "https://iili.io/Cotd9MN.md.webp"},
@@ -455,6 +477,17 @@
         {name: "Berita Satu", category: "nasional", url: "https://beritasatu.secureswiftcontent.com/han/beritasatu/bsatu10008/srtoutput/manifest.m3u8", logo: "https://iili.io/f878bP2.jpg"},
         {name: "Matrix TV", category: "daerah", url: "https://stream.matrixtv.id/hls/stream.m3u8", logo: "https://iili.io/f87LXWX.md.png"},
         {name: "Semarang TV", category: "daerah", url: "http://36.94.24.229/0.m3u8", logo: "https://iili.io/f87yF6P.png"},
+        {
+            name: "Temanggung TV",
+            category: "daerah",
+            url: "http://103.79.90.150:5320/hls/stream.m3u8",
+            fallbackUrls: [
+                "http://103.79.90.150:5320/hls/index.m3u8",
+                "http://103.79.90.150:5320/live/stream.m3u8",
+                "http://103.79.90.150:5320/0.m3u8"
+            ],
+            logo: temanggungTvLogo
+        },
         {name: "Caruban TV", category: "daerah", url: "https://stream.carubantv.id/hls/stream.m3u8", logo: "https://iili.io/f8YnXh7.png"},
         {name: "Rasika USA TV", category: "daerah", url: "https://rasika.siar.us/live/rasika.m3u8", logo: "https://iili.io/fSQr5YB.png"},
         {name: "Stara TV", category: "daerah", url: "https://malang.staratv.id/hls/stream.m3u8", logo: "https://iili.io/f8YVekl.md.png"}
@@ -495,6 +528,9 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        const allBtn = document.getElementById('filter-btn-all');
+        if (allBtn) allBtn.textContent = `Semua (${channels.length})`;
+
         const grid = document.getElementById('tv-grid');
         if (!grid) return;
         
@@ -524,6 +560,7 @@
                     <div id="error-${idx}" class="absolute inset-0 z-40 bg-[#04091a]/95 backdrop-blur-md hidden flex-col items-center justify-center text-center p-4 border-b-2 border-red-600">
                         <i class="fa-solid fa-triangle-exclamation text-red-500 text-4xl mb-3 animate-pulse"></i>
                         <h4 class="text-white font-black uppercase text-xs tracking-wider mb-1">Siaran Terputus</h4>
+                        <p id="error-hint-${idx}" class="text-slate-400 text-[11px] max-w-xs hidden mt-1"></p>
                         <div class="flex items-center gap-2 mt-4">
                             <button type="button" onclick="retryVideo('${idx}', '${ch.url}')" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-2 transition">
                                 <i class="fa-solid fa-rotate-right"></i> Muat Ulang
@@ -639,20 +676,26 @@
         toggleFullScreen(idx, true);
     }
 
-    // HLS Logic
-    function loadHLS(cover, url, idx) {
+    // HLS Logic dengan Auto-Fallback Path (untuk server IP:Port kustom)
+    function loadHLS(cover, url, idx, candidateIdx = 0) {
         const vidId = `vid-${idx}`;
         const video = document.getElementById(vidId);
         const spinner = cover.nextElementSibling;
         const errorOverlay = document.getElementById(`error-${idx}`);
+        const errorHint = document.getElementById(`error-hint-${idx}`);
         const customControls = document.getElementById(`custom-controls-${idx}`);
         const resText = document.getElementById(`res-${idx}`);
         const bitText = document.getElementById(`bitrate-${idx}`);
         const playBtn = document.getElementById(`play-btn-${idx}`);
+
+        const channelData = channels[Number(idx)] || {};
+        const urlCandidates = [url, ...(channelData.fallbackUrls || [])];
+        const activeUrl = urlCandidates[candidateIdx] || url;
         
         cover.style.display = 'none';
         spinner.classList.remove('hidden');
         errorOverlay.classList.remove('flex'); errorOverlay.classList.add('hidden');
+        if (errorHint) { errorHint.classList.add('hidden'); errorHint.textContent = ''; }
         
         resText.innerText = "Mendeteksi...";
         resText.classList.add('animate-pulse');
@@ -666,10 +709,18 @@
         }
 
         function handlePlayError() {
+            if (candidateIdx + 1 < urlCandidates.length) {
+                loadHLS(cover, url, idx, candidateIdx + 1);
+                return;
+            }
             spinner.classList.add('hidden');
             video.style.display = 'none';
             customControls.classList.remove('flex'); customControls.classList.add('hidden');
             errorOverlay.classList.remove('hidden'); errorOverlay.classList.add('flex');
+            if (errorHint && activeUrl.startsWith('http://') && window.location.protocol === 'https:') {
+                errorHint.textContent = 'Stream menggunakan HTTP langsung (aktifkan izin Insecure Content pada browser jika diblokir).';
+                errorHint.classList.remove('hidden');
+            }
             resText.innerText = "Error"; resText.classList.remove('animate-pulse');
             bitText.innerText = "-- kbps";
         }
@@ -677,7 +728,7 @@
         if(typeof Hls !== 'undefined' && Hls.isSupported()) {
             if(window['hls_'+vidId]) { window['hls_'+vidId].destroy(); }
             const hls = new Hls({ timeout: 10000 });
-            hls.loadSource(url); 
+            hls.loadSource(activeUrl); 
             hls.attachMedia(video);
             
             hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
@@ -695,23 +746,20 @@
             
             hls.on(Hls.Events.ERROR, function (event, data) {
                 if (data.fatal) {
-                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR || data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                        handlePlayError();
-                    } else {
-                        hls.destroy(); handlePlayError();
-                    }
+                    hls.destroy();
+                    handlePlayError();
                 }
             });
             window['hls_'+vidId] = hls;
 
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = url; 
+            video.src = activeUrl; 
             video.addEventListener('loadedmetadata', () => { 
                 resText.classList.remove('animate-pulse');
                 resText.innerText = video.videoHeight ? video.videoHeight + 'p' : 'Auto';
                 video.play().then(handlePlaySuccess).catch(handlePlayError);
-            });
-            video.addEventListener('error', handlePlayError);
+            }, { once: true });
+            video.addEventListener('error', handlePlayError, { once: true });
         }
     }
 
@@ -769,7 +817,7 @@
 
     function retryVideo(idx, url) {
         const cover = document.getElementById(`cover-${idx}`);
-        loadHLS(cover, url, idx);
+        loadHLS(cover, url, idx, 0);
     }
 
     function stopVideo(idx) {
@@ -843,7 +891,6 @@
         const wrapper = document.getElementById(`player-wrap-${idx}`);
         if (!wrapper || wrapper.classList.contains('ktvdi-pseudo-fullscreen')) return;
 
-        // Tambahkan kelas pada body agar transform/backdrop-filter kartu dinetralkan tanpa memindahkan <video>
         document.body.classList.add('ktvdi-fs-active');
         document.body.style.overflow = 'hidden';
         wrapper.classList.add('ktvdi-pseudo-fullscreen');
@@ -884,7 +931,6 @@
         const video = document.getElementById(`vid-${idx}`);
         if (!wrapper) return;
 
-        // 1. Cek jika sedang dalam mode Pseudo-Fullscreen
         if (wrapper.classList.contains('ktvdi-pseudo-fullscreen')) {
             if (!forceEnter) exitPseudoFullScreen(idx);
             return;
@@ -892,7 +938,6 @@
 
         const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
 
-        // 2. Keluar dari Native Fullscreen
         if (fsElement) {
             if (!forceEnter) {
                 if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
@@ -904,7 +949,6 @@
             return;
         }
 
-        // 3. Masuk ke Native Fullscreen pada wrapper (PC & Android Chrome/Edge/Samsung Browser)
         const reqFs = wrapper.requestFullscreen || wrapper.webkitRequestFullscreen || wrapper.mozRequestFullScreen || wrapper.msRequestFullscreen;
         if (reqFs) {
             try {
@@ -913,7 +957,6 @@
                     promise.then(() => {
                         lockLandscapeOnMobile();
                     }).catch(() => {
-                        // Fallback jika diblokir browser HP
                         if (video && typeof video.webkitEnterFullscreen === 'function') {
                             try { video.webkitEnterFullscreen(); } catch (e) { enterPseudoFullScreen(idx); }
                         } else {
@@ -931,19 +974,16 @@
                 }
             }
         } else if (video && typeof video.webkitEnterFullscreen === 'function') {
-            // 4. Khusus iOS Safari (iPhone / iPad)
             try {
                 video.webkitEnterFullscreen();
             } catch (err) {
                 enterPseudoFullScreen(idx);
             }
         } else {
-            // 5. Fallback terakhir untuk WebView / browser terbatas
             enterPseudoFullScreen(idx);
         }
     }
 
-    // Sinkronisasi ikon & performa GPU saat status Fullscreen berubah
     function onFullscreenStateChange() {
         const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
         syncThreeCanvasWithFullscreen(Boolean(fsElement));
