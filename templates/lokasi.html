@@ -7,7 +7,7 @@
     .font-body { font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
     .font-heading { font-family: 'Montserrat', sans-serif; }
 
-    /* Sembunyikan background 3D global dari base.html agar tidak bentrok dengan Canvas 3D Spidometer */
+    /* Sembunyikan background 3D global dari base.html agar fokus ke Canvas 3D Spidometer */
     #ktvdi-three-canvas { display: none !important; }
 
     /* Container Utama: 85% Layar Spidometer + 15% Panel Kontrol Adaptif */
@@ -27,7 +27,7 @@
     /* 85% Area Layar Spidometer Utama */
     .speedo-stage-85 {
         flex: 0 0 85%;
-        min-height: 68dvh;
+        min-height: 70dvh;
         position: relative;
         overflow: hidden;
         border-radius: 26px;
@@ -70,10 +70,10 @@
 
     /* HUD Glass Pill */
     .hud-glass {
-        background: rgba(4, 10, 28, 0.58);
+        background: rgba(4, 10, 28, 0.62);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
-        border: 1px solid rgba(56, 189, 248, 0.22);
+        border: 1px solid rgba(56, 189, 248, 0.24);
     }
 
     /* Angka Spidometer Raksasa */
@@ -85,31 +85,6 @@
     }
     .speed-danger-glow {
         text-shadow: 0 0 38px rgba(239, 68, 68, 0.85), 0 4px 18px rgba(0, 0, 0, 0.95);
-    }
-
-    /* Slider Simulasi Kecepatan */
-    .throttle-slider {
-        -webkit-appearance: none;
-        appearance: none;
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.3);
-        outline: none;
-    }
-    .throttle-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #38bdf8, #2563eb);
-        border: 2px solid #ffffff;
-        cursor: pointer;
-        box-shadow: 0 0 12px rgba(37, 99, 235, 0.65);
-        transition: transform 0.15s ease;
-    }
-    .throttle-slider::-webkit-slider-thumb:hover {
-        transform: scale(1.15);
     }
 
     /* Mode Fullscreen Layar Penuh */
@@ -141,26 +116,26 @@
     <!-- ===================================================================== -->
     <section id="speedo-stage" class="speedo-stage-85 flex flex-col justify-between p-4 sm:p-6 md:p-8">
         
-        <!-- Canvas Three.js 3D Mobil / Motor -->
+        <!-- Canvas Three.js 3D Mobil / Motor & Lintasan KTVDI -->
         <div id="vehicle-three-mount"></div>
 
-        <!-- Radial Vignette Halus agar Angka HUD Sangat Tajam -->
+        <!-- Radial Vignette Halus agar Angka HUD Tajam -->
         <div class="absolute inset-0 z-[2] pointer-events-none bg-gradient-to-b from-[#03081a]/75 via-transparent to-[#03081a]/88"></div>
 
-        <!-- BARIS ATAS HUD: Status GPS, Cuaca BMKG, Deteksi Tabrakan & Fullscreen -->
-        <div class="relative z-10 flex flex-wrap items-center justify-between gap-2.5">
-            <!-- Kiri: Identitas Telemetri & Sumber Sinyal -->
+        <!-- BARIS ATAS HUD: Status GPS, Radar Jarak, Lokasi Terkini + Suhu & Fullscreen -->
+        <div class="relative z-10 flex flex-wrap items-center justify-between gap-2">
+            <!-- Kiri: Status Sinyal GPS & Radar Jarak -->
             <div class="flex flex-wrap items-center gap-2">
-                <div class="hud-glass px-3.5 py-2 rounded-2xl flex items-center gap-2.5">
-                    <span id="signal-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <div class="hud-glass px-3 py-2 rounded-2xl flex items-center gap-2.5">
+                    <span id="signal-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
                     <div>
-                        <div class="text-[10px] font-black uppercase tracking-[0.16em] text-sky-300 leading-none">KTVDI Telemetri</div>
-                        <div id="speed-source-label" class="text-[11px] font-bold text-white mt-0.5">GPS Real-Time Aktif</div>
+                        <div class="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.16em] text-sky-300 leading-none">KTVDI GPS</div>
+                        <div id="speed-source-label" class="text-[11px] font-bold text-white mt-0.5">Mengunci Satelit...</div>
                     </div>
                 </div>
 
-                <!-- Sensor Jarak / Deteksi Potensi Tabrakan -->
-                <div id="collision-badge" class="hud-glass px-3.5 py-2 rounded-2xl flex items-center gap-2 border-emerald-500/30">
+                <!-- Sensor Jarak / Deteksi Risiko Pengereman & Kecepatan Tinggi -->
+                <div id="collision-badge" class="hud-glass px-3 py-2 rounded-2xl flex items-center gap-2 border-emerald-500/30">
                     <i id="collision-icon" class="fa-solid fa-shield-halved text-emerald-400 text-sm"></i>
                     <div>
                         <div class="text-[9px] font-black uppercase tracking-widest text-slate-300 leading-none">Radar Jarak</div>
@@ -169,13 +144,13 @@
                 </div>
             </div>
 
-            <!-- Kanan: Cuaca BMKG / Lokal & Tombol Layar Penuh -->
-            <div class="flex items-center gap-2">
-                <div class="hud-glass px-3.5 py-2 rounded-2xl hidden sm:flex items-center gap-2.5">
-                    <i id="weather-icon" class="fa-solid fa-cloud-sun text-amber-300 text-base"></i>
+            <!-- Kanan: Lokasi Terkini + Suhu Terdekat & Layar Penuh -->
+            <div class="flex items-center gap-2 ml-auto sm:ml-0">
+                <div class="hud-glass px-3 py-2 rounded-2xl flex items-center gap-2.5">
+                    <i id="weather-icon" class="fa-solid fa-location-crosshairs text-sky-400 text-sm sm:text-base"></i>
                     <div>
-                        <div id="weather-loc" class="text-[10px] font-black uppercase tracking-wider text-sky-300 leading-none">Semarang</div>
-                        <div id="weather-desc" class="text-[11px] font-bold text-white mt-0.5">29°C • Cerah Berawan</div>
+                        <div id="weather-loc" class="text-[10px] font-black uppercase tracking-wider text-sky-300 leading-none truncate max-w-[140px] sm:max-w-[210px]">Mendeteksi Lokasi...</div>
+                        <div id="weather-desc" class="text-[11px] font-bold text-white mt-0.5 tabular-nums">--°C • Memuat Cuaca</div>
                     </div>
                 </div>
 
@@ -189,17 +164,16 @@
         <!-- TENGAH HUD: SPIDOMETER DIGITAL UTAMA BESAR + RING SVG -->
         <div class="relative z-10 flex-1 flex flex-col items-center justify-between py-2 pointer-events-none">
             
-            <!-- Peringatan Banner Kecepatan Tinggi / Bahaya (Muncul otomatis saat ngebut) -->
+            <!-- Peringatan Banner Kecepatan Tinggi / Bahaya -->
             <div id="highspeed-banner" class="opacity-0 transform -translate-y-2 transition-all duration-300 px-4 py-1.5 rounded-full bg-red-600/90 border border-red-300/60 text-white text-[11px] sm:text-xs font-black uppercase tracking-[0.18em] flex items-center gap-2 shadow-[0_0_25px_rgba(239,68,68,0.75)]">
                 <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
                 <span id="highspeed-banner-text">PERINGATAN: KECEPATAN TINGGI!</span>
             </div>
 
-            <!-- Kluster Angka Kecepatan Raksasa di Bagian Atas-Tengah (Memberi ruang jelas untuk 3D Mobil/Motor di bawahnya) -->
+            <!-- Kluster Angka Kecepatan Raksasa -->
             <div class="flex flex-col items-center justify-center text-center my-auto">
                 <div class="relative flex items-center justify-center">
-                    <!-- Busur SVG Spidometer Dinamis -->
-                    <svg class="w-[260px] h-[145px] sm:w-[360px] sm:h-[195px] md:w-[440px] md:h-[230px] overflow-visible" viewBox="0 0 400 210">
+                    <svg class="w-[270px] h-[150px] sm:w-[370px] sm:h-[200px] md:w-[450px] md:h-[235px] overflow-visible" viewBox="0 0 400 210">
                         <defs>
                             <linearGradient id="speedArcGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                                 <stop offset="0%" stop-color="#22d3ee" />
@@ -208,23 +182,20 @@
                                 <stop offset="100%" stop-color="#ef4444" />
                             </linearGradient>
                         </defs>
-                        <!-- Track Belakang -->
                         <path d="M 35 190 A 165 165 0 0 1 365 190" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="14" stroke-linecap="round" />
-                        <!-- Progress Arc -->
-                        <path id="speed-arc-path" d="M 35 190 A 165 165 0 0 1 365 190" fill="none" stroke="url(#speedArcGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="518" stroke-dashoffset="518" style="transition: stroke-dashoffset 0.12s ease-out;" />
+                        <path id="speed-arc-path" d="M 35 190 A 165 165 0 0 1 365 190" fill="none" stroke="url(#speedArcGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="518" stroke-dashoffset="518" style="transition: stroke-dashoffset 0.14s ease-out;" />
                     </svg>
 
-                    <!-- Angka KM/H Besar -->
                     <div class="absolute inset-0 flex flex-col items-center justify-end pb-2 sm:pb-3">
                         <div class="flex items-center gap-2 mb-0.5">
                             <span id="active-vehicle-badge" class="px-2.5 py-0.5 rounded-full bg-sky-500/20 border border-sky-400/40 text-sky-300 text-[10px] font-black uppercase tracking-widest">
                                 <i class="fa-solid fa-car mr-1"></i> MODE MOBIL
                             </span>
-                            <span id="gear-badge" class="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest tabular-nums">
-                                GEAR N
+                            <span id="heading-badge" class="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest tabular-nums">
+                                ARAH --°
                             </span>
                         </div>
-                        <div id="main-speed-value" class="text-7xl sm:text-8xl md:text-[7.25rem] font-heading font-black text-white leading-none tracking-tighter tabular-nums speed-readout-glow">
+                        <div id="main-speed-value" class="text-7xl sm:text-8xl md:text-[7.5rem] font-heading font-black text-white leading-none tracking-tighter tabular-nums speed-readout-glow">
                             0
                         </div>
                         <div class="text-xs sm:text-sm md:text-base font-heading font-extrabold tracking-[0.35em] text-sky-300 uppercase mt-1">
@@ -234,23 +205,19 @@
                 </div>
             </div>
 
-            <!-- Baris Bawah di dalam Layar 85%: Telemetri Ringkas (Max Speed, Jarak, RPM, Arah) -->
-            <div class="w-full max-w-4xl grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                <div class="hud-glass px-3.5 py-2.5 rounded-2xl text-center">
+            <!-- Baris Bawah di dalam Layar 85%: 3 Telemetri GPS Murni (Tanpa Putaran Mesin) -->
+            <div class="w-full max-w-3xl grid grid-cols-3 gap-2 sm:gap-3">
+                <div class="hud-glass px-3 py-2.5 rounded-2xl text-center">
                     <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Kecepatan Puncak</div>
                     <div class="text-sm sm:text-lg font-heading font-black text-white tabular-nums mt-0.5"><span id="stat-max-speed">0</span> <span class="text-[10px] text-sky-400">km/h</span></div>
                 </div>
-                <div class="hud-glass px-3.5 py-2.5 rounded-2xl text-center">
-                    <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Putaran Mesin</div>
-                    <div class="text-sm sm:text-lg font-heading font-black text-cyan-300 tabular-nums mt-0.5"><span id="stat-rpm">900</span> <span class="text-[10px] text-slate-300">RPM</span></div>
-                </div>
-                <div class="hud-glass px-3.5 py-2.5 rounded-2xl text-center">
+                <div class="hud-glass px-3 py-2.5 rounded-2xl text-center">
                     <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Jarak Tempuh</div>
                     <div class="text-sm sm:text-lg font-heading font-black text-emerald-300 tabular-nums mt-0.5"><span id="stat-trip-km">0.00</span> <span class="text-[10px] text-slate-300">km</span></div>
                 </div>
-                <div class="hud-glass px-3.5 py-2.5 rounded-2xl text-center">
-                    <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Status Sinyal GPS</div>
-                    <div id="stat-gps-acc" class="text-sm sm:text-lg font-heading font-black text-amber-300 tabular-nums mt-0.5">Siap</div>
+                <div class="hud-glass px-3 py-2.5 rounded-2xl text-center">
+                    <div class="text-[9px] font-black uppercase tracking-widest text-slate-400">Akurasi GPS</div>
+                    <div id="stat-gps-acc" class="text-sm sm:text-lg font-heading font-black text-amber-300 tabular-nums mt-0.5">Mencari...</div>
                 </div>
             </div>
         </div>
@@ -259,50 +226,44 @@
     <!-- ===================================================================== -->
     <!-- 2. PANEL KONTROL ADAPTIF (15% SISA LAYAR)                             -->
     <!-- ===================================================================== -->
-    <section class="control-dock-15 px-4 py-3 sm:px-6 flex flex-col lg:flex-row items-center justify-between gap-3">
+    <section class="control-dock-15 px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-3">
         
-        <!-- Kiri: Pilihan Kendaraan 3D (Mobil / Motor) & Suara Peringatan -->
-        <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2 w-full lg:w-auto">
+        <!-- Kiri: Pilihan Kendaraan 3D (Mobil / Motor) -->
+        <div class="flex items-center gap-2">
             <div class="inline-flex p-1 rounded-xl bg-slate-200/80 dark:bg-white/10 border border-slate-300/60 dark:border-white/10">
-                <button type="button" id="btn-mode-car" onclick="setVehicleMode('car')" class="px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer">
+                <button type="button" id="btn-mode-car" onclick="setVehicleMode('car')" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer">
                     <i class="fa-solid fa-car-side"></i> Mobil
                 </button>
-                <button type="button" id="btn-mode-motor" onclick="setVehicleMode('motor')" class="px-3.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer">
+                <button type="button" id="btn-mode-motor" onclick="setVehicleMode('motor')" class="px-4 py-2 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer">
                     <i class="fa-solid fa-motorcycle"></i> Motor
                 </button>
             </div>
+        </div>
 
-            <button type="button" id="btn-voice-alert" onclick="toggleVoiceAssist()" class="px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-white/10 text-slate-800 dark:text-slate-200 text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:border-blue-500/40 border border-transparent transition cursor-pointer">
+        <!-- Tengah: Koordinat GPS Terkini -->
+        <div class="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-200/70 dark:bg-white/5 border border-slate-300/60 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums">
+            <i class="fa-solid fa-satellite text-blue-600 dark:text-sky-400"></i>
+            <span id="live-coord-text">Koordinat: Menunggu sinyal GPS...</span>
+        </div>
+
+        <!-- Kanan: Suara AI & Reset Trip -->
+        <div class="flex items-center gap-2 ml-auto sm:ml-0">
+            <button type="button" id="btn-voice-alert" onclick="toggleVoiceAssist()" class="px-3.5 py-2 rounded-xl bg-slate-200/80 dark:bg-white/10 text-slate-800 dark:text-slate-200 text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:border-blue-500/40 border border-transparent transition cursor-pointer">
                 <i id="voice-icon" class="fa-solid fa-volume-high text-blue-600 dark:text-sky-400"></i>
                 <span id="voice-label">Suara AI: ON</span>
             </button>
 
-            <button type="button" onclick="resetTripStats()" class="px-3 py-2 rounded-xl bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:text-red-500 transition cursor-pointer" title="Reset Trip & Max Speed">
+            <button type="button" onclick="resetTripStats()" class="px-3.5 py-2 rounded-xl bg-slate-200/80 dark:bg-white/10 text-slate-700 dark:text-slate-300 text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 hover:text-red-500 transition cursor-pointer" title="Reset Trip & Kecepatan Puncak">
                 <i class="fa-solid fa-rotate-left"></i> Reset
             </button>
-        </div>
-
-        <!-- Tengah-Kanan: Kontrol Mode GPS vs Simulasi Gas (Untuk Uji Ngebut 3D) -->
-        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto flex-1 lg:max-w-2xl justify-end">
-            <button type="button" id="btn-source-toggle" onclick="toggleSpeedSource()" class="px-3.5 py-2 rounded-xl bg-emerald-600/15 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 text-xs font-black uppercase tracking-wider flex items-center gap-2 shrink-0 cursor-pointer">
-                <i class="fa-solid fa-satellite-dish"></i>
-                <span id="btn-source-text">Mode: GPS Otomatis</span>
-            </button>
-
-            <div class="flex items-center gap-2.5 w-full sm:flex-1 bg-slate-200/70 dark:bg-white/5 px-3.5 py-2 rounded-xl border border-slate-300/60 dark:border-white/10">
-                <span class="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 shrink-0">Gas Uji:</span>
-                <input type="range" id="sim-speed-slider" min="0" max="220" value="0" oninput="onSimSliderInput(this.value)" class="throttle-slider flex-1">
-                <span id="sim-slider-val" class="text-xs font-black text-blue-600 dark:text-sky-400 tabular-nums w-16 text-right">0 km/h</span>
-            </div>
         </div>
     </section>
 </div>
 
 <script>
 (function initKtvdiSpeedometerCockpit() {
-    // === STATE TELEMETRI ===
+    // === STATE TELEMETRI GPS MURNI ===
     let vehicleMode = 'car'; // 'car' | 'motor'
-    let isSimulationMode = false;
     let voiceAssistEnabled = true;
     let currentSpeedKmh = 0;
     let targetSpeedKmh = 0;
@@ -313,8 +274,29 @@
     let lastVoiceWarnTime = 0;
     let gpsSpeedBuffer = [];
 
+    let lastFix = null; // { lat, lon, time }
+    let lastEnvFetch = null; // { lat, lon, time }
+
     const SPEED_LIMIT_WARN = 100;
     const SPEED_LIMIT_DANGER = 130;
+
+    // === HELPER JARAK HAVERSINE (KM) & ARAH KOMPAS ===
+    function calcHaversineKm(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function headingToCardinal(deg) {
+        if (deg === null || isNaN(deg)) return '--°';
+        const dirs = ['U', 'TL', 'T', 'TG', 'S', 'BD', 'B', 'BL'];
+        const idx = Math.round(deg / 45) % 8;
+        return `${Math.round(deg)}° ${dirs[idx]}`;
+    }
 
     // === AUDIO / SUARA PERINGATAN AI ===
     function speakAlert(message, force = false) {
@@ -339,16 +321,16 @@
         const badge = document.getElementById('active-vehicle-badge');
 
         if (mode === 'car') {
-            btnCar.className = "px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer";
-            btnMotor.className = "px-3.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer";
+            btnCar.className = "px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer";
+            btnMotor.className = "px-4 py-2 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer";
             if (badge) badge.innerHTML = `<i class="fa-solid fa-car mr-1"></i> MODE MOBIL`;
             if (carGroup && motorGroup) {
                 carGroup.visible = true;
                 motorGroup.visible = false;
             }
         } else {
-            btnMotor.className = "px-3.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer";
-            btnCar.className = "px-3.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer";
+            btnMotor.className = "px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow transition cursor-pointer";
+            btnCar.className = "px-4 py-2 rounded-lg text-slate-700 dark:text-slate-200 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer";
             if (badge) badge.innerHTML = `<i class="fa-solid fa-motorcycle mr-1"></i> MODE MOTOR`;
             if (carGroup && motorGroup) {
                 carGroup.visible = false;
@@ -364,42 +346,12 @@
         if (voiceAssistEnabled) {
             label.innerText = "Suara AI: ON";
             icon.className = "fa-solid fa-volume-high text-blue-600 dark:text-sky-400";
-            speakAlert("Peringatan suara diaktifkan.", true);
+            speakAlert("Peringatan suara aktif.", true);
         } else {
             label.innerText = "Suara AI: OFF";
             icon.className = "fa-solid fa-volume-xmark text-slate-400";
             if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         }
-    };
-
-    window.toggleSpeedSource = function() {
-        isSimulationMode = !isSimulationMode;
-        const btnText = document.getElementById('btn-source-text');
-        const sourceLabel = document.getElementById('speed-source-label');
-        const slider = document.getElementById('sim-speed-slider');
-
-        if (isSimulationMode) {
-            btnText.innerText = "Mode: Simulasi Gas";
-            sourceLabel.innerText = "Simulasi Pedal Aktif";
-            targetSpeedKmh = Number(slider.value || 0);
-        } else {
-            btnText.innerText = "Mode: GPS Otomatis";
-            sourceLabel.innerText = "GPS Real-Time Aktif";
-            slider.value = 0;
-            document.getElementById('sim-slider-val').innerText = "0 km/h";
-            targetSpeedKmh = 0;
-        }
-    };
-
-    window.onSimSliderInput = function(val) {
-        const num = Number(val);
-        document.getElementById('sim-slider-val').innerText = `${num} km/h`;
-        if (!isSimulationMode) {
-            isSimulationMode = true;
-            document.getElementById('btn-source-text').innerText = "Mode: Simulasi Gas";
-            document.getElementById('speed-source-label').innerText = "Simulasi Pedal Aktif";
-        }
-        targetSpeedKmh = num;
     };
 
     window.resetTripStats = function() {
@@ -440,62 +392,141 @@
         }
     });
 
-    // === GPS REAL-TIME WATCHER ===
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(
-            (pos) => {
-                const acc = Math.round(pos.coords.accuracy || 0);
-                const gpsAccEl = document.getElementById('stat-gps-acc');
-                if (gpsAccEl) gpsAccEl.innerText = acc > 0 ? `±${acc}m` : 'Aktif';
+    // === UPDATE LOKASI TERKINI & SUHU KOORDINAT TERDEKAT ===
+    async function updateLocationAndWeather(lat, lon) {
+        const now = Date.now();
+        if (lastEnvFetch) {
+            const movedKm = calcHaversineKm(lastEnvFetch.lat, lastEnvFetch.lon, lat, lon);
+            // Perbarui ulang jika berpindah > 1.2 km atau sudah > 5 menit
+            if (movedKm < 1.2 && (now - lastEnvFetch.time) < 300000) return;
+        }
+        lastEnvFetch = { lat, lon, time: now };
 
-                if (isSimulationMode) return;
+        const locEl = document.getElementById('weather-loc');
+        const descEl = document.getElementById('weather-desc');
+        const iconEl = document.getElementById('weather-icon');
 
-                let speedMs = pos.coords.speed;
-                if (speedMs !== null && !isNaN(speedMs)) {
-                    if (speedMs < 0.4) speedMs = 0;
-                    gpsSpeedBuffer.push(speedMs);
-                    if (gpsSpeedBuffer.length > 3) gpsSpeedBuffer.shift();
-                    const avgMs = gpsSpeedBuffer.reduce((a, b) => a + b, 0) / gpsSpeedBuffer.length;
-                    targetSpeedKmh = Math.min(240, avgMs * 3.6);
-                }
-            },
-            () => {
-                const gpsAccEl = document.getElementById('stat-gps-acc');
-                if (gpsAccEl) gpsAccEl.innerText = 'Simulasi Siap';
-            },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-        );
-    }
-
-    // === CUACA LOKAL / BMKG RINGKAS ===
-    async function loadLocalWeather() {
+        // 1. Reverse Geocoding Lokasi Terkini
         try {
-            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.9932&longitude=110.4203&current_weather=true');
-            const data = await res.json();
-            if (data && data.current_weather) {
-                const temp = Math.round(data.current_weather.temperature);
-                const code = data.current_weather.weathercode;
-                const descEl = document.getElementById('weather-desc');
-                const locEl = document.getElementById('weather-loc');
-                if (locEl && window.userCity) locEl.innerText = window.userCity;
+            const geoRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=id`);
+            const geoData = await geoRes.json();
+            const area = geoData.locality || geoData.city || geoData.principalSubdivision || '';
+            const city = geoData.city && geoData.city !== area ? `, ${geoData.city}` : '';
+            if (locEl && area) {
+                locEl.innerText = `${area}${city}`;
+            } else if (locEl) {
+                locEl.innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            }
+        } catch (e) {
+            if (locEl) locEl.innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        }
+
+        // 2. Suhu & Cuaca Koordinat Terdekat Real-Time
+        try {
+            const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`);
+            const wData = await wRes.json();
+            if (wData && wData.current) {
+                const temp = Math.round(wData.current.temperature_2m);
+                const code = wData.current.weather_code;
                 let kondisi = "Cerah";
-                if (code >= 51 && code <= 82) kondisi = "Hujan • Waspada Jalan Licin";
-                else if (code >= 1 && code <= 3) kondisi = "Cerah Berawan";
-                else if (code >= 95) kondisi = "Badai Petir";
+                let iconClass = "fa-solid fa-sun text-amber-300";
+
+                if (code === 0) {
+                    kondisi = "Cerah";
+                    iconClass = "fa-solid fa-sun text-amber-300";
+                } else if (code >= 1 && code <= 3) {
+                    kondisi = "Cerah Berawan";
+                    iconClass = "fa-solid fa-cloud-sun text-amber-300";
+                } else if (code >= 45 && code <= 48) {
+                    kondisi = "Berkabut";
+                    iconClass = "fa-solid fa-smog text-slate-300";
+                } else if (code >= 51 && code <= 67) {
+                    kondisi = "Hujan • Waspada Licin";
+                    iconClass = "fa-solid fa-cloud-rain text-sky-300";
+                } else if (code >= 80 && code <= 82) {
+                    kondisi = "Hujan Deras";
+                    iconClass = "fa-solid fa-cloud-showers-heavy text-blue-300";
+                } else if (code >= 95) {
+                    kondisi = "Badai Petir";
+                    iconClass = "fa-solid fa-cloud-bolt text-amber-400";
+                }
+
+                if (iconEl) iconEl.className = `${iconClass} text-sm sm:text-base`;
                 if (descEl) descEl.innerText = `${temp}°C • ${kondisi}`;
             }
         } catch (e) {}
     }
-    loadLocalWeather();
+
+    // === GPS REAL-TIME DEVICE WATCHER ===
+    if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude, longitude, accuracy, speed, heading } = pos.coords;
+                const nowMs = pos.timestamp || Date.now();
+
+                const signalDot = document.getElementById('signal-dot');
+                const sourceLabel = document.getElementById('speed-source-label');
+                const gpsAccEl = document.getElementById('stat-gps-acc');
+                const headingEl = document.getElementById('heading-badge');
+                const coordTextEl = document.getElementById('live-coord-text');
+
+                if (signalDot) signalDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse";
+                if (sourceLabel) sourceLabel.innerText = "GPS Perangkat Aktif";
+                if (gpsAccEl) gpsAccEl.innerText = accuracy ? `±${Math.round(accuracy)}m` : 'Akurat';
+                if (headingEl) headingEl.innerText = `ARAH ${headingToCardinal(heading)}`;
+                if (coordTextEl) coordTextEl.innerText = `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+
+                // Perbarui Lokasi & Suhu Terdekat sesuai koordinat GPS
+                updateLocationAndWeather(latitude, longitude);
+
+                // Hitung kecepatan murni dari GPS perangkat (dengan fallback Haversine jika speed null)
+                let measuredKmh = 0;
+                if (speed !== null && !isNaN(speed) && speed >= 0) {
+                    measuredKmh = speed < 0.35 ? 0 : speed * 3.6;
+                } else if (lastFix && accuracy <= 40) {
+                    const dtHours = (nowMs - lastFix.time) / 3600000;
+                    if (dtHours > 0) {
+                        const distKm = calcHaversineKm(lastFix.lat, lastFix.lon, latitude, longitude);
+                        const calcSpeed = distKm / dtHours;
+                        measuredKmh = calcSpeed < 1.5 ? 0 : Math.min(240, calcSpeed);
+                    }
+                }
+
+                // Akumulasi jarak tempuh GPS nyata jika akurasi baik
+                if (lastFix && accuracy <= 45) {
+                    const stepKm = calcHaversineKm(lastFix.lat, lastFix.lon, latitude, longitude);
+                    if (stepKm > 0.002 && stepKm < 1.0 && measuredKmh > 1.2) {
+                        tripDistanceKm += stepKm;
+                    }
+                }
+                lastFix = { lat: latitude, lon: longitude, time: nowMs };
+
+                // Smoothing 3 sampel agar responsif tapi bebas lonjakan GPS diam
+                gpsSpeedBuffer.push(measuredKmh);
+                if (gpsSpeedBuffer.length > 3) gpsSpeedBuffer.shift();
+                const avgKmh = gpsSpeedBuffer.reduce((a, b) => a + b, 0) / gpsSpeedBuffer.length;
+                targetSpeedKmh = avgKmh < 1.0 ? 0 : Math.min(250, avgKmh);
+            },
+            (err) => {
+                const signalDot = document.getElementById('signal-dot');
+                const sourceLabel = document.getElementById('speed-source-label');
+                const gpsAccEl = document.getElementById('stat-gps-acc');
+                if (signalDot) signalDot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
+                if (sourceLabel) sourceLabel.innerText = "Izin Lokasi Dibutuhkan";
+                if (gpsAccEl) gpsAccEl.innerText = "GPS Off";
+            },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        );
+    }
 
     // =========================================================================
-    // THREE.JS 3D MOBIL & MOTOR (KECEPATAN & VISUAL BERGERAK MENGIKUTI SPEED)
+    // THREE.JS 3D MOBIL & MOTOR + LOGO KTVDI DI LINTASAN
     // =========================================================================
     const mount = document.getElementById('vehicle-three-mount');
     if (!mount || typeof THREE === 'undefined') return;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x050b1f, 0.016);
+    scene.fog = new THREE.FogExp2(0x050b1f, 0.015);
 
     const camera = new THREE.PerspectiveCamera(50, mount.clientWidth / mount.clientHeight, 0.1, 300);
     camera.position.set(0, 2.75, 6.4);
@@ -505,22 +536,104 @@
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.18;
     mount.appendChild(renderer.domElement);
 
-    // Pencahayaan Dinamis
-    const hemiLight = new THREE.HemisphereLight(0x7dd3fc, 0x091126, 1.1);
-    scene.add(hemiLight);
+    // Pencahayaan Arena
+    scene.add(new THREE.HemisphereLight(0x7dd3fc, 0x091126, 1.15));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.35);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.4);
     keyLight.position.set(6, 14, 10);
     scene.add(keyLight);
 
-    const rimLight = new THREE.PointLight(0x38bdf8, 2.4, 25);
+    const rimLight = new THREE.PointLight(0x38bdf8, 2.5, 25);
     rimLight.position.set(0, 3.5, -3);
     scene.add(rimLight);
 
-    // === JALAN RAYA 3D & MARKA BERGERAK ===
+    // === GENERATOR TEKSTUR LOGO KTVDI RESOLUSI TINGGI UNTUK LINTASAN ===
+    function createKtvdiTrackTexture(isAsphaltMark = false) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 320;
+        const ctx = canvas.getContext('2d');
+
+        if (!isAsphaltMark) {
+            // Banner Gantry / Papan Sisi Lintasan KTVDI
+            const bgGrad = ctx.createLinearGradient(0, 0, 1024, 320);
+            bgGrad.addColorStop(0, '#06122e');
+            bgGrad.addColorStop(0.5, '#0c2459');
+            bgGrad.addColorStop(1, '#06122e');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, 1024, 320);
+
+            // Bingkai Neon Biru-Cyan
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(12, 12, 1000, 296);
+        } else {
+            ctx.clearRect(0, 0, 1024, 320);
+        }
+
+        const alpha = isAsphaltMark ? 0.55 : 1.0;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        // Ikon Menara Pemancar & Gelombang TV Digital di sisi kiri logo
+        const cx = 185;
+        const cy = 165;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+
+        // Gelombang sinyal kiri & kanan
+        [36, 62, 88].forEach((r, idx) => {
+            ctx.strokeStyle = idx === 1 ? '#22d3ee' : '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(cx, cy - 35, r, Math.PI * 1.15, Math.PI * 1.85);
+            ctx.stroke();
+        });
+
+        // Tiang menara segitiga
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 9;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 32);
+        ctx.lineTo(cx - 34, cy + 75);
+        ctx.moveTo(cx, cy - 32);
+        ctx.lineTo(cx + 34, cy + 75);
+        ctx.moveTo(cx - 22, cy + 36);
+        ctx.lineTo(cx + 22, cy + 36);
+        ctx.stroke();
+
+        // Titik pemancar merah ON-AIR
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(cx, cy - 36, 11, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Teks Utama "KTVDI"
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 132px Montserrat, Arial, sans-serif';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('KTVDI', 310, 138);
+
+        // Subjudul "KOMUNITAS TV DIGITAL INDONESIA"
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '800 31px Inter, Arial, sans-serif';
+        ctx.fillText('KOMUNITAS TV DIGITAL INDONESIA', 314, 232);
+
+        ctx.restore();
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.anisotropy = 8;
+        tex.needsUpdate = true;
+        return tex;
+    }
+
+    const ktvdiBannerTex = createKtvdiTrackTexture(false);
+    const ktvdiAsphaltTex = createKtvdiTrackTexture(true);
+
+    // === JALAN RAYA 3D, MARKA & LOGO KTVDI DI LINTASAN ===
     const roadGroup = new THREE.Group();
     scene.add(roadGroup);
 
@@ -529,25 +642,25 @@
         roughness: 0.78,
         metalness: 0.18
     });
-    const roadMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 260), asphaltMat);
+    const roadMesh = new THREE.Mesh(new THREE.PlaneGeometry(16, 280), asphaltMat);
     roadMesh.rotation.x = -Math.PI / 2;
-    roadMesh.position.z = -100;
+    roadMesh.position.z = -110;
     roadGroup.add(roadMesh);
 
-    // Bahu Jalan Neon Cyan/Biru
+    // Garis Bahu Lintasan Neon Cyan
     const edgeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
     [-5.6, 5.6].forEach(xPos => {
-        const edge = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 260), edgeMat);
-        edge.position.set(xPos, 0.02, -100);
+        const edge = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.04, 280), edgeMat);
+        edge.position.set(xPos, 0.02, -110);
         roadGroup.add(edge);
     });
 
-    // Marka Jalan Putus-Putus yang Melesat Sesuai Kecepatan
+    // Marka Jalan Putus-Putus
     const laneDashes = [];
     const dashGeo = new THREE.BoxGeometry(0.18, 0.03, 3.4);
     const dashMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
-    for (let i = 0; i < 26; i++) {
-        [-1.9, 1.9].forEach(lx => {
+    for (let i = 0; i < 28; i++) {
+        [-2.2, 2.2].forEach(lx => {
             const dash = new THREE.Mesh(dashGeo, dashMat);
             dash.position.set(lx, 0.02, 12 - i * 9);
             roadGroup.add(dash);
@@ -555,12 +668,65 @@
         });
     }
 
-    // Tiang Lampu Jalan & Pylons Samping yang Melesat Makin Cepat Saat Ngebut
+    // 1. LOGO KTVDI TERCETAK LANGSUNG DI ASPAL LINTASAN (ROAD DECALS)
+    const roadLogoDecals = [];
+    const asphaltDecalGeo = new THREE.PlaneGeometry(4.2, 1.32);
+    const asphaltDecalMat = new THREE.MeshBasicMaterial({
+        map: ktvdiAsphaltTex,
+        transparent: true,
+        depthWrite: false
+    });
+    for (let i = 0; i < 4; i++) {
+        const decal = new THREE.Mesh(asphaltDecalGeo, asphaltDecalMat);
+        decal.rotation.x = -Math.PI / 2;
+        decal.position.set(0, 0.026, -18 - i * 65);
+        roadGroup.add(decal);
+        roadLogoDecals.push(decal);
+    }
+
+    // 2. GAPURA PORTAL LINTASAN 3D DENGAN PAPAN LOGO KTVDI DI ATAS JALAN
+    const ktvdiGantries = [];
+    const trussMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75, roughness: 0.25 });
+    const gantryBoardMat = new THREE.MeshBasicMaterial({ map: ktvdiBannerTex, side: THREE.DoubleSide });
+
+    for (let i = 0; i < 3; i++) {
+        const gantry = new THREE.Group();
+
+        // Tiang Kiri & Kanan Gapura
+        [-6.1, 6.1].forEach(gx => {
+            const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.28, 5.2, 0.28), trussMat);
+            pillar.position.set(gx, 2.6, 0);
+            gantry.add(pillar);
+        });
+
+        // Palang Atas Melintang Lintasan
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.25, 0.25), trussMat);
+        beam.position.set(0, 5.15, 0);
+        gantry.add(beam);
+
+        // Papan Utama Logo KTVDI di Tengah Gapura Lintasan
+        const signBoard = new THREE.Mesh(new THREE.PlaneGeometry(5.8, 1.8), gantryBoardMat);
+        signBoard.position.set(0, 4.35, 0.02);
+        gantry.add(signBoard);
+
+        // Bingkai Neon Bawah Papan
+        const neonTrim = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.07, 0.14), edgeMat);
+        neonTrim.position.set(0, 3.43, 0.02);
+        gantry.add(neonTrim);
+
+        gantry.position.set(0, 0, -45 - i * 90);
+        roadGroup.add(gantry);
+        ktvdiGantries.push(gantry);
+    }
+
+    // 3. TIANG LAMPU & PAPAN PEMBATAS LOGO KTVDI DI SISI LINTASAN
     const roadPoles = [];
     const poleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.3 });
     const lampMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+    const sideBoardGeo = new THREE.PlaneGeometry(2.6, 0.82);
+
     for (let i = 0; i < 16; i++) {
-        [-6.6, 6.6].forEach(px => {
+        [-6.6, 6.6].forEach((px, sideIdx) => {
             const pGroup = new THREE.Group();
             const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 4.4, 8), poleMat);
             post.position.y = 2.2;
@@ -574,13 +740,21 @@
             bulb.position.set(px < 0 ? 1.05 : -1.05, 4.3, 0);
             pGroup.add(bulb);
 
+            // Pasang Papan Logo KTVDI setiap 2 tiang di sisi lintasan
+            if (i % 2 === 0) {
+                const sideSign = new THREE.Mesh(sideBoardGeo, gantryBoardMat);
+                sideSign.position.set(px < 0 ? 0.55 : -0.55, 0.72, 0);
+                sideSign.rotation.y = px < 0 ? Math.PI / 2.4 : -Math.PI / 2.4;
+                pGroup.add(sideSign);
+            }
+
             pGroup.position.set(px, 0, 15 - i * 15);
             roadGroup.add(pGroup);
             roadPoles.push(pGroup);
         });
     }
 
-    // Garis Angin / Speed Streaks (Semakin Ngebut Semakin Banyak & Panjang)
+    // Garis Angin / Speed Streaks
     const speedLines = [];
     const streakGeo = new THREE.BoxGeometry(0.035, 0.035, 2.8);
     const streakMat = new THREE.MeshBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0 });
@@ -612,7 +786,6 @@
         rim.rotation.z = Math.PI / 2;
         wGroup.add(rim);
 
-        // Palang velg agar putaran roda terlihat jelas saat ngebut
         const spoke = new THREE.Mesh(
             new THREE.BoxGeometry(width + 0.04, radius * 1.1, 0.06),
             new THREE.MeshBasicMaterial({ color: 0xf8fafc })
@@ -639,12 +812,10 @@
             roughness: 0.1
         });
 
-        // Sasis Bawah
         const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.56, 4.25), bodyMat);
         chassis.position.set(0, 0.56, 0);
         carGroup.add(chassis);
 
-        // Kabin / Atap Aerodinamis
         const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.54, 0.52, 2.25), darkGlassMat);
         cabin.position.set(0, 1.05, -0.15);
         carGroup.add(cabin);
@@ -653,7 +824,6 @@
         roof.position.set(0, 1.32, -0.15);
         carGroup.add(roof);
 
-        // Lampu Depan LED
         const headLightMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
         [-0.65, 0.65].forEach(hx => {
             const hl = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.08), headLightMat);
@@ -661,20 +831,17 @@
             carGroup.add(hl);
         });
 
-        // Lampu Rem Belakang LED
         carTailLightMat = new THREE.MeshBasicMaterial({ color: 0xdc2626 });
         const tailBar = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.13, 0.08), carTailLightMat);
         tailBar.position.set(0, 0.68, 2.13);
         carGroup.add(tailBar);
 
-        // 4 Roda Mobil
-        const wheelPositions = [
+        [
             [-0.95, 0.36, -1.32],
             [0.95, 0.36, -1.32],
             [-0.95, 0.36, 1.32],
             [0.95, 0.36, 1.32]
-        ];
-        wheelPositions.forEach(([wx, wy, wz]) => {
+        ].forEach(([wx, wy, wz]) => {
             const w = createWheel(0.36, 0.26);
             w.position.set(wx, wy, wz);
             carGroup.add(w);
@@ -700,12 +867,10 @@
             roughness: 0.4
         });
 
-        // Bodi & Tangki Sport
         const body = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.48, 1.65), fairingMat);
         body.position.set(0, 0.78, 0);
         motorGroup.add(body);
 
-        // Windshield Depan
         const shield = new THREE.Mesh(
             new THREE.BoxGeometry(0.42, 0.36, 0.45),
             new THREE.MeshStandardMaterial({ color: 0x04091a, metalness: 0.9, roughness: 0.1 })
@@ -714,12 +879,10 @@
         shield.rotation.x = 0.45;
         motorGroup.add(shield);
 
-        // Setang / Handlebar
         const handle = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.06, 0.08), frameMat);
         handle.position.set(0, 1.05, -0.52);
         motorGroup.add(handle);
 
-        // Lampu Depan & Belakang Motor
         const mHead = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.08), new THREE.MeshBasicMaterial({ color: 0xe0f2fe }));
         mHead.position.set(0, 0.85, -0.84);
         motorGroup.add(mHead);
@@ -729,7 +892,6 @@
         mTail.position.set(0, 0.88, 0.84);
         motorGroup.add(mTail);
 
-        // 2 Roda Motor (Depan & Belakang)
         [[0, 0.38, -0.85], [0, 0.38, 0.85]].forEach(([wx, wy, wz]) => {
             const w = createWheel(0.38, 0.2);
             w.position.set(wx, wy, wz);
@@ -752,17 +914,14 @@
     }
     window.addEventListener('resize', resizeThreeScene, { passive: true });
 
-    // === LOOP ANIMASI REAL-TIME (KECEPATAN & THREE.JS SALING MENGIKUTI) ===
+    // === UPDATE HUD & LOOP ANIMASI ===
     const speedValEl = document.getElementById('main-speed-value');
     const speedArcEl = document.getElementById('speed-arc-path');
-    const rpmEl = document.getElementById('stat-rpm');
     const maxSpeedEl = document.getElementById('stat-max-speed');
     const tripEl = document.getElementById('stat-trip-km');
-    const gearEl = document.getElementById('gear-badge');
     const stageEl = document.getElementById('speedo-stage');
     const highBannerEl = document.getElementById('highspeed-banner');
     const highBannerTextEl = document.getElementById('highspeed-banner-text');
-    const collisionBadgeEl = document.getElementById('collision-badge');
     const collisionIconEl = document.getElementById('collision-icon');
     const collisionTextEl = document.getElementById('collision-status-text');
 
@@ -780,34 +939,17 @@
             }
         }
 
-        // Update SVG Arc (max 220 km/h -> dashoffset 518 ke 0)
         if (speedArcEl) {
             const ratio = Math.min(1, speed / 220);
             speedArcEl.style.strokeDashoffset = (518 * (1 - ratio)).toFixed(1);
         }
 
-        // Hitung Gigi & RPM Simulasi Realistis
-        let gear = 'N';
-        let rpm = 900;
-        if (speed > 1) {
-            if (speed < 28) { gear = '1'; rpm = 1400 + (speed / 28) * 4800; }
-            else if (speed < 55) { gear = '2'; rpm = 2200 + ((speed - 28) / 27) * 4500; }
-            else if (speed < 88) { gear = '3'; rpm = 2500 + ((speed - 55) / 33) * 4500; }
-            else if (speed < 125) { gear = '4'; rpm = 2800 + ((speed - 88) / 37) * 4600; }
-            else if (speed < 168) { gear = '5'; rpm = 3100 + ((speed - 125) / 43) * 4700; }
-            else { gear = '6'; rpm = 3600 + Math.min(1, (speed - 168) / 52) * 4900; }
-        }
-        if (gearEl) gearEl.innerText = `GEAR ${gear}`;
-        if (rpmEl) rpmEl.innerText = Math.round(rpm).toLocaleString('id-ID');
-
-        // Rekor Kecepatan Puncak
         if (roundedSpeed > maxSpeedKmh) {
             maxSpeedKmh = roundedSpeed;
             if (maxSpeedEl) maxSpeedEl.innerText = maxSpeedKmh;
         }
         if (tripEl) tripEl.innerText = tripDistanceKm.toFixed(2);
 
-        // Peringatan Kecepatan Tinggi & Deteksi Risiko Tabrakan
         if (speed >= SPEED_LIMIT_DANGER) {
             stageEl.classList.add('stage-danger-alert');
             highBannerEl.classList.remove('opacity-0', '-translate-y-2');
@@ -815,7 +957,7 @@
             collisionIconEl.className = "fa-solid fa-triangle-exclamation text-red-400 text-sm animate-ping";
             collisionTextEl.className = "text-[11px] font-extrabold text-red-400 mt-0.5";
             collisionTextEl.innerText = "RISIKO TINGGI • Jaga Jarak!";
-            speakAlert(`Peringatan! Kecepatan ${roundedSpeed} kilometer per jam. Segera kurangi kecepatan Anda.`);
+            speakAlert(`Peringatan! Kecepatan ${roundedSpeed} kilometer per jam. Kurangi kecepatan Anda.`);
         } else if (speed >= SPEED_LIMIT_WARN) {
             stageEl.classList.remove('stage-danger-alert');
             highBannerEl.classList.remove('opacity-0', '-translate-y-2');
@@ -843,7 +985,6 @@
         const dt = Math.min(0.05, (now - lastTickTime) / 1000);
         lastTickTime = now;
 
-        // Interpolasi kecepatan agar transisi jarum, angka, dan 3D terasa halus & bertenaga
         prevSpeedKmh = currentSpeedKmh;
         currentSpeedKmh += (targetSpeedKmh - currentSpeedKmh) * Math.min(1, dt * 6.5);
         if (Math.abs(targetSpeedKmh - currentSpeedKmh) < 0.05) currentSpeedKmh = targetSpeedKmh;
@@ -852,21 +993,26 @@
         const speedMs = currentSpeedKmh / 3.6;
         const speedRatio = Math.min(1, currentSpeedKmh / 200);
 
-        // Akumulasi jarak tempuh (km)
-        tripDistanceKm += (currentSpeedKmh * dt) / 3600;
-
-        // 1. Kecepatan Jalan & Tiang Lampu Melesat Mengikuti Kecepatan Kendaraan
+        // 1. Kecepatan Lintasan, Marka, Gapura & Logo KTVDI Mengikuti Kecepatan GPS
         const worldTravel = (speedMs * 1.45) * dt;
         laneDashes.forEach(d => {
             d.position.z += worldTravel;
-            if (d.position.z > 16) d.position.z -= 234;
+            if (d.position.z > 16) d.position.z -= 252;
+        });
+        roadLogoDecals.forEach(decal => {
+            decal.position.z += worldTravel;
+            if (decal.position.z > 14) decal.position.z -= 260;
+        });
+        ktvdiGantries.forEach(g => {
+            g.position.z += worldTravel;
+            if (g.position.z > 16) g.position.z -= 270;
         });
         roadPoles.forEach(p => {
             p.position.z += worldTravel;
             if (p.position.z > 18) p.position.z -= 240;
         });
 
-        // 2. Garis Angin / Speed Streaks Semakin Ngebut Semakin Deras
+        // 2. Garis Angin / Speed Streaks
         streakMat.opacity = speedRatio > 0.15 ? Math.min(0.75, (speedRatio - 0.15) * 0.95) : 0;
         speedLines.forEach(s => {
             s.scale.z = 0.6 + speedRatio * 3.8;
@@ -883,7 +1029,6 @@
 
         if (vehicleMode === 'car') {
             carWheels.forEach(w => { w.rotation.x -= wheelSpin; });
-            // Pitch suspensi saat gas/rem + getaran halus kecepatan tinggi
             const targetPitch = Math.max(-0.045, Math.min(0.045, accelDelta * 0.0008));
             carGroup.rotation.x += (targetPitch - carGroup.rotation.x) * 0.15;
             carGroup.position.y = speedRatio > 0.45 ? Math.sin(now * 0.06) * 0.012 * speedRatio : 0;
@@ -892,7 +1037,6 @@
             }
         } else {
             motorWheels.forEach(w => { w.rotation.x -= wheelSpin; });
-            // Motor sedikit menunduk saat ngebut & miring aerodinamis halus
             const targetPitch = Math.max(-0.06, Math.min(0.05, accelDelta * 0.001));
             motorGroup.rotation.x += (targetPitch - motorGroup.rotation.x) * 0.15;
             motorGroup.rotation.z = Math.sin(now * 0.0022) * (0.03 + speedRatio * 0.07);
@@ -902,7 +1046,7 @@
             }
         }
 
-        // 4. Kamera Dinamis (FOV melebar + mundur sedikit saat makin ngebut)
+        // 4. Kamera Dinamis (FOV melebar otomatis saat makin ngebut)
         const targetFov = 48 + speedRatio * 24;
         camera.fov += (targetFov - camera.fov) * 0.1;
         camera.updateProjectionMatrix();
@@ -912,7 +1056,6 @@
         camera.position.set(shakeX, 2.55 - speedRatio * 0.35 + shakeY, 5.8 + speedRatio * 1.1);
         camera.lookAt(0, 0.85, -7);
 
-        // Update Warna Cahaya Lampu Belakang Arena saat Ngebut
         rimLight.color.setHex(currentSpeedKmh >= SPEED_LIMIT_DANGER ? 0xef4444 : (currentSpeedKmh >= SPEED_LIMIT_WARN ? 0xf59e0b : 0x38bdf8));
 
         updateTelemetryHUD(currentSpeedKmh, accelDelta);
