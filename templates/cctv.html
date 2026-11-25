@@ -20,8 +20,24 @@
         --text-muted: #94a3b8;
     }
 
+    /* Hindari bentrok WebGL dengan canvas global base.html */
+    #ktvdi-three-canvas { display: none !important; }
+
+    /* Canvas Three.js Smart City 3D Khusus Halaman CCTV */
+    #cctv-three-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.72;
+    }
+
     /* --- BASE RESET --- */
     #cctv-container {
+        position: relative;
+        z-index: 10;
         width: 100%;
         display: flex;
         flex-direction: column;
@@ -98,9 +114,11 @@
     }
     .group-header:hover { background: var(--surface-hover); }
     .group-header.active { background: var(--primary); border-bottom: 1px solid var(--border-active); }
+    .group-header.active .group-icon { transform: rotate(180deg); }
+    .group-icon { transition: transform 0.25s ease; }
     .group-title { font-size: 0.8rem; font-weight: 800; color: #fff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
     .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: var(--bg-card); }
-    .group-body.open { max-height: 5000px; }
+    .group-body.open { max-height: 6000px; }
 
     /* --- LIST ITEM --- */
     .cam-item {
@@ -109,10 +127,11 @@
     }
     .cam-item:last-child { border-bottom: none; }
     .cam-item:hover { background-color: var(--surface-hover); padding-left: 20px; }
-    .cam-item.active { background-color: rgba(37, 99, 235, 0.2); border-left: 4px solid var(--primary-light); }
+    .cam-item.active { background-color: rgba(37, 99, 235, 0.22); border-left: 4px solid var(--primary-light); }
     .cam-item.active .cam-name { color: #ffffff; font-weight: 800; }
     .cam-item.active .play-icon { color: var(--primary-light) !important; text-shadow: 0 0 12px var(--primary-light); transform: scale(1.1); }
     .cam-name { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); white-space: normal; line-height: 1.4; }
+    .cam-logo-img { width: 22px; height: 22px; object-fit: contain; border-radius: 5px; flex-shrink: 0; background: rgba(255,255,255,0.08); padding: 2px; }
 
     /* --- LOADING ANIMATION --- */
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
@@ -152,10 +171,13 @@
     }
 </style>
 
+<!-- Background 3D Three.js Smart City Telemetry -->
+<div id="cctv-three-bg"></div>
+
 <div id="cctv-container">
     
     <!-- TOOLBAR / HEADER -->
-    <div class="bg-blue-50 dark:bg-[#0a0f1c] border border-blue-200 dark:border-blue-900 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+    <div class="bg-blue-50/90 dark:bg-[#0a0f1c]/90 backdrop-blur-md border border-blue-200 dark:border-blue-900 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
         <div class="flex items-center gap-4 w-full md:w-auto">
             <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shrink-0 p-1.5 border border-white/20">
                 <i class="fa-solid fa-video text-white text-xl"></i>
@@ -223,7 +245,7 @@
                         <h4 class="text-white font-black text-xl mb-2">Kamera Offline</h4>
                         <p class="text-slate-400 text-sm mb-6 max-w-sm">Koneksi aliran video terputus atau akses diblokir oleh penyedia layanan.</p>
                         <p class="text-blue-300 text-xs font-bold mb-4 hidden max-w-md bg-blue-900/30 p-3 rounded-lg border border-blue-500/30" id="http-warning"><i class="fa-solid fa-circle-info mr-1"></i> Info: Kamera menggunakan koneksi HTTP (Insecure Content).</p>
-                        <button onclick="retryStream()" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-lg shadow-[0_0_20px_rgba(37,99,235,0.5)] transition-all tracking-widest uppercase">Coba Lagi</button>
+                        <button onclick="retryStream()" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-lg shadow-[0_0_20px_rgba(37,99,235,0.5)] transition-all tracking-widest uppercase cursor-pointer">Coba Lagi</button>
                     </div>
                 </div>
 
@@ -232,13 +254,13 @@
                          <div class="text-[11px] text-slate-300 font-mono font-bold tracking-widest transition-all uppercase">PANTAUAN CCTV TERKINI</div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button id="btn-volume" onclick="toggleMute()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner" title="Mute/Unmute">
+                        <button id="btn-volume" onclick="toggleMute()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner cursor-pointer" title="Mute/Unmute">
                             <i class="fa-solid fa-volume-xmark text-sm"></i>
                         </button>
-                        <button onclick="retryStream()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner" title="Reload">
+                        <button onclick="retryStream()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner cursor-pointer" title="Reload">
                             <i class="fa-solid fa-rotate-right text-sm"></i>
                         </button>
-                        <button onclick="toggleFullscreen()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner" title="Fullscreen">
+                        <button onclick="toggleFullscreen()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner cursor-pointer" title="Fullscreen">
                             <i class="fa-solid fa-expand text-sm"></i>
                         </button>
                     </div>
@@ -246,7 +268,7 @@
 
             </div>
 
-            <div class="mt-6 bg-[#0f172a] border border-[#1e293b] p-4 rounded-2xl shadow-xl flex flex-col gap-4">
+            <div class="mt-6 bg-[#0f172a]/95 backdrop-blur-md border border-[#1e293b] p-4 rounded-2xl shadow-xl flex flex-col gap-4">
                 <div class="flex flex-wrap justify-between items-center gap-4">
                      
                     <div class="flex items-center gap-4 bg-[#1e293b] px-4 py-2.5 rounded-xl border border-[#334155] shadow-inner">
@@ -284,7 +306,7 @@
         </main>
 
         <!-- LIST COLUMN -->
-        <aside class="col-list bg-[#0f172a] rounded-2xl border border-[#1e293b] shadow-xl relative z-10 overflow-hidden">
+        <aside class="col-list bg-[#0f172a]/95 backdrop-blur-md rounded-2xl border border-[#1e293b] shadow-xl relative z-10 overflow-hidden">
             <div class="p-5 border-b border-[#1e293b] bg-[#0f172a] sticky top-0 z-20 flex justify-between items-center shadow-lg">
                 <div>
                     <h3 class="font-black text-white text-base uppercase tracking-widest">Daftar Lokasi</h3>
@@ -292,7 +314,7 @@
                 </div>
                 <span class="text-[11px] bg-blue-600 text-white px-3 py-1.5 rounded-lg font-black shadow-sm tracking-widest border border-blue-500" id="total-cams">Loading...</span>
             </div>
-            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 bg-[#0a0f1c] shadow-inner"></div>
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 bg-[#0a0f1c]/90 shadow-inner"></div>
             <div class="p-4 bg-[#0f172a] border-t border-[#1e293b] text-center text-[10px] text-slate-500 font-bold tracking-widest uppercase">
                 © 2026 KTVDI NETWORK
             </div>
@@ -302,119 +324,88 @@
 
 <script>
     // ==========================================
-    // 1. DATA SOURCE LENGKAP 100% UTUH
+    // 1. DATA SOURCE LENGKAP (SEMARANG TERBARU + SEMUA DAERAH)
     // ==========================================
     const streamSource = [
-        // --- KOTA SEMARANG ---
-        {city: "KOTA SEMARANG", name: "PASAR BANYUMANIK", url: "https://livepantau.semarangkota.go.id/190e60ca-44df-4bb1-840b-7a0ccf35f169/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "COUNTING BANYUMANIK", url: "https://livepantau.semarangkota.go.id/68322b26-693f-479a-84a0-4ba700ec3c41/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMP SUKUN", url: "https://livepantau.semarangkota.go.id/b5e002b6-9d51-4055-a56c-690b773bd809/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "EXIT TOL SRONDOL", url: "https://livepantau.semarangkota.go.id/c3814165-b28d-4a32-b33f-007a8e412003/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PATUNG DIPONEGORO 360", url: "https://livepantau.semarangkota.go.id/533f1fdf-bc9d-44e4-ae3e-fdee94061cd5/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BUKIT SARI", url: "https://livepantau.semarangkota.go.id/4ff40187-00a9-440f-9256-9c0a89af55aa/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH WIDE", url: "https://livepantau.semarangkota.go.id/5b09107f-81a6-4e14-b9b7-7712ef5aef7a/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "FLYOVER JATINGALEH", url: "https://livepantau.semarangkota.go.id/26b8b50f-4144-488c-a471-637879fbd5d7/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SP AKPOL", url: "https://livepantau.semarangkota.go.id/ceda53cc-7431-4e23-aa31-ccc312deac09/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BUNDARAN DIPONEGORO", url: "https://livepantau.semarangkota.go.id/c878988b-26b8-48ee-8352-4c5abfb61275/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PUCANG GADING", url: "https://livepantau.semarangkota.go.id/6fc25748-f6d0-48e9-8c7b-b1489c1765af/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "FATMAWATI", url: "https://livepantau.semarangkota.go.id/5d13ca45-d96a-43b0-af69-6b01c5168305/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TLOGOSARI", url: "https://livepantau.semarangkota.go.id/c3ecd247-0994-4147-a90e-dd1917700580/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "DPU - TEROWONGAN SOETTA USM", url: "https://livepantau.semarangkota.go.id/41f054be-4f47-46f3-b5eb-263c82ada1f5/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BAWAH TOL KALIGAWE IN", url: "https://livepantau.semarangkota.go.id/9b4a952d-5ebd-45a3-8dc6-e04d44851f51/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SUPRIYADI", url: "https://livepantau.semarangkota.go.id/75722eec-3065-4f02-b1a3-c6ec259dc52b/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "MILO", url: "https://livepantau.semarangkota.go.id/1e056193-d64c-4e53-84a1-41a55d373ad0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BANGKONG", url: "https://livepantau.semarangkota.go.id/b8013256-1adc-4d5f-aed6-b28ed7d0b52e/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PETERONGAN", url: "https://livepantau.semarangkota.go.id/07743025-ac4d-4727-8983-53f9ca17c83c/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SRIWIJAYA 02", url: "https://livepantau.semarangkota.go.id/b23731ab-2aae-4bd0-8b22-2c47d8461f1a/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SRIWIJAYA 01", url: "https://livepantau.semarangkota.go.id/8eb25438-c8d3-4c8d-98fd-be74d14df3fa/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "MT HARYONO", url: "https://livepantau.semarangkota.go.id/ece9e864-bdbb-4db5-a8f3-30ddd7c2bebf/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "POLDA 360", url: "https://livepantau.semarangkota.go.id/74ffdc80-264f-4028-94cc-4ede386b0340/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 1", url: "https://livepantau.semarangkota.go.id/41bedb9a-b93f-4f7d-b1a4-b6d0bc166c7d/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 2", url: "https://livepantau.semarangkota.go.id/d7fa15ea-df64-4865-a24e-32a333b17207/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PAHLAWAN 180", url: "https://livepantau.semarangkota.go.id/5a9b5e8f-3336-4a0a-8fe0-6a7e48c43c1f/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "DPU - PAHLAWAN", url: "https://livepantau.semarangkota.go.id/c954ee49-2de6-4e7e-be98-8e17c659f9a9/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "ARAH TUGU TUNAS", url: "https://livepantau.semarangkota.go.id/9468fa0e-c92f-4178-a9b6-3e94af0f456d/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "ARAH PANDARAN", url: "https://livepantau.semarangkota.go.id/78e494b8-4873-4bfd-96ad-a319358e3f21/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMPANG 5 2", url: "https://livepantau.semarangkota.go.id/7af16225-3215-49b7-8966-d649a947960d/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMPANG TENTREM MALL", url: "https://livepantau.semarangkota.go.id/873d1c8c-56d6-4918-906f-514cbbce5ea4/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "GAJAHMADA", url: "https://livepantau.semarangkota.go.id/db3bb59f-98a1-4f4d-9567-2f78e9725b85/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BERGOTA 360", url: "https://livepantau.semarangkota.go.id/0ccddd03-b302-458c-8618-69807ff6622c/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "THAMRIN PANDANARAN 360", url: "https://livepantau.semarangkota.go.id/162c2b72-d3a6-490e-b15e-eca621897f3b/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMPANG THAMRIN", url: "https://livepantau.semarangkota.go.id/3278760a-a203-4eb4-a331-3519eeb6bd1a/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BATAN - THAMRIN", url: "https://livepantau.semarangkota.go.id/db2df515-cb51-4163-ba76-11d6d9f1b9a4/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "KYAI SALEH", url: "https://livepantau.semarangkota.go.id/ba20c7a2-f499-48c4-af4f-815068f678a0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "KARIADI", url: "https://livepantau.semarangkota.go.id/5ed366a4-fec8-43b4-9052-6fe9a3fd5847/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMPANG WAGISAN TAMAN KASMARAN", url: "https://livepantau.semarangkota.go.id/7a8e0b4a-af0c-4b65-a43f-fe441c4bf4d3/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "KALIGARANG", url: "https://livepantau.semarangkota.go.id/c118ec35-b342-4b76-927e-672d5b5c53d6/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA", url: "https://livepantau.semarangkota.go.id/f71d6c72-db49-475b-b170-bfac944eeac0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA 3-2", url: "https://livepantau.semarangkota.go.id/cad1b0a8-696f-419b-9da4-cea853304ce7/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA 3", url: "https://livepantau.semarangkota.go.id/9ea9723a-1384-42dd-9ca7-0b593a4c000b/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "INDRAPRASTA - IMAM BONJOL", url: "https://livepantau.semarangkota.go.id/0b44f5b2-780d-4f86-9ecd-801041b8925a/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMPANG PARAGON", url: "https://livepantau.semarangkota.go.id/7382d640-b645-451e-9029-4744950209ae/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PEMUDA - GAJAHMADA", url: "https://livepantau.semarangkota.go.id/4f06d6ad-9448-4397-843c-59e66f68252b/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "METRO JOHAR", url: "https://livepantau.semarangkota.go.id/20fbd70b-a1df-4fa1-a3fa-1115a6bf43d8/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TITIK NOL", url: "https://livepantau.semarangkota.go.id/a0deaf08-a8f1-415a-9315-d1424f0ef9fb/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "JEMBATAN MBEROK", url: "https://livepantau.semarangkota.go.id/ac03c11b-4aa8-4311-a2c3-1dcdf12e33ab/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BUNDARAN MADUKORO", url: "https://livepantau.semarangkota.go.id/c69f8d1a-3534-4f14-b858-a577b461a266/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "FLYOVER MADUKORO", url: "https://livepantau.semarangkota.go.id/e74537ad-d4d8-4230-8144-d371eda979f4/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "KALIBANTENG", url: "https://livepantau.semarangkota.go.id/14692ada-0bf1-4da9-bd4f-13a926804958/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "HANOMAN", url: "https://livepantau.semarangkota.go.id/c83dfda9-1e9e-4b8a-8c83-f7396d7781e4/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "RUAS KRAPYAK", url: "https://livepantau.semarangkota.go.id/f058e160-742f-4960-a47f-ad1fc5354bd4/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "EXIT TOL KRAPYAK", url: "https://livepantau.semarangkota.go.id/5bcd5bbc-91fb-4496-bcc9-a362ec48a7f0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "COUNTING KRAPYAK", url: "https://livepantau.semarangkota.go.id/60690ef5-ec79-4020-ae17-788a9df42566/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "JRAKAH", url: "https://livepantau.semarangkota.go.id/cd99f288-896a-4e73-9d8c-275ac0008a7d/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "DPU - KEL WONOSARI", url: "https://livepantau.semarangkota.go.id/02066f7c-0377-45c9-8804-f3ad65569ed0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA", url: "https://livepantau.semarangkota.go.id/bfcb0bac-048f-4b4f-a607-83267af978dc/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "KI MANGUN SARKORO", url: "https://livepantau.semarangkota.go.id/5782b424-53c1-4bea-bdc5-0e4f8a871b7d/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMPANG 5 1 360", url: "https://livepantau.semarangkota.go.id/60a471ab-c4ea-48c8-8032-23c1b98a6087/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "SIMPANG PARAGON PTZ", url: "https://livepantau.semarangkota.go.id/b5dc5775-d7ab-41b1-9dca-42ce96a2304e/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA IN PTZ", url: "https://livepantau.semarangkota.go.id/fad816ff-1bc4-44ab-bc4e-82ccefcb9d71/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA IN PEMUDA", url: "https://livepantau.semarangkota.go.id/55cc5559-12b8-4c7e-9666-d0cd4f7a57ec/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA IN", url: "https://livepantau.semarangkota.go.id/0b6ca2de-6740-49c7-b763-ad29e476b544/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA OUT PTZ", url: "https://livepantau.semarangkota.go.id/f042650d-d819-4754-a4bb-5985eba2553c/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA OUT PEMUDA", url: "https://livepantau.semarangkota.go.id/cd0524ff-48fa-4774-a1e6-fd61959283a3/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA OUT 180", url: "https://livepantau.semarangkota.go.id/3287748c-77f0-4971-a204-23acfb119cd1/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "BALAIKOTA OUT", url: "https://livepantau.semarangkota.go.id/94c3b797-c4ad-4aff-8984-9ae4d3f14d25/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PINTU BELAKANG 02", url: "https://livepantau.semarangkota.go.id/25851800-86b6-442d-b886-2b25266ed5bb/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "PINTU BELAKANG 03", url: "https://livepantau.semarangkota.go.id/1044173d-f9d0-4e73-b782-3a48456cc967/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS BALAIKOTA", url: "https://livepantau.semarangkota.go.id/81d01d2c-304e-4f66-898f-22d86592aa87/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR MANYARAN", url: "https://livepantau.semarangkota.go.id/d1b48489-6011-4c40-a2f2-26744430b8dc/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS LIAR CITARUM", url: "https://livepantau.semarangkota.go.id/9557cf1d-7d15-45a2-832c-7fca71b9b44d/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR PURWOYOSO", url: "https://livepantau.semarangkota.go.id/d9bfc615-0812-4811-8244-c31dc96d2113/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR KAGOK", url: "https://livepantau.semarangkota.go.id/cec8d33a-4a88-4ec6-bb43-2a10143df721/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS TEGALSARI", url: "https://livepantau.semarangkota.go.id/588d56f3-8b1f-4439-9813-5182da2208fa/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS GEMAH", url: "https://livepantau.semarangkota.go.id/479895aa-10ae-42c6-95f3-6205959ffd0a/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS BULU LOR", url: "https://livepantau.semarangkota.go.id/90049604-0b94-4861-af7e-d87d236c4efa/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS KELUD", url: "https://livepantau.semarangkota.go.id/fd3f686c-7fe9-4f2e-bf95-18b095c5d0e2/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PATRIOT RAYA", url: "https://livepantau.semarangkota.go.id/e69249b4-c6c4-4f3a-8e52-73e9a7a26e42/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS POMPA BARITO", url: "https://livepantau.semarangkota.go.id/352a5636-e751-48a8-88c4-c29ac4d46bfe/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS RANDUSARI", url: "https://livepantau.semarangkota.go.id/6ca95fed-d38d-46c7-8255-bceae4b91418/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS KRAMAS", url: "https://livepantau.semarangkota.go.id/70c58f35-e275-4cd8-8b96-f13501726b8f/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS KESEHATAN", url: "https://livepantau.semarangkota.go.id/41f41494-3106-4114-b7b7-650d31ae1eb0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS ABIMANYU", url: "https://livepantau.semarangkota.go.id/e652550b-ba33-46e5-9b00-bea683257d45/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS WATUWALANG", url: "https://livepantau.semarangkota.go.id/4c32acd6-6490-4961-89c2-8cebcc297702/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS TAMBAKAJI", url: "https://livepantau.semarangkota.go.id/aeba4199-de17-4698-b9b1-6a1d7785a712/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS WONOTINGAL", url: "https://livepantau.semarangkota.go.id/c2753f32-c609-4511-85ca-74cdc60db2ff/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR MRICAN", url: "https://livepantau.semarangkota.go.id/ada95239-9465-497b-8dfb-7227cde0390b/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PURWOGONDO", url: "https://livepantau.semarangkota.go.id/b3fc3d3e-d169-4215-945a-afb75fedf103/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR SAMPANGAN", url: "https://livepantau.semarangkota.go.id/d81e6140-281f-4f9a-88c9-c8b8a5d5224b/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR JRAKAH", url: "https://livepantau.semarangkota.go.id/af79e749-6bbc-4ce2-b2f8-441627ce667d/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR MANGKANG", url: "https://livepantau.semarangkota.go.id/9166de4d-9d47-41ab-af08-bde84dbbdd59/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS TUGUREJO", url: "https://livepantau.semarangkota.go.id/5bc1489d-6264-46c6-b775-01b3aee54a1e/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR DARGO", url: "https://livepantau.semarangkota.go.id/c53e11d3-c068-4f26-8188-052f32f44d98/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR MIJEN", url: "https://livepantau.semarangkota.go.id/bf1f9dfb-a1a4-4319-8eb3-b0543a79fe45/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR JATINGALEH", url: "https://livepantau.semarangkota.go.id/eb489ced-6f2a-4fad-854a-cbe7c9662fca/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS KEDUNGMUNDU", url: "https://livepantau.semarangkota.go.id/c48d3918-39c6-4ae6-aed6-c56e093022e0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PASAR GN PATI", url: "https://livepantau.semarangkota.go.id/f7b063bd-5bf8-48b2-8f45-e9f58f838582/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS KEDUNGPANE 01", url: "https://livepantau.semarangkota.go.id/639ee178-e1c8-46df-8b01-2a0d2d9f11e0/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS GAYAMSARI 01 (GEMPOLSARI)", url: "https://livepantau.semarangkota.go.id/2f9eea34-d27c-4788-9e8b-b872e99e65b1/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS TAMBAKREJO 01", url: "https://livepantau.semarangkota.go.id/99f0051a-2bc6-4409-bc24-535e61102d13/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS WILIS", url: "https://livepantau.semarangkota.go.id/9c40b7f4-0f73-4d69-a9ab-eba5a7cc4ac6/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS PEDURUNGAN TNGH 01_WANARA", url: "https://livepantau.semarangkota.go.id/3a5de60b-81c4-493f-84db-c87f1149ca48/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TPS BOOMLAMA", url: "https://livepantau.semarangkota.go.id/1bba1aa6-749d-4d7b-87b0-237643155add/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "TUGUMUDA 2", url: "https://livepantau.semarangkota.go.id/0f310a61-9d28-4f03-845d-daa815b72ccf/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "KARANGAYU KE TIMUR", url: "https://livepantau.semarangkota.go.id/fcd5964e-b58b-48f5-b6f0-3e9af143f5c8/index.m3u8"},
-        {city: "KOTA SEMARANG", name: "KARANGAYU KE BARAT", url: "https://livepantau.semarangkota.go.id/0305a054-bb38-42f9-801b-113385baa0f6/index.m3u8"},
+        // --- KOTA SEMARANG (REVISI TERBARU) ---
+        {city: "KOTA SEMARANG", name: "KYAI SALEH", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/483201e7-cc4b-4c54-848e-b6c4236d5d76/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "THAMRIN PANDANARAN 360", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/b3834555-da65-436a-82b9-fea8639860cd/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PUCANG GADING", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/18e7a88f-4a6c-48fd-b1bd-f2548cbadb53/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "FATMAWATI", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/b7bec27d-d8de-46d7-b3af-0afa0722fc09/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bawah Tol X3W_IN", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/13044713-2965-438b-a3ce-3d922a512c9c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU-Terowongan Soetta USM", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/5ca3e3c7-c1c4-4fb5-9687-53ddd346eb97/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TLOGOSARI", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/1e269089-f86b-4c77-b468-93d9212a5698/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SUPRIYADI", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/547600ed-d185-4b3c-9137-ca6dff60b2c2/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Gajah ke barat", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/ece2a553-ffc2-445b-b7bb-3c4538e01762/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING BANYUMANIK", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/327fa649-61e9-4e77-815f-4708ccebd9f9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Pasar Banyumanik", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/d78053dd-da26-461c-bb2a-f3f4b4812cde/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "COUNTING BANYUMANIK OUT", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/82e08f8b-7089-4f7d-8139-9aeb14bd3ecc/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simp Sukun", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/311aa266-c21b-4810-b37f-883a85d6b7ec/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Exit Tol Srondol", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/1b091e92-9cae-4047-8bc5-92b491c62a21/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Counting Exit Srondol", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/1e1b3ec9-b2ad-493b-b3cf-a909be24136a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Patung Diponegoro 360", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/89cfecce-7f7c-4ee8-8c1a-1ebf7afd642d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Bukit Sari", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/f68c51d0-faef-4401-8101-2219e29be81d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Fly Over Jatingaleh WIde", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/971f913b-c7c0-472e-b0cc-4e358d052e3a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Fly Over Jatingaleh", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/6029d95a-d687-403a-b548-e840b2666d36/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIWIRU", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/b5ba555e-2fd6-433d-aa0c-f37207509fdd/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SP.AKPOL", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/70d2f548-cc26-4c84-9104-64a20467eaf7/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BUNDARAN DIPONEGORO", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/61e8ebe3-538b-4a50-bafe-4eb07f569ebb/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PASAR KAMBING 360", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/b3e69a55-680b-405a-9439-b9f622fe901a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PETERONGAN", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/f0191455-ba2e-4eee-a227-f427b45c287d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "MILO", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/063d85fc-dc5d-4633-8902-f26c21a45721/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BANGKONG", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/2d3f7514-e492-4807-90b9-677320eeabf1/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "MT HARYONO", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/44dc9d85-a90a-40c2-97fc-2a6984db7c77/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KI MANGUN SARKORO", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/a45ea55c-fa83-4d42-b2f6-a1813d9a063e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "POLDA 360", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/3761bc39-7dd6-44f9-a682-5a288320e44a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU_Pahlawan", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/e3ea2102-dc9f-4085-9b6e-a37d3bfa0e03/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG LIMA 1 360", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/095f58e3-0b19-4074-8d5a-7b505f9e0cd9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG LIMA 2", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/64423625-8548-4e61-9e1f-34a933418d35/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "GAJAHMADA", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/9a4f20df-e930-4ee5-b115-3a5280308ddc/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG THAMRIN", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/27b58a9b-4243-42d2-852a-c7ddd6825b1a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BATHAN - THAMRIN", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/208ab31b-437b-46ed-8222-1c6d9c0a8765/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BERGOTA 360", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/2ca3f24d-fef3-460d-9c18-eb94cf8688d6/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Jembatan Mberok", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/ef1819cb-06de-4482-8e73-56a59a19c4ed/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TITIK NOL", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/fce20051-5669-41e1-b1f4-1909c6f44a2a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "METRO JOHAR", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/89ff7f4f-6e10-4882-8194-23598e14b687/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PEMUDA - GAJAHMADA", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/58fc6d7b-c3ba-4c48-8c43-6a23f2b84d38/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Simpang Paragon", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/83542b6e-77bc-4841-b2b8-4d5dd0f43a40/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "INDRAPRASTA-IMAM BONJOL", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/4aac3b7d-0885-40d0-8d08-00fefc463cad/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "BALAIKOTA", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/0ee41464-43fe-484a-9f95-d5cacd333b2b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 3", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/35a1a82c-24c9-479a-b094-b3861b9b9ab4/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 2", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/1e17d9a0-17bb-4ac8-af74-5f854ef6399a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "TUGUMUDA", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/ac24100e-9700-4af5-ac20-a206fbe57eca/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 2 Wide", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/4e6841ed-7e4a-4715-9a9e-15a015dcd906/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Tugumuda 3-2", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/0358babc-ea01-450a-acb5-826ace9010c5/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KARIADI PTZ", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/efa565bd-d2ba-4d90-ab83-91ab4d55fe3c/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KARIADI", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/3f717052-4a5d-48aa-a28f-376c2dc58098/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIGARANG", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/8282ca24-7bc4-4d97-9108-0403603816c5/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Sam Poo Kong ke barat", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/d2ffdf3d-b421-40c6-9916-8da919ecfdee/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Sam Poo Kong ke timur", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/16c1704e-d68c-49d4-bd63-13c1f4f913cc/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "FLYOVER MADUKORO", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/a61631b3-610d-44f6-896a-0b3838e5c00b/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Karangayu ke timur", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/abeacd51-d032-4bd3-93ee-21bb90dd4f49/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Karangayu ke barat", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/2b63391e-7a02-42ce-b75a-5617fc32f068/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIBANTENG", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/81575009-331d-400b-a622-5f983cce9284/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KALIBANTENG 2", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/c7562dd0-92ee-4b9d-b765-3246189afc9e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "HANOMAN", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/1517cbab-c1ee-429e-8daf-ec7cd6706cfa/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "RUAS KRAPYAK", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/ce8d7f18-4b92-4069-8168-7d43451f502a/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMP EXIT TOL KRAPYAK 360", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/5f03680a-9dac-4ffe-8b28-864d0e1125df/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Counting Krapyak", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/a3566012-8c41-4c09-9202-ff756b976d30/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JRAKAH", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/f9695620-974a-49ed-9d7f-663bee2bfa26/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "Counting KIW", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/e588a86d-feac-4b51-a055-bfd1232a5777/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "DPU-Kel.Wonosari", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/4fdcb941-9f14-4a7b-944c-abc7ae32c5cf/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN - GRAHA RIMBA", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/7c7320f7-df29-4cbd-8c60-9bc72ed76c42/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN PTZ 2", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/76be2d81-8ab8-4a30-ad1a-8ed8b7e93522/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN - BUNDARAN AIR MANCUR", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/4e95160d-aee2-496c-85d7-1f90226bc418/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "ARAH TUGU TUNAS", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/bbb2824a-c686-45d2-b519-4dbc0f63f342/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "PAHLAWAN 108", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/ef293a8f-236a-48bd-8c9c-9a3bfc36250d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRIWIJAYA 02", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/b2bc8a02-207a-4ce3-86a4-e2484d789ddf/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SRIWIJAYA 01", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/c33b159d-f0e8-4a83-9448-75283b5ae0d6/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG TENTREM MALL", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/294213b0-e432-4d27-9207-9f28f22805ae/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "ARAH PANDANARAN", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/e7e28c0e-4714-4eb1-8cd2-c2ed58c786d9/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "SIMPANG GENDINGAN", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/13d35152-9a3e-41f2-a0b8-91f39a76325d/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "IPCAMERA 65", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/4f711299-3f60-48b4-bbad-2ca7229414f2/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "KIW", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/b78c27f7-fa9c-4b07-81ea-af766f64ac5e/index.m3u8"},
+        {city: "KOTA SEMARANG", name: "JPO JL AHMAD YANI", logo: "https://iili.io/d6qnZTg.png", url: "https://livepantau.semarangkota.go.id/b9dca978-da64-4178-b1f8-e8d85b81da0c/index.m3u8"},
 
         // --- KAB. GROBOGAN ---
         {city: "KAB. GROBOGAN", name: "DEPAN SMAN 1 PURWODADI", url: "https://stream.dishub.grobogan.go.id/memfs/fa108bdc-0a01-416b-a47a-5d1f9131a1cf.m3u8"},
@@ -783,7 +774,7 @@
         {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Pasar", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahpasar.m3u8"},
         {city: "KAB. KLATEN", name: "Simpang 5 Matahari Arah Pandanrejo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang5matahari_arahpandanrejo.m3u8"},
         {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Yogyakarta", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahyogyakarta.m3u8"},
-        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Melati", url: "https://stream.stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahmelati.m3u8"},
+        {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Melati", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahmelati.m3u8"},
         {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Pemda", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahpemda.m3u8"},
         {city: "KAB. KLATEN", name: "Simpang 4 Pemda Arah Solo", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pemda_arahsolo.m3u8"},
         {city: "KAB. KLATEN", name: "Simpang 4 Pandanrejo PTZ", url: "https://stream.klaten.go.id:8080/cctv/hls/simpang4pandanrejo_ptz.m3u8"},
@@ -841,7 +832,7 @@
         {city: "PEMPROV JAWA TENGAH", name: "ALUN ALUN BANDUNGAN", url: "https://cctv.perhubunganjateng.online/Bandungan/index.m3u8"},
         {city: "PEMPROV JAWA TENGAH", name: "BAWEN", url: "https://cctv.perhubunganjateng.online/Bawen/index.m3u8"},
 
-         // --- ASTRA INFRA TANGERANG MERAK ---
+        // --- ASTRA INFRA TANGERANG MERAK ---
         {city: "ASTRA INFRA TANGGERANG MERAK", name: "BALTIM VIEW EXIT", url: "https://cctv.mms-corp.id/baltim-exit/stream.m3u8"},
         {city: "ASTRA INFRA TANGGERANG MERAK", name: "CIKUPA ENTRANCE", url: "https://cctv.mms-corp.id/cikupa-entrance/stream.m3u8"},
         {city: "ASTRA INFRA TANGGERANG MERAK", name: "MERAK ENTRANCE", url: "https://cctv.mms-corp.id/merak-entrance/stream.m3u8"},
@@ -853,7 +844,184 @@
     ];
 
     // ==========================================
-    // 2. RESOLUTION MONITORING LOGIC
+    // 2. THREE.JS SMART CITY 3D TELEMETRY ENGINE
+    // ==========================================
+    let triggerThreePulse = function() {};
+
+    function initCctvThreeScene() {
+        const container = document.getElementById('cctv-three-bg');
+        if (!container || typeof THREE === 'undefined') return;
+
+        const isDark = () => document.documentElement.classList.contains('dark');
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(isDark() ? 0x050a18 : 0xeff6ff, 0.022);
+
+        const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 14, 24);
+        camera.lookAt(0, 0, -4);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        container.appendChild(renderer.domElement);
+
+        // Grid Jalan Kota 3D
+        const gridHelper = new THREE.GridHelper(90, 45, 0x2563eb, isDark() ? 0x1e293b : 0xbfdbfe);
+        gridHelper.position.y = 0;
+        scene.add(gridHelper);
+
+        // Blok Gedung Smart City Wireframe & Translucent
+        const cityGroup = new THREE.Group();
+        scene.add(cityGroup);
+
+        const buildingMat = new THREE.MeshBasicMaterial({
+            color: isDark() ? 0x0f172a : 0xdbeafe,
+            transparent: true,
+            opacity: isDark() ? 0.65 : 0.45
+        });
+        const edgeMat = new THREE.LineBasicMaterial({
+            color: isDark() ? 0x38bdf8 : 0x2563eb,
+            transparent: true,
+            opacity: isDark() ? 0.35 : 0.28
+        });
+
+        const nodes = [];
+        const nodeGeo = new THREE.SphereGeometry(0.18, 12, 12);
+        const nodeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+
+        for (let i = 0; i < 42; i++) {
+            const x = (Math.random() - 0.5) * 56;
+            const z = (Math.random() - 0.5) * 56 - 6;
+            // Sisakan jalur pandang tengah agak rendah
+            const maxH = Math.abs(x) < 8 ? 2.5 : 8.5;
+            const h = 1.2 + Math.random() * maxH;
+            const w = 1.4 + Math.random() * 2.2;
+            const d = 1.4 + Math.random() * 2.2;
+
+            const boxGeo = new THREE.BoxGeometry(w, h, d);
+            const mesh = new THREE.Mesh(boxGeo, buildingMat);
+            mesh.position.set(x, h / 2, z);
+            cityGroup.add(mesh);
+
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), edgeMat);
+            edges.position.copy(mesh.position);
+            cityGroup.add(edges);
+
+            if (i % 3 === 0) {
+                const beacon = new THREE.Mesh(nodeGeo, nodeMat);
+                beacon.position.set(x, h + 0.35, z);
+                beacon.userData = { baseY: h + 0.35, phase: Math.random() * Math.PI * 2 };
+                cityGroup.add(beacon);
+                nodes.push(beacon);
+            }
+        }
+
+        // Gelombang Radar / Sonar saat Kamera Dipilih
+        const pulseRingGeo = new THREE.RingGeometry(0.6, 0.85, 48);
+        const pulseRingMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0
+        });
+        const pulseRing = new THREE.Mesh(pulseRingGeo, pulseRingMat);
+        pulseRing.rotation.x = -Math.PI / 2;
+        pulseRing.position.y = 0.08;
+        scene.add(pulseRing);
+
+        let pulseScale = 1;
+        let pulseAlpha = 0;
+
+        triggerThreePulse = function() {
+            pulseScale = 1;
+            pulseAlpha = 0.85;
+        };
+
+        // Partikel Arus Lalu Lintas Cahaya
+        const particleCount = 90;
+        const pPositions = new Float32Array(particleCount * 3);
+        const pSpeeds = new Float32Array(particleCount);
+        for (let i = 0; i < particleCount; i++) {
+            pPositions[i * 3] = (Math.random() - 0.5) * 60;
+            pPositions[i * 3 + 1] = 0.15 + Math.random() * 0.4;
+            pPositions[i * 3 + 2] = (Math.random() - 0.5) * 60;
+            pSpeeds[i] = 4 + Math.random() * 8;
+        }
+        const pGeo = new THREE.BufferGeometry();
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+        const pMat = new THREE.PointsMaterial({ color: 0x60a5fa, size: 0.28, transparent: true, opacity: 0.75 });
+        const trafficPoints = new THREE.Points(pGeo, pMat);
+        scene.add(trafficPoints);
+
+        // Sinkronisasi tema Dark/Light secara otomatis
+        function syncThemeColors() {
+            const dark = isDark();
+            scene.fog.color.setHex(dark ? 0x050a18 : 0xeff6ff);
+            buildingMat.color.setHex(dark ? 0x0f172a : 0xdbeafe);
+            buildingMat.opacity = dark ? 0.65 : 0.45;
+            edgeMat.color.setHex(dark ? 0x38bdf8 : 0x2563eb);
+            edgeMat.opacity = dark ? 0.35 : 0.28;
+        }
+        const themeObserver = new MutationObserver(syncThemeColors);
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, { passive: true });
+
+        let lastTime = performance.now();
+        function animate(now) {
+            requestAnimationFrame(animate);
+            if (document.hidden) return;
+
+            const dt = Math.min(0.05, (now - lastTime) / 1000);
+            lastTime = now;
+
+            cityGroup.rotation.y += dt * 0.035;
+            trafficPoints.rotation.y = cityGroup.rotation.y;
+
+            const posArr = trafficPoints.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                posArr[i * 3 + 2] += pSpeeds[i] * dt;
+                if (posArr[i * 3 + 2] > 30) posArr[i * 3 + 2] = -30;
+            }
+            trafficPoints.geometry.attributes.position.needsUpdate = true;
+
+            nodes.forEach(n => {
+                n.position.y = n.userData.baseY + Math.sin(now * 0.003 + n.userData.phase) * 0.16;
+            });
+
+            if (pulseAlpha > 0.01) {
+                pulseScale += dt * 18;
+                pulseAlpha *= Math.pow(0.25, dt);
+                pulseRing.scale.set(pulseScale, pulseScale, 1);
+                pulseRingMat.opacity = pulseAlpha;
+            } else {
+                pulseRingMat.opacity = 0;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    function bootThreeWithFallback() {
+        if (typeof THREE !== 'undefined') {
+            initCctvThreeScene();
+        } else {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+            script.onload = initCctvThreeScene;
+            document.head.appendChild(script);
+        }
+    }
+
+    // ==========================================
+    // 3. RESOLUTION MONITORING LOGIC
     // ==========================================
     function updateResolutionDisplay() {
         const video = document.getElementById('video-element');
@@ -901,7 +1069,7 @@
     }
 
     // ==========================================
-    // 3. PLAYER LOGIC
+    // 4. PLAYER LOGIC
     // ==========================================
     let hls;
     let activeStreamIndex = 0;
@@ -920,8 +1088,8 @@
         renderAccordionList();
          
         let firstIndex = streamSource.findIndex(s => s.city.includes("KOTA SEMARANG")); 
-        if(firstIndex === -1) firstIndex = streamSource.findIndex(s => s.city.includes("GROBOGAN"));
-        if(firstIndex === -1) firstIndex = 0; 
+        if (firstIndex === -1) firstIndex = streamSource.findIndex(s => s.city.includes("GROBOGAN"));
+        if (firstIndex === -1) firstIndex = 0; 
          
         loadStream(firstIndex);
          
@@ -930,12 +1098,12 @@
     }
 
     function toggleMute() {
-        const video = document.getElementById('video-element');
+        const videoEl = document.getElementById('video-element');
         const icon = document.querySelector('#btn-volume i');
          
-        video.muted = !video.muted;
+        videoEl.muted = !videoEl.muted;
          
-        if (video.muted) {
+        if (videoEl.muted) {
             icon.className = 'fa-solid fa-volume-xmark text-sm';
         } else {
             icon.className = 'fa-solid fa-volume-high text-sm';
@@ -946,6 +1114,9 @@
         if (index < 0 || index >= streamSource.length) return;
         activeStreamIndex = index;
         const stream = streamSource[index];
+
+        // Trigger gelombang sonar 3D Three.js saat berpindah CCTV
+        triggerThreePulse();
 
         statusCity.innerText = stream.city;
         statusName.innerText = stream.name;
@@ -967,9 +1138,9 @@
         httpWarning.classList.add('hidden'); 
         document.getElementById('resolution-display').innerText = "DETECTING...";
 
-        const video = document.getElementById('video-element');
+        const videoEl = document.getElementById('video-element');
         const icon = document.querySelector('#btn-volume i');
-        video.muted = true;
+        videoEl.muted = true;
         icon.className = 'fa-solid fa-volume-xmark text-sm';
 
         let finalUrl = stream.url;
@@ -985,15 +1156,21 @@
 
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
         const activeItem = document.getElementById(`cam-${index}`);
-        if(activeItem) {
+        if (activeItem) {
             activeItem.classList.add('active');
-            activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        if (Hls.isSupported()) {
-            if (hls) hls.destroy();
+        if (hls) {
+            hls.destroy();
+            hls = null;
+        }
+        videoEl.pause();
+        videoEl.removeAttribute('src');
+        videoEl.load();
 
-            let config = { 
+        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+            const config = { 
                 enableWorker: true, 
                 lowLatencyMode: !isSlowServer, 
                 backBufferLength: 90,
@@ -1003,9 +1180,9 @@
 
             hls = new Hls(config);
             hls.loadSource(finalUrl);
-            hls.attachMedia(video);
+            hls.attachMedia(videoEl);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(() => {
+                videoEl.play().catch(() => {
                     loadingOverlay.classList.add('hidden');
                     playOverlay.classList.remove('hidden');
                 });
@@ -1019,10 +1196,12 @@
                     }
                 }
             });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = finalUrl;
-            video.addEventListener('loadedmetadata', () => { video.play().catch(() => playOverlay.classList.remove('hidden')); });
-            video.addEventListener('error', showErrorState);
+        } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+            videoEl.src = finalUrl;
+            videoEl.addEventListener('loadedmetadata', () => {
+                videoEl.play().catch(() => playOverlay.classList.remove('hidden'));
+            }, { once: true });
+            videoEl.addEventListener('error', showErrorState, { once: true });
         }
     }
 
@@ -1046,7 +1225,7 @@
     function startPlayback() { video.play(); playOverlay.classList.add('hidden'); }
 
     // ==========================================
-    // 4. UI RENDERER
+    // 5. UI RENDERER
     // ==========================================
     function renderAccordionList() {
         const container = document.getElementById('camera-list-container');
@@ -1057,14 +1236,12 @@
             groups[s.city].push({ ...s, originalIndex: i });
         });
 
-        const orderedGroups = Object.keys(groups).sort((a,b) => {
-            if(a.includes("SEMARANG")) return -1; 
-            if(b.includes("SEMARANG")) return 1;
-             
-            if(a.includes("GROBOGAN")) return -1; 
-            if(b.includes("GROBOGAN")) return 1;
-             
-            if(a.includes("PEKALONGAN")) return -1; 
+        const orderedGroups = Object.keys(groups).sort((a, b) => {
+            if (a.includes("KOTA SEMARANG")) return -1; 
+            if (b.includes("KOTA SEMARANG")) return 1;
+            if (a.includes("GROBOGAN")) return -1; 
+            if (b.includes("GROBOGAN")) return 1;
+            if (a.includes("PEKALONGAN")) return -1; 
             return 0;
         });
 
@@ -1072,14 +1249,27 @@
             const items = groups[groupName];
             const groupDiv = document.createElement('div');
             groupDiv.className = 'accordion-group';
+            groupDiv.dataset.city = groupName;
+
             const header = document.createElement('div');
             header.className = 'group-header';
             header.onclick = () => toggleGroup(header);
-            header.innerHTML = `<div class="group-title"><i class="fa-solid fa-map-location-dot text-blue-400"></i> <span class="text-white">${groupName}</span></div><i class="fa-solid fa-chevron-down group-icon text-slate-400"></i>`;
+            header.innerHTML = `
+                <div class="group-title">
+                    <i class="fa-solid fa-map-location-dot text-blue-400"></i>
+                    <span class="text-white">${groupName}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-blue-300 font-black">${items.length}</span>
+                </div>
+                <i class="fa-solid fa-chevron-down group-icon text-slate-400"></i>
+            `;
+
             const body = document.createElement('div');
             body.className = 'group-body';
              
-            if (groupName.includes("SEMARANG")) body.classList.add('open');
+            if (groupName.includes("KOTA SEMARANG")) {
+                header.classList.add('active');
+                body.classList.add('open');
+            }
              
             items.forEach(item => {
                 const row = document.createElement('div');
@@ -1087,12 +1277,16 @@
                 row.id = `cam-${item.originalIndex}`;
                 row.onclick = () => loadStream(item.originalIndex);
                 
-                let iconContent = item.logo ? `<img src="${item.logo}" class="cam-logo-img">` : `<i class="fa-solid fa-circle-play text-slate-500 text-lg play-icon transition-colors"></i>`;
+                const iconContent = item.logo
+                    ? `<img src="${item.logo}" alt="" class="cam-logo-img" loading="lazy" onerror="this.outerHTML='<i class=\\'fa-solid fa-circle-play text-slate-500 text-lg play-icon transition-colors\\'></i>'">`
+                    : `<i class="fa-solid fa-circle-play text-slate-500 text-lg play-icon transition-colors"></i>`;
                 
                 row.innerHTML = `${iconContent}<span class="cam-name flex-1">${item.name}</span>`;
                 body.appendChild(row);
             });
-            groupDiv.appendChild(header); groupDiv.appendChild(body);
+
+            groupDiv.appendChild(header);
+            groupDiv.appendChild(body);
             container.appendChild(groupDiv);
         }
         document.getElementById('total-cams').innerText = `${streamSource.length} CAM`;
@@ -1104,23 +1298,42 @@
     }
 
     function handleSearch() {
-        const term = document.getElementById('search-input').value.toLowerCase();
+        const term = document.getElementById('search-input').value.toLowerCase().trim();
         const groups = document.querySelectorAll('.accordion-group');
         groups.forEach(group => {
             const items = group.querySelectorAll('.cam-item');
+            const cityMatch = (group.dataset.city || '').toLowerCase().includes(term);
             let hasMatch = false;
+
             items.forEach(item => {
-                if (item.innerText.toLowerCase().includes(term)) { item.style.display = 'flex'; hasMatch = true; } 
-                else { item.style.display = 'none'; }
+                if (cityMatch || item.innerText.toLowerCase().includes(term)) {
+                    item.style.display = 'flex';
+                    hasMatch = true;
+                } else {
+                    item.style.display = 'none';
+                }
             });
+
             const body = group.querySelector('.group-body');
             const header = group.querySelector('.group-header');
             if (term.length > 0) {
-                if (hasMatch) { group.style.display = 'block'; body.classList.add('open'); header.classList.add('active'); } 
-                else { group.style.display = 'none'; }
+                if (hasMatch) {
+                    group.style.display = 'block';
+                    body.classList.add('open');
+                    header.classList.add('active');
+                } else {
+                    group.style.display = 'none';
+                }
             } else {
-                group.style.display = 'block'; body.classList.remove('open'); header.classList.remove('active');
+                group.style.display = 'block';
                 items.forEach(i => i.style.display = 'flex');
+                if ((group.dataset.city || '').includes("KOTA SEMARANG")) {
+                    body.classList.add('open');
+                    header.classList.add('active');
+                } else {
+                    body.classList.remove('open');
+                    header.classList.remove('active');
+                }
             }
         });
     }
@@ -1133,10 +1346,10 @@
 
     function toggleFullscreen() {
         const wrapper = document.querySelector('.video-wrapper');
-        const video = document.getElementById('video-element');
+        const videoEl = document.getElementById('video-element');
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {
             if (wrapper.requestFullscreen) wrapper.requestFullscreen();
-            else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+            else if (videoEl.webkitEnterFullscreen) videoEl.webkitEnterFullscreen();
             else if (wrapper.webkitRequestFullscreen) wrapper.webkitRequestFullscreen();
         } else {
             if (document.exitFullscreen) document.exitFullscreen();
@@ -1145,6 +1358,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        bootThreeWithFallback();
         initPlayer();
     });
 </script>
