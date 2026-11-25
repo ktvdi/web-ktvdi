@@ -3,332 +3,462 @@
 
 {% block content %}
 <style>
-    /* === MODERN 3D GLASS & SHIMMER THEME + FULL BLEED BREAKOUT === */
-    
-    /* Background Mesh Gradient KTVDI */
-    .bg-ktvdi-mesh {
-        background-color: #f8fafc;
-        background-image: 
-            radial-gradient(at 0% 0%, rgba(30, 64, 175, 0.15) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
-            radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
-        background-attachment: fixed;
+    /* Hindari bentrok WebGL global jika ada */
+    #ktvdi-three-canvas { display: none !important; }
 
-        /* Teknik Full-Bleed Breakout untuk menjebol batasan base.html */
-        width: 100vw !important;
-        max-width: 100vw !important;
-        position: relative;
-        left: 50%;
-        right: 50%;
-        margin-left: -50vw !important;
-        margin-right: -50vw !important;
-        margin-top: -3rem; /* Menghilangkan jarak kosong atas base.html */
-        margin-bottom: -3rem;
-        padding-top: 5rem;
-        padding-bottom: 8rem;
-        min-height: calc(100vh - 60px);
-        z-index: 10;
-        
-        /* Lengkungan agar serasi dengan base.html */
-        border-top-left-radius: 2rem;
-        border-top-right-radius: 2rem;
-    }
-
-    @media (min-width: 768px) {
-        .bg-ktvdi-mesh {
-            border-top-left-radius: 3rem;
-            border-top-right-radius: 3rem;
-        }
-    }
-
-    /* Main Glass Panel */
-    .glass-panel {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(40px) saturate(180%);
-        -webkit-backdrop-filter: blur(40px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.6);
-        box-shadow: 
-            0 20px 40px -10px rgba(0, 0, 0, 0.05),
-            inset 0 1px 0 rgba(255, 255, 255, 0.8);
-        border-radius: 32px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Kilatan Cahaya pada Panel Utama */
-    .glass-panel::after {
-        content: '';
-        position: absolute;
-        top: 0; left: -100%; width: 50%; height: 100%;
-        background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
-        transform: skewX(-20deg);
-        animation: shimmer-panel 6s infinite;
+    #db-three-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0;
         pointer-events: none;
-    }
-    @keyframes shimmer-panel {
-        0%, 100% { left: -100%; opacity: 0; }
-        50% { left: 200%; opacity: 1; }
+        opacity: 0.55;
     }
 
-    /* Custom Input Select */
-    .glass-input {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        border: 2px solid rgba(226, 232, 240, 0.8);
-        border-radius: 16px;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        color: #1e293b;
-        font-weight: 700;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .glass-input:hover:not(:disabled) {
-        border-color: #cbd5e1;
-        background: rgba(255, 255, 255, 0.95);
-    }
-    .glass-input:focus {
-        background: #ffffff;
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0,0,0,0.02);
-        outline: none;
-    }
-    .glass-input:disabled { 
-        opacity: 0.5; 
-        cursor: not-allowed; 
-        background: rgba(241, 245, 249, 0.5); 
+    #db-siaran-container {
+        position: relative;
+        z-index: 10;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
     }
 
-    /* Ikon di dalam input saat fokus */
-    .input-wrapper:focus-within i.icon-left { color: #3b82f6; transform: scale(1.1); }
-    .icon-left { transition: all 0.3s ease; }
+    /* Subtle Blueprint Grid Pattern */
+    .bg-rf-grid {
+        background-image: radial-gradient(rgba(56, 189, 248, 0.16) 1px, transparent 1px);
+        background-size: 22px 22px;
+    }
+
+    /* Custom Select Styling (Light & Dark) */
+    .ktvdi-select {
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .ktvdi-select:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+    }
 
     /* 3D Channel Card */
     .channel-card {
-        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        border-radius: 20px;
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         position: relative;
         overflow: hidden;
-        box-shadow: 
-            0 4px 6px -1px rgba(0, 0, 0, 0.05),
-            0 2px 4px -1px rgba(0, 0, 0, 0.03),
-            inset 0 1px 0 rgba(255, 255, 255, 1);
+        border-radius: 20px;
         transform-style: preserve-3d;
-        cursor: default;
+        will-change: transform;
+        transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
     }
 
-    /* Efek Hover 3D pada Card */
-    .channel-card:hover {
-        transform: translateY(-8px) scale(1.02) rotateX(5deg);
-        box-shadow: 
-            0 20px 25px -5px rgba(30, 64, 175, 0.15),
-            0 10px 10px -5px rgba(30, 64, 175, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 1);
-        border-color: #bfdbfe;
-        z-index: 10;
-    }
-
-    /* Kilatan cahaya pada Card saat Hover */
+    /* Kilatan cahaya saat hover */
     .channel-card::before {
         content: '';
         position: absolute;
-        top: 0; left: -100%; width: 50%; height: 100%;
-        background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
-        transform: skewX(-20deg);
-        transition: 0.5s;
-        z-index: 1;
+        top: 0;
+        left: -120%;
+        width: 55%;
+        height: 100%;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.45), transparent);
+        transform: skewX(-22deg);
+        transition: left 0.65s ease;
+        pointer-events: none;
+        z-index: 2;
+    }
+    .dark .channel-card::before {
+        background: linear-gradient(to right, transparent, rgba(56, 189, 248, 0.14), transparent);
     }
     .channel-card:hover::before {
-        left: 200%;
-        transition: 0.7s ease-in-out;
+        left: 210%;
     }
 
-    /* Elemen di dalam Card (Logo TV) */
-    .tv-icon-wrapper {
-        background: linear-gradient(135deg, #eff6ff, #dbeafe);
-        box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 4px 8px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
+    .channel-card:hover {
+        box-shadow: 0 18px 34px -10px rgba(37, 99, 235, 0.22);
     }
-    .channel-card:hover .tv-icon-wrapper {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        color: white;
-        transform: translateZ(20px); /* Efek pop-out 3D untuk ikon */
-        box-shadow: 0 8px 15px rgba(37, 99, 235, 0.3);
+    .dark .channel-card:hover {
+        box-shadow: 0 18px 36px -10px rgba(14, 165, 233, 0.25);
     }
-    
-    .channel-name { transition: all 0.3s ease; }
-    .channel-card:hover .channel-name { transform: translateZ(15px); color: #1e3a8a; } /* Efek pop-out 3D untuk teks */
 
-    /* Animasi Pop In */
-    .animate-pop { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    @keyframes popIn { 
-        from { opacity: 0; transform: scale(0.9) translateY(20px); } 
-        to { opacity: 1; transform: scale(1) translateY(0); } 
+    /* Radar Scan Ring Animation */
+    @keyframes radar-ping {
+        0% { transform: scale(0.85); opacity: 0.75; }
+        100% { transform: scale(1.85); opacity: 0; }
     }
-    
-    /* Delay berurutan untuk list card */
-    .delay-100 { animation-delay: 0.1s; }
-    .delay-200 { animation-delay: 0.2s; }
+    .radar-ring {
+        animation: radar-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+
+    /* Stagger Pop Animation */
+    @keyframes cardPopIn {
+        from { opacity: 0; transform: translateY(16px) scale(0.96); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-card-in {
+        animation: cardPopIn 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        opacity: 0;
+    }
 </style>
 
-<div class="bg-ktvdi-mesh px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans']">
-    
-    <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
-    <div class="absolute bottom-20 right-10 w-[400px] h-[400px] bg-cyan-400/10 rounded-full blur-[80px] pointer-events-none z-0"></div>
+<!-- Background 3D Three.js RF Multiplexing Spectrum -->
+<div id="db-three-bg"></div>
 
-    <div class="max-w-6xl mx-auto relative z-10">
-        
-        <div class="text-center mb-12 animate-pop">
-            <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/80 border border-blue-100 text-blue-700 text-[10px] font-black tracking-widest uppercase mb-6 shadow-sm backdrop-blur-sm">
-                <i class="fa-solid fa-satellite-dish animate-pulse"></i> Data Frekuensi Nasional
+<div id="db-siaran-container" class="w-full space-y-8 pb-8">
+
+    <!-- 1. EXECUTIVE HERO HEADER -->
+    <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a0f1c] via-[#111f42] to-[#1e3a8a] border border-blue-800/60 shadow-2xl p-7 md:p-11 text-white">
+        <div class="absolute inset-0 bg-rf-grid opacity-45 pointer-events-none"></div>
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-20 w-80 h-80 bg-sky-400/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-sky-300 text-[10px] font-extrabold tracking-widest uppercase mb-4">
+                    <span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+                    Direktori Frekuensi &amp; Multipleksing DVB-T2
+                </div>
+                <h1 class="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight mb-3">
+                    Database <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-200 to-white">Siaran Digital</span>
+                </h1>
+                <p class="text-blue-100/90 text-sm md:text-base leading-relaxed font-medium max-w-2xl">
+                    Pindai daftar saluran televisi digital terestrial (MUX) secara akurat berdasarkan provinsi dan wilayah layanan pemancar di seluruh Indonesia.
+                </p>
             </div>
-            <h1 class="text-4xl md:text-6xl font-black text-slate-900 mb-4 tracking-tight drop-shadow-sm">
-                Database <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Siaran Digital</span>
-            </h1>
-            <p class="text-slate-500 text-lg max-w-2xl mx-auto font-medium">Cek ketersediaan saluran TV digital (MUX) di wilayah Anda dengan visualisasi data yang elegan dan terupdate.</p>
-        </div>
 
-        <div class="glass-panel p-6 md:p-10 animate-pop delay-100">
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 bg-slate-50/50 p-6 rounded-3xl border border-white/80 shadow-inner">
-                
-                <div class="group input-wrapper">
-                    <label class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-3 pl-1 tracking-wider">
-                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">1</span> Provinsi
+            <!-- Telemetry Pill -->
+            <div class="shrink-0 bg-white/10 border border-white/15 backdrop-blur-md rounded-2xl p-4 md:p-5 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-blue-600/80 border border-sky-400/40 flex items-center justify-center text-sky-200 text-xl shadow-inner">
+                    <i class="fa-solid fa-satellite-dish"></i>
+                </div>
+                <div>
+                    <div class="text-[10px] font-extrabold uppercase tracking-widest text-sky-300">Status Basis Data</div>
+                    <div class="text-base font-black text-white flex items-center gap-2 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Terhubung Pusat
+                    </div>
+                    <div class="text-[11px] text-blue-200/80 font-medium mt-0.5">Standar DVB-T2 Nasional</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. MAIN WORKSPACE PANEL -->
+    <section class="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-9 shadow-xl">
+
+        <!-- 3-STEP CASCADE SELECTOR -->
+        <div class="bg-slate-50/90 dark:bg-[#0a0f1c]/90 border border-slate-200/90 dark:border-slate-800 rounded-2xl p-5 md:p-6 mb-8">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-5 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-sliders text-blue-600 dark:text-sky-400"></i>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">Parameter Pemindaian Sinyal</span>
+                </div>
+                <button type="button" onclick="resetFilter()" class="text-xs font-bold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-rotate-left"></i> Reset Pilihan
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <!-- STEP 1: PROVINSI -->
+                <div class="group">
+                    <label for="provinsi" class="flex items-center justify-between text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5">
+                        <span class="flex items-center gap-2">
+                            <span id="badge-step-1" class="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-[11px] font-black shadow-sm">1</span>
+                            Provinsi
+                        </span>
+                        <span id="status-step-1" class="text-[10px] font-bold text-blue-600 dark:text-sky-400">Wajib</span>
                     </label>
                     <div class="relative">
-                        <i class="fa-solid fa-map icon-left absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <select id="provinsi" onchange="loadWilayah()" class="glass-input w-full p-3.5 pl-12 pr-10 outline-none appearance-none cursor-pointer">
+                        <i class="fa-solid fa-map-location-dot absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-sky-400 transition-colors"></i>
+                        <select id="provinsi" onchange="loadWilayah()" class="ktvdi-select w-full bg-white dark:bg-[#1e293b] border-2 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm font-bold rounded-xl py-3.5 pl-11 pr-10 focus:outline-none focus:border-blue-600 dark:focus:border-sky-400 focus:ring-4 focus:ring-blue-600/15 appearance-none cursor-pointer">
                             <option value="">Pilih Provinsi Anda</option>
                             {% for p in provinsi_list %}
                             <option value="{{ p }}">{{ p }}</option>
                             {% endfor %}
                         </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center pointer-events-none">
-                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
-                        </div>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                     </div>
                 </div>
-                
-                <div class="group input-wrapper">
-                    <label class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-3 pl-1 tracking-wider">
-                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">2</span> Wilayah Layanan
+
+                <!-- STEP 2: WILAYAH LAYANAN -->
+                <div class="group">
+                    <label for="wilayah" class="flex items-center justify-between text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5">
+                        <span class="flex items-center gap-2">
+                            <span id="badge-step-2" class="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-[11px] font-black transition-colors">2</span>
+                            Wilayah Layanan
+                        </span>
+                        <span id="status-step-2" class="text-[10px] font-bold text-slate-400">Menunggu</span>
                     </label>
                     <div class="relative">
-                        <i class="fa-solid fa-location-crosshairs icon-left absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <select id="wilayah" onchange="loadMux()" disabled class="glass-input w-full p-3.5 pl-12 pr-10 outline-none appearance-none cursor-pointer">
-                            <option value="">Pilih Wilayah</option>
+                        <i class="fa-solid fa-location-crosshairs absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-sky-400 transition-colors"></i>
+                        <select id="wilayah" onchange="loadMux()" disabled class="ktvdi-select w-full bg-white dark:bg-[#1e293b] border-2 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm font-bold rounded-xl py-3.5 pl-11 pr-10 focus:outline-none focus:border-blue-600 dark:focus:border-sky-400 focus:ring-4 focus:ring-blue-600/15 appearance-none cursor-pointer">
+                            <option value="">Pilih Wilayah Layanan</option>
                         </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center pointer-events-none">
-                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
-                        </div>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
                     </div>
                 </div>
-                
-                <div class="group input-wrapper">
-                    <label class="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-3 pl-1 tracking-wider">
-                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px]">3</span> Penyelenggara MUX
+
+                <!-- STEP 3: PENYELENGGARA MUX -->
+                <div class="group">
+                    <label for="mux" class="flex items-center justify-between text-xs font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-wider mb-2.5">
+                        <span class="flex items-center gap-2">
+                            <span id="badge-step-3" class="w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-[11px] font-black transition-colors">3</span>
+                            Penyelenggara MUX
+                        </span>
+                        <span id="status-step-3" class="text-[10px] font-bold text-slate-400">Menunggu</span>
                     </label>
                     <div class="relative">
-                        <i class="fa-solid fa-tower-cell icon-left absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <select id="mux" onchange="loadSiaran()" disabled class="glass-input w-full p-3.5 pl-12 pr-10 outline-none appearance-none cursor-pointer">
+                        <i class="fa-solid fa-tower-cell absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-sky-400 transition-colors"></i>
+                        <select id="mux" onchange="loadSiaran()" disabled class="ktvdi-select w-full bg-white dark:bg-[#1e293b] border-2 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm font-bold rounded-xl py-3.5 pl-11 pr-10 focus:outline-none focus:border-blue-600 dark:focus:border-sky-400 focus:ring-4 focus:ring-blue-600/15 appearance-none cursor-pointer">
                             <option value="">Pilih Jaringan MUX</option>
                         </select>
-                        <div class="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center pointer-events-none">
-                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
-                        </div>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOADING STATE -->
+        <div id="loading" class="hidden text-center py-16">
+            <div class="relative w-20 h-20 mx-auto mb-6">
+                <div class="absolute inset-0 border-4 border-blue-200 dark:border-blue-900 border-t-blue-600 dark:border-t-sky-400 rounded-full animate-spin"></div>
+                <div class="absolute inset-2.5 border-4 border-sky-200 dark:border-slate-800 border-b-sky-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.4s;"></div>
+                <i class="fa-solid fa-tower-broadcast absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-600 dark:text-sky-400 text-xl animate-pulse"></i>
+            </div>
+            <h3 class="text-slate-900 dark:text-white font-black text-lg tracking-wide">Memindai Multipleksing UHF...</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Mengambil daftar saluran terverifikasi dari server KTVDI.</p>
+        </div>
+
+        <!-- EMPTY / STANDBY STATE -->
+        <div id="empty-state" class="text-center py-14 px-4">
+            <div class="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full bg-blue-500/15 radar-ring"></div>
+                <div class="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-50 to-slate-100 dark:from-[#1e293b] dark:to-[#0a0f1c] border border-blue-200/80 dark:border-slate-700 flex items-center justify-center shadow-inner">
+                    <i class="fa-solid fa-tv text-3xl text-blue-600 dark:text-sky-400"></i>
+                </div>
+            </div>
+            <h3 class="text-slate-800 dark:text-white font-black text-xl md:text-2xl mb-2 tracking-tight">Siap Memindai Frekuensi</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm md:text-base max-w-lg mx-auto leading-relaxed">
+                Lengkapi pilihan <strong>Provinsi</strong>, <strong>Wilayah Layanan</strong>, dan <strong>Penyelenggara MUX</strong> di atas untuk menampilkan susunan saluran TV digital di daerah Anda.
+            </p>
+        </div>
+
+        <!-- RESULT CONTAINER -->
+        <div id="result-container" class="hidden space-y-6">
+
+            <!-- MUX TELEMETRY SUMMARY BAR -->
+            <div class="rounded-2xl bg-gradient-to-r from-slate-50 via-blue-50/60 to-slate-50 dark:from-[#0a0f1c] dark:via-[#111f42]/70 dark:to-[#0a0f1c] border border-blue-200/80 dark:border-blue-900/60 p-5 md:p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                <div class="space-y-2">
+                    <div class="flex flex-wrap items-center gap-2 text-[11px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-sky-400">
+                        <span id="breadcrumb-prov">-</span>
+                        <i class="fa-solid fa-angle-right text-[9px] opacity-60"></i>
+                        <span id="breadcrumb-wil">-</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span class="relative flex h-3 w-3 shrink-0">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        <h2 id="mux-title" class="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Nama MUX</h2>
+                        <span class="px-2.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                            ON-AIR
+                        </span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 pt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                        <span class="inline-flex items-center gap-1.5 bg-white dark:bg-[#1e293b] px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                            <i class="fa-regular fa-calendar-check text-emerald-600 dark:text-emerald-400"></i>
+                            <span id="update-date">-</span>
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 bg-white dark:bg-[#1e293b] px-3 py-1.5 rounded-lg border border-slate-200/80 dark:border-slate-700">
+                            <i class="fa-solid fa-user-shield text-blue-600 dark:text-sky-400"></i>
+                            <span id="updater">-</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Right Counter & Actions -->
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                    <button type="button" id="btn-copy-mux" onclick="copyMuxReport()" class="px-4 py-3 rounded-xl bg-white dark:bg-[#1e293b] hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-extrabold tracking-wide transition-all inline-flex items-center gap-2 shadow-sm cursor-pointer">
+                        <i class="fa-regular fa-copy"></i>
+                        <span id="copy-btn-text">Salin Daftar</span>
+                    </button>
+
+                    <div class="px-5 py-2.5 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-600/25 border border-blue-500 text-center min-w-[115px]">
+                        <div class="text-[10px] font-extrabold uppercase tracking-widest text-blue-100">Total Saluran</div>
+                        <div id="total-channel" class="text-2xl md:text-3xl font-black leading-tight">0</div>
                     </div>
                 </div>
             </div>
 
-            <div id="loading" class="hidden text-center py-16">
-                <div class="relative w-20 h-20 mx-auto mb-6">
-                    <div class="absolute inset-0 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-                    <div class="absolute inset-2 border-4 border-cyan-100 border-b-cyan-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
-                    <i class="fa-solid fa-satellite absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-600 text-xl animate-pulse"></i>
+            <!-- QUICK FILTER BAR -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div class="relative flex-1 max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="channel-filter" onkeyup="filterRenderedChannels()" placeholder="Cari nama stasiun TV dalam MUX ini..." class="w-full bg-slate-50 dark:bg-[#0a0f1c] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white text-xs md:text-sm font-semibold rounded-xl py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-600 dark:focus:border-sky-400 transition-colors">
                 </div>
-                <p class="text-blue-600 font-bold text-lg animate-pulse tracking-wide">Sinkronisasi Data Satelit...</p>
-                <p class="text-slate-400 text-sm mt-2">Mohon tunggu sebentar, mengambil channel MUX.</p>
+                <div id="filter-count-info" class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    Menampilkan seluruh saluran terdeteksi
+                </div>
             </div>
 
-            <div id="empty-state" class="text-center py-16 animate-pop delay-200">
-                <div class="w-32 h-32 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner relative">
-                    <div class="absolute inset-0 rounded-full border-2 border-white pointer-events-none"></div>
-                    <i class="fa-solid fa-tv text-5xl text-slate-300"></i>
-                </div>
-                <h3 class="text-slate-700 font-black text-2xl mb-2 tracking-tight">Belum Ada Sinyal</h3>
-                <p class="text-slate-500 text-base max-w-md mx-auto">Silakan lengkapi pilihan Lokasi dan Penyelenggara MUX di atas untuk memindai daftar saluran televisi digital.</p>
-            </div>
+            <!-- CHANNEL GRID -->
+            <div id="channel-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"></div>
 
-            <div id="result-container" class="hidden">
-                
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white/60 p-5 rounded-2xl border border-white shadow-sm gap-4">
-                    <div>
-                        <div class="flex items-center gap-3 mb-2">
-                            <span class="relative flex h-3 w-3">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                            </span>
-                            <h3 class="text-2xl font-black text-slate-800 tracking-tight" id="mux-title">Nama MUX</h3>
-                        </div>
-                        <div class="flex items-center gap-4 text-xs font-semibold text-slate-500 bg-slate-100/80 px-3 py-1.5 rounded-lg inline-flex">
-                            <span class="flex items-center gap-1.5 border-r border-slate-300 pr-4">
-                                <i class="fa-regular fa-calendar-check text-green-600"></i> <span id="update-date">Date</span>
-                            </span>
-                            <span class="flex items-center gap-1.5">
-                                <i class="fa-solid fa-user-shield text-blue-600"></i> <span id="updater">User</span>
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl text-center min-w-[120px]">
-                        <p class="text-[10px] text-blue-500 font-bold uppercase tracking-widest mb-1">Total Saluran</p>
-                        <p class="text-3xl font-black text-blue-700 leading-none" id="total-channel">0</p>
-                    </div>
+            <!-- VERIFICATION FOOTER -->
+            <div class="pt-6 border-t border-slate-200/70 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                <div class="flex items-center gap-3">
+                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-7 h-7 object-contain opacity-80">
+                    <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                        Terverifikasi &copy; Komunitas TV Digital Indonesia (KTVDI)
+                    </span>
                 </div>
-                
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5" id="channel-list">
-                    </div>
-
-                <div class="mt-12 pt-6 border-t border-slate-200/50 text-center flex flex-col items-center justify-center">
-                    <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo" class="w-8 h-8 mb-3 opacity-30 grayscale">
-                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Terverifikasi © Komunitas TV Digital Indonesia</p>
-                </div>
+                <span class="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
+                    Data diperbarui secara berkala oleh kontributor lapangan
+                </span>
             </div>
 
         </div>
-    </div>
+    </section>
 </div>
 
 <script>
+    let currentChannels = [];
+    let currentMeta = { provinsi: '', wilayah: '', mux: '', date: '', updater: '' };
+    let triggerDbWavePulse = function() {};
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // Klasifikasi cerdas grup penyiaran & kualitas siaran dari nama channel
+    function classifyChannel(rawName) {
+        const name = rawName.toUpperCase();
+        const isHD = /\bHD\b/.test(name) || name.includes('1080');
+        const isSD = /\bSD\b/.test(name);
+
+        let group = 'TV Terestrial';
+        let badgeClass = 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+        let iconGradient = 'from-blue-600 to-blue-800';
+
+        if (name.includes('TVRI')) {
+            group = 'LPP TVRI';
+            badgeClass = 'bg-blue-50 text-blue-700 dark:bg-blue-950/90 dark:text-sky-300';
+            iconGradient = 'from-blue-700 to-indigo-900';
+        } else if (name.includes('SCTV') || name.includes('INDOSIAR') || name.includes('MOJI') || name.includes('MENTARI') || name.includes('AJWA')) {
+            group = 'Emtek Media';
+            badgeClass = 'bg-sky-50 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300';
+            iconGradient = 'from-sky-500 to-blue-700';
+        } else if (name.includes('RCTI') || name.includes('MNCTV') || name.includes('GTV') || name.includes('INEWS') || name.includes('SINDONEWS')) {
+            group = 'MNC Group';
+            badgeClass = 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300';
+            iconGradient = 'from-indigo-600 to-blue-800';
+        } else if (name.includes('TRANS') || name.includes('CNN') || name.includes('CNBC')) {
+            group = 'Transmedia';
+            badgeClass = 'bg-cyan-50 text-cyan-700 dark:bg-cyan-950/80 dark:text-cyan-300';
+            iconGradient = 'from-cyan-600 to-blue-700';
+        } else if (name.includes('METRO') || name.includes('MAGNA') || name.includes('BN CHANNEL') || name.includes('BNTV')) {
+            group = 'Media Group';
+            badgeClass = 'bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300';
+            iconGradient = 'from-amber-500 to-orange-700';
+        } else if (name.includes('TVONE') || name.includes('ANTV') || name.includes('VTV')) {
+            group = 'Viva Group';
+            badgeClass = 'bg-rose-50 text-rose-700 dark:bg-rose-950/70 dark:text-rose-300';
+            iconGradient = 'from-rose-600 to-red-800';
+        } else if (name.includes('KOMPAS') || name.includes('BTV') || name.includes('BERITASATU') || name.includes('RTV') || name.includes('NET') || name.includes('MDTV') || name.includes('NUSANTARA') || name.includes('NTV') || name.includes('GARUDA')) {
+            group = 'Jaringan Nasional';
+            badgeClass = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300';
+            iconGradient = 'from-emerald-600 to-teal-800';
+        }
+
+        return {
+            group,
+            badgeClass,
+            iconGradient,
+            qualityLabel: isHD ? 'HD' : (isSD ? 'SD' : 'DVB-T2')
+        };
+    }
+
+    function updateStepIndicators(stepCompleted) {
+        const b1 = document.getElementById('badge-step-1');
+        const b2 = document.getElementById('badge-step-2');
+        const b3 = document.getElementById('badge-step-3');
+        const s1 = document.getElementById('status-step-1');
+        const s2 = document.getElementById('status-step-2');
+        const s3 = document.getElementById('status-step-3');
+
+        const activeCls = 'w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-[11px] font-black shadow-sm';
+        const doneCls = 'w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-[11px] font-black shadow-sm';
+        const idleCls = 'w-6 h-6 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-[11px] font-black transition-colors';
+
+        if (stepCompleted === 0) {
+            b1.className = activeCls; b1.innerHTML = '1'; s1.innerText = 'Wajib'; s1.className = 'text-[10px] font-bold text-blue-600 dark:text-sky-400';
+            b2.className = idleCls;   b2.innerHTML = '2'; s2.innerText = 'Menunggu'; s2.className = 'text-[10px] font-bold text-slate-400';
+            b3.className = idleCls;   b3.innerHTML = '3'; s3.innerText = 'Menunggu'; s3.className = 'text-[10px] font-bold text-slate-400';
+        } else if (stepCompleted === 1) {
+            b1.className = doneCls;   b1.innerHTML = '<i class="fa-solid fa-check"></i>'; s1.innerText = 'Terpilih'; s1.className = 'text-[10px] font-bold text-emerald-600 dark:text-emerald-400';
+            b2.className = activeCls; b2.innerHTML = '2'; s2.innerText = 'Pilih Wilayah'; s2.className = 'text-[10px] font-bold text-blue-600 dark:text-sky-400';
+            b3.className = idleCls;   b3.innerHTML = '3'; s3.innerText = 'Menunggu'; s3.className = 'text-[10px] font-bold text-slate-400';
+        } else if (stepCompleted === 2) {
+            b1.className = doneCls;   b1.innerHTML = '<i class="fa-solid fa-check"></i>';
+            b2.className = doneCls;   b2.innerHTML = '<i class="fa-solid fa-check"></i>'; s2.innerText = 'Terpilih'; s2.className = 'text-[10px] font-bold text-emerald-600 dark:text-emerald-400';
+            b3.className = activeCls; b3.innerHTML = '3'; s3.innerText = 'Pilih MUX'; s3.className = 'text-[10px] font-bold text-blue-600 dark:text-sky-400';
+        } else if (stepCompleted === 3) {
+            b3.className = doneCls;   b3.innerHTML = '<i class="fa-solid fa-check"></i>'; s3.innerText = 'Aktif'; s3.className = 'text-[10px] font-bold text-emerald-600 dark:text-emerald-400';
+        }
+    }
+
+    function resetFilter() {
+        document.getElementById('provinsi').value = '';
+        const wilSelect = document.getElementById('wilayah');
+        const muxSelect = document.getElementById('mux');
+        wilSelect.innerHTML = '<option value="">Pilih Wilayah Layanan</option>';
+        wilSelect.disabled = true;
+        muxSelect.innerHTML = '<option value="">Pilih Jaringan MUX</option>';
+        muxSelect.disabled = true;
+
+        document.getElementById('result-container').classList.add('hidden');
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('empty-state').classList.remove('hidden');
+        updateStepIndicators(0);
+    }
+
     async function loadWilayah() {
         const prov = document.getElementById('provinsi').value;
         const wilSelect = document.getElementById('wilayah');
         const muxSelect = document.getElementById('mux');
-        
-        wilSelect.innerHTML = '<option value="">Memuat...</option>';
+
+        wilSelect.innerHTML = '<option value="">Memuat wilayah...</option>';
         wilSelect.disabled = true;
         muxSelect.innerHTML = '<option value="">Pilih Jaringan MUX</option>';
         muxSelect.disabled = true;
-        
-        // Reset view
+
         document.getElementById('result-container').classList.add('hidden');
         document.getElementById('empty-state').classList.remove('hidden');
-        
-        if(!prov) return;
+
+        if (!prov) {
+            wilSelect.innerHTML = '<option value="">Pilih Wilayah Layanan</option>';
+            updateStepIndicators(0);
+            return;
+        }
+
+        updateStepIndicators(1);
+        triggerDbWavePulse();
 
         try {
-            const res = await fetch(`/get_wilayah?provinsi=${prov}`);
+            const res = await fetch(`/get_wilayah?provinsi=${encodeURIComponent(prov)}`);
             const data = await res.json();
-            
+
             wilSelect.innerHTML = '<option value="">Pilih Wilayah Anda</option>';
-            data.wilayah.forEach(w => {
-                wilSelect.innerHTML += `<option value="${w}">${w}</option>`;
+            (data.wilayah || []).forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w;
+                opt.textContent = w;
+                wilSelect.appendChild(opt);
             });
             wilSelect.disabled = false;
-        } catch(e) {
+        } catch (e) {
             console.error(e);
-            wilSelect.innerHTML = '<option value="">Gagal Memuat</option>';
+            wilSelect.innerHTML = '<option value="">Gagal Memuat Wilayah</option>';
         }
     }
 
@@ -336,28 +466,37 @@
         const prov = document.getElementById('provinsi').value;
         const wil = document.getElementById('wilayah').value;
         const muxSelect = document.getElementById('mux');
-        
-        muxSelect.innerHTML = '<option value="">Memuat...</option>';
+
+        muxSelect.innerHTML = '<option value="">Memuat jaringan MUX...</option>';
         muxSelect.disabled = true;
 
-        // Reset view
         document.getElementById('result-container').classList.add('hidden');
         document.getElementById('empty-state').classList.remove('hidden');
 
-        if(!wil) return;
+        if (!wil) {
+            muxSelect.innerHTML = '<option value="">Pilih Jaringan MUX</option>';
+            updateStepIndicators(1);
+            return;
+        }
+
+        updateStepIndicators(2);
+        triggerDbWavePulse();
 
         try {
-            const res = await fetch(`/get_mux?provinsi=${prov}&wilayah=${wil}`);
+            const res = await fetch(`/get_mux?provinsi=${encodeURIComponent(prov)}&wilayah=${encodeURIComponent(wil)}`);
             const data = await res.json();
-            
+
             muxSelect.innerHTML = '<option value="">Pilih Jaringan MUX</option>';
-            data.mux.forEach(m => {
-                muxSelect.innerHTML += `<option value="${m}">${m}</option>`;
+            (data.mux || []).forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m;
+                opt.textContent = m;
+                muxSelect.appendChild(opt);
             });
             muxSelect.disabled = false;
-        } catch(e) {
+        } catch (e) {
             console.error(e);
-            muxSelect.innerHTML = '<option value="">Gagal Memuat</option>';
+            muxSelect.innerHTML = '<option value="">Gagal Memuat MUX</option>';
         }
     }
 
@@ -365,71 +504,245 @@
         const prov = document.getElementById('provinsi').value;
         const wil = document.getElementById('wilayah').value;
         const mux = document.getElementById('mux').value;
-        
-        if(!mux) return;
 
-        // Show loading, hide others
+        if (!mux) {
+            updateStepIndicators(2);
+            return;
+        }
+
+        updateStepIndicators(3);
+        triggerDbWavePulse();
+
         document.getElementById('loading').classList.remove('hidden');
         document.getElementById('result-container').classList.add('hidden');
         document.getElementById('empty-state').classList.add('hidden');
+        document.getElementById('channel-filter').value = '';
 
         try {
-            const res = await fetch(`/get_siaran?provinsi=${prov}&wilayah=${wil}&mux=${mux}`);
+            const res = await fetch(`/get_siaran?provinsi=${encodeURIComponent(prov)}&wilayah=${encodeURIComponent(wil)}&mux=${encodeURIComponent(mux)}`);
             const data = await res.json();
 
-            // Setup Header Info
-            document.getElementById('mux-title').innerText = mux;
-            document.getElementById('updater').innerText = data.last_updated_by_name || 'Sistem Pusat';
-            
-            let dateStr = (data.last_updated_date || '-') + ' • ' + (data.last_updated_time || '').replace('WIB', '').trim();
-            document.getElementById('update-date').innerText = dateStr;
+            const updaterName = data.last_updated_by_name || 'Sistem Pusat KTVDI';
+            const dateStr = (data.last_updated_date || '-') + ' • ' + (data.last_updated_time || '').replace('WIB', '').trim();
 
-            // Setup List Channel
-            const list = document.getElementById('channel-list');
-            list.innerHTML = '';
-            
-            if(data.siaran && data.siaran.length > 0) {
-                document.getElementById('total-channel').innerText = data.siaran.length;
-                
-                data.siaran.forEach((ch, index) => {
-                    // Penambahan class animate-pop dan delay berurutan agar munculnya estetik
-                    const delayClass = index < 10 ? `style="animation-delay: ${index * 0.05}s"` : '';
-                    
-                    list.innerHTML += `
-                        <div class="channel-card p-5 flex flex-col items-center justify-center text-center gap-3 animate-pop z-10" ${delayClass}>
-                            <div class="tv-icon-wrapper w-14 h-14 rounded-2xl text-blue-600 flex items-center justify-center text-2xl relative z-10">
-                                <i class="fa-solid fa-tv"></i>
-                            </div>
-                            <span class="channel-name text-sm md:text-base font-extrabold text-slate-700 leading-tight relative z-10">${ch}</span>
-                        </div>
-                    `;
-                });
-            } else {
-                document.getElementById('total-channel').innerText = '0';
-                list.innerHTML = `
-                    <div class="col-span-full py-8 text-center bg-red-50 rounded-2xl border border-red-100">
-                        <i class="fa-solid fa-triangle-exclamation text-red-400 text-3xl mb-3"></i>
-                        <p class="text-red-600 font-bold">Data siaran kosong atau belum diinput untuk MUX ini.</p>
-                    </div>
-                `;
-            }
-            
-            // Hide loading, show result
+            currentMeta = { provinsi: prov, wilayah: wil, mux: mux, date: dateStr, updater: updaterName };
+            currentChannels = Array.isArray(data.siaran) ? data.siaran : [];
+
+            document.getElementById('breadcrumb-prov').innerText = prov;
+            document.getElementById('breadcrumb-wil').innerText = wil;
+            document.getElementById('mux-title').innerText = mux;
+            document.getElementById('updater').innerText = updaterName;
+            document.getElementById('update-date').innerText = dateStr;
+            document.getElementById('total-channel').innerText = currentChannels.length;
+
+            renderChannelCards(currentChannels);
+
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('result-container').classList.remove('hidden');
-            
-            // Re-trigger animation
-            const container = document.getElementById('result-container');
-            container.classList.remove('animate-pop');
-            void container.offsetWidth; // trigger reflow
-            container.classList.add('animate-pop');
-
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('empty-state').classList.remove('hidden');
-            alert("Terjadi kesalahan saat mengambil data jaringan.");
+            alert('Terjadi kesalahan saat mengambil data jaringan.');
         }
     }
+
+    function renderChannelCards(channels) {
+        const list = document.getElementById('channel-list');
+        const info = document.getElementById('filter-count-info');
+        list.innerHTML = '';
+
+        if (channels && channels.length > 0) {
+            info.innerText = `Menampilkan ${channels.length} dari ${currentChannels.length} saluran`;
+
+            channels.forEach((ch, index) => {
+                const meta = classifyChannel(ch);
+                const delayMs = Math.min(index * 35, 450);
+                const numLabel = String(index + 1).padStart(2, '0');
+
+                const card = document.createElement('div');
+                card.className = 'channel-card bg-white dark:bg-[#0a0f1c] border border-slate-200/90 dark:border-slate-800 hover:border-blue-500/60 dark:hover:border-sky-400/60 p-5 flex flex-col justify-between gap-4 animate-card-in';
+                card.style.animationDelay = `${delayMs}ms`;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br ${meta.iconGradient} text-white flex items-center justify-center text-lg shadow-md shrink-0">
+                            <i class="fa-solid fa-tv"></i>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="text-[10px] font-mono font-black text-slate-400 dark:text-slate-500">#${numLabel}</span>
+                            <span class="text-[9px] font-black px-2 py-0.5 rounded bg-blue-600/10 dark:bg-sky-400/15 text-blue-700 dark:text-sky-300 border border-blue-500/20 tracking-wider">
+                                ${meta.qualityLabel}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-sm md:text-base font-black text-slate-800 dark:text-white leading-snug break-words">
+                            ${escapeHtml(ch)}
+                        </h4>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                        <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-md ${meta.badgeClass}">
+                            ${meta.group}
+                        </span>
+                        <span class="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif
+                        </span>
+                    </div>
+                `;
+
+                // Interactive 3D Mouse Tilt
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width - 0.5;
+                    const y = (e.clientY - rect.top) / rect.height - 0.5;
+                    card.style.transform = `perspective(700px) rotateX(${(-y * 10).toFixed(2)}deg) rotateY(${(x * 10).toFixed(2)}deg) translateY(-4px)`;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(700px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+                });
+
+                list.appendChild(card);
+            });
+        } else {
+            info.innerText = '0 saluran ditemukan';
+            list.innerHTML = `
+                <div class="col-span-full py-10 px-4 text-center bg-slate-50 dark:bg-[#0a0f1c] rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <i class="fa-solid fa-satellite text-slate-400 text-3xl mb-3"></i>
+                    <p class="text-slate-700 dark:text-slate-200 font-bold text-sm">Tidak ada saluran yang cocok atau data MUX belum tersedia.</p>
+                </div>
+            `;
+        }
+    }
+
+    function filterRenderedChannels() {
+        const q = document.getElementById('channel-filter').value.toLowerCase().trim();
+        if (!q) {
+            renderChannelCards(currentChannels);
+            return;
+        }
+        const filtered = currentChannels.filter(ch => ch.toLowerCase().includes(q));
+        renderChannelCards(filtered);
+    }
+
+    function copyMuxReport() {
+        if (!currentChannels.length) return;
+        const lines = [
+            `*DATABASE SIARAN TV DIGITAL - KTVDI*`,
+            `Provinsi: ${currentMeta.provinsi}`,
+            `Wilayah: ${currentMeta.wilayah}`,
+            `MUX: ${currentMeta.mux} (${currentChannels.length} Saluran)`,
+            `Update: ${currentMeta.date} (${currentMeta.updater})`,
+            ``,
+            ...currentChannels.map((c, i) => `${i + 1}. ${c}`),
+            ``,
+            `Sumber: ktvdi.my.id`
+        ].join('\n');
+
+        navigator.clipboard.writeText(lines).then(() => {
+            const btnText = document.getElementById('copy-btn-text');
+            const original = btnText.innerText;
+            btnText.innerText = 'Tersalin!';
+            setTimeout(() => { btnText.innerText = original; }, 2000);
+        });
+    }
+
+    // Three.js 3D RF Multiplexing Spectrum Background
+    function initDbThreeScene() {
+        const container = document.getElementById('db-three-bg');
+        if (!container || typeof THREE === 'undefined') return;
+
+        const isDark = () => document.documentElement.classList.contains('dark');
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 150);
+        camera.position.set(0, 11, 24);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        container.appendChild(renderer.domElement);
+
+        const cols = 44;
+        const rows = 26;
+        const count = cols * rows;
+        const positions = new Float32Array(count * 3);
+
+        let idx = 0;
+        for (let ix = 0; ix < cols; ix++) {
+            for (let iz = 0; iz < rows; iz++) {
+                positions[idx * 3] = (ix - cols / 2) * 1.1;
+                positions[idx * 3 + 1] = 0;
+                positions[idx * 3 + 2] = (iz - rows / 2) * 1.1;
+                idx++;
+            }
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const mat = new THREE.PointsMaterial({
+            color: isDark() ? 0x38bdf8 : 0x2563eb,
+            size: 0.16,
+            transparent: true,
+            opacity: isDark() ? 0.55 : 0.35
+        });
+
+        const wavePoints = new THREE.Points(geo, mat);
+        wavePoints.rotation.x = 0.2;
+        scene.add(wavePoints);
+
+        let waveBoost = 1.0;
+        triggerDbWavePulse = function() {
+            waveBoost = 2.6;
+        };
+
+        const observer = new MutationObserver(() => {
+            const dark = isDark();
+            mat.color.setHex(dark ? 0x38bdf8 : 0x2563eb);
+            mat.opacity = dark ? 0.55 : 0.35;
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, { passive: true });
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+            if (document.hidden) return;
+
+            waveBoost += (1.0 - waveBoost) * 0.05;
+            const t = now * 0.0016;
+            const pos = wavePoints.geometry.attributes.position.array;
+            let i = 0;
+            for (let ix = 0; ix < cols; ix++) {
+                for (let iz = 0; iz < rows; iz++) {
+                    pos[i * 3 + 1] = (Math.sin(ix * 0.26 + t) * 0.75 + Math.cos(iz * 0.3 + t * 0.85) * 0.55) * waveBoost;
+                    i++;
+                }
+            }
+            wavePoints.geometry.attributes.position.needsUpdate = true;
+            renderer.render(scene, camera);
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof THREE !== 'undefined') {
+            initDbThreeScene();
+        } else {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+            s.onload = initDbThreeScene;
+            document.head.appendChild(s);
+        }
+    });
 </script>
 {% endblock %}
