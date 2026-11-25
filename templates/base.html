@@ -71,7 +71,7 @@
     </script>
 
     <script>
-        // === LOGIKA KEAMANAN (MENCEGAH KLIK KANAN DAN INSPECT ELEMENT) ===
+        // === LOGIKA KEAMANAN (MENCEGAH KLIK KANAN DAN INSPECT ELEMENT, MENGIZINKAN CTRL+V) ===
         window.ipPengguna = "Memeriksa...";
         
         function tanganiPelanggaranKeamanan() {
@@ -96,6 +96,11 @@
         });
         
         document.onkeydown = function(kejadian) {
+            // Izinkan Ctrl+V / Cmd+V (Paste)
+            if ((kejadian.ctrlKey || kejadian.metaKey) && (kejadian.key === 'v' || kejadian.key === 'V' || kejadian.keyCode === 86)) {
+                return true;
+            }
+
             let apakahDiblokir = false;
             if(kejadian.keyCode == 123) apakahDiblokir = true; 
             if(kejadian.ctrlKey && kejadian.shiftKey && (kejadian.keyCode == 'I'.charCodeAt(0) || kejadian.keyCode == 'C'.charCodeAt(0) || kejadian.keyCode == 'J'.charCodeAt(0))) apakahDiblokir = true;
@@ -136,6 +141,13 @@
             user-select: none;
             -webkit-touch-callout: none;
             transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        /* Izinkan seleksi & paste teks di dalam kolom input/form */
+        input, textarea, select, [contenteditable="true"] {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
         }
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
@@ -307,10 +319,6 @@
         @keyframes sheetPop { 0% { opacity: 0; transform: scale(0.95) translateY(-6px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
 
         /* Ticker Animations */
-        .marquee-box { width: 100%; overflow: hidden; white-space: nowrap; display: block; position: relative; }
-        .marquee-inner { display: inline-block; white-space: nowrap; animation: runningText 15s linear infinite; padding-left: 100%; }
-        @keyframes runningText { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
-
         .ticker-wrap { width: 100%; overflow: hidden; height: 100%; display: flex; align-items: center; position: relative; }
         .ticker-move { display: inline-block; white-space: nowrap; animation: ticker 950s linear infinite; transition: transform 0.3s ease; }
         .ticker-move:hover { animation-play-state: paused; }
@@ -491,10 +499,10 @@
 
     <!-- TOP HEADER NAVBAR -->
     <header class="fixed top-0 left-0 right-0 z-[100] glass-header pt-[var(--sat)] transition-colors duration-300">
-        <div class="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-6 h-[76px] flex items-center justify-between gap-2 sm:gap-3">
+        <div class="max-w-[1440px] mx-auto px-3 sm:px-5 md:px-6 h-[76px] flex items-center justify-between gap-3">
             
-            <!-- Tombol Hamburger (Semua Perangkat Mobile & Tablet + Quick Drawer) & Logo Brand -->
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
+            <!-- Tombol Hamburger (Semua Perangkat Mobile & Tablet) & Logo Brand -->
+            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 shrink">
                 <button type="button" id="hamburger-menu-btn" onclick="toggleNavDrawer()" aria-label="Buka Menu Navigasi" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl sk-pill-bar text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-sky-400 transition btn-press shrink-0">
                     <i data-lucide="menu" class="w-5 h-5"></i>
                 </button>
@@ -503,7 +511,7 @@
                     <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-blue-600/10 dark:bg-blue-500/15 border border-blue-500/25 flex items-center justify-center p-1.5 shadow-[0_0_15px_rgba(37,99,235,0.2)] shrink-0">
                         <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo Komunitas TV Digital Indonesia" class="w-full h-full object-contain ktvdi-logo-adaptive">
                     </div>
-                    <div class="flex flex-col min-w-0 max-w-[130px] sm:max-w-[210px] xl:max-w-none">
+                    <div class="flex flex-col min-w-0 max-w-[155px] sm:max-w-[230px] xl:max-w-none">
                         <span class="font-heading font-black text-sm sm:text-[17px] tracking-tight text-slate-900 dark:text-white leading-none">KTVDI</span>
                         <div class="auto-marquee-box mt-1">
                             <span class="auto-marquee-inner text-[9px] font-bold text-blue-600 dark:text-sky-400 tracking-wider uppercase">
@@ -514,58 +522,50 @@
                 </a>
             </div>
 
-            <!-- Navigasi Utama Desktop (Lengkap: Beranda, Berita, CCTV, EWS, Lokasi, Religi, Database, About) -->
-            <nav aria-label="Navigasi Utama" class="hidden lg:flex items-center gap-0.5 xl:gap-1 sk-pill-bar rounded-2xl p-1 mx-1">
-                <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+            <!-- Navigasi Utama Desktop -->
+            <nav aria-label="Navigasi Utama" class="hidden lg:flex items-center gap-1 sk-pill-bar rounded-2xl p-1">
+                <a href="{{ url_for('home') }}" class="nav-item {% if request.endpoint == 'home' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="house" class="w-3.5 h-3.5"></i> Beranda
                 </a>
-                <a href="{{ url_for('berita_page') }}" class="nav-item {% if request.endpoint == 'berita_page' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <a href="{{ url_for('berita_page') }}" class="nav-item {% if request.endpoint == 'berita_page' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="newspaper" class="w-3.5 h-3.5"></i> Berita
                 </a>
-                <a href="{{ url_for('cctv_page') }}" class="nav-item {% if request.endpoint == 'cctv_page' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <a href="{{ url_for('cctv_page') }}" class="nav-item {% if request.endpoint == 'cctv_page' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="video" class="w-3.5 h-3.5"></i> CCTV
                 </a>
-                <a href="{{ url_for('ews_jateng_page') }}" class="nav-item {% if request.endpoint == 'ews_jateng_page' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <a href="{{ url_for('ews_jateng_page') }}" class="nav-item {% if request.endpoint == 'ews_jateng_page' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="triangle-alert" class="w-3.5 h-3.5"></i> EWS
                 </a>
-                <a href="/lokasi" class="nav-item {% if request.endpoint == 'lokasi' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <a href="/lokasi" class="nav-item {% if request.endpoint == 'lokasi' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Lokasi
                 </a>
-                <a href="{{ url_for('jadwal_sholat_page') }}" class="nav-item {% if request.endpoint == 'jadwal_sholat_page' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <a href="{{ url_for('jadwal_sholat_page') }}" class="nav-item {% if request.endpoint == 'jadwal_sholat_page' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="moon-star" class="w-3.5 h-3.5"></i> Religi
                 </a>
-                <a href="{{ url_for('daftar_siaran') }}" class="nav-item {% if request.endpoint == 'daftar_siaran' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <a href="{{ url_for('daftar_siaran') }}" class="nav-item {% if request.endpoint == 'daftar_siaran' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="database" class="w-3.5 h-3.5"></i> Database
                 </a>
-                <a href="{{ url_for('about') }}" class="nav-item {% if request.endpoint == 'about' %}active{% endif %} px-2.5 xl:px-3 py-2 rounded-xl text-[10px] xl:text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
+                <a href="{{ url_for('about') }}" class="nav-item {% if request.endpoint == 'about' %}active{% endif %} px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white flex items-center gap-1.5 whitespace-nowrap">
                     <i data-lucide="info" class="w-3.5 h-3.5"></i> About
                 </a>
             </nav>
 
-            <!-- Ticker Rotasi Header & Auth -->
-            <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0 min-w-0">
-                <!-- Slot Mobile/Tablet (< 1024px) -->
-                <div class="lg:hidden flex items-center min-w-0">
-                    {% if session.get('user') %}
-                        <div class="flex flex-col justify-center min-w-0 max-w-[95px] sm:max-w-[140px] pr-1">
-                            <div class="auto-marquee-box text-[10px] sm:text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
-                                <span class="auto-marquee-inner">
-                                    <span id="mobile-greeting" class="font-semibold text-blue-600 dark:text-sky-400 mr-1">Halo,</span>{{ session.get('nama', 'User') }}
-                                </span>
-                            </div>
-                            <div class="flex items-center mt-0.5">
-                                <span class="px-1.5 py-0.5 bg-blue-600/10 dark:bg-blue-500/15 border border-blue-500/25 rounded text-[8px] font-black text-blue-600 dark:text-sky-300 uppercase tracking-widest inline-flex items-center gap-1 shrink-0">
-                                    <i class="fa-solid fa-crown text-amber-500"></i> MEMBER
-                                </span>
-                            </div>
+            <!-- Kanan Atas: Status Member (Mobile), Tema & Auth -->
+            <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
+                {% if session.get('user') %}
+                    <div class="lg:hidden flex flex-col justify-center min-w-0 max-w-[110px] sm:max-w-[155px]">
+                        <div class="auto-marquee-box text-[11px] sm:text-xs font-extrabold text-slate-900 dark:text-white leading-tight">
+                            <span class="auto-marquee-inner">
+                                <span id="mobile-greeting" class="font-semibold text-blue-600 dark:text-sky-400 mr-1">Halo,</span>{{ session.get('nama', 'User') }}
+                            </span>
                         </div>
-                    {% else %}
-                        <div id="mobile-guest-schedule" class="hidden sm:flex relative h-9 overflow-hidden w-[140px] md:w-[190px] items-center justify-center rounded-xl sk-pill-bar px-2"></div>
-                    {% endif %}
-                </div>
-
-                <!-- Slot Desktop (>= 1024px) -->
-                <div id="desktop-header-dynamic" class="hidden lg:flex relative items-center justify-center text-slate-900 dark:text-white w-[170px] xl:w-[215px] h-9 overflow-hidden rounded-xl sk-pill-bar px-2"></div>
+                        <div class="flex items-center mt-0.5">
+                            <span class="px-1.5 py-0.5 bg-blue-600/10 dark:bg-blue-500/15 border border-blue-500/25 rounded text-[8px] font-black text-blue-600 dark:text-sky-300 uppercase tracking-widest inline-flex items-center gap-1 shrink-0">
+                                <i class="fa-solid fa-crown text-amber-500"></i> MEMBER
+                            </span>
+                        </div>
+                    </div>
+                {% endif %}
 
                 <!-- Theme Toggle -->
                 <button id="theme-toggle" type="button" onclick="gantiTema()" title="Ubah Tema Terang/Gelap" class="w-9 h-9 flex items-center justify-center text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-sky-300 transition-colors btn-press sk-pill-bar rounded-xl shrink-0">
@@ -574,14 +574,14 @@
                 </button>
 
                 <!-- Auth / Profile Button -->
-                <div class="pl-1.5 sm:pl-2 border-l border-slate-200 dark:border-white/10 shrink-0">
+                <div class="pl-2 border-l border-slate-200 dark:border-white/10 shrink-0">
                     {% if session.get('user') %}
                         <div class="relative group z-[110] hidden md:block">
-                            <button type="button" onclick="bukaTutupDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 sk-pill-bar px-2 py-1.5 rounded-xl hover:border-blue-500/40 transition-all btn-press">
+                            <button type="button" onclick="bukaTutupDropdown('profile-dropdown-desktop')" class="flex items-center gap-2 sk-pill-bar px-2.5 py-1.5 rounded-xl hover:border-blue-500/40 transition-all btn-press">
                                 <div class="w-7 h-7 rounded-lg bg-blue-600/15 text-blue-600 dark:text-sky-400 flex items-center justify-center overflow-hidden shrink-0 border border-blue-500/30">
                                     <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'User') | urlencode }}&background=1D4ED8&color=fff&bold=true" alt="Akun" class="w-full h-full object-cover">
                                 </div>
-                                <div class="pr-1.5 text-left max-w-[85px]">
+                                <div class="pr-1 text-left max-w-[95px]">
                                     <div class="auto-marquee-box text-[11px] font-extrabold text-slate-900 dark:text-white leading-none">
                                         <span class="auto-marquee-inner">{{ session.get('nama', 'Member').split(' ')[0] if session.get('nama') else 'Member' }}</span>
                                     </div>
@@ -596,9 +596,9 @@
                             </div>
                         </div>
                     {% else %}
-                        <div class="flex items-center gap-1.5 sm:gap-2">
-                            <a href="{{ url_for('login') }}" class="hidden sm:inline-flex items-center px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 hover:bg-blue-600/10 transition">Masuk</a>
-                            <a href="{{ url_for('register') }}" class="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white px-3 sm:px-3.5 py-2 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.35)] transition-all btn-press">
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url_for('login') }}" class="hidden sm:inline-flex items-center px-3.5 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-200 hover:bg-blue-600/10 transition">Masuk</a>
+                            <a href="{{ url_for('register') }}" class="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white px-3.5 sm:px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.35)] transition-all btn-press">
                                 <span class="text-[11px] font-black uppercase tracking-wider">Daftar</span>
                                 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                             </a>
@@ -1261,7 +1261,6 @@
         perbaruiSalamPonsel();
 
         // === GPS SPEEDOMETER & AI PENDAMPING PERJALANAN ===
-        let kecepatanSaatIniKmh = "0.0";
         let bufferKecepatan = [];
         
         if (navigator.geolocation) {
@@ -1278,7 +1277,6 @@
                             
                             if (rataRataKecepatanMs > 0.5) {
                                 let kecepatanAngka = (rataRataKecepatanMs * 3.6);
-                                kecepatanSaatIniKmh = kecepatanAngka.toFixed(1);
                                 
                                 if (isDrivingAIActive) {
                                     const waktuSekarang = Date.now();
@@ -1304,54 +1302,14 @@
                                         }
                                     }
                                 }
-                            } else {
-                                kecepatanSaatIniKmh = "0.0";
                             }
                         }
                     }
                 },
-                (error) => { console.log("Akses GPS Speedometer tidak optimal", error.message); },
+                (error) => { console.log("Akses GPS tidak optimal", error.message); },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
             );
         }
-
-        let apakahMenampilkanTeksTicker = true;
-        function mulaiRotasiHeader() {
-            const wadahDesktop = document.getElementById('desktop-header-dynamic');
-            const wadahMobile = document.getElementById('mobile-guest-schedule');
-            
-            const htmlTeksKtvdi = `
-                <div class="marquee-box w-full h-full flex items-center fade-swap">
-                    <div class="marquee-inner">
-                        <span class="text-[10px] font-heading font-extrabold tracking-widest uppercase text-slate-700 dark:text-slate-200 mx-4">KOMUNITAS TV DIGITAL INDONESIA</span>
-                    </div>
-                </div>`;
-                
-            const htmlSpeedometer = `
-                <div class="flex items-center justify-center w-full h-full fade-swap">
-                    <div class="flex items-center gap-1.5 px-2 py-0.5">
-                        <i class="fa-solid fa-car text-blue-600 dark:text-amber-400 animate-pulse text-xs"></i>
-                        <span class="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider whitespace-nowrap">Speed: <span class="text-blue-600 dark:text-sky-300 font-black tabular-nums">${kecepatanSaatIniKmh} km/h</span></span>
-                    </div>
-                </div>`;
-            
-            if (apakahMenampilkanTeksTicker) {
-                if(wadahDesktop) wadahDesktop.innerHTML = htmlTeksKtvdi;
-                if(wadahMobile) wadahMobile.innerHTML = htmlTeksKtvdi;
-                setTimeout(() => {
-                    apakahMenampilkanTeksTicker = false;
-                    mulaiRotasiHeader();
-                }, 15000); 
-            } else {
-                if(wadahDesktop) wadahDesktop.innerHTML = htmlSpeedometer;
-                if(wadahMobile) wadahMobile.innerHTML = htmlSpeedometer;
-                setTimeout(() => {
-                    apakahMenampilkanTeksTicker = true;
-                    mulaiRotasiHeader();
-                }, 5000); 
-            }
-        }
-        mulaiRotasiHeader();
 
         // === LOKASI, BERITA, & SHOLAT ===
         let dataJadwalSholatHariIni = null;
