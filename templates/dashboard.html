@@ -4,148 +4,209 @@
 
 {% block content %}
 <style>
-    /* === iOS 26.3 GLASS THEME === */
-    .glass-card {
-        background: rgba(255, 255, 255, 0.75);
-        backdrop-filter: blur(50px) saturate(180%);
-        -webkit-backdrop-filter: blur(50px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
-        border-radius: 24px;
-        transition: transform 0.3s ease;
-    }
-
-    .glass-input {
-        background: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 16px;
+    /* Kartu Dashboard Selaras dengan Obsidian Status Card di base.html */
+    .ktvdi-dash-card {
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border: 1px solid rgba(15, 23, 42, 0.09);
+        box-shadow: 0 18px 42px -14px rgba(15, 23, 42, 0.12);
         transition: all 0.3s ease;
+    }
+    .dark .ktvdi-dash-card {
+        background: linear-gradient(165deg, rgba(39, 39, 43, 0.92) 0%, rgba(24, 24, 27, 0.96) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.11);
+        box-shadow: 0 22px 48px -12px rgba(0, 0, 0, 0.68);
+    }
+
+    /* Dropdown Select Adaptif (Light & Dark) */
+    .ktvdi-dash-select {
+        background: rgba(241, 245, 249, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #0f172a;
+        border-radius: 16px;
+        transition: all 0.25s ease;
         appearance: none;
+        -webkit-appearance: none;
     }
-    .glass-input:focus {
-        background: rgba(255, 255, 255, 0.95);
-        border-color: #1e40af;
-        box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
-        transform: translateY(-1px);
+    .ktvdi-dash-select:focus {
+        background: #ffffff;
+        border-color: #e11d48;
+        box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.14);
+        outline: none;
     }
-    .glass-input:disabled { 
-        opacity: 0.6; cursor: not-allowed; background: rgba(200, 200, 200, 0.1); 
-    }
-
-    /* Background Gradient */
-    .bg-mesh-dash {
-        background-color: #f8fafc;
-        background-image: 
-            radial-gradient(at 0% 100%, rgba(30, 64, 175, 0.1) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%);
-        background-attachment: fixed;
+    .ktvdi-dash-select:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
     }
 
-    .action-btn {
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    .dark .ktvdi-dash-select {
+        background: rgba(15, 16, 21, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #f8fafc;
     }
-    .action-btn:hover { transform: translateY(-2px); shadow: 0 10px 20px rgba(0,0,0,0.1); }
-    .action-btn:active { transform: scale(0.95); }
+    .dark .ktvdi-dash-select:focus {
+        background: rgba(24, 24, 29, 0.96);
+        border-color: #f43f5e;
+        box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.22);
+    }
+    .dark .ktvdi-dash-select option {
+        background-color: #18181b;
+        color: #f8fafc;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
 </style>
 
-<div class="min-h-screen bg-mesh-dash py-12 px-4 sm:px-6 lg:px-8 font-['Plus_Jakarta_Sans'] pb-32">
+<div class="w-full py-2 sm:py-4 space-y-6 relative overflow-hidden">
     
-    <div class="max-w-6xl mx-auto relative z-10 space-y-8">
+    <!-- Ambient Glow Halus -->
+    <div class="absolute -top-12 right-6 w-72 h-72 bg-rose-600/10 dark:bg-rose-600/15 rounded-full blur-[90px] pointer-events-none"></div>
+    <div class="absolute bottom-0 left-6 w-72 h-72 bg-teal-500/10 dark:bg-teal-500/15 rounded-full blur-[90px] pointer-events-none"></div>
+
+    <div class="relative z-10 space-y-6">
         
-        <div class="glass-card p-8 flex flex-col md:flex-row justify-between items-center gap-6 animate-fade-in-up">
-            <div class="flex items-center gap-5 w-full md:w-auto">
-                <div class="relative">
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-brand-navy to-brand-blue flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/30">
+        <!-- 1. KARTU PROFIL KONTRIBUTOR -->
+        <div class="ktvdi-dash-card rounded-[26px] p-5 sm:p-7 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 animate-fade-in-up">
+            <div class="flex items-center gap-4 min-w-0 w-full sm:w-auto">
+                <div class="relative shrink-0">
+                    <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-rose-600 via-rose-500 to-teal-600 flex items-center justify-center text-white text-xl sm:text-2xl font-heading font-black shadow-lg shadow-rose-600/25">
                         {{ name[0] | upper if name else 'U' }}
                     </div>
-                    <span class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+                    <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-[#1c1c20] rounded-full" title="Status Aktif"></span>
                 </div>
-                <div>
-                    <h1 class="text-2xl font-extrabold text-brand-navy">Halo, {{ name }}! 👋</h1>
-                    <p class="text-slate-500 text-sm font-medium">Selamat datang di Panel Kontributor.</p>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap mb-1">
+                        <span class="ktvdi-member-badge inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">
+                            <i class="fa-solid fa-tower-broadcast text-[8px]"></i> Kontributor KTVDI
+                        </span>
+                    </div>
+                    <h1 class="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white tracking-tight truncate">
+                        Halo, {{ name }}!
+                    </h1>
+                    <p class="text-slate-600 dark:text-zinc-400 text-xs sm:text-sm font-medium mt-0.5">
+                        Selamat datang di Panel Manajemen Data Siaran Digital.
+                    </p>
                 </div>
             </div>
             
-            <a href="{{ url_for('logout') }}" class="action-btn px-6 py-3 bg-red-50 text-red-600 font-bold rounded-xl border border-red-100 hover:bg-red-500 hover:text-white flex items-center gap-2 w-full md:w-auto justify-center">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar
+            <a href="{{ url_for('logout') }}" class="min-h-[44px] px-5 py-2.5 bg-rose-500/10 hover:bg-rose-600 text-rose-600 dark:text-rose-400 hover:text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl border border-rose-500/25 flex items-center justify-center gap-2 w-full sm:w-auto transition-all duration-200 btn-press shrink-0">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                <span>Keluar Akun</span>
             </a>
         </div>
 
-        <div class="glass-card p-6 md:p-10 animate-fade-in-up" style="animation-delay: 0.1s;">
-            <div class="flex items-center gap-3 mb-8 border-b border-slate-200/60 pb-6">
-                <div class="p-3 bg-blue-50 rounded-2xl text-brand-blue shadow-sm">
-                    <i class="fa-solid fa-database text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-brand-navy">Manajemen Data Siaran</h2>
-                    <p class="text-xs text-slate-500 font-medium">Kelola database frekuensi TV digital di sini.</p>
+        <!-- 2. KARTU MANAJEMEN DATA SIARAN -->
+        <div class="ktvdi-dash-card rounded-[26px] p-5 sm:p-7 md:p-9 animate-fade-in-up" style="animation-delay: 0.08s;">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8 border-b border-slate-200/80 dark:border-white/10 pb-5">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-600/15 to-teal-500/15 border border-rose-500/25 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-database text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg sm:text-xl font-heading font-black text-slate-900 dark:text-white tracking-tight">
+                            Manajemen Data Siaran
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">
+                            Pilih Provinsi, Wilayah layanan, dan kanal MUX DVB-T2 untuk mengelola database.
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="group relative">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Provinsi</label>
+            <!-- Grid Filter Provinsi, Wilayah & MUX -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mb-7">
+                <!-- Filter Provinsi -->
+                <div class="space-y-1.5">
+                    <label for="provinsi" class="block text-[11px] font-extrabold text-slate-600 dark:text-zinc-400 uppercase pl-1 tracking-wider">
+                        1. Provinsi
+                    </label>
                     <div class="relative">
-                        <i class="fa-solid fa-map absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                        <select id="provinsi" class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
+                        <i class="fa-solid fa-map absolute left-4 top-1/2 -translate-y-1/2 text-rose-500 text-sm z-10 pointer-events-none"></i>
+                        <select id="provinsi" class="ktvdi-dash-select w-full min-h-[48px] py-3 pl-11 pr-10 text-base sm:text-sm font-bold cursor-pointer">
                             <option value="">Pilih Provinsi</option>
                             {% for p in provinsi_list %}
                             <option value="{{ p }}">{{ p }}</option>
                             {% endfor %}
                         </select>
-                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-500 text-xs pointer-events-none"></i>
                     </div>
                 </div>
                 
-                <div class="group relative">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">Wilayah</label>
+                <!-- Filter Wilayah -->
+                <div class="space-y-1.5">
+                    <label for="wilayah" class="block text-[11px] font-extrabold text-slate-600 dark:text-zinc-400 uppercase pl-1 tracking-wider">
+                        2. Wilayah Layanan
+                    </label>
                     <div class="relative">
-                        <i class="fa-solid fa-location-crosshairs absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                        <select id="wilayah" disabled class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
+                        <i class="fa-solid fa-location-crosshairs absolute left-4 top-1/2 -translate-y-1/2 text-teal-600 dark:text-teal-400 text-sm z-10 pointer-events-none"></i>
+                        <select id="wilayah" disabled class="ktvdi-dash-select w-full min-h-[48px] py-3 pl-11 pr-10 text-base sm:text-sm font-bold cursor-pointer">
                             <option value="">Menunggu Provinsi...</option>
                         </select>
-                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-500 text-xs pointer-events-none"></i>
                     </div>
                 </div>
                 
-                <div class="group relative">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2 pl-1 tracking-wider">MUX</label>
+                <!-- Filter MUX -->
+                <div class="space-y-1.5">
+                    <label for="mux" class="block text-[11px] font-extrabold text-slate-600 dark:text-zinc-400 uppercase pl-1 tracking-wider">
+                        3. Penyelenggara MUX
+                    </label>
                     <div class="relative">
-                        <i class="fa-solid fa-tower-cell absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 z-10"></i>
-                        <select id="mux" disabled class="glass-input w-full p-4 pl-12 outline-none text-slate-700 font-bold cursor-pointer">
+                        <i class="fa-solid fa-tower-cell absolute left-4 top-1/2 -translate-y-1/2 text-amber-500 text-sm z-10 pointer-events-none"></i>
+                        <select id="mux" disabled class="ktvdi-dash-select w-full min-h-[48px] py-3 pl-11 pr-10 text-base sm:text-sm font-bold cursor-pointer">
                             <option value="">Menunggu Wilayah...</option>
                         </select>
-                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                        <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-zinc-500 text-xs pointer-events-none"></i>
                     </div>
                 </div>
             </div>
 
-            <div id="action-area" class="mt-8 pt-6 border-t border-slate-200/60 flex flex-wrap gap-4 justify-between items-center transition-all duration-300">
+            <!-- Baris Status & Tombol Aksi -->
+            <div id="action-area" class="pt-5 border-t border-slate-200/80 dark:border-white/10 flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center transition-all duration-300">
                 
-                <div id="status-text" class="text-sm text-slate-400 font-medium flex items-center gap-2">
-                    <i class="fa-solid fa-info-circle"></i> Silakan pilih filter untuk mengedit data.
+                <div id="status-text" class="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-teal-600 dark:text-teal-400 shrink-0"></i>
+                    <span>Silakan pilih filter Provinsi, Wilayah, dan MUX untuk mengedit data.</span>
                 </div>
 
-                <div class="flex gap-3">
-                    <a href="{{ url_for('add_data') }}" id="addDataBtn" class="action-btn px-6 py-3 bg-gradient-to-r from-brand-navy to-brand-blue text-white font-bold rounded-xl shadow-lg hover:shadow-blue-500/30 flex items-center gap-2">
-                        <i class="fa-solid fa-plus-circle"></i> Tambah Data Baru
+                <div class="flex flex-col sm:flex-row gap-2.5 sm:gap-3 shrink-0">
+                    <a href="{{ url_for('add_data') }}" id="addDataBtn" class="min-h-[46px] px-6 py-3 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-600 text-white font-heading font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 transition-all duration-200 btn-press">
+                        <i class="fa-solid fa-plus-circle text-sm"></i>
+                        <span>Tambah Data Baru</span>
                     </a>
 
-                    <div id="edit-buttons" class="hidden flex gap-3">
-                        <button id="editDataBtn" class="action-btn px-6 py-3 bg-amber-100 text-amber-700 font-bold rounded-xl hover:bg-amber-500 hover:text-white flex items-center gap-2 transition-colors">
-                            <i class="fa-solid fa-pen-to-square"></i> Edit MUX Ini
+                    <div id="edit-buttons" class="hidden flex-col sm:flex-row gap-2.5 sm:gap-3 w-full sm:w-auto">
+                        <button type="button" id="editDataBtn" class="min-h-[46px] px-5 py-3 bg-amber-500/15 hover:bg-amber-500 text-amber-700 dark:text-amber-300 hover:text-white border border-amber-500/30 font-heading font-extrabold text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 btn-press cursor-pointer">
+                            <i class="fa-solid fa-pen-to-square text-sm"></i>
+                            <span>Edit MUX Ini</span>
                         </button>
-                        <button id="deleteDataBtn" class="action-btn px-6 py-3 bg-red-100 text-red-700 font-bold rounded-xl hover:bg-red-500 hover:text-white flex items-center gap-2 transition-colors">
-                            <i class="fa-solid fa-trash-can"></i> Hapus
+                        <button type="button" id="deleteDataBtn" class="min-h-[46px] px-5 py-3 bg-rose-500/15 hover:bg-rose-600 text-rose-700 dark:text-rose-300 hover:text-white border border-rose-500/30 font-heading font-extrabold text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 btn-press cursor-pointer">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                            <span>Hapus</span>
                         </button>
                     </div>
                 </div>
             </div>
             
-            <div id="preview-container" class="hidden mt-8 p-6 bg-slate-50/80 rounded-2xl border border-slate-200">
-                <h4 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Preview Data</h4>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="preview-list"></div>
+            <!-- Kotak Preview Daftar Siaran MUX Terpilih -->
+            <div id="preview-container" class="hidden mt-7 p-4 sm:p-6 bg-slate-100/90 dark:bg-black/30 rounded-2xl border border-slate-200/90 dark:border-white/10">
+                <div class="flex items-center justify-between gap-2 mb-4">
+                    <h4 class="text-[11px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-satellite-dish text-teal-600 dark:text-teal-400"></i>
+                        <span>Preview Daftar Siaran</span>
+                    </h4>
+                    <span id="preview-count-badge" class="px-2.5 py-0.5 rounded-full bg-teal-500/15 border border-teal-500/30 text-teal-700 dark:text-teal-300 text-[10px] font-extrabold uppercase tracking-wider">
+                        0 Kanal
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3" id="preview-list"></div>
             </div>
 
         </div>
@@ -157,61 +218,83 @@
 $(document).ready(function () {
     
     function toggleState(hasMux) {
-        if(hasMux) {
+        if (hasMux) {
             $("#addDataBtn").addClass("hidden");
             $("#edit-buttons").removeClass("hidden").addClass("flex");
-            $("#status-text").html('<span class="text-green-600 font-bold"><i class="fa-solid fa-check-circle"></i> Data MUX ditemukan. Silakan Edit atau Hapus.</span>');
+            $("#status-text").html('<span class="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2"><i class="fa-solid fa-circle-check shrink-0"></i><span>Data MUX ditemukan. Silakan Edit atau Hapus.</span></span>');
             $("#preview-container").removeClass("hidden");
         } else {
             $("#addDataBtn").removeClass("hidden");
             $("#edit-buttons").addClass("hidden").removeClass("flex");
-            $("#status-text").html('<i class="fa-solid fa-info-circle"></i> Silakan pilih filter untuk mengedit data.');
+            $("#status-text").html('<i class="fa-solid fa-circle-info text-teal-600 dark:text-teal-400 shrink-0"></i><span>Silakan pilih filter Provinsi, Wilayah, dan MUX untuk mengedit data.</span>');
             $("#preview-container").addClass("hidden");
         }
     }
 
-    // 1. Provinsi
+    // 1. Pilih Provinsi -> Muat Wilayah
     $("#provinsi").change(function () {
         var val = $(this).val();
-        $("#wilayah").prop('disabled', true).html('<option>Memuat...</option>');
-        $("#mux").prop('disabled', true).html('<option>Menunggu Wilayah...</option>');
+        $("#wilayah").prop('disabled', true).html('<option value="">Memuat...</option>');
+        $("#mux").prop('disabled', true).html('<option value="">Menunggu Wilayah...</option>');
         toggleState(false);
         
         if (val) {
             $.getJSON("/get_wilayah", { provinsi: val }, function (data) {
                 var w = $("#wilayah").empty().append('<option value="">Pilih Wilayah</option>').prop('disabled', false);
-                if (data.wilayah) $.each(data.wilayah, function (i, item) { w.append('<option value="' + item + '">' + item + '</option>'); });
+                if (data.wilayah) {
+                    $.each(data.wilayah, function (i, item) {
+                        w.append($('<option></option>').val(item).text(item));
+                    });
+                }
             });
+        } else {
+            $("#wilayah").html('<option value="">Menunggu Provinsi...</option>');
         }
     });
 
-    // 2. Wilayah
+    // 2. Pilih Wilayah -> Muat MUX
     $("#wilayah").change(function () {
         var p = $("#provinsi").val(), w = $(this).val();
-        $("#mux").prop('disabled', true).html('<option>Memuat...</option>');
+        $("#mux").prop('disabled', true).html('<option value="">Memuat...</option>');
         toggleState(false);
 
         if (w) {
             $.getJSON("/get_mux", { provinsi: p, wilayah: w }, function (data) {
                 var m = $("#mux").empty().append('<option value="">Pilih MUX</option>').prop('disabled', false);
-                if (data.mux) $.each(data.mux, function (i, item) { m.append('<option value="' + item + '">' + item + '</option>'); });
+                if (data.mux) {
+                    $.each(data.mux, function (i, item) {
+                        m.append($('<option></option>').val(item).text(item));
+                    });
+                }
             });
+        } else {
+            $("#mux").html('<option value="">Menunggu Wilayah...</option>');
         }
     });
 
-    // 3. MUX Selected -> Show Buttons & Preview
+    // 3. Pilih MUX -> Tampilkan Tombol Edit/Hapus & Preview Kanal
     $("#mux").change(function () {
-        var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $(this).val();
+        var p = $("#provinsi").val(), w = $(this).val(), m = $(this).val();
         
         if (m) {
-            // Load Preview Data
             $.getJSON("/get_siaran", { provinsi: p, wilayah: w, mux: m }, function (data) {
                 toggleState(true);
                 var list = $("#preview-list").empty();
-                if(data.siaran) {
+                var jumlah = (data.siaran && data.siaran.length) ? data.siaran.length : 0;
+                $("#preview-count-badge").text(jumlah + " Kanal");
+
+                if (data.siaran && data.siaran.length > 0) {
                     $.each(data.siaran, function(i, s) {
-                        list.append(`<div class="bg-white p-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 truncate"><i class="fa-solid fa-tv text-blue-500 mr-2"></i>${s}</div>`);
+                        var safeText = $('<div>').text(s).html();
+                        list.append(
+                            `<div class="bg-white dark:bg-[#18181b] px-3.5 py-2.5 rounded-xl border border-slate-200/80 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-zinc-200 flex items-center gap-2.5 shadow-sm truncate">
+                                <i class="fa-solid fa-tv text-rose-500 shrink-0"></i>
+                                <span class="truncate">${safeText}</span>
+                            </div>`
+                        );
                     });
+                } else {
+                    list.append('<div class="col-span-full text-xs text-slate-500 dark:text-zinc-400 font-medium">Belum ada daftar kanal siaran pada MUX ini.</div>');
                 }
             });
         } else {
@@ -219,14 +302,14 @@ $(document).ready(function () {
         }
     });
 
-    // Actions
+    // Aksi Edit & Hapus
     $("#editDataBtn").click(function() {
         var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $("#mux").val();
         window.location.href = `/edit_data/${encodeURIComponent(p)}/${encodeURIComponent(w)}/${encodeURIComponent(m)}`;
     });
 
     $("#deleteDataBtn").click(function() {
-        if(confirm("⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus data ini secara permanen?")) {
+        if (confirm("⚠️ PERINGATAN: Apakah Anda yakin ingin menghapus data ini secara permanen?")) {
             var p = $("#provinsi").val(), w = $("#wilayah").val(), m = $("#mux").val();
             $.post(`/delete_data/${encodeURIComponent(p)}/${encodeURIComponent(w)}/${encodeURIComponent(m)}`, function() {
                 alert("Data berhasil dihapus.");
@@ -236,12 +319,4 @@ $(document).ready(function () {
     });
 });
 </script>
-
-<style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
-</style>
 {% endblock %}
