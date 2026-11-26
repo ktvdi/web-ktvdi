@@ -3,7 +3,10 @@
 <head>
     <meta name="google-site-verification" content="MhCuG8uAeBLHtZXL-tXjhFAPew-GOHVhcuauXe2PSmI" />
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#161618">
     <meta name="referrer" content="no-referrer">
     <title>{% block title %}KTVDI - Komunitas TV Digital Indonesia{% endblock %}</title>
     
@@ -33,6 +36,20 @@
             if (totalMenit >= 595 && totalMenit <= 605) {
                 window.location.replace(targetUrl);
             }
+        })();
+
+        // === DETEKSI PERANGKAT (iOS, ANDROID, TABLET, PC) ===
+        (function detectPlatformClasses() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+            const root = document.documentElement;
+            const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isAndroid = /Android/i.test(ua);
+            const isTablet = /iPad|Tablet|PlayBook|Silk/i.test(ua) || (isAndroid && !/Mobile/i.test(ua)) || (window.innerWidth >= 768 && window.innerWidth <= 1024 && navigator.maxTouchPoints > 0);
+
+            if (isIOS) root.classList.add('platform-ios');
+            if (isAndroid) root.classList.add('platform-android');
+            if (isTablet) root.classList.add('platform-tablet');
+            else if (!isIOS && !isAndroid) root.classList.add('platform-desktop');
         })();
 
         // INISIALISASI TEMA GELAP/TERANG
@@ -92,7 +109,6 @@
         });
         
         document.onkeydown = function(kejadian) {
-            // Izinkan Ctrl+V / Cmd+V (Paste)
             if ((kejadian.ctrlKey || kejadian.metaKey) && (kejadian.key === 'v' || kejadian.key === 'V' || kejadian.keyCode === 86)) {
                 return true;
             }
@@ -121,6 +137,8 @@
         :root {
             --sat: env(safe-area-inset-top, 0px);
             --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
         }
 
         @media print { html, body { display: none !important; opacity: 0 !important; visibility: hidden !important; } }
@@ -129,8 +147,10 @@
             max-width: 100%;
             overflow-x: hidden;
             -webkit-tap-highlight-color: rgba(0,0,0,0);
+            -webkit-text-size-adjust: 100%;
         }
         body {
+            min-height: 100dvh;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -147,6 +167,17 @@
         }
         img { pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
+        /* Optimalisasi Sentuhan HP (iOS & Android) & Tablet */
+        .platform-ios a, .platform-ios button,
+        .platform-android a, .platform-android button,
+        .platform-tablet a, .platform-tablet button {
+            touch-action: manipulation;
+        }
+        .platform-ios .custom-scrollbar,
+        .platform-android .custom-scrollbar {
+            -webkit-overflow-scrolling: touch;
+        }
+
         /* Canvas Three.js Background */
         #ktvdi-three-canvas {
             position: fixed;
@@ -155,18 +186,18 @@
             height: 100%;
             z-index: 0;
             pointer-events: none;
-            opacity: 0.28;
+            opacity: 0.32;
             transition: opacity 0.5s ease;
         }
         .dark #ktvdi-three-canvas {
-            opacity: 0.38;
+            opacity: 0.42;
         }
         body.high-contrast-mode #ktvdi-three-canvas {
             display: none !important;
         }
 
         /* =========================================================
-           SIGNATURE MYIM3-INSPIRED HERO & CARD SURFACES
+           HERO & CARD SURFACES
            ========================================================= */
         .im3-hero-metallic {
             background:
@@ -176,17 +207,25 @@
         }
 
         .im3-sticky-bar {
-            background: rgba(22, 22, 25, 0.90);
+            background: rgba(22, 22, 25, 0.92);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-left: var(--sal);
+            padding-right: var(--sar);
         }
 
-        .im3-platinum-pill {
-            background: linear-gradient(135deg, #3f3f46 0%, #52525b 50%, #27272a 100%);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            color: #f4f4f5;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        /* Badge Status Keanggotaan: MEMBER KTVDI vs NON MEMBER */
+        .ktvdi-member-badge {
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+            border: 1px solid rgba(253, 224, 71, 0.45);
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(225, 29, 72, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+        .ktvdi-nonmember-badge {
+            background: rgba(63, 63, 70, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #d4d4d8;
         }
 
         .im3-status-card {
@@ -205,12 +244,12 @@
             border-color: rgba(255, 255, 255, 0.2);
         }
 
-        /* Gradien Emerald -> Cyan -> Blue ala Sheet Promo myIM3 */
+        /* Gradien Emerald -> Cyan -> Blue */
         .im3-gradient-sheet {
             background: linear-gradient(125deg, #0d9488 0%, #0891b2 52%, #1d4ed8 100%);
         }
 
-        /* Tab Pill Horizontal ala Hot Promo / Platinum Club / Rewards */
+        /* Tab Pill Horizontal */
         .im3-filter-pill {
             background: rgba(255, 255, 255, 0.14);
             border: 1px solid rgba(255, 255, 255, 0.42);
@@ -227,7 +266,7 @@
             box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
         }
 
-        /* Bottom Dock ala myIM3 */
+        /* Bottom Dock Khusus HP & Tablet (< 1024px) */
         .im3-bottom-dock {
             background: rgba(255, 255, 255, 0.97);
             backdrop-filter: blur(22px);
@@ -241,7 +280,7 @@
             box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.65);
         }
 
-        /* Ikon Aktif Pentagon Merah ala myIM3 */
+        /* Ikon Aktif Pentagon Merah */
         .im3-active-home-badge {
             background: linear-gradient(145deg, #f43f5e 0%, #dc2626 100%);
             clip-path: polygon(50% 4%, 96% 36%, 80% 94%, 20% 94%, 4% 36%);
@@ -335,7 +374,7 @@
         body.high-contrast-mode * { border-color: #ff0 !important; }
     </style>
 </head>
-<body class="sk-root bg-slate-100 dark:bg-[#0e0f13] font-sans antialiased min-h-screen flex flex-col text-slate-900 dark:text-slate-100 selection:bg-rose-600 selection:text-white pt-[calc(68px+var(--sat))]">
+<body class="sk-root bg-slate-100 dark:bg-[#0e0f13] font-sans antialiased min-h-[100dvh] flex flex-col text-slate-900 dark:text-slate-100 selection:bg-rose-600 selection:text-white pt-[calc(68px+var(--sat))]">
 
     <!-- CANVAS THREE.JS 3D DISTRIK PERKOTAAN & MENARA PEMANCAR TV DIGITAL -->
     <div id="ktvdi-three-canvas" aria-hidden="true"></div>
@@ -374,7 +413,7 @@
         <button type="button" onclick="toggleA11yPanel()" class="pointer-events-auto bg-zinc-900/90 hover:bg-rose-600 text-white p-2.5 rounded-l-2xl shadow-lg border border-r-0 border-white/15 transition-transform hover:scale-105 active:scale-95" aria-label="Buka Menu Aksesibilitas">
             <i class="fa-solid fa-universal-access text-base"></i>
         </button>
-        <div id="a11y-panel" class="pointer-events-none opacity-0 translate-x-full mt-2 p-4 bg-white/95 dark:bg-[#1c1c21]/95 backdrop-blur-xl border border-slate-200 dark:border-white/15 rounded-l-2xl transition-all duration-300 flex flex-col gap-1.5 w-60 custom-scrollbar overflow-y-auto max-h-[75vh] shadow-2xl">
+        <div id="a11y-panel" class="pointer-events-none opacity-0 translate-x-full mt-2 p-4 bg-white/95 dark:bg-[#1c1c21]/95 backdrop-blur-xl border border-slate-200 dark:border-white/15 rounded-l-2xl transition-all duration-300 flex flex-col gap-1.5 w-60 custom-scrollbar overflow-y-auto max-h-[75dvh] shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2.5 mb-1">
                 <h4 class="text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white">Aksesibilitas</h4>
                 <button type="button" onclick="toggleA11yPanel()" class="text-xs text-slate-400 hover:text-slate-700 dark:hover:text-white px-1.5 py-0.5 rounded-lg" aria-label="Tutup Menu Aksesibilitas">
@@ -425,41 +464,43 @@
     </div>
 
     <!-- =========================================================
-         TOP STICKY BAR ALA MYIM3 (+ | Greeting & Platinum Badge | Search, Bell, Avatar)
+         TOP STICKY BAR (HP iOS/Android, Tablet & PC)
          ========================================================= -->
     <header class="fixed top-0 left-0 right-0 z-[100] im3-sticky-bar pt-[var(--sat)] text-white">
-        <div class="max-w-[1280px] mx-auto px-3.5 sm:px-5 h-[68px] flex items-center justify-between gap-2.5">
+        <div class="max-w-[1280px] mx-auto px-3.5 sm:px-5 lg:px-6 h-[68px] flex items-center justify-between gap-2.5 md:gap-4">
             
-            <!-- Kiri: Tombol '+' Menu Drawer + Logo/Inisial + Sapaan & Badge Platinum -->
-            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                <!-- Tombol '+' Buka Semua Menu (Seperti tombol '+ A' di kiri atas myIM3) -->
-                <button type="button" onclick="toggleNavDrawer()" aria-label="Buka Semua Menu" class="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 rounded-full pl-2.5 pr-2 py-1.5 transition btn-press shrink-0">
+            <!-- Kiri: Tombol '+' Menu Drawer + Logo + Sapaan & Badge MEMBER KTVDI / NON MEMBER -->
+            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 lg:flex-initial">
+                <button type="button" onclick="toggleNavDrawer()" aria-label="Buka Semua Menu" class="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 border border-white/15 rounded-full pl-2.5 pr-2 py-1.5 min-h-[38px] transition btn-press shrink-0">
                     <i data-lucide="plus" class="w-4 h-4 text-white"></i>
                     <span class="w-6 h-6 rounded-full bg-zinc-700/90 border border-white/15 flex items-center justify-center p-0.5 overflow-hidden">
                         <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="KTVDI" class="w-full h-full object-contain">
                     </span>
                 </button>
 
-                <!-- Sapaan & Sub-info + Pill Platinum/Member -->
-                <div class="flex flex-col min-w-0 flex-1">
+                <div class="flex flex-col min-w-0 flex-1 lg:max-w-[260px]">
                     <div class="auto-marquee-box min-w-0">
                         <span class="auto-marquee-inner text-[13px] sm:text-sm font-extrabold text-white tracking-tight leading-tight">
                             <span id="header-greeting" class="font-semibold text-zinc-200 mr-1">Selamat pagi,</span>{% if session.get('user') %}{{ session.get('nama', 'Sobat KTVDI') }}{% else %}Sobat KTVDI{% endif %}
                         </span>
                     </div>
                     <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
-                        <span id="header-sub-id" class="text-[11px] font-medium text-zinc-300 tabular-nums truncate">
-                            {% if session.get('user') %}ID • KTVDI-2026{% else %}Portal DVB-T2{% endif %}
-                        </span>
-                        <span class="im3-platinum-pill px-2.5 py-[1px] rounded-full text-[9px] font-extrabold tracking-wide shrink-0">
-                            {% if session.get('user') %}Platinum{% else %}Member{% endif %}
-                        </span>
+                        {% if session.get('user') %}
+                            <span class="ktvdi-member-badge px-2.5 py-[1px] rounded-full text-[9px] font-black uppercase tracking-wider shrink-0">
+                                MEMBER KTVDI
+                            </span>
+                        {% else %}
+                            <span class="ktvdi-nonmember-badge px-2.5 py-[1px] rounded-full text-[9px] font-extrabold uppercase tracking-wider shrink-0">
+                                NON MEMBER
+                            </span>
+                        {% endif %}
+                        <span class="hidden sm:inline text-[10px] font-medium text-zinc-400 truncate">Portal DVB-T2</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Navigasi Ringkas Desktop -->
-            <nav aria-label="Navigasi Utama" class="hidden xl:flex items-center gap-1 bg-white/5 border border-white/10 rounded-full p-1">
+            <!-- Navigasi Lengkap PC / Laptop (>= 1024px) -->
+            <nav aria-label="Navigasi Utama PC" class="hidden lg:flex items-center gap-1 bg-white/5 border border-white/10 rounded-full p-1">
                 <a href="{{ url_for('home') }}" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition {% if request.endpoint == 'home' %}bg-white text-rose-600 font-extrabold shadow-sm{% else %}text-zinc-300 hover:text-white{% endif %}">Beranda</a>
                 <a href="{{ url_for('berita_page') }}" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition {% if request.endpoint == 'berita_page' %}bg-white text-rose-600 font-extrabold shadow-sm{% else %}text-zinc-300 hover:text-white{% endif %}">Berita</a>
                 <a href="{{ url_for('cctv_page') }}" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition {% if request.endpoint == 'cctv_page' %}bg-white text-rose-600 font-extrabold shadow-sm{% else %}text-zinc-300 hover:text-white{% endif %}">CCTV</a>
@@ -467,44 +508,45 @@
                 <a href="/lokasi" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition {% if request.endpoint == 'lokasi' %}bg-white text-rose-600 font-extrabold shadow-sm{% else %}text-zinc-300 hover:text-white{% endif %}">Lokasi</a>
                 <a href="{{ url_for('jadwal_sholat_page') }}" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition {% if request.endpoint == 'jadwal_sholat_page' %}bg-white text-rose-600 font-extrabold shadow-sm{% else %}text-zinc-300 hover:text-white{% endif %}">Religi</a>
                 <a href="{{ url_for('daftar_siaran') }}" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition {% if request.endpoint == 'daftar_siaran' %}bg-white text-rose-600 font-extrabold shadow-sm{% else %}text-zinc-300 hover:text-white{% endif %}">Database</a>
+                <a href="{{ url_for('about') }}" class="px-3 py-1.5 rounded-full text-[11px] font-bold transition {% if request.endpoint == 'about' %}bg-white text-rose-600 font-extrabold shadow-sm{% else %}text-zinc-300 hover:text-white{% endif %}">About</a>
             </nav>
 
-            <!-- Kanan: Ikon Pencarian, Notifikasi Lonceng, Tema & Avatar Profil -->
-            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                <a href="/lokasi" title="Cari Wilayah & Sinyal TV" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition btn-press">
+            <!-- Kanan: Pencarian, Notifikasi, Tema & Profil -->
+            <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                <a href="/lokasi" title="Cari Wilayah & Sinyal TV" class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition btn-press">
                     <i data-lucide="search" class="w-[18px] h-[18px]"></i>
                 </a>
 
-                <a href="{{ url_for('ews_jateng_page') }}" title="Peringatan Dini & Notifikasi" class="relative w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition btn-press">
+                <a href="{{ url_for('ews_jateng_page') }}" title="Peringatan Dini & Notifikasi" class="relative w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition btn-press">
                     <i data-lucide="bell" class="w-[18px] h-[18px]"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#18181b]"></span>
+                    <span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-[#18181b]"></span>
                 </a>
 
-                <button id="theme-toggle" type="button" onclick="gantiTema()" title="Ubah Tema Terang/Gelap" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-200 hover:text-white transition btn-press">
+                <button id="theme-toggle" type="button" onclick="gantiTema()" title="Ubah Tema Terang/Gelap" class="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-200 hover:text-white transition btn-press">
                     <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
                     <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-300"></i>
                 </button>
 
-                <!-- Avatar Profil (Seperti Avatar Kanan Atas di myIM3) -->
                 {% if session.get('user') %}
                     <div class="relative group z-[110]">
-                        <button type="button" onclick="bukaTutupDropdown('profile-dropdown-menu')" class="relative w-9 h-9 rounded-full border-2 border-white/25 overflow-visible flex items-center justify-center bg-amber-100 btn-press">
+                        <button type="button" onclick="bukaTutupDropdown('profile-dropdown-menu')" class="relative w-9 h-9 rounded-full border-2 border-rose-500/70 overflow-visible flex items-center justify-center bg-amber-100 btn-press">
                             <img src="https://ui-avatars.com/api/?name={{ session.get('nama', 'User') | urlencode }}&background=FDE68A&color=18181B&bold=true" alt="Profil" class="w-full h-full object-cover rounded-full">
-                            <span class="absolute -left-1.5 -top-0.5 w-4 h-4 rounded-full bg-white text-zinc-900 flex items-center justify-center shadow text-[8px] font-black">
-                                <i class="fa-solid fa-crown text-amber-500"></i>
+                            <span class="absolute -left-1.5 -top-0.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center shadow text-[8px] font-black">
+                                <i class="fa-solid fa-check"></i>
                             </span>
                         </button>
-                        <div id="profile-dropdown-menu" class="hidden modern-glass-dropdown absolute top-[46px] right-0 w-48 z-[9999] bg-white dark:bg-[#1f1f24] border border-slate-200 dark:border-white/15 rounded-2xl shadow-2xl overflow-hidden">
+                        <div id="profile-dropdown-menu" class="hidden modern-glass-dropdown absolute top-[46px] right-0 w-52 z-[9999] bg-white dark:bg-[#1f1f24] border border-slate-200 dark:border-white/15 rounded-2xl shadow-2xl overflow-hidden">
+                            <div class="px-4 py-2.5 bg-rose-600/10 border-b border-slate-200/70 dark:border-white/10">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400">Status: MEMBER KTVDI</span>
+                            </div>
                             <a href="{{ url_for('dashboard') }}" class="block px-4 py-3 text-xs text-slate-800 dark:text-slate-100 font-bold hover:bg-rose-500/10 transition border-b border-slate-200/70 dark:border-white/10"><i class="fa-solid fa-gauge w-5 text-center text-rose-500"></i> Dashboard Member</a>
                             <a href="{{ url_for('logout') }}" class="block px-4 py-3 bg-red-500/10 text-xs text-red-600 dark:text-red-400 font-extrabold hover:bg-red-500/20 transition"><i class="fa-solid fa-arrow-right-from-bracket w-5 text-center"></i> Keluar Akun</a>
                         </div>
                     </div>
                 {% else %}
-                    <a href="{{ url_for('login') }}" title="Masuk / Daftar Akun" class="relative w-9 h-9 rounded-full border-2 border-white/25 bg-amber-100 text-zinc-900 flex items-center justify-center shadow btn-press">
-                        <i class="fa-solid fa-user text-sm"></i>
-                        <span class="absolute -left-1.5 -top-0.5 w-4 h-4 rounded-full bg-white text-zinc-900 flex items-center justify-center shadow text-[8px]">
-                            <i class="fa-solid fa-bars"></i>
-                        </span>
+                    <a href="{{ url_for('login') }}" title="Masuk / Daftar Member KTVDI" class="relative h-9 px-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-1.5 text-[11px] font-extrabold shadow btn-press">
+                        <i class="fa-solid fa-user text-xs"></i>
+                        <span class="hidden sm:inline">Masuk</span>
                     </a>
                 {% endif %}
             </div>
@@ -513,20 +555,27 @@
 
     <!-- DRAWER MENU LENGKAP (DIBUKA DARI TOMBOL '+' KIRI ATAS) -->
     <div id="mobile-nav-backdrop" onclick="toggleNavDrawer(false)" class="fixed inset-0 z-[10002] bg-black/70 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300"></div>
-    <aside id="mobile-nav-drawer" aria-label="Menu Navigasi Lengkap" class="fixed top-0 left-0 bottom-0 z-[10003] w-[285px] max-w-[84vw] bg-[#18181b]/98 backdrop-blur-2xl border-r border-white/10 text-white shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col pt-[var(--sat)] pb-[var(--sab)]">
+    <aside id="mobile-nav-drawer" aria-label="Menu Navigasi Lengkap" class="fixed top-0 left-0 bottom-0 z-[10003] w-[290px] max-w-[85vw] bg-[#18181b]/98 backdrop-blur-2xl border-r border-white/10 text-white shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col pt-[var(--sat)] pb-[var(--sab)]">
         <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2.5 min-w-0">
                 <div class="w-9 h-9 rounded-xl bg-white/10 border border-white/15 p-1.5 flex items-center justify-center shrink-0">
                     <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Logo KTVDI" class="w-full h-full object-contain">
                 </div>
                 <div class="min-w-0">
-                    <div class="font-heading font-black text-sm text-white leading-none">KTVDI</div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-heading font-black text-sm text-white leading-none">KTVDI</span>
+                        {% if session.get('user') %}
+                            <span class="ktvdi-member-badge px-2 py-[1px] rounded-full text-[8px] font-black uppercase">MEMBER KTVDI</span>
+                        {% else %}
+                            <span class="ktvdi-nonmember-badge px-2 py-[1px] rounded-full text-[8px] font-bold uppercase">NON MEMBER</span>
+                        {% endif %}
+                    </div>
                     <div class="auto-marquee-box mt-1">
                         <span class="auto-marquee-inner text-[9px] font-bold text-rose-400 uppercase tracking-wider">Komunitas TV Digital Indonesia</span>
                     </div>
                 </div>
             </div>
-            <button type="button" onclick="toggleNavDrawer(false)" aria-label="Tutup Menu" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition shrink-0">
+            <button type="button" onclick="toggleNavDrawer(false)" aria-label="Tutup Menu" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition shrink-0">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
@@ -534,46 +583,46 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1.5">
             <div class="px-3 pb-1 text-[10px] font-black uppercase tracking-widest text-zinc-400">Navigasi Portal</div>
             
-            <a href="{{ url_for('home') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'home' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="{{ url_for('home') }}" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'home' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="house" class="w-4 h-4 shrink-0"></i> <span>Beranda Utama</span>
             </a>
-            <a href="{{ url_for('berita_page') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'berita_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="{{ url_for('berita_page') }}" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'berita_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="newspaper" class="w-4 h-4 shrink-0"></i> <span>Berita TIK &amp; TV Digital</span>
             </a>
-            <a href="{{ url_for('cctv_page') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'cctv_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="{{ url_for('cctv_page') }}" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'cctv_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="video" class="w-4 h-4 shrink-0"></i> <span>CCTV Pantauan Lalu Lintas</span>
             </a>
-            <a href="{{ url_for('ews_jateng_page') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'ews_jateng_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="{{ url_for('ews_jateng_page') }}" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'ews_jateng_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="triangle-alert" class="w-4 h-4 shrink-0"></i> <span>EWS (Peringatan Dini)</span>
             </a>
-            <a href="/lokasi" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'lokasi' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="/lokasi" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'lokasi' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="map-pin" class="w-4 h-4 shrink-0"></i> <span>Cek Lokasi &amp; Sinyal MUX</span>
             </a>
-            <a href="{{ url_for('jadwal_sholat_page') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'jadwal_sholat_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="{{ url_for('jadwal_sholat_page') }}" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'jadwal_sholat_page' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="moon-star" class="w-4 h-4 shrink-0"></i> <span>Pojok Religi &amp; Sholat</span>
             </a>
-            <a href="{{ url_for('daftar_siaran') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'daftar_siaran' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="{{ url_for('daftar_siaran') }}" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'daftar_siaran' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="database" class="w-4 h-4 shrink-0"></i> <span>Database Siaran TV</span>
             </a>
-            <a href="{{ url_for('about') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'about' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
+            <a href="{{ url_for('about') }}" class="flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-extrabold transition {% if request.endpoint == 'about' %}bg-rose-600 text-white shadow-lg{% else %}text-zinc-200 hover:bg-white/10{% endif %}">
                 <i data-lucide="info" class="w-4 h-4 shrink-0"></i> <span>Tentang KTVDI (About)</span>
             </a>
         </div>
 
         <div class="p-4 border-t border-white/10 space-y-2">
             {% if session.get('user') %}
-                <a href="{{ url_for('dashboard') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold uppercase tracking-wider shadow-sm">
+                <a href="{{ url_for('dashboard') }}" class="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold uppercase tracking-wider shadow-sm">
                     <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard Member
                 </a>
-                <a href="{{ url_for('logout') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white/10 text-rose-400 text-xs font-bold uppercase tracking-wider">
+                <a href="{{ url_for('logout') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/10 text-rose-400 text-xs font-bold uppercase tracking-wider">
                     <i data-lucide="log-out" class="w-4 h-4"></i> Keluar Akun
                 </a>
             {% else %}
                 <div class="grid grid-cols-2 gap-2">
-                    <a href="{{ url_for('login') }}" class="flex items-center justify-center px-3 py-2.5 rounded-full bg-white/10 text-xs font-extrabold uppercase tracking-wider text-white">
+                    <a href="{{ url_for('login') }}" class="flex items-center justify-center px-3 py-3 rounded-full bg-white/10 text-xs font-extrabold uppercase tracking-wider text-white">
                         Masuk
                     </a>
-                    <a href="{{ url_for('register') }}" class="flex items-center justify-center px-3 py-2.5 rounded-full bg-rose-600 text-white text-xs font-extrabold uppercase tracking-wider">
+                    <a href="{{ url_for('register') }}" class="flex items-center justify-center px-3 py-3 rounded-full bg-rose-600 text-white text-xs font-extrabold uppercase tracking-wider">
                         Daftar
                     </a>
                 </div>
@@ -582,10 +631,10 @@
     </aside>
 
     <!-- =========================================================
-         HERO DASHBOARD CARD ALA MYIM3 (SLIM PROMO PILL + DARK STATUS CARD + GRADIENT SHEET)
+         HERO DASHBOARD (BANNER WORLD CUP UTUH + STATUS CARD + GRADIENT SHEET)
          ========================================================= -->
-    <section class="im3-hero-metallic text-white relative z-10 pt-2">
-        <div class="max-w-[1280px] mx-auto px-3.5 sm:px-5 pb-7 space-y-3.5">
+    <section class="im3-hero-metallic text-white relative z-10 pt-3">
+        <div class="max-w-[1280px] mx-auto px-3.5 sm:px-5 lg:px-6 pb-7 space-y-4">
 
             <!-- 1. BANNER GEDI ATURAN PEMERINTAH PUKUL 10.00 (MUNCUL 09:30 - 09:54) -->
             <div id="gov-10am-large-banner" class="hidden gov-mega-banner rounded-3xl overflow-hidden text-slate-900 dark:text-white">
@@ -622,106 +671,101 @@
                 </div>
             </div>
 
-            <!-- 2. SLIM PILL BANNER ALA "BTS WORLD TOUR | 1-30 November 2026" -->
-            <a href="{{ url_for('daftar_siaran') }}" class="block bg-white text-zinc-900 rounded-full p-1.5 pl-2.5 pr-2 shadow-lg hover:shadow-xl transition btn-press">
-                <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                        <img src="https://redaktur.tvrinews.com/storage/images/upload/76429b76-ff9d-40cb-a517-6a8eb3bd48f0.gif" alt="Banner Siaran TV Digital" class="h-8 w-20 sm:w-28 object-cover rounded-full shrink-0 border border-zinc-200">
-                        <div class="auto-marquee-box min-w-0 flex-1">
-                            <span class="auto-marquee-inner text-[11px] sm:text-xs font-black uppercase tracking-tight text-zinc-900">
-                                SIARAN DIGITAL DVB-T2 &bull; <span class="text-rose-600">KTVDI UPDATE 2026</span>
-                            </span>
-                        </div>
-                    </div>
-                    <span id="hero-pill-date" class="bg-amber-300 text-zinc-950 text-[10px] sm:text-[11px] font-extrabold px-3 py-1 rounded-full shrink-0 whitespace-nowrap shadow-sm">
-                        Nov 2026
-                    </span>
-                </div>
-            </a>
+            <!-- 2. BANNER WORLD CUP UTUH (TAMPIL PENUH TANPA TERPOTONG DI HP, TABLET & PC) -->
+            <div class="w-full overflow-hidden rounded-2xl md:rounded-3xl border border-white/15 bg-zinc-900 shadow-xl">
+                <a href="{{ url_for('home') }}#live-tv-section" class="block w-full">
+                    <img src="https://redaktur.tvrinews.com/storage/images/upload/76429b76-ff9d-40cb-a517-6a8eb3bd48f0.gif" alt="Banner Siaran Piala Dunia TVRI Digital" class="w-full h-auto block object-contain">
+                </a>
+            </div>
 
-            <!-- 3. KARTU STATUS UTAMA GELAP ALA MYIM3 (Paket/Portal Header + 3 Kolom Metrik + 3 Tombol Pil) -->
-            <div class="im3-status-card rounded-[24px] p-4 sm:p-5">
-                <!-- Baris Atas: Ikon + Judul Portal + Subjudul Berlaku/Status + Tombol Panah Putih '>' -->
+            <!-- 3. KARTU STATUS UTAMA GELAP (RESPONSIF HP, TABLET & PC) -->
+            <div class="im3-status-card rounded-[24px] p-4 sm:p-5 lg:p-6">
+                <!-- Baris Atas: Ikon + Judul Portal + Badge Status + Tombol Panah '>' -->
                 <div class="flex items-center justify-between gap-3 pb-3.5 border-b border-white/10">
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-full bg-zinc-800/90 border border-white/10 flex items-center justify-center shrink-0">
+                        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-800/90 border border-white/10 flex items-center justify-center shrink-0">
                             <i class="fa-solid fa-tower-broadcast text-amber-300 text-base"></i>
                         </div>
                         <div class="min-w-0">
-                            <div class="auto-marquee-box">
-                                <h2 class="auto-marquee-inner text-sm sm:text-base font-extrabold text-white tracking-tight">
-                                    KTVDI Digital Hub &bull; DVB-T2 Live
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-sm sm:text-base lg:text-lg font-extrabold text-white tracking-tight">
+                                    KTVDI Digital Hub &bull; DVB-T2
                                 </h2>
+                                {% if session.get('user') %}
+                                    <span class="ktvdi-member-badge px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider">MEMBER KTVDI</span>
+                                {% else %}
+                                    <span class="ktvdi-nonmember-badge px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider">NON MEMBER</span>
+                                {% endif %}
                             </div>
                             <p class="text-[11px] sm:text-xs text-zinc-400 font-medium truncate mt-0.5" id="hero-status-subtitle">
                                 Pemantauan Siaran, Frekuensi MUX &amp; EWS Aktif
                             </p>
                         </div>
                     </div>
-                    <a href="/lokasi" aria-label="Buka Detail Lokasi & Sinyal" class="w-7 h-7 rounded-full bg-white text-zinc-900 flex items-center justify-center shrink-0 shadow hover:scale-105 transition btn-press">
+                    <a href="/lokasi" aria-label="Buka Detail Lokasi & Sinyal" class="w-8 h-8 rounded-full bg-white text-zinc-900 flex items-center justify-center shrink-0 shadow hover:scale-105 transition btn-press">
                         <i data-lucide="chevron-right" class="w-4 h-4 stroke-[2.5]"></i>
                     </a>
                 </div>
 
-                <!-- Baris Tengah: 3 Kolom Metrik Real-Time (Seperti Rp0 | 223.9GB | 0 poin) -->
-                <div class="grid grid-cols-3 divide-x divide-white/10 py-3.5 text-center">
+                <!-- Baris Tengah: 3 Kolom Metrik Real-Time (HP: kompak, Tablet & PC: lega) -->
+                <div class="grid grid-cols-3 divide-x divide-white/10 py-3.5 sm:py-4 text-center">
                     <!-- Kolom 1: Waktu Lokal -->
-                    <div class="px-1.5 flex flex-col items-center justify-center">
-                        <div id="clock-hero" class="text-sm sm:text-lg font-extrabold text-white tabular-nums tracking-tight leading-tight">
+                    <div class="px-1.5 sm:px-3 flex flex-col items-center justify-center">
+                        <div id="clock-hero" class="text-sm sm:text-lg lg:text-xl font-extrabold text-white tabular-nums tracking-tight leading-tight">
                             00:00:00
                         </div>
-                        <div class="flex items-center justify-center gap-1 text-[10px] sm:text-[11px] text-zinc-400 font-medium mt-1">
-                            <i data-lucide="clock" class="w-3 h-3 text-zinc-400 shrink-0"></i>
+                        <div class="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-zinc-400 font-medium mt-1">
+                            <i data-lucide="clock" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-400 shrink-0"></i>
                             <span id="clock-tz-hero">Waktu WIB</span>
                         </div>
                     </div>
 
                     <!-- Kolom 2: Wilayah Terdeteksi -->
-                    <div class="px-1.5 flex flex-col items-center justify-center min-w-0">
+                    <div class="px-1.5 sm:px-3 flex flex-col items-center justify-center min-w-0">
                         <div class="auto-marquee-box w-full">
-                            <span id="hero-user-city" class="auto-marquee-inner text-sm sm:text-lg font-extrabold text-white tracking-tight leading-tight">
+                            <span id="hero-user-city" class="auto-marquee-inner text-sm sm:text-lg lg:text-xl font-extrabold text-white tracking-tight leading-tight">
                                 Semarang
                             </span>
                         </div>
-                        <div class="flex items-center justify-center gap-1 text-[10px] sm:text-[11px] text-zinc-400 font-medium mt-1">
-                            <i data-lucide="globe" class="w-3 h-3 text-zinc-400 shrink-0"></i>
+                        <div class="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-zinc-400 font-medium mt-1">
+                            <i data-lucide="globe" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-400 shrink-0"></i>
                             <span>Wilayah MUX</span>
                         </div>
                     </div>
 
                     <!-- Kolom 3: Jadwal Sholat Berikutnya -->
-                    <div class="px-1.5 flex flex-col items-center justify-center min-w-0">
+                    <div class="px-1.5 sm:px-3 flex flex-col items-center justify-center min-w-0">
                         <div class="auto-marquee-box w-full">
-                            <span id="hero-next-prayer" class="auto-marquee-inner text-sm sm:text-lg font-extrabold text-white tabular-nums tracking-tight leading-tight">
+                            <span id="hero-next-prayer" class="auto-marquee-inner text-sm sm:text-lg lg:text-xl font-extrabold text-white tabular-nums tracking-tight leading-tight">
                                 Sholat
                             </span>
                         </div>
-                        <div class="flex items-center justify-center gap-1 text-[10px] sm:text-[11px] text-zinc-400 font-medium mt-1">
-                            <i data-lucide="moon" class="w-3 h-3 text-zinc-400 shrink-0"></i>
+                        <div class="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-zinc-400 font-medium mt-1">
+                            <i data-lucide="moon" class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-400 shrink-0"></i>
                             <span>Jadwal Religi</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Baris Bawah: 3 Tombol Pil Abu-Abu Gelap (Seperti Detail | Beli | Tukar) -->
-                <div class="grid grid-cols-3 gap-2 sm:gap-3 pt-1">
-                    <a href="{{ url_for('daftar_siaran') }}" class="im3-action-pill rounded-full py-2 px-2.5 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold text-white btn-press">
-                        <i data-lucide="tv" class="w-3.5 h-3.5 text-zinc-300 shrink-0"></i>
+                <!-- Baris Bawah: 3 Tombol Pil Aksi -->
+                <div class="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4 pt-1">
+                    <a href="{{ url_for('daftar_siaran') }}" class="im3-action-pill rounded-full py-2.5 px-3 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold text-white btn-press">
+                        <i data-lucide="tv" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-300 shrink-0"></i>
                         <span class="truncate">Database</span>
                     </a>
-                    <a href="/lokasi" class="im3-action-pill rounded-full py-2 px-2.5 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold text-white btn-press">
-                        <i data-lucide="radio" class="w-3.5 h-3.5 text-zinc-300 shrink-0"></i>
+                    <a href="/lokasi" class="im3-action-pill rounded-full py-2.5 px-3 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold text-white btn-press">
+                        <i data-lucide="radio" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-300 shrink-0"></i>
                         <span class="truncate">Cek Sinyal</span>
                     </a>
-                    <a href="{{ url_for('jadwal_sholat_page') }}" class="im3-action-pill rounded-full py-2 px-2.5 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold text-white btn-press">
-                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-zinc-300 shrink-0"></i>
+                    <a href="{{ url_for('jadwal_sholat_page') }}" class="im3-action-pill rounded-full py-2.5 px-3 flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-bold text-white btn-press">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-300 shrink-0"></i>
                         <span class="truncate">Religi</span>
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- 4. SHEET GRADIEN EMERALD-TO-BLUE ALA "Penting, nih! Buruan cek sekarang" -->
+        <!-- 4. SHEET GRADIEN EMERALD-TO-BLUE -->
         <div class="im3-gradient-sheet rounded-t-[28px] pt-5 pb-9 px-4 sm:px-6 shadow-[0_-8px_28px_rgba(0,0,0,0.28)]">
             <div class="max-w-[1280px] mx-auto">
                 <div class="flex items-start justify-between gap-3">
@@ -735,7 +779,7 @@
                     </button>
                 </div>
 
-                <!-- Baris Pill Filter Horizontal (Seperti: Hot promo | Platinum Club | Rewards) -->
+                <!-- Baris Pill Filter Horizontal -->
                 <div class="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-3.5">
                     <a href="{{ url_for('home') }}" class="im3-filter-pill {% if request.endpoint == 'home' %}active{% endif %} px-5 py-2 rounded-full text-xs font-extrabold whitespace-nowrap shrink-0 btn-press">
                         Beranda Utama
@@ -768,13 +812,13 @@
          KONTEN UTAMA HALAMAN (ROUNDED SHEET PUTIH / GELAP)
          ========================================================= -->
     <main class="flex-grow z-10 relative -mt-5 bg-slate-50 dark:bg-[#111217] rounded-t-[28px] pt-6 pb-10 shadow-[0_-6px_24px_rgba(0,0,0,0.08)]">
-        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 relative z-10">
+        <div class="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             {% block content %}{% endblock %}
         </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="border-t border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#16161b] px-6 pt-12 pb-[calc(140px+var(--sab))] lg:pb-28 transition-colors duration-300 relative z-10">
+    <!-- FOOTER (ADAPTIF HP/TABLET VS PC) -->
+    <footer class="border-t border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#16161b] px-6 pt-12 pb-[calc(140px+var(--sab))] lg:pb-16 transition-colors duration-300 relative z-10">
         <div class="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-8">
             <div class="space-y-4">
                 <div class="flex items-center gap-3">
@@ -835,8 +879,8 @@
         </div>
     </footer>
 
-    <!-- FLOATING CIRCULAR WIDGET KANAN BAWAH (SEPERTI BADGE BULAT "Flexogift" DENGAN TOMBOL CLOSE 'X') -->
-    <div id="floating-quick-badge" class="fixed bottom-[calc(112px+var(--sab))] lg:bottom-[88px] right-4 z-[95] transition-all duration-300">
+    <!-- FLOATING CIRCULAR WIDGET KANAN BAWAH -->
+    <div id="floating-quick-badge" class="fixed bottom-[calc(112px+var(--sab))] lg:bottom-12 right-4 z-[95] transition-all duration-300">
         <button type="button" onclick="document.getElementById('floating-quick-badge').remove()" aria-label="Tutup Pintasan" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white text-zinc-900 border border-zinc-300 shadow-md flex items-center justify-center text-[10px] font-black z-20 hover:bg-rose-600 hover:text-white transition">
             &times;
         </button>
@@ -848,7 +892,7 @@
     </div>
 
     <!-- WIDGET DARURAT (112 / 110) -->
-    <div id="call-center-widget" class="hidden fixed bottom-[calc(116px+var(--sab))] lg:bottom-[92px] left-4 z-[95] flex-col gap-2">
+    <div id="call-center-widget" class="hidden fixed bottom-[calc(116px+var(--sab))] lg:bottom-12 left-4 z-[95] flex-col gap-2">
         <a href="tel:112" class="group flex items-center justify-center w-10 h-10 bg-red-600 hover:bg-red-500 text-white rounded-full shadow-lg border border-red-400/70 hover:scale-105 transition relative">
             <i class="fa-solid fa-truck-medical text-sm animate-pulse"></i>
             <span class="absolute left-12 bg-red-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full hidden group-hover:block whitespace-nowrap shadow-lg">112 - Darurat</span>
@@ -860,26 +904,27 @@
     </div>
 
     <!-- =========================================================
-         BOTTOM NAVIGATION DOCK ALA MYIM3 (5 MENU + RUNNING TEXT INTEGRATED)
+         BOTTOM BAR:
+         - HP (iOS/Android) & Tablet (< 1024px): Strip Info + Bottom Navigation Dock 5 Tab
+         - PC / Laptop (>= 1024px): Hanya Strip Info Ramping di Bawah Layar
          ========================================================= -->
     <div class="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
-        <div class="max-w-[680px] lg:max-w-[820px] mx-auto px-0 sm:px-4 pb-0 sm:pb-3 pointer-events-auto">
-            <!-- Strip Info Berjalan Tipis di Atas Dock -->
-            <div class="mx-3 sm:mx-4 mb-1.5 h-7 rounded-full bg-zinc-900/90 dark:bg-zinc-800/95 text-white border border-white/10 shadow-md flex items-center overflow-hidden px-2">
+        <div class="max-w-[720px] lg:max-w-[1280px] mx-auto px-0 sm:px-4 pb-0 sm:pb-2 pointer-events-auto">
+            <!-- Strip Info Berjalan -->
+            <div class="mx-3 sm:mx-4 lg:mx-0 mb-1.5 lg:mb-1 h-7 rounded-full bg-zinc-900/95 dark:bg-zinc-800/95 text-white border border-white/10 shadow-md flex items-center overflow-hidden px-2.5">
                 <span class="bg-rose-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 mr-2 flex items-center gap-1">
                     <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> INFO
                 </span>
                 <div class="ticker-wrap relative flex-1 text-zinc-100" id="ticker-wrap-main">
                     <div id="unified-ticker-main" class="ticker-move"></div>
                 </div>
-                <div id="clock-wrapper-dock" class="pl-2 border-l border-white/15 text-[9px] font-extrabold text-amber-300 tabular-nums shrink-0">
+                <div id="clock-wrapper-dock" class="pl-2.5 border-l border-white/15 text-[9px] font-extrabold text-amber-300 tabular-nums shrink-0">
                     <span id="clock-dock">00:00:00 WIB</span>
                 </div>
             </div>
 
-            <!-- Dock 5 Tab Ikonik (Seperti: myIM3 | Digital Hub | Beli | Reward | Akun) -->
-            <nav aria-label="Navigasi Bawah" class="im3-bottom-dock rounded-t-[26px] sm:rounded-full h-[70px] pb-[var(--sab)] px-2 grid grid-cols-5 items-center">
-                <!-- 1. Beranda (Ikon Aktif Pentagon Merah seperti myIM3) -->
+            <!-- Dock 5 Tab Ikonik (Khusus HP & Tablet; Tersembunyi di PC lg:hidden) -->
+            <nav aria-label="Navigasi Bawah HP & Tablet" class="lg:hidden im3-bottom-dock rounded-t-[26px] sm:rounded-full h-[70px] pb-[var(--sab)] px-2 grid grid-cols-5 items-center">
                 <a href="{{ url_for('home') }}" class="flex flex-col items-center justify-center gap-1 btn-press {% if request.endpoint == 'home' %}text-rose-600 dark:text-rose-400 font-extrabold{% else %}text-zinc-500 dark:text-zinc-400 font-semibold{% endif %}">
                     {% if request.endpoint == 'home' %}
                         <div class="im3-active-home-badge w-7 h-7 flex items-center justify-center text-white">
@@ -893,7 +938,6 @@
                     <span class="text-[10px] tracking-tight leading-none">Beranda</span>
                 </a>
 
-                <!-- 2. Berita / Hub -->
                 <a href="{{ url_for('berita_page') }}" class="flex flex-col items-center justify-center gap-1 btn-press {% if request.endpoint == 'berita_page' %}text-rose-600 dark:text-rose-400 font-extrabold{% else %}text-zinc-500 dark:text-zinc-400 font-semibold{% endif %}">
                     <div class="w-7 h-7 flex items-center justify-center">
                         <i data-lucide="radar" class="w-5 h-5"></i>
@@ -901,7 +945,6 @@
                     <span class="text-[10px] tracking-tight leading-none">Berita</span>
                 </a>
 
-                <!-- 3. CCTV -->
                 <a href="{{ url_for('cctv_page') }}" class="flex flex-col items-center justify-center gap-1 btn-press {% if request.endpoint == 'cctv_page' %}text-rose-600 dark:text-rose-400 font-extrabold{% else %}text-zinc-500 dark:text-zinc-400 font-semibold{% endif %}">
                     <div class="w-7 h-7 flex items-center justify-center">
                         <i data-lucide="video" class="w-5 h-5"></i>
@@ -909,28 +952,26 @@
                     <span class="text-[10px] tracking-tight leading-none">CCTV</span>
                 </a>
 
-                <!-- 4. EWS / Religi -->
                 <a href="{{ url_for('ews_jateng_page') }}" class="flex flex-col items-center justify-center gap-1 btn-press {% if request.endpoint == 'ews_jateng_page' %}text-rose-600 dark:text-rose-400 font-extrabold{% else %}text-zinc-500 dark:text-zinc-400 font-semibold{% endif %}">
                     <div class="w-7 h-7 flex items-center justify-center">
-                        <i data-lucide="crown" class="w-5 h-5"></i>
+                        <i data-lucide="shield-alert" class="w-5 h-5"></i>
                     </div>
                     <span class="text-[10px] tracking-tight leading-none">EWS</span>
                 </a>
 
-                <!-- 5. Akun / Menu -->
                 {% if session.get('user') %}
                     <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center gap-1 btn-press {% if request.endpoint == 'dashboard' %}text-rose-600 dark:text-rose-400 font-extrabold{% else %}text-zinc-500 dark:text-zinc-400 font-semibold{% endif %}">
                         <div class="w-7 h-7 flex items-center justify-center">
                             <i data-lucide="circle-user-round" class="w-5 h-5"></i>
                         </div>
-                        <span class="text-[10px] tracking-tight leading-none">Akun</span>
+                        <span class="text-[10px] tracking-tight leading-none">Member</span>
                     </a>
                 {% else %}
                     <button type="button" onclick="toggleNavDrawer(true)" class="flex flex-col items-center justify-center gap-1 btn-press text-zinc-500 dark:text-zinc-400 font-semibold">
                         <div class="w-7 h-7 flex items-center justify-center">
                             <i data-lucide="circle-user-round" class="w-5 h-5"></i>
                         </div>
-                        <span class="text-[10px] tracking-tight leading-none">Akun</span>
+                        <span class="text-[10px] tracking-tight leading-none">Menu</span>
                     </button>
                 {% endif %}
             </nav>
@@ -1128,15 +1169,6 @@
             if (apakahGelap) {
                 if(darkIcon) darkIcon.classList.add('hidden');
                 if(lightIcon) lightIcon.classList.remove('hidden');
-            }
-
-            // Set tanggal dinamis pada pill kuning banner
-            const pillDate = document.getElementById('hero-pill-date');
-            if (pillDate) {
-                const now = new Date();
-                const bulanIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-                const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-                pillDate.innerText = `1-${lastDay} ${bulanIndo[now.getMonth()]} ${now.getFullYear()}`;
             }
         });
 
@@ -1404,7 +1436,6 @@
                 selisihMenit = totalMenitSholatBesok - totalMenitSekarang;
             }
 
-            // Perbarui kolom ke-3 kartu status utama (seperti '0 poin')
             const heroPrayerEl = document.getElementById('hero-next-prayer');
             if (heroPrayerEl && sholatSelanjutnya) {
                 heroPrayerEl.innerText = `${sholatSelanjutnya} ${waktuSelanjutnya}`;
@@ -1579,8 +1610,22 @@
                 scene.fog = new THREE.FogExp2(isDarkMode() ? 0x0e0f13 : 0xf1f5f9, 0.014);
 
                 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.set(0, 17, 42);
-                camera.lookAt(0, 8, 0);
+
+                function updateCameraForDevice() {
+                    const w = window.innerWidth;
+                    if (w < 640) {
+                        // HP (iOS & Android)
+                        camera.position.set(0, 19, 48);
+                    } else if (w < 1024) {
+                        // Tablet
+                        camera.position.set(0, 18, 44);
+                    } else {
+                        // PC / Desktop
+                        camera.position.set(0, 17, 40);
+                    }
+                    camera.lookAt(0, 8, 0);
+                }
+                updateCameraForDevice();
 
                 const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
                 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1592,11 +1637,11 @@
                 const hemiLight = new THREE.HemisphereLight(
                     isDarkMode() ? 0x38bdf8 : 0xffffff,
                     isDarkMode() ? 0x18181b : 0x94a3b8,
-                    isDarkMode() ? 0.75 : 1.15
+                    isDarkMode() ? 0.8 : 1.15
                 );
                 scene.add(hemiLight);
 
-                const dirLight = new THREE.DirectionalLight(isDarkMode() ? 0x7dd3fc : 0xfffbeb, isDarkMode() ? 0.85 : 1.2);
+                const dirLight = new THREE.DirectionalLight(isDarkMode() ? 0x7dd3fc : 0xfffbeb, isDarkMode() ? 0.9 : 1.2);
                 dirLight.position.set(28, 45, 30);
                 scene.add(dirLight);
 
@@ -1728,6 +1773,7 @@
 
                 window.addEventListener('resize', () => {
                     camera.aspect = window.innerWidth / window.innerHeight;
+                    updateCameraForDevice();
                     camera.updateProjectionMatrix();
                     renderer.setSize(window.innerWidth, window.innerHeight);
                     districtGroup.position.x = window.innerWidth >= 1024 ? 7.5 : 0;
