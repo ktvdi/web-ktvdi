@@ -7,15 +7,27 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.0/dist/hls.min.js"></script>
 
 <style>
-    /* --- VARIABLES (KTVDI BLUE & WHITE THEME) --- */
+    /* --- VARIABLES (KTVDI BLUE & WHITE ADAPTIVE THEME) --- */
     :root {
-        --primary: #1e3a8a; /* Blue-900 */
+        --primary: #1e3a8a;       /* Blue-900 */
         --primary-light: #2563eb; /* Blue-600 */
-        --bg-card: #0a0f1c; /* Deep Blue Dark */
-        --surface: #1e293b; /* Slate-800 */
+        --bg-card: #ffffff;
+        --bg-sub: #f8fafc;
+        --surface: #eff6ff;
+        --surface-hover: #dbeafe;
+        --border: #cbd5e1;
+        --border-active: #2563eb;
+        --text-main: #0f172a;
+        --text-muted: #475569;
+    }
+
+    html.dark {
+        --bg-card: #0a0f1c;       /* Deep Blue Dark */
+        --bg-sub: #0f172a;        /* Slate-900 */
+        --surface: #1e293b;       /* Slate-800 */
         --surface-hover: #334155; /* Slate-700 */
-        --border: #334155; 
-        --border-active: #2563eb; 
+        --border: #1e293b;
+        --border-active: #3b82f6;
         --text-main: #ffffff;
         --text-muted: #94a3b8;
     }
@@ -23,142 +35,253 @@
     /* Hindari bentrok WebGL dengan canvas global base.html */
     #ktvdi-three-canvas { display: none !important; }
 
-    /* Canvas Three.js Smart City 3D Khusus Halaman CCTV */
+    /* Canvas Three.js Smart City 3D (Strict Background Layer) */
     #cctv-three-bg {
         position: fixed;
         inset: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 0;
-        pointer-events: none;
-        opacity: 0.72;
+        z-index: 0 !important;
+        pointer-events: none !important;
+        opacity: 0.34;
     }
 
-    /* --- BASE RESET --- */
+    /* Pastikan Navbar & Footer dari base.html selalu di atas background 3D */
+    body > nav,
+    body > header,
+    body > footer {
+        position: relative;
+        z-index: 30;
+    }
+
+    /* --- BASE CONTAINER (FOREGROUND LAYER) --- */
     #cctv-container {
         position: relative;
-        z-index: 10;
+        z-index: 20;
         width: 100%;
         display: flex;
         flex-direction: column;
-        font-family: 'Inter', sans-serif; 
+        font-family: 'Inter', sans-serif;
         -webkit-tap-highlight-color: transparent;
     }
 
-    /* --- UTILS --- */
+    /* --- SCROLLBAR --- */
     .premium-scroll::-webkit-scrollbar { width: 6px; }
     .premium-scroll::-webkit-scrollbar-track { background: transparent; border-radius: 8px; }
-    .premium-scroll::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 8px; }
+    .premium-scroll::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.45); border-radius: 8px; }
     .premium-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--primary-light); }
 
     /* --- MARQUEE --- */
     .marquee-container { position: relative; overflow: hidden; height: 100%; display: flex; align-items: center; }
     .marquee-content {
-        display: inline-block; white-space: nowrap;
+        display: inline-block;
+        white-space: nowrap;
         animation: marquee-slide 60s linear infinite;
-        padding-left: 100%; font-size: 0.75rem; font-weight: 700; color: #e2e8f0;
+        padding-left: 100%;
+        font-size: 0.78rem;
+        font-weight: 700;
     }
     @keyframes marquee-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
 
     /* --- PLAYER CARD --- */
     .player-card {
+        position: relative;
+        z-index: 20;
         border-radius: 16px;
-        overflow: hidden; 
+        overflow: hidden;
         background: #000;
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-        display: flex; flex-direction: column;
+        box-shadow: 0 12px 32px -10px rgba(15, 23, 42, 0.25);
+        display: flex;
+        flex-direction: column;
         border: 1px solid var(--border);
     }
-     
+    html.dark .player-card {
+        box-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.65);
+    }
+
     .player-header {
-        background: var(--bg-card);
-        padding: 14px 20px; color: white;
-        display: flex; justify-content: space-between; align-items: center;
+        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+        padding: 14px 20px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         border-bottom: 2px solid var(--primary-light);
     }
-    
+    html.dark .player-header {
+        background: #0a0f1c;
+    }
+
     .cam-info-mobile {
-        display: flex; flex-direction: column;
-        line-height: 1.2;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.25;
         overflow: hidden;
     }
     .cam-city-label {
-        font-size: 0.7rem; font-weight: 900; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px;
+        font-size: 0.7rem;
+        font-weight: 900;
+        color: #93c5fd;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .cam-name-label {
-        font-size: 1.1rem; font-weight: 800; color: white;
+        font-size: 1.08rem;
+        font-weight: 800;
+        color: #ffffff;
         white-space: nowrap;
         display: inline-block;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
     }
 
     .video-wrapper {
-        position: relative; width: 100%; padding-top: 56.25%;
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%;
         background: #000;
     }
     .video-element {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: fill; 
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
     }
 
     /* --- ACCORDION LIST --- */
-    .accordion-group { 
-        margin-bottom: 10px; 
-        border: 1px solid var(--border); 
-        border-radius: 12px; 
-        background: var(--surface); 
-        overflow: hidden; 
+    .accordion-group {
+        margin-bottom: 10px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        overflow: hidden;
+        transition: border-color 0.2s ease;
+    }
+    .accordion-group:hover {
+        border-color: var(--primary-light);
     }
     .group-header {
-        padding: 14px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-        background: var(--surface); transition: all 0.2s;
+        padding: 13px 15px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--surface);
+        transition: all 0.2s;
     }
     .group-header:hover { background: var(--surface-hover); }
-    .group-header.active { background: var(--primary); border-bottom: 1px solid var(--border-active); }
+    .group-header.active {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        border-bottom: 1px solid var(--border-active);
+    }
+    .group-header.active .group-title-text { color: #ffffff !important; }
+    .group-header.active .group-count-badge {
+        background: rgba(255, 255, 255, 0.2) !important;
+        color: #ffffff !important;
+    }
+    .group-header.active .group-pin-icon,
+    .group-header.active .group-icon { color: #ffffff !important; }
     .group-header.active .group-icon { transform: rotate(180deg); }
     .group-icon { transition: transform 0.25s ease; }
-    .group-title { font-size: 0.8rem; font-weight: 800; color: #fff; text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
-    .group-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; background: var(--bg-card); }
+
+    .group-title {
+        font-size: 0.8rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+    .group-body {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease;
+        background: var(--bg-card);
+    }
     .group-body.open { max-height: 6000px; }
 
     /* --- LIST ITEM --- */
     .cam-item {
-        padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;
-        display: flex; align-items: center; gap: 12px; transition: all 0.2s;
+        padding: 11px 15px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        transition: all 0.2s;
     }
     .cam-item:last-child { border-bottom: none; }
-    .cam-item:hover { background-color: var(--surface-hover); padding-left: 20px; }
-    .cam-item.active { background-color: rgba(37, 99, 235, 0.22); border-left: 4px solid var(--primary-light); }
-    .cam-item.active .cam-name { color: #ffffff; font-weight: 800; }
-    .cam-item.active .play-icon { color: var(--primary-light) !important; text-shadow: 0 0 12px var(--primary-light); transform: scale(1.1); }
-    .cam-name { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); white-space: normal; line-height: 1.4; }
-    .cam-logo-img { width: 22px; height: 22px; object-fit: contain; border-radius: 5px; flex-shrink: 0; background: rgba(255,255,255,0.08); padding: 2px; }
+    .cam-item:hover {
+        background-color: var(--surface);
+        padding-left: 19px;
+    }
+    .cam-item.active {
+        background-color: rgba(37, 99, 235, 0.14);
+        border-left: 4px solid var(--primary-light);
+    }
+    html.dark .cam-item.active {
+        background-color: rgba(37, 99, 235, 0.24);
+    }
+    .cam-item.active .cam-name {
+        color: var(--primary-light);
+        font-weight: 800;
+    }
+    html.dark .cam-item.active .cam-name {
+        color: #ffffff;
+    }
+    .cam-item.active .cctv-item-icon {
+        color: var(--primary-light) !important;
+        transform: scale(1.1);
+    }
+    .cam-name {
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        white-space: normal;
+        line-height: 1.4;
+    }
+    .cam-logo-img {
+        width: 22px;
+        height: 22px;
+        object-fit: contain;
+        border-radius: 5px;
+        flex-shrink: 0;
+        background: rgba(37, 99, 235, 0.08);
+        padding: 2px;
+    }
 
     /* --- LOADING ANIMATION --- */
     .logo-pulse { animation: pulse-logo 2s infinite ease-in-out; }
-    @keyframes pulse-logo { 0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 20px rgba(37, 99, 235, 0.8)); } 50% { transform: scale(1.05); opacity: 0.7; } }
+    @keyframes pulse-logo {
+        0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 20px rgba(37, 99, 235, 0.8)); }
+        50% { transform: scale(1.05); opacity: 0.72; }
+    }
 
     /* --- RESOLUTION MONITOR --- */
     .signal-container { display: flex; flex-direction: column; align-items: flex-end; }
-    .signal-bars { display: flex; align-items: flex-end; gap: 3px; height: 12px; }
-    .bar { width: 4px; background: var(--border); border-radius: 2px; transition: height 0.3s, background 0.3s; }
-    .bar.active { background: var(--primary-light); box-shadow: 0 0 8px var(--primary-light); } 
+    .signal-bars { display: flex; align-items: flex-end; gap: 3px; height: 13px; }
+    .bar { width: 4px; background: #cbd5e1; border-radius: 2px; transition: height 0.3s, background 0.3s; }
+    html.dark .bar { background: #334155; }
+    .bar.active { background: var(--primary-light); box-shadow: 0 0 8px rgba(37, 99, 235, 0.6); }
     .bar:nth-child(1) { height: 4px; }
     .bar:nth-child(2) { height: 7px; }
     .bar:nth-child(3) { height: 10px; }
     .bar:nth-child(4) { height: 13px; }
-    .net-label { font-size: 0.65rem; font-weight: 900; color: #60a5fa; margin-top: 4px; letter-spacing: 0.5px; }
+    .net-label { font-size: 0.65rem; font-weight: 900; color: #2563eb; margin-top: 4px; letter-spacing: 0.5px; }
+    html.dark .net-label { color: #60a5fa; }
 
     /* --- RESPONSIVE LAYOUT --- */
     @media (min-width: 1024px) {
-        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2rem; align-items: start; }
-        .col-player { grid-column: span 8; position: sticky; top: 100px; }
-        .col-list { grid-column: span 4; height: calc(100vh - 120px); overflow: hidden; display: flex; flex-direction: column; }
+        .layout-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1.75rem; align-items: start; }
+        .col-player { grid-column: span 8; position: sticky; top: 96px; z-index: 20; }
+        .col-list { grid-column: span 4; height: calc(100vh - 120px); overflow: hidden; display: flex; flex-direction: column; position: relative; z-index: 20; }
         .list-scroll-area { flex: 1; overflow-y: auto; padding-right: 4px; }
     }
     @media (max-width: 1023px) {
         .layout-grid { display: flex; flex-direction: column; gap: 1.5rem; }
-        .col-player { width: 100%; }
-        .col-list { width: 100%; height: auto; }
+        .col-player { width: 100%; position: relative; z-index: 20; }
+        .col-list { width: 100%; height: auto; position: relative; z-index: 20; }
         .list-scroll-area { height: 500px; max-height: 65vh; overflow-y: auto; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
         .cam-info-mobile { max-width: 220px; }
         .cam-name-label { font-size: 0.95rem; }
@@ -171,67 +294,92 @@
     }
 </style>
 
-<!-- Background 3D Three.js Smart City Telemetry -->
-<div id="cctv-three-bg"></div>
+<!-- Background 3D Three.js Smart City Telemetry (Ditempatkan di Lapisan Belakang) -->
+<div id="cctv-three-bg" aria-hidden="true"></div>
 
 <div id="cctv-container">
-    
+
     <!-- TOOLBAR / HEADER -->
-    <div class="bg-blue-50/90 dark:bg-[#0a0f1c]/90 backdrop-blur-md border border-blue-200 dark:border-blue-900 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+    <div class="relative z-20 bg-white/95 dark:bg-[#0a0f1c]/95 backdrop-blur-md border border-blue-200 dark:border-blue-900/80 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
         <div class="flex items-center gap-4 w-full md:w-auto">
-            <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shrink-0 p-1.5 border border-white/20">
-                <i class="fa-solid fa-video text-white text-xl"></i>
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/25 shrink-0 p-2 border border-blue-400/30">
+                <!-- Ikon Kamera CCTV -->
+                <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M16.75 12h3.632a1 1 0 0 1 .894 1.447l-2.034 4.069a1 1 0 0 1-1.708.134l-2.124-2.97"/>
+                    <path d="M17.106 9.053a1 1 0 0 1 .447 1.341l-3.106 6.211a1 1 0 0 1-1.342.447L3.61 12.3a2.92 2.92 0 0 1-1.3-3.91L3.69 5.6a2.92 2.92 0 0 1 3.92-1.3z"/>
+                    <path d="M2 19h3.76a2 2 0 0 0 1.8-1.1L9 15"/>
+                    <path d="M2 21v-4"/>
+                    <circle cx="7" cy="9" r="0.8" fill="currentColor"/>
+                </svg>
             </div>
             <div class="flex-1 min-w-0">
-                <h1 class="text-blue-900 dark:text-white font-black text-xl tracking-tight leading-none">KTVDI <span class="text-blue-600 dark:text-blue-400">SMART CITY</span></h1>
-                <p class="text-xs text-blue-700 dark:text-slate-400 font-semibold mt-1 leading-snug">Portal LIVE CCTV Lalu Lintas Terpadu.</p>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-blue-950 dark:text-white font-black text-xl tracking-tight leading-none">
+                        KTVDI <span class="text-blue-600 dark:text-blue-400">SMART CITY</span>
+                    </h1>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse"></span>
+                        ATCS LIVE
+                    </span>
+                </div>
+                <p class="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-1 leading-snug">Portal LIVE CCTV Lalu Lintas &amp; Pemantauan Ruang Publik Terpadu.</p>
             </div>
         </div>
+
         <div class="relative w-full md:w-96 group">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-600 transition-colors text-lg"></i>
+                <i class="fa-solid fa-magnifying-glass text-slate-400 group-focus-within:text-blue-600 transition-colors text-base"></i>
             </div>
-            <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-white dark:bg-[#1e293b] border-2 border-blue-100 dark:border-blue-800 text-blue-900 dark:text-white text-sm rounded-full py-2.5 pl-12 pr-6 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/20 transition-all font-bold placeholder:text-slate-400 shadow-inner" placeholder="Cari lokasi kamera...">
+            <input type="text" id="search-input" onkeyup="handleSearch()" class="w-full bg-slate-50 dark:bg-[#1e293b] border-2 border-blue-100 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-full py-2.5 pl-11 pr-10 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-600/15 transition-all font-bold placeholder:text-slate-400 shadow-inner" placeholder="Cari kota atau titik kamera...">
+            <button type="button" id="clear-search-btn" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-blue-600 cursor-pointer" title="Hapus pencarian">
+                <i class="fa-solid fa-circle-xmark text-sm"></i>
+            </button>
         </div>
     </div>
 
     <!-- MAIN GRID -->
-    <div class="layout-grid flex-1">
-        
+    <div class="layout-grid flex-1 relative z-20">
+
         <!-- PLAYER COLUMN -->
         <main class="col-player">
-            <div class="player-card relative z-10">
+            <div class="player-card">
                 <div class="player-header">
-                    <div class="flex items-center gap-4 overflow-hidden">
-                        <div class="flex items-center gap-2 bg-blue-900/50 px-3 py-1.5 rounded-lg border border-blue-400/50 shrink-0 shadow-inner">
+                    <div class="flex items-center gap-3.5 overflow-hidden">
+                        <div class="flex items-center gap-2 bg-blue-600/40 px-3 py-1.5 rounded-lg border border-blue-300/40 shrink-0 shadow-inner">
                             <span class="relative flex h-2.5 w-2.5">
-                              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
-                              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-400"></span>
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-400"></span>
                             </span>
                             <span class="text-[10px] font-black tracking-widest text-white uppercase">LIVE</span>
                         </div>
-                        
+
                         <div class="cam-info-mobile">
                             <span id="active-cam-city" class="cam-city-label">PILIH LOKASI</span>
                             <span id="active-cam-name" class="cam-name-label">Kamera Belum Dipilih</span>
                         </div>
                     </div>
-                     
+
                     <div class="flex items-center gap-2 text-xs font-bold bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 shrink-0 shadow-md">
-                         <i class="fa-solid fa-shield-halved text-blue-400"></i> <span class="hidden sm:inline text-white tracking-wide">SECURE</span>
+                        <svg class="w-4 h-4 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M16.75 12h3.632a1 1 0 0 1 .894 1.447l-2.034 4.069a1 1 0 0 1-1.708.134l-2.124-2.97"/>
+                            <path d="M17.106 9.053a1 1 0 0 1 .447 1.341l-3.106 6.211a1 1 0 0 1-1.342.447L3.61 12.3a2.92 2.92 0 0 1-1.3-3.91L3.69 5.6a2.92 2.92 0 0 1 3.92-1.3z"/>
+                            <path d="M2 19h3.76a2 2 0 0 0 1.8-1.1L9 15"/>
+                            <path d="M2 21v-4"/>
+                        </svg>
+                        <span class="hidden sm:inline text-white tracking-wide">CCTV STREAM</span>
                     </div>
                 </div>
 
                 <div class="video-wrapper group">
                     <video id="video-element" class="video-element" autoplay muted playsinline crossorigin="anonymous"></video>
-                    
+
                     <div id="overlay-loading" class="absolute inset-0 bg-[#0a0f1c] z-40 flex flex-col items-center justify-center text-center p-4">
-                        <div class="relative w-24 h-24 mb-6 logo-pulse">
-                            <div class="absolute inset-0 bg-blue-600/50 rounded-full blur-2xl"></div>
+                        <div class="relative w-24 h-24 mb-5 logo-pulse flex items-center justify-center">
+                            <div class="absolute inset-0 bg-blue-600/45 rounded-full blur-2xl"></div>
                             <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Loading" class="w-full h-full object-contain brightness-0 invert drop-shadow-2xl relative z-10">
                         </div>
-                        <h3 class="text-white font-black text-xl tracking-[0.2em] mb-2">KTVDI CCTV</h3>
-                        <p class="text-blue-400 text-sm font-bold animate-pulse tracking-wide">Menghubungkan ke Server...</p>
+                        <h3 class="text-white font-black text-xl tracking-[0.2em] mb-1.5">KTVDI CCTV</h3>
+                        <p class="text-blue-400 text-sm font-bold animate-pulse tracking-wide">Menghubungkan ke Server Kamera...</p>
                     </div>
 
                     <div id="overlay-play" class="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md cursor-pointer transition-all hidden" onclick="startPlayback()">
@@ -241,47 +389,57 @@
                     </div>
 
                     <div id="overlay-error" class="absolute inset-0 bg-[#0a0f1c] z-40 hidden flex flex-col items-center justify-center text-center px-6">
-                        <i class="fa-solid fa-video-slash text-slate-500 text-5xl mb-4 drop-shadow-lg"></i>
+                        <svg class="w-14 h-14 text-slate-500 mb-4 drop-shadow-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M16.75 12h3.632a1 1 0 0 1 .894 1.447l-2.034 4.069a1 1 0 0 1-1.708.134l-2.124-2.97"/>
+                            <path d="M17.106 9.053a1 1 0 0 1 .447 1.341l-3.106 6.211a1 1 0 0 1-1.342.447L3.61 12.3a2.92 2.92 0 0 1-1.3-3.91L3.69 5.6a2.92 2.92 0 0 1 3.92-1.3z"/>
+                            <path d="M2 19h3.76a2 2 0 0 0 1.8-1.1L9 15"/>
+                            <path d="M2 21v-4"/>
+                            <line x1="2" y1="2" x2="22" y2="22"/>
+                        </svg>
                         <h4 class="text-white font-black text-xl mb-2">Kamera Offline</h4>
-                        <p class="text-slate-400 text-sm mb-6 max-w-sm">Koneksi aliran video terputus atau akses diblokir oleh penyedia layanan.</p>
-                        <p class="text-blue-300 text-xs font-bold mb-4 hidden max-w-md bg-blue-900/30 p-3 rounded-lg border border-blue-500/30" id="http-warning"><i class="fa-solid fa-circle-info mr-1"></i> Info: Kamera menggunakan koneksi HTTP (Insecure Content).</p>
+                        <p class="text-slate-400 text-sm mb-5 max-w-sm">Koneksi aliran video terputus atau akses diblokir oleh penyedia layanan.</p>
+                        <p class="text-blue-300 text-xs font-bold mb-4 hidden max-w-md bg-blue-900/30 p-3 rounded-lg border border-blue-500/30" id="http-warning">
+                            <i class="fa-solid fa-circle-info mr-1"></i> Info: Kamera menggunakan koneksi HTTP (Insecure Content).
+                        </p>
                         <button onclick="retryStream()" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-lg shadow-[0_0_20px_rgba(37,99,235,0.5)] transition-all tracking-widest uppercase cursor-pointer">Coba Lagi</button>
                     </div>
                 </div>
 
-                <div class="bg-[#0f172a] px-5 py-3 flex items-center justify-between border-t border-[#1e293b] relative z-20">
-                    <div class="flex items-center gap-3">
-                         <div class="text-[11px] text-slate-300 font-mono font-bold tracking-widest transition-all uppercase">PANTAUAN CCTV TERKINI</div>
+                <!-- PLAYER CONTROL BAR -->
+                <div class="bg-slate-50 dark:bg-[#0f172a] px-5 py-3 flex items-center justify-between border-t border-blue-100 dark:border-[#1e293b] relative z-20">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400"></span>
+                        <div class="text-[11px] text-slate-700 dark:text-slate-300 font-mono font-extrabold tracking-widest uppercase">PANTAUAN CCTV TERKINI</div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button id="btn-volume" onclick="toggleMute()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner cursor-pointer" title="Mute/Unmute">
+                    <div class="flex items-center gap-2.5">
+                        <button id="btn-volume" onclick="toggleMute()" class="w-10 h-10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-white rounded-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 hover:bg-blue-600 dark:hover:bg-blue-600 transition-colors shadow-sm cursor-pointer" title="Mute/Unmute">
                             <i class="fa-solid fa-volume-xmark text-sm"></i>
                         </button>
-                        <button onclick="retryStream()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner cursor-pointer" title="Reload">
+                        <button onclick="retryStream()" class="w-10 h-10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-white rounded-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 hover:bg-blue-600 dark:hover:bg-blue-600 transition-colors shadow-sm cursor-pointer" title="Reload Stream">
                             <i class="fa-solid fa-rotate-right text-sm"></i>
                         </button>
-                        <button onclick="toggleFullscreen()" class="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white rounded-full bg-[#1e293b] hover:bg-blue-600 transition-colors shadow-inner cursor-pointer" title="Fullscreen">
+                        <button onclick="toggleFullscreen()" class="w-10 h-10 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-white rounded-full bg-white dark:bg-[#1e293b] border border-slate-200 dark:border-slate-700 hover:bg-blue-600 dark:hover:bg-blue-600 transition-colors shadow-sm cursor-pointer" title="Fullscreen">
                             <i class="fa-solid fa-expand text-sm"></i>
                         </button>
                     </div>
                 </div>
-
             </div>
 
-            <div class="mt-6 bg-[#0f172a]/95 backdrop-blur-md border border-[#1e293b] p-4 rounded-2xl shadow-xl flex flex-col gap-4">
+            <!-- TELEMETRY & RUNNING TEXT CARD -->
+            <div class="mt-5 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md border border-blue-200 dark:border-[#1e293b] p-4 rounded-2xl shadow-lg flex flex-col gap-4">
                 <div class="flex flex-wrap justify-between items-center gap-4">
-                     
-                    <div class="flex items-center gap-4 bg-[#1e293b] px-4 py-2.5 rounded-xl border border-[#334155] shadow-inner">
-                        <div class="w-10 h-10 rounded-full bg-[#0f172a] border border-[#334155] flex items-center justify-center text-blue-400 text-lg shadow-sm">
+
+                    <div class="flex items-center gap-3.5 bg-blue-50/80 dark:bg-[#1e293b] px-4 py-2.5 rounded-xl border border-blue-100 dark:border-[#334155]">
+                        <div class="w-10 h-10 rounded-full bg-white dark:bg-[#0f172a] border border-blue-200 dark:border-[#334155] flex items-center justify-center text-blue-600 dark:text-blue-400 text-lg shadow-sm">
                             <i class="fa-regular fa-clock"></i>
                         </div>
                         <div>
-                            <div id="digital-clock" class="text-white font-mono font-black text-lg leading-none tracking-wider">00:00:00</div>
-                            <div id="date-display" class="text-[11px] text-slate-400 font-bold uppercase mt-1 tracking-wide">...</div>
+                            <div id="digital-clock" class="text-slate-900 dark:text-white font-mono font-black text-lg leading-none tracking-wider">00:00:00</div>
+                            <div id="date-display" class="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase mt-1 tracking-wide">...</div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-4 bg-[#1e293b] px-5 py-2.5 rounded-xl border border-[#334155] shadow-inner">
+                    <div class="flex items-center gap-4 bg-blue-50/80 dark:bg-[#1e293b] px-5 py-2.5 rounded-xl border border-blue-100 dark:border-[#334155]">
                         <div class="signal-container">
                             <div class="signal-bars" id="signal-meter">
                                 <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -291,13 +449,13 @@
                     </div>
 
                 </div>
-                 
-                <div class="relative bg-[#1e293b] border border-[#334155] rounded-xl h-10 flex items-center overflow-hidden shadow-inner">
-                    <div class="bg-blue-600 h-full px-4 flex items-center justify-center shrink-0 z-10 shadow-lg">
+
+                <div class="relative bg-slate-100 dark:bg-[#1e293b] border border-blue-200 dark:border-[#334155] rounded-xl h-10 flex items-center overflow-hidden shadow-inner">
+                    <div class="bg-blue-600 h-full px-4 flex items-center justify-center shrink-0 z-10 shadow-md">
                         <i class="fa-solid fa-bullhorn text-white text-sm"></i>
                     </div>
-                    <div class="marquee-container w-full bg-[#0a0f1c]">
-                        <div class="marquee-content text-slate-200 text-sm tracking-wide">
+                    <div class="marquee-container w-full bg-white dark:bg-[#0a0f1c]">
+                        <div class="marquee-content text-slate-800 dark:text-slate-200 text-sm tracking-wide">
                             SELAMAT DATANG DI KTVDI SMARTCITY  //  FUNGSI UTAMA PENAYANGAN CCTV INI ADALAH UNTUK MEMUDAHKAN MASYARAKAT DALAM MEMANTAU KONDISI ARUS LALU LINTAS, SITUASI KEAMANAN, SERTA KETERTIBAN RUANG PUBLIK SECARA REAL-TIME  //  SEBAGAI PUSAT INFORMASI, KAMI MENAMPILKAN BEBERAPA TITIK LIVE CCTV YANG BERSUMBER DARI PEMERINTAH DAERAH, VENDOR, SERTA PEMPROV JATENG YANG BISA ANDA AKSES SECARA LANGSUNG  //  SELURUH ASET DAN LIVE STREAM ADALAH HAK CIPTA DARI MASING-MASING PEMILIK SUMBER ASLI, KAMI HANYA BERTINDAK SEBAGAI AGREGATOR LAYANAN  //  TERKAIT KEBIJAKAN PRIVASI, KAMI TIDAK MELAKUKAN PEREKAMAN VISUAL, PENYIMPANAN DATA PRIBADI, PENGENALAN WAJAH (FACIAL RECOGNITION), MAUPUN PELACAKAN IDENTITAS DARI VIDEO YANG DITAMPILKAN  //  TAYANGAN INI BERSIFAT STREAMING PUBLIK SATU ARAH YANG HANYA DITUJUKAN UNTUK KEPENTINGAN INFORMASI UMUM SERTA KESELAMATAN BERSAMA  //  GUNAKAN FASILITAS INI DENGAN BIJAK DAN TETAP PATUHI PERATURAN YANG BERLAKU DI RUANG PUBLIK   
                         </div>
                     </div>
@@ -306,16 +464,16 @@
         </main>
 
         <!-- LIST COLUMN -->
-        <aside class="col-list bg-[#0f172a]/95 backdrop-blur-md rounded-2xl border border-[#1e293b] shadow-xl relative z-10 overflow-hidden">
-            <div class="p-5 border-b border-[#1e293b] bg-[#0f172a] sticky top-0 z-20 flex justify-between items-center shadow-lg">
+        <aside class="col-list bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-md rounded-2xl border border-blue-200 dark:border-[#1e293b] shadow-xl overflow-hidden">
+            <div class="p-5 border-b border-blue-100 dark:border-[#1e293b] bg-white dark:bg-[#0f172a] sticky top-0 z-20 flex justify-between items-center shadow-sm">
                 <div>
-                    <h3 class="font-black text-white text-base uppercase tracking-widest">Daftar Lokasi</h3>
-                    <p class="text-[11px] text-slate-400 font-bold mt-0.5">Pilih kota untuk melihat kamera</p>
+                    <h3 class="font-black text-blue-950 dark:text-white text-base uppercase tracking-widest">Daftar Lokasi</h3>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">Pilih wilayah untuk melihat titik CCTV</p>
                 </div>
                 <span class="text-[11px] bg-blue-600 text-white px-3 py-1.5 rounded-lg font-black shadow-sm tracking-widest border border-blue-500" id="total-cams">Loading...</span>
             </div>
-            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 bg-[#0a0f1c]/90 shadow-inner"></div>
-            <div class="p-4 bg-[#0f172a] border-t border-[#1e293b] text-center text-[10px] text-slate-500 font-bold tracking-widest uppercase">
+            <div id="camera-list-container" class="list-scroll-area premium-scroll p-3 bg-slate-50/90 dark:bg-[#0a0f1c]/95 shadow-inner"></div>
+            <div class="p-3.5 bg-white dark:bg-[#0f172a] border-t border-blue-100 dark:border-[#1e293b] text-center text-[10px] text-slate-500 font-bold tracking-widest uppercase">
                 © 2026 KTVDI NETWORK
             </div>
         </aside>
@@ -639,7 +797,7 @@
         {city: "D.I. YOGYAKARTA", name: "SIMPANG KIDSFUN", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs/KidsFun.stream/chunklist_w1313202113.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "SIMPANG KYAI MOJO (TIMUR)", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/KyaiMojoTimur.stream/chunklist_w436421476.m3u8"},
         {city: "D.I. YOGYAKARTA", name: "SIMPANG ATMOSUKARTO", url: "https://cctv.jogjaprov.go.id/cctv-proxy/atcs-kota/SimpangAtmosukarto.stream/chunklist_w863425729.m3u8"},
-         
+
         // --- KABUPATEN PEKALONGAN ---
         {city: "KABUPATEN PEKALONGAN", name: "Simpang Susun TOL Bojong", url: "https://live.pbtr.co.id:5443/LiveApp/streams/sspkl.m3u8"},
         {city: "KABUPATEN PEKALONGAN", name: "Sedayu - KDW", url: "https://cctv.pekalongankab.go.id/hls/bojong-kajen/"},
@@ -844,7 +1002,7 @@
     ];
 
     // ==========================================
-    // 2. THREE.JS SMART CITY 3D TELEMETRY ENGINE
+    // 2. THREE.JS SMART CITY 3D TELEMETRY ENGINE (DI BELAKANG UI)
     // ==========================================
     let triggerThreePulse = function() {};
 
@@ -852,14 +1010,19 @@
         const container = document.getElementById('cctv-three-bg');
         if (!container || typeof THREE === 'undefined') return;
 
+        // Pastikan canvas selalu berada di paling bawah DOM (di belakang header/main/footer)
+        if (container.parentElement !== document.body) {
+            document.body.insertBefore(container, document.body.firstChild);
+        }
+
         const isDark = () => document.documentElement.classList.contains('dark');
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(isDark() ? 0x050a18 : 0xeff6ff, 0.022);
+        scene.fog = new THREE.FogExp2(isDark() ? 0x050a18 : 0xf1f5f9, 0.024);
 
-        const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 200);
-        camera.position.set(0, 14, 24);
-        camera.lookAt(0, 0, -4);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 16, 28);
+        camera.lookAt(0, 0, -6);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -867,37 +1030,38 @@
         container.appendChild(renderer.domElement);
 
         // Grid Jalan Kota 3D
-        const gridHelper = new THREE.GridHelper(90, 45, 0x2563eb, isDark() ? 0x1e293b : 0xbfdbfe);
+        const gridHelper = new THREE.GridHelper(96, 48, 0x2563eb, isDark() ? 0x1e293b : 0xcbd5e1);
         gridHelper.position.y = 0;
         scene.add(gridHelper);
 
-        // Blok Gedung Smart City Wireframe & Translucent
+        // Distrik Gedung Smart City (Ditempatkan mengelilingi horizon agar tidak menumpuk di tengah)
         const cityGroup = new THREE.Group();
         scene.add(cityGroup);
 
         const buildingMat = new THREE.MeshBasicMaterial({
             color: isDark() ? 0x0f172a : 0xdbeafe,
             transparent: true,
-            opacity: isDark() ? 0.65 : 0.45
+            opacity: isDark() ? 0.55 : 0.4
         });
         const edgeMat = new THREE.LineBasicMaterial({
             color: isDark() ? 0x38bdf8 : 0x2563eb,
             transparent: true,
-            opacity: isDark() ? 0.35 : 0.28
+            opacity: isDark() ? 0.3 : 0.22
         });
 
         const nodes = [];
-        const nodeGeo = new THREE.SphereGeometry(0.18, 12, 12);
+        const nodeGeo = new THREE.SphereGeometry(0.16, 12, 12);
         const nodeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
 
-        for (let i = 0; i < 42; i++) {
-            const x = (Math.random() - 0.5) * 56;
-            const z = (Math.random() - 0.5) * 56 - 6;
-            // Sisakan jalur pandang tengah agak rendah
-            const maxH = Math.abs(x) < 8 ? 2.5 : 8.5;
-            const h = 1.2 + Math.random() * maxH;
-            const w = 1.4 + Math.random() * 2.2;
-            const d = 1.4 + Math.random() * 2.2;
+        for (let i = 0; i < 40; i++) {
+            const angle = (i / 40) * Math.PI * 2 + (Math.random() * 0.25);
+            const radius = 14 + Math.random() * 22;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius - 6;
+
+            const h = 1.6 + Math.random() * 7.5;
+            const w = 1.5 + Math.random() * 2.1;
+            const d = 1.5 + Math.random() * 2.1;
 
             const boxGeo = new THREE.BoxGeometry(w, h, d);
             const mesh = new THREE.Mesh(boxGeo, buildingMat);
@@ -935,33 +1099,33 @@
 
         triggerThreePulse = function() {
             pulseScale = 1;
-            pulseAlpha = 0.85;
+            pulseAlpha = 0.8;
         };
 
         // Partikel Arus Lalu Lintas Cahaya
-        const particleCount = 90;
+        const particleCount = 80;
         const pPositions = new Float32Array(particleCount * 3);
         const pSpeeds = new Float32Array(particleCount);
         for (let i = 0; i < particleCount; i++) {
             pPositions[i * 3] = (Math.random() - 0.5) * 60;
-            pPositions[i * 3 + 1] = 0.15 + Math.random() * 0.4;
+            pPositions[i * 3 + 1] = 0.15 + Math.random() * 0.35;
             pPositions[i * 3 + 2] = (Math.random() - 0.5) * 60;
             pSpeeds[i] = 4 + Math.random() * 8;
         }
         const pGeo = new THREE.BufferGeometry();
         pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
-        const pMat = new THREE.PointsMaterial({ color: 0x60a5fa, size: 0.28, transparent: true, opacity: 0.75 });
+        const pMat = new THREE.PointsMaterial({ color: 0x60a5fa, size: 0.25, transparent: true, opacity: 0.65 });
         const trafficPoints = new THREE.Points(pGeo, pMat);
         scene.add(trafficPoints);
 
         // Sinkronisasi tema Dark/Light secara otomatis
         function syncThemeColors() {
             const dark = isDark();
-            scene.fog.color.setHex(dark ? 0x050a18 : 0xeff6ff);
+            scene.fog.color.setHex(dark ? 0x050a18 : 0xf1f5f9);
             buildingMat.color.setHex(dark ? 0x0f172a : 0xdbeafe);
-            buildingMat.opacity = dark ? 0.65 : 0.45;
+            buildingMat.opacity = dark ? 0.55 : 0.4;
             edgeMat.color.setHex(dark ? 0x38bdf8 : 0x2563eb);
-            edgeMat.opacity = dark ? 0.35 : 0.28;
+            edgeMat.opacity = dark ? 0.3 : 0.22;
         }
         const themeObserver = new MutationObserver(syncThemeColors);
         themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
@@ -980,7 +1144,7 @@
             const dt = Math.min(0.05, (now - lastTime) / 1000);
             lastTime = now;
 
-            cityGroup.rotation.y += dt * 0.035;
+            cityGroup.rotation.y += dt * 0.03;
             trafficPoints.rotation.y = cityGroup.rotation.y;
 
             const posArr = trafficPoints.geometry.attributes.position.array;
@@ -1027,28 +1191,29 @@
         const video = document.getElementById('video-element');
         const display = document.getElementById('resolution-display');
         const bars = document.querySelectorAll('.bar');
-         
+        const isDark = document.documentElement.classList.contains('dark');
+
         if (video.videoWidth > 0 && video.videoHeight > 0) {
             const w = video.videoWidth;
             const h = video.videoHeight;
             let label = "LOW";
             let quality = 1;
 
-            if (h >= 1230 || w >= 2048) { 
-                label = "2K"; 
-                quality = 4; 
-            } else if (h >= 1080 || w >= 1920) { 
-                label = "FULL HD"; 
-                quality = 4; 
-            } else if (h >= 720 || w >= 1280) { 
-                label = "HD"; 
-                quality = 3; 
-            } else if (h >= 480 || w >= 640) { 
-                label = "SD"; 
-                quality = 2; 
-            } else { 
-                label = "LOW"; 
-                quality = 1; 
+            if (h >= 1230 || w >= 2048) {
+                label = "2K";
+                quality = 4;
+            } else if (h >= 1080 || w >= 1920) {
+                label = "FULL HD";
+                quality = 4;
+            } else if (h >= 720 || w >= 1280) {
+                label = "HD";
+                quality = 3;
+            } else if (h >= 480 || w >= 640) {
+                label = "SD";
+                quality = 2;
+            } else {
+                label = "LOW";
+                quality = 1;
             }
 
             display.innerText = `${w}x${h} (${label})`;
@@ -1057,14 +1222,17 @@
                 bar.classList.remove('active');
                 if (index < quality) {
                     bar.classList.add('active');
-                    bar.style.backgroundColor = (quality >= 3) ? '#3b82f6' : '#eab308';
+                    bar.style.backgroundColor = (quality >= 3) ? '#2563eb' : '#eab308';
                 } else {
-                    bar.style.backgroundColor = '#334155';
+                    bar.style.backgroundColor = isDark ? '#334155' : '#cbd5e1';
                 }
             });
         } else {
             display.innerText = "DETECTING...";
-            bars.forEach(bar => bar.classList.remove('active'));
+            bars.forEach(bar => {
+                bar.classList.remove('active');
+                bar.style.backgroundColor = isDark ? '#334155' : '#cbd5e1';
+            });
         }
     }
 
@@ -1086,13 +1254,13 @@
 
     function initPlayer() {
         renderAccordionList();
-         
-        let firstIndex = streamSource.findIndex(s => s.city.includes("KOTA SEMARANG")); 
+
+        let firstIndex = streamSource.findIndex(s => s.city.includes("KOTA SEMARANG"));
         if (firstIndex === -1) firstIndex = streamSource.findIndex(s => s.city.includes("GROBOGAN"));
-        if (firstIndex === -1) firstIndex = 0; 
-         
+        if (firstIndex === -1) firstIndex = 0;
+
         loadStream(firstIndex);
-         
+
         setInterval(updateClock, 1000);
         updateClock();
     }
@@ -1100,9 +1268,9 @@
     function toggleMute() {
         const videoEl = document.getElementById('video-element');
         const icon = document.querySelector('#btn-volume i');
-         
+
         videoEl.muted = !videoEl.muted;
-         
+
         if (videoEl.muted) {
             icon.className = 'fa-solid fa-volume-xmark text-sm';
         } else {
@@ -1131,11 +1299,11 @@
                 statusName.style.animation = 'scroll-mobile 6s linear infinite alternate';
             }
         }, 100);
-         
+
         loadingOverlay.classList.remove('hidden');
         errorOverlay.classList.add('hidden');
         playOverlay.classList.add('hidden');
-        httpWarning.classList.add('hidden'); 
+        httpWarning.classList.add('hidden');
         document.getElementById('resolution-display').innerText = "DETECTING...";
 
         const videoEl = document.getElementById('video-element');
@@ -1151,7 +1319,7 @@
         }
 
         if (stream.city.includes("GROBOGAN") || stream.city.includes("KABUPATEN PEKALONGAN") || stream.city.includes("KOTA PEKALONGAN")) {
-             finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(stream.url);
+            finalUrl = 'https://corsproxy.io/?' + encodeURIComponent(stream.url);
         }
 
         document.querySelectorAll('.cam-item').forEach(el => el.classList.remove('active'));
@@ -1170,12 +1338,12 @@
         videoEl.load();
 
         if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-            const config = { 
-                enableWorker: true, 
-                lowLatencyMode: !isSlowServer, 
+            const config = {
+                enableWorker: true,
+                lowLatencyMode: !isSlowServer,
                 backBufferLength: 90,
                 maxBufferLength: 30,
-                maxMaxBufferLength: 60,
+                maxMaxBufferLength: 60
             };
 
             hls = new Hls(config);
@@ -1211,8 +1379,8 @@
         updateResolutionDisplay();
     });
 
-    video.addEventListener('waiting', () => { 
-        if (!video.paused) loadingOverlay.classList.remove('hidden'); 
+    video.addEventListener('waiting', () => {
+        if (!video.paused) loadingOverlay.classList.remove('hidden');
     });
 
     function showErrorState() {
@@ -1225,8 +1393,10 @@
     function startPlayback() { video.play(); playOverlay.classList.add('hidden'); }
 
     // ==========================================
-    // 5. UI RENDERER
+    // 5. UI RENDERER (IKON KAMERA CCTV)
     // ==========================================
+    const cctvCameraSvg = `<svg class="w-4 h-4 text-slate-400 dark:text-slate-500 cctv-item-icon shrink-0 transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.75 12h3.632a1 1 0 0 1 .894 1.447l-2.034 4.069a1 1 0 0 1-1.708.134l-2.124-2.97"/><path d="M17.106 9.053a1 1 0 0 1 .447 1.341l-3.106 6.211a1 1 0 0 1-1.342.447L3.61 12.3a2.92 2.92 0 0 1-1.3-3.91L3.69 5.6a2.92 2.92 0 0 1 3.92-1.3z"/><path d="M2 19h3.76a2 2 0 0 0 1.8-1.1L9 15"/><path d="M2 21v-4"/></svg>`;
+
     function renderAccordionList() {
         const container = document.getElementById('camera-list-container');
         container.innerHTML = '';
@@ -1237,11 +1407,11 @@
         });
 
         const orderedGroups = Object.keys(groups).sort((a, b) => {
-            if (a.includes("KOTA SEMARANG")) return -1; 
+            if (a.includes("KOTA SEMARANG")) return -1;
             if (b.includes("KOTA SEMARANG")) return 1;
-            if (a.includes("GROBOGAN")) return -1; 
+            if (a.includes("GROBOGAN")) return -1;
             if (b.includes("GROBOGAN")) return 1;
-            if (a.includes("PEKALONGAN")) return -1; 
+            if (a.includes("PEKALONGAN")) return -1;
             return 0;
         });
 
@@ -1256,31 +1426,31 @@
             header.onclick = () => toggleGroup(header);
             header.innerHTML = `
                 <div class="group-title">
-                    <i class="fa-solid fa-map-location-dot text-blue-400"></i>
-                    <span class="text-white">${groupName}</span>
-                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-blue-300 font-black">${items.length}</span>
+                    <i class="fa-solid fa-map-location-dot text-blue-600 dark:text-blue-400 group-pin-icon"></i>
+                    <span class="text-slate-900 dark:text-white group-title-text">${groupName}</span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-white/10 text-blue-700 dark:text-blue-300 font-black group-count-badge">${items.length}</span>
                 </div>
-                <i class="fa-solid fa-chevron-down group-icon text-slate-400"></i>
+                <i class="fa-solid fa-chevron-down group-icon text-slate-500 dark:text-slate-400"></i>
             `;
 
             const body = document.createElement('div');
             body.className = 'group-body';
-             
+
             if (groupName.includes("KOTA SEMARANG")) {
                 header.classList.add('active');
                 body.classList.add('open');
             }
-             
+
             items.forEach(item => {
                 const row = document.createElement('div');
                 row.className = 'cam-item';
                 row.id = `cam-${item.originalIndex}`;
                 row.onclick = () => loadStream(item.originalIndex);
-                
+
                 const iconContent = item.logo
-                    ? `<img src="${item.logo}" alt="" class="cam-logo-img" loading="lazy" onerror="this.outerHTML='<i class=\\'fa-solid fa-circle-play text-slate-500 text-lg play-icon transition-colors\\'></i>'">`
-                    : `<i class="fa-solid fa-circle-play text-slate-500 text-lg play-icon transition-colors"></i>`;
-                
+                    ? `<img src="${item.logo}" alt="" class="cam-logo-img" loading="lazy" onerror="this.outerHTML='${cctvCameraSvg.replace(/'/g, "\\'")}'">`
+                    : cctvCameraSvg;
+
                 row.innerHTML = `${iconContent}<span class="cam-name flex-1">${item.name}</span>`;
                 body.appendChild(row);
             });
@@ -1297,8 +1467,22 @@
         header.nextElementSibling.classList.toggle('open');
     }
 
+    function clearSearch() {
+        const input = document.getElementById('search-input');
+        input.value = '';
+        handleSearch();
+        input.focus();
+    }
+
     function handleSearch() {
-        const term = document.getElementById('search-input').value.toLowerCase().trim();
+        const input = document.getElementById('search-input');
+        const clearBtn = document.getElementById('clear-search-btn');
+        const term = input.value.toLowerCase().trim();
+
+        if (clearBtn) {
+            clearBtn.classList.toggle('hidden', term.length === 0);
+        }
+
         const groups = document.querySelectorAll('.accordion-group');
         groups.forEach(group => {
             const items = group.querySelectorAll('.cam-item');
