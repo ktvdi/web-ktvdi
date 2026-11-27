@@ -1,101 +1,475 @@
 {% extends "base.html" %}
 
-{% block title %}Edit Data - KTVDI{% endblock %}
+{% block title %}Edit Data Siaran - Komunitas TV Digital Indonesia (KTVDI){% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-brand-surface py-12 px-4 relative overflow-hidden font-['Plus_Jakarta_Sans']">
-    
-    <div class="absolute top-0 left-0 w-96 h-96 bg-yellow-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-    <div class="absolute bottom-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+<style>
+    /* Hindari bentrok dengan kanvas WebGL global di base.html */
+    #ktvdi-three-canvas { display: none !important; }
 
-    <div class="max-w-2xl mx-auto relative z-10">
-        
-        <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-2 text-slate-500 hover:text-brand-blue font-bold mb-6 transition-colors">
-            <i class="fa-solid fa-arrow-left"></i> Kembali ke Dashboard
+    #edit-three-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
+    #edit-siaran-container {
+        position: relative;
+        z-index: 10;
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    }
+
+    /* Modern Glassy Surface (Selaras dengan base.html Light & Dark Mode) */
+    .ktvdi-glass {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border: 1px solid rgba(255, 255, 255, 0.88);
+        box-shadow: 0 12px 32px -10px rgba(15, 23, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.9);
+    }
+
+    .dark .ktvdi-glass {
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(56, 189, 248, 0.16);
+        box-shadow: 0 16px 36px -10px rgba(2, 6, 23, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* Subtle Signal Grid Pattern */
+    .bg-signal-grid {
+        background-image: radial-gradient(rgba(56, 189, 248, 0.22) 1px, transparent 1px);
+        background-size: 22px 22px;
+    }
+
+    /* Chip Pop Animation */
+    @keyframes chipIn {
+        from { opacity: 0; transform: scale(0.92); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .channel-chip {
+        animation: chipIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-ktvdi {
+        animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        opacity: 0;
+    }
+    .delay-1 { animation-delay: 0.08s; }
+</style>
+
+<!-- Background Three.js Gelombang Sinyal -->
+<div id="edit-three-bg"></div>
+
+<div id="edit-siaran-container" class="max-w-3xl mx-auto w-full space-y-6 pb-12">
+
+    <!-- TOP NAVIGATION BAR -->
+    <div class="flex items-center justify-between animate-ktvdi">
+        <a href="{{ url_for('dashboard') }}" class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl ktvdi-glass text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-sky-400 font-bold text-xs md:text-sm transition-all hover:-translate-x-0.5">
+            <i class="fa-solid fa-arrow-left text-blue-600 dark:text-sky-400"></i>
+            <span>Kembali ke Dashboard</span>
         </a>
 
-        <div class="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden">
-            
-            <div class="bg-gradient-to-r from-yellow-500 to-orange-500 p-6 text-white flex justify-between items-center">
+        <span class="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-600/10 dark:bg-sky-400/10 border border-blue-200/80 dark:border-sky-500/25 text-blue-700 dark:text-sky-300 text-[11px] font-extrabold uppercase tracking-wider">
+            <i class="fa-solid fa-pen-to-square"></i> Mode Penyuntingan
+        </span>
+    </div>
+
+    <!-- MAIN EDITOR CARD -->
+    <div class="ktvdi-glass rounded-[28px] overflow-hidden animate-ktvdi delay-1">
+
+        <!-- CARD HEADER (KTVDI BLUE GRADIENT) -->
+        <div class="relative overflow-hidden bg-gradient-to-br from-[#071124] via-[#0f295c] to-[#1d4ed8] p-7 md:p-9 text-white">
+            <div class="absolute inset-0 bg-signal-grid opacity-40 pointer-events-none"></div>
+            <div class="absolute -top-20 -right-20 w-72 h-72 bg-sky-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                 <div>
-                    <h1 class="text-2xl font-extrabold flex items-center gap-3">
-                        <i class="fa-solid fa-pen-to-square"></i> Edit Data Siaran
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-sky-200 text-[10px] font-extrabold uppercase tracking-widest mb-3">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping"></span>
+                        Kontributor KTVDI &bull; Pembaruan MUX
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
+                        Edit Data Siaran
                     </h1>
-                    <p class="text-yellow-100 text-sm mt-1">Perbarui daftar channel untuk MUX ini.</p>
+                    <p class="text-blue-100/90 text-xs sm:text-sm mt-1.5 font-medium">
+                        Perbarui susunan saluran televisi digital terestrial yang aktif pada jaringan MUX ini.
+                    </p>
+                </div>
+
+                <!-- Live Channel Counter Pill -->
+                <div class="shrink-0 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl px-5 py-3.5 text-center sm:min-w-[120px]">
+                    <div class="text-[10px] font-extrabold uppercase tracking-widest text-sky-300">Terdeteksi</div>
+                    <div id="live-channel-count" class="text-2xl md:text-3xl font-black text-white leading-tight mt-0.5">0</div>
+                    <div class="text-[10px] font-bold text-blue-200/85">Saluran TV</div>
                 </div>
             </div>
+        </div>
 
-            {% if error_message %}
-            <div class="bg-red-50 text-red-600 p-4 border-b border-red-100 flex items-center gap-3 text-sm font-bold">
-                <i class="fa-solid fa-circle-exclamation"></i> {{ error_message }}
+        <!-- ERROR MESSAGE ALERT -->
+        {% if error_message %}
+        <div class="mx-6 md:mx-8 mt-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/70 text-rose-700 dark:text-rose-300 flex items-center gap-3 text-xs md:text-sm font-bold">
+            <div class="w-8 h-8 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0 text-rose-600 dark:text-rose-400">
+                <i class="fa-solid fa-circle-exclamation"></i>
             </div>
-            {% endif %}
+            <span>{{ error_message }}</span>
+        </div>
+        {% endif %}
 
-            <div class="p-8">
-                <form method="POST" class="space-y-6">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-2">
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Provinsi</label>
-                            <div class="flex items-center gap-3 p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 cursor-not-allowed">
-                                <i class="fa-solid fa-map-location-dot text-slate-400"></i>
-                                <span class="font-semibold">{{ provinsi }}</span>
+        <!-- FORM BODY -->
+        <div class="p-6 md:p-9">
+            <form method="POST" id="edit-siaran-form" class="space-y-6">
+
+                <!-- LOCKED TARGET METADATA -->
+                <div class="rounded-2xl bg-slate-50/85 dark:bg-slate-950/65 border border-slate-200/85 dark:border-slate-800 p-4 md:p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                            <i class="fa-solid fa-lock text-blue-600 dark:text-sky-400"></i> Target Wilayah &amp; Multipleksing
+                        </span>
+                        <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-md bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            Terkunci
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <div class="p-3.5 rounded-xl bg-white/85 dark:bg-[#1e293b]/70 border border-slate-200/80 dark:border-slate-700/80">
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Provinsi</div>
+                            <div class="flex items-center gap-2 text-slate-800 dark:text-white font-bold text-xs md:text-sm">
+                                <i class="fa-solid fa-map-location-dot text-blue-600 dark:text-sky-400 shrink-0"></i>
+                                <span class="truncate" title="{{ provinsi }}">{{ provinsi }}</span>
                             </div>
                         </div>
 
-                        <div class="space-y-2">
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Wilayah Layanan</label>
-                            <div class="flex items-center gap-3 p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 cursor-not-allowed">
-                                <i class="fa-solid fa-map text-slate-400"></i>
-                                <span class="font-semibold">{{ wilayah }}</span>
+                        <div class="p-3.5 rounded-xl bg-white/85 dark:bg-[#1e293b]/70 border border-slate-200/80 dark:border-slate-700/80">
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Wilayah Layanan</div>
+                            <div class="flex items-center gap-2 text-slate-800 dark:text-white font-bold text-xs md:text-sm">
+                                <i class="fa-solid fa-location-crosshairs text-blue-600 dark:text-sky-400 shrink-0"></i>
+                                <span class="truncate" title="{{ wilayah }}">{{ wilayah }}</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3.5 rounded-xl bg-white/85 dark:bg-[#1e293b]/70 border border-slate-200/80 dark:border-slate-700/80">
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">Penyelenggara MUX</div>
+                            <div class="flex items-center gap-2 text-slate-800 dark:text-white font-bold text-xs md:text-sm">
+                                <i class="fa-solid fa-tower-cell text-blue-600 dark:text-sky-400 shrink-0"></i>
+                                <span class="truncate" title="{{ mux }}">{{ mux }}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Penyelenggara MUX</label>
-                        <div class="flex items-center gap-3 p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 cursor-not-allowed">
-                            <i class="fa-solid fa-tower-cell text-slate-400"></i>
-                            <span class="font-semibold">{{ mux }}</span>
-                        </div>
-                        <p class="text-[10px] text-slate-400 italic">*Lokasi dan MUX tidak dapat diubah. Hapus dan buat baru jika salah.</p>
-                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-blue-600 dark:text-sky-400"></i>
+                        Lokasi dan jaringan MUX tidak dapat diubah. Hapus entri dan buat baru di dashboard jika terjadi salah pilih wilayah.
+                    </p>
+                </div>
 
-                    <div class="space-y-2">
-                        <label for="siaran" class="text-sm font-bold text-brand-navy flex justify-between items-center">
-                            <span>Daftar Channel TV</span>
-                            <span class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded">Pisahkan dengan koma (,)</span>
-                        </label>
-                        <div class="relative">
-                            <textarea name="siaran" id="siaran" rows="6" required
-                                class="w-full p-4 bg-white border-2 border-slate-200 rounded-xl text-slate-700 font-medium focus:outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/20 transition-all placeholder:text-slate-300 leading-relaxed"
-                                placeholder="Contoh: TVRI Nasional, TVRI Sport, RCTI, SCTV, Indosiar...">{{ siaran|join(', ') if siaran is iterable and siaran is not string else siaran }}</textarea>
-                        </div>
-                    </div>
-
-                    <div class="pt-4 flex flex-col md:flex-row gap-4 border-t border-slate-100 mt-6">
-                        <button type="submit" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-yellow-500/30 transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
-                            <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
+                <!-- QUICK ADD CHANNEL INPUT -->
+                <div class="space-y-2">
+                    <label for="quick-add-input" class="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle text-blue-600 dark:text-sky-400"></i> Tambah Saluran Cepat
+                    </label>
+                    <div class="flex gap-2.5">
+                        <input type="text" id="quick-add-input" placeholder="Ketik nama stasiun TV lalu tekan Enter (cth: Kompas TV HD)..."
+                            class="flex-1 bg-white/85 dark:bg-slate-950/75 border border-slate-200/90 dark:border-slate-700 text-slate-800 dark:text-white text-xs md:text-sm font-semibold rounded-xl px-4 py-3 focus:outline-none focus:border-blue-600 dark:focus:border-sky-400 transition-colors">
+                        <button type="button" onclick="addChannelFromInput()"
+                            class="px-4 md:px-5 py-3 rounded-xl bg-blue-600/10 dark:bg-sky-400/15 hover:bg-blue-600 hover:text-white dark:hover:bg-sky-500 dark:hover:text-slate-950 text-blue-700 dark:text-sky-300 border border-blue-200 dark:border-sky-500/30 font-extrabold text-xs tracking-wide transition-all shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-plus mr-1"></i> Tambah
                         </button>
-                        <a href="{{ url_for('dashboard') }}" class="md:w-auto w-full px-6 py-3.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all text-center">
-                            Batal
-                        </a>
+                    </div>
+                </div>
+
+                <!-- MAIN TEXTAREA EDITOR -->
+                <div class="space-y-2.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <label for="siaran" class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-tv text-blue-600 dark:text-sky-400"></i>
+                            <span>Daftar Channel TV</span>
+                            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-md border border-slate-200/80 dark:border-slate-700">
+                                Pisahkan dengan koma (,)
+                            </span>
+                        </label>
+
+                        <!-- Helper Tools -->
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="cleanAndDeduplicate()" title="Hapus spasi berlebih, koma kosong, dan saluran ganda"
+                                class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 transition-colors cursor-pointer inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Rapikan &amp; Hapus Duplikat
+                            </button>
+                            <button type="button" onclick="restoreInitialChannels()" title="Kembalikan ke data awal sebelum diedit"
+                                class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700 transition-colors cursor-pointer inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-rotate-left"></i> Reset
+                            </button>
+                        </div>
                     </div>
 
-                </form>
-            </div>
+                    <div class="relative">
+                        <textarea name="siaran" id="siaran" rows="5" required
+                            class="w-full p-4 bg-white/90 dark:bg-slate-950/80 border-2 border-slate-200/90 dark:border-slate-700 rounded-2xl text-slate-800 dark:text-white text-sm font-semibold focus:outline-none focus:border-blue-600 dark:focus:border-sky-400 focus:ring-4 focus:ring-blue-600/15 transition-all placeholder:text-slate-400 leading-relaxed"
+                            placeholder="Contoh: TVRI Nasional, TVRI Sport, RCTI, SCTV, Indosiar...">{{ siaran|join(', ') if siaran is iterable and siaran is not string else siaran }}</textarea>
+                    </div>
+                </div>
+
+                <!-- LIVE CHANNEL CHIP PREVIEW -->
+                <div class="rounded-2xl bg-slate-50/85 dark:bg-slate-950/65 border border-slate-200/85 dark:border-slate-800 p-4 md:p-5 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                            Pratinjau Susunan Saluran (Klik &times; untuk menghapus)
+                        </span>
+                        <span id="duplicate-warning" class="hidden text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Terdeteksi nama saluran ganda
+                        </span>
+                    </div>
+
+                    <div id="channel-chips-preview" class="flex flex-wrap gap-2 min-h-[36px] items-center"></div>
+                </div>
+
+                <!-- ACTION BUTTONS -->
+                <div class="pt-5 flex flex-col sm:flex-row gap-3.5 border-t border-slate-200/80 dark:border-slate-800">
+                    <button type="submit" id="btn-submit-edit"
+                        class="flex-1 bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-extrabold text-sm py-3.5 px-6 rounded-2xl shadow-lg shadow-blue-600/25 border border-blue-400/30 transition-all transform hover:-translate-y-0.5 flex justify-center items-center gap-2.5 cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span id="submit-btn-label">Simpan Perubahan</span>
+                    </button>
+                    <a href="{{ url_for('dashboard') }}"
+                        class="sm:w-auto w-full px-7 py-3.5 bg-white/85 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm rounded-2xl transition-all text-center">
+                        Batal
+                    </a>
+                </div>
+
+            </form>
         </div>
     </div>
 </div>
 
-<style>
-    .animate-blob { animation: blob 7s infinite; }
-    @keyframes blob {
-        0% { transform: translate(0px, 0px) scale(1); }
-        33% { transform: translate(30px, -50px) scale(1.1); }
-        66% { transform: translate(-20px, 20px) scale(0.9); }
-        100% { transform: translate(0px, 0px) scale(1); }
+<script>
+    const textareaEl = document.getElementById('siaran');
+    const previewContainer = document.getElementById('channel-chips-preview');
+    const liveCountEl = document.getElementById('live-channel-count');
+    const dupWarningEl = document.getElementById('duplicate-warning');
+    const quickAddInput = document.getElementById('quick-add-input');
+    const initialRawValue = textareaEl ? textareaEl.value : '';
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     }
-    .animation-delay-2000 { animation-delay: 2s; }
-</style>
+
+    function parseChannelList(raw) {
+        return raw
+            .split(',')
+            .map(item => item.replace(/\s+/g, ' ').trim())
+            .filter(item => item.length > 0);
+    }
+
+    function syncChannelPreview() {
+        if (!textareaEl || !previewContainer) return;
+        const channels = parseChannelList(textareaEl.value);
+        liveCountEl.innerText = channels.length;
+
+        if (channels.length === 0) {
+            dupWarningEl.classList.add('hidden');
+            previewContainer.innerHTML = `<span class="text-xs text-slate-400 dark:text-slate-500 italic">Belum ada saluran yang dimasukkan.</span>`;
+            return;
+        }
+
+        const seen = new Set();
+        let hasDuplicate = false;
+
+        previewContainer.innerHTML = channels.map((ch, idx) => {
+            const key = ch.toLowerCase();
+            const isDup = seen.has(key);
+            if (isDup) hasDuplicate = true;
+            seen.add(key);
+
+            const chipStyle = isDup
+                ? 'bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700'
+                : 'bg-white dark:bg-[#1e293b] text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700';
+
+            return `
+                <span class="channel-chip inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-xs ${chipStyle}">
+                    <span class="text-[10px] font-mono text-blue-600 dark:text-sky-400 font-black">${idx + 1}.</span>
+                    <span>${escapeHtml(ch)}</span>
+                    ${isDup ? '<span class="text-[9px] uppercase px-1.5 py-0.2 bg-amber-500/20 rounded text-amber-700 dark:text-amber-300">Ganda</span>' : ''}
+                    <button type="button" onclick="removeChannelAt(${idx})" aria-label="Hapus ${escapeHtml(ch)}"
+                        class="w-4 h-4 rounded-full hover:bg-rose-500 hover:text-white text-slate-400 flex items-center justify-center transition-colors cursor-pointer">
+                        &times;
+                    </button>
+                </span>
+            `;
+        }).join('');
+
+        if (hasDuplicate) {
+            dupWarningEl.classList.remove('hidden');
+        } else {
+            dupWarningEl.classList.add('hidden');
+        }
+    }
+
+    function removeChannelAt(indexToRemove) {
+        const channels = parseChannelList(textareaEl.value);
+        channels.splice(indexToRemove, 1);
+        textareaEl.value = channels.join(', ');
+        syncChannelPreview();
+    }
+
+    function addChannelFromInput() {
+        const val = quickAddInput.value.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!val) return;
+        const channels = parseChannelList(textareaEl.value);
+        channels.push(val);
+        textareaEl.value = channels.join(', ');
+        quickAddInput.value = '';
+        syncChannelPreview();
+    }
+
+    function cleanAndDeduplicate() {
+        const channels = parseChannelList(textareaEl.value);
+        const unique = [];
+        const seen = new Set();
+        channels.forEach(ch => {
+            const key = ch.toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                unique.push(ch);
+            }
+        });
+        textareaEl.value = unique.join(', ');
+        syncChannelPreview();
+    }
+
+    function restoreInitialChannels() {
+        textareaEl.value = initialRawValue;
+        syncChannelPreview();
+    }
+
+    if (textareaEl) {
+        textareaEl.addEventListener('input', syncChannelPreview);
+    }
+
+    if (quickAddInput) {
+        quickAddInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addChannelFromInput();
+            }
+        });
+    }
+
+    const editForm = document.getElementById('edit-siaran-form');
+    if (editForm) {
+        editForm.addEventListener('submit', () => {
+            // Rapikan koma kosong sebelum dikirim ke server
+            const cleaned = parseChannelList(textareaEl.value);
+            if (cleaned.length > 0) {
+                textareaEl.value = cleaned.join(', ');
+            }
+            const btn = document.getElementById('btn-submit-edit');
+            const label = document.getElementById('submit-btn-label');
+            btn.disabled = true;
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            label.innerText = 'Menyimpan...';
+        });
+    }
+
+    // Subtle Three.js Broadcast Wave Background (Auto Light/Dark Sync)
+    function initEditThreeScene() {
+        const container = document.getElementById('edit-three-bg');
+        if (!container || typeof THREE === 'undefined') return;
+
+        const isDark = () => document.documentElement.classList.contains('dark');
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 150);
+        camera.position.set(0, 10, 24);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        container.appendChild(renderer.domElement);
+
+        const cols = 42;
+        const rows = 26;
+        const count = cols * rows;
+        const positions = new Float32Array(count * 3);
+
+        let idx = 0;
+        for (let ix = 0; ix < cols; ix++) {
+            for (let iz = 0; iz < rows; iz++) {
+                positions[idx * 3] = (ix - cols / 2) * 1.1;
+                positions[idx * 3 + 1] = 0;
+                positions[idx * 3 + 2] = (iz - rows / 2) * 1.1;
+                idx++;
+            }
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const mat = new THREE.PointsMaterial({
+            color: isDark() ? 0x38bdf8 : 0x2563eb,
+            size: 0.17,
+            transparent: true,
+            opacity: isDark() ? 0.6 : 0.42
+        });
+
+        const wavePoints = new THREE.Points(geo, mat);
+        wavePoints.rotation.x = 0.18;
+        scene.add(wavePoints);
+
+        const observer = new MutationObserver(() => {
+            const dark = isDark();
+            mat.color.setHex(dark ? 0x38bdf8 : 0x2563eb);
+            mat.opacity = dark ? 0.6 : 0.42;
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, { passive: true });
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+            if (document.hidden) return;
+
+            const t = now * 0.0014;
+            const pos = wavePoints.geometry.attributes.position.array;
+            let i = 0;
+            for (let ix = 0; ix < cols; ix++) {
+                for (let iz = 0; iz < rows; iz++) {
+                    pos[i * 3 + 1] = Math.sin(ix * 0.25 + t) * 0.8 + Math.cos(iz * 0.28 + t * 0.8) * 0.6;
+                    i++;
+                }
+            }
+            wavePoints.geometry.attributes.position.needsUpdate = true;
+            renderer.render(scene, camera);
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        syncChannelPreview();
+        if (typeof THREE !== 'undefined') {
+            initEditThreeScene();
+        } else {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+            s.onload = initEditThreeScene;
+            document.head.appendChild(s);
+        }
+    });
+</script>
 {% endblock %}
